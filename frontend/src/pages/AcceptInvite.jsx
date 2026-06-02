@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Plane, Lock, User, CheckCircle2 } from 'lucide-react';
 import API from '../api/axios';
 import { Button } from '../components/ui/button';
+import { APP_BRAND_NAME } from '../config/branding';
 
 export default function AcceptInvite() {
   const { token } = useParams();
@@ -68,7 +69,7 @@ export default function AcceptInvite() {
           <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center mb-4">
             <Plane className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-content-primary">Join TravelCRM</h1>
+          <h1 className="text-xl font-bold text-content-primary">Join {APP_BRAND_NAME}</h1>
           <p className="text-sm text-content-secondary mt-1">Complete your account setup</p>
         </div>
 

@@ -7,8 +7,11 @@ import { useTheme } from '../context/ThemeContext';
 import { LOGIN_PRESETS } from '../auth';
 import { AuthError } from '../auth/authService';
 import { cn } from '../lib/utils';
+import { APP_BRAND_NAME } from '../config/branding';
 
 const BG_IMAGE = '/login-bg.jpg';
+const [brandLead, ...brandRest] = APP_BRAND_NAME.split(' ');
+const brandTail = brandRest.join(' ');
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -88,7 +91,10 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-700 text-white shadow-lg shadow-violet-500/30 mb-4">
             <Plane className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">TravelCRM</h1>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+            <span className="text-orange-600">{brandLead}</span>
+            {brandTail ? ` ${brandTail}` : ''}
+          </h1>
           <p className="text-sm text-slate-600 mt-1">Welcome back — sign in to continue</p>
         </div>
 

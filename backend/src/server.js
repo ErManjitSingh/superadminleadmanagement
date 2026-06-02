@@ -42,7 +42,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'Uno Travel CRM API', version: '1.0.0' });
+  res.json({ message: 'UNO Trips CRM API', version: '1.0.0' });
 });
 
 app.use('/api', apiLimiter, apiRoutes);

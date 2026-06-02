@@ -3,8 +3,9 @@ import { Plane, PanelLeftClose, PanelLeft } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import { useSidebarTheme } from './SidebarThemeContext';
 import { cn } from '../../lib/utils';
+import { APP_BRAND_NAME, APP_DEFAULT_SUBTITLE } from '../../config/branding';
 
-export default function SidebarBrand({ title = 'UNO CRM', subtitle = 'Travel Lead Management' }) {
+export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DEFAULT_SUBTITLE }) {
   const { collapsed, toggleCollapsed } = useSidebar();
   const { accent } = useSidebarTheme();
 

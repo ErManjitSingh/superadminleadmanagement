@@ -14,7 +14,6 @@ function SalesManagerShell() {
   const sidebarProps = {
     user,
     navItems: salesManagerNavItems,
-    brandTitle: 'TravelCRM',
     brandSubtitle: 'Sales Manager',
     accent: 'violet',
     profilePath: '/sales-manager/profile',

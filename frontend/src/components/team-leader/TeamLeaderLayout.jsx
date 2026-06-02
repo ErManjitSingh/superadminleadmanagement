@@ -14,7 +14,6 @@ function TeamLeaderShell() {
   const sidebarProps = {
     user,
     navItems: teamLeaderNavItems,
-    brandTitle: 'TravelCRM',
     brandSubtitle: 'Team Leader',
     accent: 'amber',
     profilePath: '/team-leader/profile',

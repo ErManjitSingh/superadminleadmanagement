@@ -14,7 +14,6 @@ function SalesExecutiveShell() {
   const sidebarProps = {
     user,
     navItems: salesExecutiveNavItems,
-    brandTitle: 'TravelCRM',
     brandSubtitle: 'Sales Executive',
     accent: 'sky',
     profilePath: '/sales-executive/profile',

@@ -14,7 +14,6 @@ function OperationsManagerShell() {
   const sidebarProps = {
     user,
     navItems: operationsManagerNavItems,
-    brandTitle: 'TravelCRM',
     brandSubtitle: 'Operations ERP',
     accent: 'teal',
     profilePath: '/operations-manager/profile',

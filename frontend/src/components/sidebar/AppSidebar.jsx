@@ -9,6 +9,7 @@ import { applySidebarCounts } from '../../lib/applySidebarCounts';
 import { useSidebarCounts } from '../../hooks/useSidebarCounts';
 import { TooltipProvider } from '../ui/tooltip';
 import SidebarBrand from './SidebarBrand';
+import { APP_BRAND_NAME } from '../../config/branding';
 import SidebarSearch from './SidebarSearch';
 import SidebarNavItem from './SidebarNavItem';
 import SidebarNavGroup from './SidebarNavGroup';
@@ -76,7 +77,7 @@ export default function AppSidebar({
   const effectiveUser = authUser || user;
   const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
   const selectedBranchLabel = formatBranchLabel(selectedBranch?.name);
-  const resolvedBrandTitle = brandTitle || 'UNO Trips';
+  const resolvedBrandTitle = brandTitle || APP_BRAND_NAME;
   const resolvedBrandSubtitle =
     brandSubtitle || (effectiveUser?.role === 'admin' && selectedBranchLabel ? selectedBranchLabel : 'Travel Lead Management');
 
