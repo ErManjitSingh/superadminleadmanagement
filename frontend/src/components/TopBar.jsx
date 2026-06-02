@@ -38,6 +38,14 @@ function getProfilePath(pathname) {
   return '/profile';
 }
 
+function formatBranchLabel(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
+  if (normalized.includes('bhatakhur') || normalized.includes('bhatakufar')) return 'PTW';
+  return raw;
+}
+
 function IconButton({ children, className, accent, ...props }) {
   return (
     <button
@@ -69,8 +77,9 @@ export default function TopBar({ onMenuClick }) {
   const profilePath = getProfilePath(location.pathname);
   const isAdmin = user?.role === 'admin';
   const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
+  const selectedBranchLabel = formatBranchLabel(selectedBranch?.name);
   const adminRoleLine = isAdmin
-    ? `${user?.roleName || 'Admin'}${selectedBranch?.name ? ` - ${selectedBranch.name}` : ''}`
+    ? `${user?.roleName || 'Admin'}${selectedBranchLabel ? ` - ${selectedBranchLabel}` : ''}`
     : (user?.roleName || user?.role);
   const [isBranchSwitching, setIsBranchSwitching] = useState(false);
   const [isLeadsRefreshing, setIsLeadsRefreshing] = useState(false);
@@ -208,6 +217,7 @@ export default function TopBar({ onMenuClick }) {
             <div className="hidden md:inline-flex items-center h-10 rounded-xl border border-subtle bg-surface/95 p-1">
               {availableBranches.slice(0, 2).map((branch) => {
                 const isActive = branch._id === selectedBranchId;
+                const branchLabel = formatBranchLabel(branch.name);
                 return (
                   <button
                     key={branch._id}
@@ -221,9 +231,9 @@ export default function TopBar({ onMenuClick }) {
                         : 'text-content-muted hover:text-content-primary',
                       'disabled:opacity-90'
                     )}
-                    title={`Switch to ${branch.name}`}
+                    title={`Switch to ${branchLabel}`}
                   >
-                    {branch.name}
+                    {branchLabel}
                   </button>
                 );
               })}

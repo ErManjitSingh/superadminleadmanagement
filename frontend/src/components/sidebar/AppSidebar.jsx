@@ -19,6 +19,14 @@ import { mainNavItems } from './sidebar-config';
 import { filterNavItemsBySearch, injectSectionHeaders, isNavItemActive } from './sidebar-utils';
 import { cn } from '../../lib/utils';
 
+function formatBranchLabel(name) {
+  const raw = String(name || '').trim();
+  if (!raw) return '';
+  const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
+  if (normalized.includes('bhatakhur') || normalized.includes('bhatakufar')) return 'PTW';
+  return raw;
+}
+
 export default function AppSidebar({
   user,
   className = '',
@@ -58,11 +66,12 @@ export default function AppSidebar({
 
   const effectiveUser = authUser || user;
   const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
+  const selectedBranchLabel = formatBranchLabel(selectedBranch?.name);
   const resolvedBrandTitle =
     brandTitle ||
-    (effectiveUser?.role === 'admin' && selectedBranch?.name
-      ? `UNO Trips ${selectedBranch.name}`
-      : 'UNO CRM');
+    (effectiveUser?.role === 'admin' && selectedBranchLabel
+      ? `UNO Trips ${selectedBranchLabel}`
+      : 'UNO Trips');
 
   return (
     <SidebarThemeProvider accent={accent} profilePath={resolvedProfilePath}>
