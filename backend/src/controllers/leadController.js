@@ -22,6 +22,7 @@ const { ROLE_LABELS } = require('../config/roles');
 const { findLeadsPaginated } = require('../repositories/leadRepository');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { autoAssignLead } = require('../services/destinationAssignmentService');
 
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
@@ -135,6 +136,16 @@ const createLead = asyncHandler(async (req, res) => {
   }
 
   const lead = await Lead.create(data);
+
+  const shouldAutoAssign =
+    !data.assignedTo &&
+    req.user.role !== 'sales_executive' &&
+    req.body.skipAutoAssign !== true &&
+    lead.branchId;
+
+  if (shouldAutoAssign) {
+    await autoAssignLead(lead, { triggeredBy: req.user });
+  }
 
   if (data.nextFollowUp) {
     await createFollowUpForLead({

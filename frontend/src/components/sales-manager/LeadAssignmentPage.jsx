@@ -21,9 +21,10 @@ import {
 } from './LeadListBadges';
 
 const AUTO_RULES = [
-  { id: 'round-robin', name: 'Round Robin', desc: 'Distribute leads evenly across active executives', enabled: true, color: 'from-violet-500/20 to-purple-500/15 border-violet-500/25' },
-  { id: 'source-match', name: 'Source Match', desc: 'Assign by lead source expertise', enabled: true, color: 'from-sky-500/20 to-blue-500/15 border-sky-500/25' },
-  { id: 'load-balance', name: 'Load Balance', desc: 'Assign to executive with fewest active leads', enabled: false, color: 'from-slate-500/15 to-zinc-500/10 border-slate-500/20' },
+  { id: 'destination-match', name: 'Destination Match', desc: 'Auto-assign on lead create to destination specialists (active + present)', enabled: true, color: 'from-emerald-500/20 to-teal-500/15 border-emerald-500/25' },
+  { id: 'load-balance', name: 'Lowest Active Leads', desc: 'Prefer executive with fewest active pipeline leads', enabled: true, color: 'from-sky-500/20 to-blue-500/15 border-sky-500/25' },
+  { id: 'round-robin', name: 'Round Robin', desc: 'Tie-breaker when multiple executives have the same load', enabled: true, color: 'from-violet-500/20 to-purple-500/15 border-violet-500/25' },
+  { id: 'fallback-queue', name: 'Branch Fallback', desc: 'Used when no destination specialist is available', enabled: true, color: 'from-amber-500/20 to-orange-500/15 border-amber-500/25' },
 ];
 
 const theme = FILTER_THEMES.unassigned;

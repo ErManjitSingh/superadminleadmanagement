@@ -17,6 +17,7 @@ export const Reports = lazy(() => import('../pages/Reports'));
 export const Team = lazy(() => import('../pages/Team'));
 export const TeamUserProfile = lazy(() => import('../pages/TeamUserProfile'));
 export const AdminAttendancePage = lazy(() => import('../pages/AdminAttendancePage'));
+export const DestinationAssignmentPage = lazy(() => import('../pages/DestinationAssignmentPage'));
 export const Notifications = lazy(() => import('../pages/Notifications'));
 export const ReactivatedLeadsPage = lazy(() => import('../components/leads/ReactivatedLeadsPage'));
 

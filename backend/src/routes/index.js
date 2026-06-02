@@ -31,6 +31,7 @@ const inviteRoutes = require('./inviteRoutes');
 const navCountsRoutes = require('./navCountsRoutes');
 const attendanceRoutes = require('./attendanceRoutes');
 const branchRoutes = require('./branchRoutes');
+const destinationAssignmentRoutes = require('./destinationAssignmentRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/invites', inviteRoutes);
@@ -59,5 +60,6 @@ router.use('/reports', reportsRoutes);
 router.use('/nav-counts', navCountsRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/branches', branchRoutes);
+router.use('/destination-assignment', destinationAssignmentRoutes);
 
 module.exports = router;

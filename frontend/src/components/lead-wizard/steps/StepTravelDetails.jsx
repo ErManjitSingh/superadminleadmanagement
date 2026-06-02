@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useWizardForm } from '../WizardFormContext';
 import { motion } from 'framer-motion';
 import { Search, Calendar, Clock, IndianRupee } from 'lucide-react';
 import WizardField, { WizardInput } from '../WizardField';
 import { DESTINATIONS } from '../constants';
+import API from '../../../api/axios';
 import { cn } from '../../../lib/utils';
 
 const BUDGET_RANGE_OPTIONS = [
@@ -20,8 +21,21 @@ export default function StepTravelDetails() {
   const destination = watch('destination') || '';
   const budgetRange = watch('budgetRange') || '';
   const [open, setOpen] = useState(false);
+  const [destinationOptions, setDestinationOptions] = useState(DESTINATIONS);
 
-  const filtered = DESTINATIONS.filter((d) =>
+  useEffect(() => {
+    API.get('/destination-assignment/destinations', { skipSuccessToast: true, skipErrorToast: true })
+      .then((r) => {
+        const names = (r.data || [])
+          .filter((d) => d.status === 'active')
+          .map((d) => d.name)
+          .filter(Boolean);
+        if (names.length) setDestinationOptions(names);
+      })
+      .catch(() => {});
+  }, []);
+
+  const filtered = destinationOptions.filter((d) =>
     d.toLowerCase().includes(destination.toLowerCase())
   ).slice(0, 8);
 
