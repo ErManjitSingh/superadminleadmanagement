@@ -48,6 +48,7 @@ export default function LeadDataTable({
   onRowClick,
   onDelete,
   onAssign,
+  onTransferBranch,
   canEditLead = true,
   serverPagination = null,
 }) {
@@ -135,7 +136,26 @@ export default function LeadDataTable({
       {
         accessorKey: 'assignedTo',
         header: 'Assigned To',
-        cell: ({ getValue }) => <ExecutiveBadge name={getValue()?.name} unassigned={!getValue()?.name} />,
+        cell: ({ getValue, row }) => {
+          const assigned = getValue();
+          if (!assigned?.name && onAssign) {
+            return (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 text-[11px] px-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssign(row.original);
+                }}
+              >
+                Assign Lead
+              </Button>
+            );
+          }
+          return <ExecutiveBadge name={assigned?.name} unassigned={!assigned?.name} />;
+        },
       },
       {
         accessorKey: 'status',
@@ -189,6 +209,11 @@ export default function LeadDataTable({
                       <UserCheck className="w-4 h-4 text-emerald-600" /> Assign Lead
                     </DropdownMenuItem>
                   )}
+                  {onTransferBranch && (
+                    <DropdownMenuItem onClick={() => onTransferBranch(lead)}>
+                      <RefreshCw className="w-4 h-4 text-fuchsia-600" /> Transfer Branch
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem><CalendarPlus className="w-4 h-4 text-amber-600" /> Add Follow Up</DropdownMenuItem>
                   <DropdownMenuItem><RefreshCw className="w-4 h-4 text-indigo-600" /> Change Status</DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -202,7 +227,7 @@ export default function LeadDataTable({
         },
       },
     ],
-    [onRowClick, onDelete, onAssign]
+    [onRowClick, onDelete, onAssign, onTransferBranch, canEditLead]
   );
 
   const table = useReactTable({

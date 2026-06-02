@@ -9,6 +9,7 @@ const {
   deleteLead,
   getAssignees,
   assignLeads,
+  transferLeadBranch,
   addLeadNote,
   reactivateLead,
   reassignReactivatedLead,
@@ -24,6 +25,7 @@ router.use(protect);
 router.get('/assignees', getAssignees);
 router.get('/lost', listLostLeads);
 router.post('/assign', assignLeads);
+router.patch('/:id/transfer-branch', authorize('admin'), transferLeadBranch);
 router.post('/:id/reactivate', authorize('admin', 'sales_manager'), reactivateLead);
 router.post('/:id/reassign-reactivated', authorize('admin', 'sales_manager'), reassignReactivatedLead);
 router.patch('/:id/reactivation-stage', authorize('admin', 'sales_manager', 'team_leader'), updateReactivationStage);

@@ -39,6 +39,7 @@ export function leadToWizardValues(lead) {
     infants,
     leadSource: lead.leadSource || lead.source || 'website',
     priority: lead.priority || 'medium',
+    branchId: lead.branchId || '',
     hotelCategory: lead.hotelCategory || '3_star',
     requirements: lead.specialRequirements || '',
     budget: lead.budget || '',
@@ -88,6 +89,7 @@ export function wizardValuesToPayload(values) {
     nextFollowUp: firstFollowUp,
     followUpRemarks: values.requirements || undefined,
     status: 'new',
+    ...(values.branchId ? { branchId: values.branchId } : {}),
   };
 }
 

@@ -65,4 +65,5 @@ export const defaultWizardValues = {
   firstFollowUpTime: '',
   leadSource: 'website',
   priority: 'medium',
+  branchId: '',
 };

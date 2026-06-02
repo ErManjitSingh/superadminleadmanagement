@@ -33,6 +33,15 @@ export function useLeadAssign({ onAssigned } = {}) {
 
   const handleAssign = useCallback(
     async ({ assigneeRole, assigneeId, leadIds }) => {
+      const isReassign =
+        !assignModal?.bulk &&
+        Boolean(assignModal?.assignedTo?._id || assignModal?.assignedTo);
+      if (isReassign) {
+        const ok = window.confirm(
+          'Ye lead pehle se assigned hai. Kya aap isko dubara assign karna chahte hain?'
+        );
+        if (!ok) return;
+      }
       setAssigning(true);
       try {
         await API.post('/leads/assign', { assigneeRole, assigneeId, leadIds });
@@ -42,7 +51,7 @@ export function useLeadAssign({ onAssigned } = {}) {
         setAssigning(false);
       }
     },
-    [onAssigned]
+    [assignModal, onAssigned]
   );
 
   return {

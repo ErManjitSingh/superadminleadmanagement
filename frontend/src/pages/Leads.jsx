@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { useSelector } from 'react-redux';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
 import AdminAssignLeadModal from '../components/leads/AdminAssignLeadModal';
+import LeadBranchTransferModal from '../components/leads/LeadBranchTransferModal';
 import { useLeadAssign } from '../hooks/useLeadAssign';
 import {
   DndContext,
@@ -32,6 +34,7 @@ export default function Leads() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { availableBranches, selectedBranchId } = useSelector((s) => s.branch);
   const { can } = usePermissions();
   const isAdmin = user?.role === 'admin';
   const canEditLead = can('leads', 'edit');
@@ -44,6 +47,8 @@ export default function Leads() {
   const [rowSelection, setRowSelection] = useState({});
   const [previewLead, setPreviewLead] = useState(null);
   const [activeDragLead, setActiveDragLead] = useState(null);
+  const [transferLead, setTransferLead] = useState(null);
+  const [transferSubmitting, setTransferSubmitting] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -124,6 +129,21 @@ export default function Leads() {
     await API.delete(`/leads/${id}`);
     setPreviewLead(null);
     invalidateLeads();
+  };
+
+  const handleTransferBranch = async ({ leadId, branchId }) => {
+    const branch = availableBranches.find((b) => b._id === branchId);
+    const ok = window.confirm(`Kya aap is lead ko ${branch?.name || 'selected branch'} me bhejna chahte hain?`);
+    if (!ok) return;
+
+    setTransferSubmitting(true);
+    try {
+      await API.patch(`/leads/${leadId}/transfer-branch`, { branchId });
+      setTransferLead(null);
+      invalidateLeads();
+    } finally {
+      setTransferSubmitting(false);
+    }
   };
 
   const handleBulkDelete = async () => {
@@ -208,6 +228,7 @@ export default function Leads() {
           onRowClick={setPreviewLead}
           onDelete={handleDelete}
           onAssign={isAdmin ? openAssign : undefined}
+          onTransferBranch={isAdmin ? setTransferLead : undefined}
           canEditLead={canEditLead}
           serverPagination={{
             pageIndex: pagination.pageIndex,
@@ -255,6 +276,17 @@ export default function Leads() {
           loading={assigneesLoading}
           onClose={closeAssign}
           onAssign={handleAssign}
+        />
+      )}
+
+      {isAdmin && (
+        <LeadBranchTransferModal
+          open={!!transferLead}
+          lead={transferLead}
+          branches={availableBranches.filter((b) => b._id !== selectedBranchId)}
+          submitting={transferSubmitting}
+          onClose={() => setTransferLead(null)}
+          onSubmit={handleTransferBranch}
         />
       )}
     </div>

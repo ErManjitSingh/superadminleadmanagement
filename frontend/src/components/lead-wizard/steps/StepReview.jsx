@@ -69,6 +69,7 @@ export default function StepReview({ data }) {
       <ReviewSection icon={Megaphone} title="Lead Information" color="amber">
         <Row label="Source" value={sourceLabel} />
         <Row label="Priority" value={priorityLabel} />
+        <Row label="Branch" value={v.branchId || 'Current selected branch'} />
       </ReviewSection>
     </div>
   );

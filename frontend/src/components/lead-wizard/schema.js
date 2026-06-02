@@ -56,6 +56,7 @@ export const budgetSchema = z.object({
 export const leadInfoSchema = z.object({
   leadSource: z.string().min(1, 'Select lead source'),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  branchId: z.string().optional(),
 });
 
 export const assignmentSchema = z.object({
@@ -101,7 +102,7 @@ export const stepFields = [
     'name', 'phone', 'whatsapp', 'email', 'city', 'state',
     'destination', 'travelDate', 'returnDate', 'adults', 'children', 'infants',
     'budget', 'hotelCategory', 'mealPreference', 'transportRequirement', 'specialRequirements',
-    'leadSource', 'priority', 'assignedExecutive', 'assignedManager',
+    'leadSource', 'priority', 'branchId', 'assignedExecutive', 'assignedManager',
     'followUpDate', 'followUpTime', 'followUpRemarks',
   ],
 ];
