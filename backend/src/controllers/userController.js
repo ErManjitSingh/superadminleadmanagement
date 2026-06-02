@@ -131,9 +131,57 @@ const createUser = asyncHandler(async (req, res) => {
   res.status(201).json({ ...obj, roleName: ROLE_LABELS[obj.role] || obj.role });
 });
 
+const toggleUserStatus = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+  if (!user) throw new ApiError(404, 'User not found');
+
+  if (String(user._id) === String(req.user._id)) {
+    throw new ApiError(400, 'You cannot change your own account status');
+  }
+
+  if (user.status === 'invited') {
+    throw new ApiError(400, 'Invited users must accept the invite before you can activate them');
+  }
+
+  const requestedStatus = req.body?.status;
+  let nextStatus;
+  if (requestedStatus === 'active' || requestedStatus === 'disabled') {
+    nextStatus = requestedStatus;
+  } else {
+    nextStatus = user.status === 'active' ? 'disabled' : 'active';
+  }
+
+  if (nextStatus === user.status) {
+    const obj = user.toObject();
+    delete obj.password;
+    return res.json({ ...obj, roleName: ROLE_LABELS[obj.role] || obj.role });
+  }
+
+  user.status = nextStatus;
+  await user.save();
+
+  await logActivity({
+    type: 'user_action',
+    user: req.user.name,
+    userId: req.user._id,
+    action: nextStatus === 'active' ? 'Activated user' : 'Deactivated user',
+    target: user.name,
+    ip: getClientIp(req),
+    branchId: user.branchId || req.branchId || null,
+  });
+
+  const obj = user.toObject();
+  delete obj.password;
+  res.json({ ...obj, roleName: ROLE_LABELS[obj.role] || obj.role });
+});
+
 const updateUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw new ApiError(404, 'User not found');
+
+  if (String(user._id) === String(req.user._id) && req.body.status && req.body.status !== user.status) {
+    throw new ApiError(400, 'You cannot change your own account status');
+  }
 
   if (req.body.roleId) {
     const role = await Role.findById(req.body.roleId);
@@ -155,7 +203,12 @@ const updateUser = asyncHandler(async (req, res) => {
     type: 'user_action',
     user: req.user.name,
     userId: req.user._id,
-    action: req.body.status === 'disabled' ? 'Disabled user' : 'Updated user',
+    action:
+      req.body.status === 'disabled'
+        ? 'Deactivated user'
+        : req.body.status === 'active'
+          ? 'Activated user'
+          : 'Updated user',
     target: user.name,
     ip: getClientIp(req),
     branchId: user.branchId || req.branchId || null,
@@ -251,6 +304,7 @@ module.exports = {
   getUserProfile,
   createUser,
   updateUser,
+  toggleUserStatus,
   deleteUser,
   inviteUser,
   resetPassword,

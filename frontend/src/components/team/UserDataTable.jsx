@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { Eye, Pencil, KeyRound, UserX, Trash2, MoreHorizontal } from 'lucide-react';
+import { Eye, Pencil, KeyRound, UserCheck, UserX, Trash2, MoreHorizontal } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import UserStatusBadge from './UserStatusBadge';
+import UserStatusToggle from './UserStatusToggle';
 import { formatLastLogin } from './constants';
 import { compactTable, compactTh, compactTd } from '../ui/compactTable';
 import {
@@ -12,7 +13,18 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 
-export default function UserDataTable({ users, onEdit, onResetPassword, onDisable, onDelete, onView, permissions = {} }) {
+export default function UserDataTable({
+  users,
+  onEdit,
+  onResetPassword,
+  onDisable,
+  onToggleStatus,
+  onDelete,
+  onView,
+  permissions = {},
+  currentUserId,
+  togglingUserId,
+}) {
   const navigate = useNavigate();
   const hasActions = onEdit || onResetPassword || onDisable || onDelete || onView;
 
@@ -58,7 +70,26 @@ export default function UserDataTable({ users, onEdit, onResetPassword, onDisabl
                   </span>
                 </td>
                 <td className={`${compactTd} text-content-secondary`}>{user.department}</td>
-                <td className={compactTd}><UserStatusBadge status={user.status} /></td>
+                <td className={compactTd}>
+                  <div className="flex items-center gap-2">
+                    {onToggleStatus && (user.status === 'active' || user.status === 'disabled') ? (
+                      <>
+                        <UserStatusToggle
+                          active={user.status === 'active'}
+                          disabled={String(user._id) === String(currentUserId)}
+                          loading={togglingUserId === user._id}
+                          onChange={() => onToggleStatus(user)}
+                          size="sm"
+                        />
+                        <span className="text-[11px] font-medium text-content-secondary whitespace-nowrap">
+                          {user.status === 'active' ? 'Active' : 'Inactive'}
+                        </span>
+                      </>
+                    ) : (
+                      <UserStatusBadge status={user.status} />
+                    )}
+                  </div>
+                </td>
                 <td className={`${compactTd} text-content-muted text-xs`}>{formatLastLogin(user.lastLogin)}</td>
                 <td className={compactTd}>
                   <span className="text-sm font-semibold text-content-primary tabular-nums">{user.assignedLeads ?? 0}</span>
@@ -85,7 +116,17 @@ export default function UserDataTable({ users, onEdit, onResetPassword, onDisabl
                           <KeyRound className="w-4 h-4 mr-2 text-amber-600" /> Reset Password
                         </DropdownMenuItem>
                       )}
-                      {onDisable && user.status === 'active' && (
+                      {onToggleStatus && user.status === 'active' && String(user._id) !== String(currentUserId) && (
+                        <DropdownMenuItem onClick={() => onToggleStatus(user)}>
+                          <UserX className="w-4 h-4 mr-2 text-orange-600" /> Deactivate User
+                        </DropdownMenuItem>
+                      )}
+                      {onToggleStatus && user.status === 'disabled' && (
+                        <DropdownMenuItem onClick={() => onToggleStatus(user)}>
+                          <UserCheck className="w-4 h-4 mr-2 text-emerald-600" /> Activate User
+                        </DropdownMenuItem>
+                      )}
+                      {onDisable && user.status === 'active' && !onToggleStatus && (
                         <DropdownMenuItem onClick={() => onDisable(user)}>
                           <UserX className="w-4 h-4 mr-2 text-orange-600" /> Disable User
                         </DropdownMenuItem>

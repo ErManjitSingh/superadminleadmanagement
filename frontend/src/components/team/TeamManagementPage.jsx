@@ -16,6 +16,7 @@ import { DEPARTMENTS, TABS } from './constants';
 import { toast } from '../../context/ToastContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { useAuth } from '../../context/AuthContext';
 
 const tabIcons = { Users, Shield, Activity, Trophy };
 const emptyFilters = { search: '', status: '', roleId: '', department: '' };
@@ -23,6 +24,8 @@ const emptyActivityFilters = { search: '', type: '' };
 
 export default function TeamManagementPage() {
   const { can } = usePermissions();
+  const { user: authUser } = useAuth();
+  const [togglingUserId, setTogglingUserId] = useState(null);
   const [tab, setTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [usersPagination, setUsersPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
@@ -113,18 +116,45 @@ export default function TeamManagementPage() {
     fetchLogs();
   };
 
-  const handleDisable = async (user) => {
+  const handleToggleStatus = async (user) => {
+    if (String(user._id) === String(authUser?._id)) {
+      toast.error('You cannot change your own account status');
+      return;
+    }
+    if (user.status === 'invited') {
+      toast.error('Invited users must accept the invite before activation');
+      return;
+    }
+
+    const activating = user.status !== 'active';
     const ok = await confirm({
-      title: 'Disable user?',
-      message: `Disable ${user.name}?`,
-      confirmLabel: 'Disable',
+      title: activating ? 'Activate user?' : 'Deactivate user?',
+      message: activating
+        ? `${user.name} will be able to log in and receive leads again.`
+        : `${user.name} will be logged out and cannot sign in until reactivated.`,
+      confirmLabel: activating ? 'Activate' : 'Deactivate',
       cancelLabel: 'Cancel',
-      tone: 'warning',
+      tone: activating ? 'default' : 'warning',
     });
     if (!ok) return;
-    await API.put(`/users/${user._id}`, { status: 'disabled' });
-    fetchUsers();
-    fetchLogs();
+
+    setTogglingUserId(user._id);
+    try {
+      const res = await API.patch(`/users/${user._id}/toggle-status`, {
+        status: activating ? 'active' : 'disabled',
+      });
+      const updated = res.data;
+      setUsers((prev) => prev.map((u) => (u._id === user._id ? { ...u, ...updated } : u)));
+      if (drawerUser?._id === user._id) {
+        setDrawerUser((prev) => (prev ? { ...prev, ...updated } : prev));
+      }
+      toast.success(activating ? `${user.name} is now active` : `${user.name} has been deactivated`);
+      fetchLogs();
+    } catch {
+      /* toast via axios */
+    } finally {
+      setTogglingUserId(null);
+    }
   };
 
   const handleDelete = async (user) => {
@@ -185,10 +215,12 @@ export default function TeamManagementPage() {
     return res.data;
   };
 
+  const isAdmin = authUser?.role === 'admin';
   const userActions = {
     canEdit: can('users', 'edit'),
     canDelete: can('users', 'delete'),
     canManage: can('users', 'edit'),
+    canToggleStatus: isAdmin,
   };
 
   return (
@@ -294,10 +326,12 @@ export default function TeamManagementPage() {
                 <UserDataTable
                   users={users}
                   permissions={userActions}
+                  currentUserId={authUser?._id}
+                  togglingUserId={togglingUserId}
                   onEdit={userActions.canEdit ? (u) => { setEditUser(u); setModalOpen(true); } : undefined}
                   onView={setDrawerUser}
                   onResetPassword={userActions.canManage ? handleResetPassword : undefined}
-                  onDisable={userActions.canManage ? handleDisable : undefined}
+                  onToggleStatus={userActions.canToggleStatus ? handleToggleStatus : undefined}
                   onDelete={userActions.canDelete ? handleDelete : undefined}
                 />
                 <div className="flex items-center justify-between px-1">
@@ -346,7 +380,15 @@ export default function TeamManagementPage() {
 
       <UserFormModal open={modalOpen} onClose={() => { setModalOpen(false); setEditUser(null); }} onSave={handleSaveUser} user={editUser} roles={roles} />
       <InviteUserModal open={inviteOpen} onClose={() => setInviteOpen(false)} onInvite={handleInvite} roles={roles} />
-      <UserDetailDrawer user={drawerUser} open={!!drawerUser} onClose={() => setDrawerUser(null)} onEdit={userActions.canEdit ? (u) => { setDrawerUser(null); setEditUser(u); setModalOpen(true); } : undefined} />
+      <UserDetailDrawer
+        user={drawerUser}
+        open={!!drawerUser}
+        onClose={() => setDrawerUser(null)}
+        onEdit={userActions.canEdit ? (u) => { setDrawerUser(null); setEditUser(u); setModalOpen(true); } : undefined}
+        onToggleStatus={userActions.canToggleStatus ? handleToggleStatus : undefined}
+        currentUserId={authUser?._id}
+        togglingUserId={togglingUserId}
+      />
       {dialogNode}
     </div>
   );

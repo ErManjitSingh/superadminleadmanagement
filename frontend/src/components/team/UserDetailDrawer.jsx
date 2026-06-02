@@ -2,6 +2,7 @@ import { X, Mail, Phone, Building2, Shield, Calendar, Users } from 'lucide-react
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../ui/Avatar';
 import UserStatusBadge from './UserStatusBadge';
+import UserStatusToggle from './UserStatusToggle';
 import { Button } from '../ui/button';
 import AppDrawer from '../ui/AppDrawer';
 import { formatLastLogin } from './constants';
@@ -22,7 +23,23 @@ export default function UserDetailDrawer({ user, open, onClose, onEdit }) {
               <Avatar name={user.name} size="lg" className="!w-20 !h-20 !text-2xl ring-4 ring-brand-500/10 mb-3" />
               <h3 className="text-xl font-bold text-content-primary">{user.name}</h3>
               <p className="text-sm text-content-secondary mt-0.5">{user.email}</p>
-              <div className="mt-3"><UserStatusBadge status={user.status} /></div>
+              <div className="mt-3 flex flex-col items-center gap-2">
+                {onToggleStatus && (user.status === 'active' || user.status === 'disabled') ? (
+                  <div className="flex items-center gap-3">
+                    <UserStatusToggle
+                      active={user.status === 'active'}
+                      disabled={String(user._id) === String(currentUserId)}
+                      loading={togglingUserId === user._id}
+                      onChange={() => onToggleStatus(user)}
+                    />
+                    <span className="text-sm font-medium text-content-secondary">
+                      {user.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                ) : (
+                  <UserStatusBadge status={user.status} />
+                )}
+              </div>
             </div>
             <div className="space-y-3">
               {[

@@ -6,6 +6,7 @@ const {
   getUserProfile,
   createUser,
   updateUser,
+  toggleUserStatus,
   deleteUser,
   inviteUser,
   resetPassword,
@@ -22,6 +23,7 @@ router.get('/', listUsers);
 router.post('/', authorize('admin'), createUser);
 router.get('/:id', getUser);
 router.put('/:id', authorize('admin'), updateUser);
+router.patch('/:id/toggle-status', authorize('admin'), toggleUserStatus);
 router.delete('/:id', authorize('admin'), deleteUser);
 
 module.exports = router;
