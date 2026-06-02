@@ -87,8 +87,8 @@ function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
+        <BrowserRouter>
         <AuthProvider>
-          <BrowserRouter>
           <NotificationProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -231,8 +231,8 @@ function App() {
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
           </NotificationProvider>
-          </BrowserRouter>
         </AuthProvider>
+        </BrowserRouter>
       </ToastProvider>
     </ThemeProvider>
   );

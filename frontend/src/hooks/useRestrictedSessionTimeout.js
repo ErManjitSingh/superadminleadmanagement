@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { authStorage } from '../auth/authStorage';
 import { requiresRestrictedSession } from '../auth/sessionPolicy';
 import { toast } from '../context/ToastContext';
@@ -9,7 +8,6 @@ const CHECK_INTERVAL_MS = 60 * 1000;
 const TOUCH_THROTTLE_MS = 30 * 1000;
 
 export function useRestrictedSessionTimeout(user, logout) {
-  const navigate = useNavigate();
   const lastTouchRef = useRef(0);
 
   useEffect(() => {
@@ -32,7 +30,9 @@ export function useRestrictedSessionTimeout(user, logout) {
         authStorage.clearSession();
       }
       toast.info('Your session ended due to inactivity. Please sign in again.');
-      navigate('/login', { replace: true });
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login');
+      }
     }, CHECK_INTERVAL_MS);
 
     authStorage.touchActivity();
@@ -41,5 +41,5 @@ export function useRestrictedSessionTimeout(user, logout) {
       ACTIVITY_EVENTS.forEach((event) => window.removeEventListener(event, touch));
       window.clearInterval(intervalId);
     };
-  }, [user, logout, navigate]);
+  }, [user, logout]);
 }
