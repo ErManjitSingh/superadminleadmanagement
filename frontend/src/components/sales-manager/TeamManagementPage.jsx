@@ -7,6 +7,7 @@ import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import TeamCard from './teams/TeamCard';
 import TeamFormModal from './teams/TeamFormModal';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 
 export default function TeamManagementPage() {
   const [teams, setTeams] = useState([]);
@@ -14,6 +15,7 @@ export default function TeamManagementPage() {
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editTeam, setEditTeam] = useState(null);
+  const { confirm, dialogNode } = useConfirmDialog();
 
   const fetchTeams = () => {
     setLoading(true);
@@ -41,7 +43,14 @@ export default function TeamManagementPage() {
   };
 
   const handleDelete = async (team) => {
-    if (!window.confirm(`Delete team "${team.name}"? Members will become unassigned from this team.`)) return;
+    const ok = await confirm({
+      title: 'Delete team?',
+      message: `Delete team "${team.name}"? Members will become unassigned from this team.`,
+      confirmLabel: 'Delete Team',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await API.delete(`/sales-manager/teams/${team._id}`);
     fetchTeams();
   };
@@ -117,6 +126,7 @@ export default function TeamManagementPage() {
         onClose={() => { setFormOpen(false); setEditTeam(null); }}
         onSave={handleSave}
       />
+      {dialogNode}
     </div>
   );
 }

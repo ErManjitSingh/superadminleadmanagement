@@ -17,7 +17,7 @@ export default function AttendanceLoginModal({ open, onSuccess }) {
       await API.post(
         '/attendance/check-in',
         { workMode },
-        { successMessage: workMode === 'wfh' ? 'WFH check-in ho gaya' : 'Office check-in ho gaya' }
+        { successMessage: workMode === 'wfh' ? 'WFH check-in completed' : 'Office check-in completed' }
       );
       onSuccess?.();
     } finally {

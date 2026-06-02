@@ -51,7 +51,7 @@ export default function AttendanceCheckInCard({ onChanged }) {
       await API.post(
         '/attendance/check-in',
         { workMode },
-        { successMessage: workMode === 'wfh' ? 'WFH check-in ho gaya' : 'Office check-in ho gaya' }
+        { successMessage: workMode === 'wfh' ? 'WFH check-in completed' : 'Office check-in completed' }
       );
       setPickMode(false);
       load();
@@ -64,7 +64,7 @@ export default function AttendanceCheckInCard({ onChanged }) {
   const handleCheckOut = async () => {
     setActing(true);
     try {
-      await API.post('/attendance/check-out', {}, { successMessage: 'Check-out ho gaya' });
+      await API.post('/attendance/check-out', {}, { successMessage: 'Checked out successfully' });
       load();
       onChanged?.();
     } finally {

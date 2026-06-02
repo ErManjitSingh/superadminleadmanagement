@@ -30,7 +30,7 @@ export default function AttendanceTopBarAction({ accent }) {
   const mode = status.record?.workMode === 'wfh' ? 'WFH' : 'Office';
 
   const handleCheckOut = async () => {
-    await API.post('/attendance/check-out', {}, { successMessage: 'Check-out ho gaya' });
+    await API.post('/attendance/check-out', {}, { successMessage: 'Checked out successfully' });
     load();
   };
 

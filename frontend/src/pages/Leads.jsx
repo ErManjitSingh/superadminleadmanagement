@@ -29,6 +29,7 @@ import { groupLeadsByStatus, countActiveFilters } from '../components/leads/lead
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useLeadsQuery, useLeadsKanbanQuery } from '../features/leads/hooks/useLeadsQuery';
 import { DEFAULT_PAGE_SIZE } from '../components/ui/TablePagination';
+import { useConfirmDialog } from '../hooks/useConfirmDialog';
 
 export default function Leads() {
   const location = useLocation();
@@ -49,6 +50,7 @@ export default function Leads() {
   const [activeDragLead, setActiveDragLead] = useState(null);
   const [transferLead, setTransferLead] = useState(null);
   const [transferSubmitting, setTransferSubmitting] = useState(false);
+  const { confirm, dialogNode } = useConfirmDialog();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -113,6 +115,7 @@ export default function Leads() {
     openBulkAssign,
     closeAssign,
     handleAssign,
+    assignConfirmDialog,
   } = useLeadAssign({ onAssigned: refreshAfterAssign });
 
   const selectedLeadIds = Object.keys(rowSelection).filter((k) => rowSelection[k]);
@@ -125,7 +128,14 @@ export default function Leads() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this lead?')) return;
+    const ok = await confirm({
+      title: 'Delete lead?',
+      message: 'This lead will be deleted permanently.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await API.delete(`/leads/${id}`);
     setPreviewLead(null);
     invalidateLeads();
@@ -133,7 +143,13 @@ export default function Leads() {
 
   const handleTransferBranch = async ({ leadId, branchId }) => {
     const branch = availableBranches.find((b) => b._id === branchId);
-    const ok = window.confirm(`Kya aap is lead ko ${branch?.name || 'selected branch'} me bhejna chahte hain?`);
+    const ok = await confirm({
+      title: 'Transfer lead to another branch?',
+      message: `Do you want to transfer this lead to ${branch?.name || 'the selected branch'}?`,
+      confirmLabel: 'Transfer',
+      cancelLabel: 'Cancel',
+      tone: 'warning',
+    });
     if (!ok) return;
 
     setTransferSubmitting(true);
@@ -148,7 +164,14 @@ export default function Leads() {
 
   const handleBulkDelete = async () => {
     const ids = Object.keys(rowSelection).filter((k) => rowSelection[k]);
-    if (!window.confirm(`Delete ${ids.length} leads?`)) return;
+    const ok = await confirm({
+      title: 'Delete selected leads?',
+      message: `You are about to delete ${ids.length} leads permanently.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await Promise.all(ids.map((id) => API.delete(`/leads/${id}`)));
     setRowSelection({});
     invalidateLeads();
@@ -211,8 +234,8 @@ export default function Leads() {
         count={selectedCount}
         onClear={() => setRowSelection({})}
         onAssign={isAdmin ? () => openBulkAssign(selectedLeadIds) : undefined}
-        onStatusUpdate={() => toast.info('Bulk status update — jald aa raha hai')}
-        onExport={() => toast.info('Export shuru ho raha hai…')}
+        onStatusUpdate={() => toast.info('Bulk status update is coming soon')}
+        onExport={() => toast.info('Export has started...')}
         onDelete={handleBulkDelete}
       />
 
@@ -278,6 +301,8 @@ export default function Leads() {
           onAssign={handleAssign}
         />
       )}
+      {assignConfirmDialog}
+      {dialogNode}
 
       {isAdmin && (
         <LeadBranchTransferModal

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Pencil, Trash2 } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import { Button } from '../ui/button';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 
 function formatNoteTime(iso) {
   const d = new Date(iso);
@@ -14,6 +15,7 @@ export default function LeadNotesSection({ notes: initialNotes }) {
   const [draft, setDraft] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState('');
+  const { confirm, dialogNode } = useConfirmDialog();
 
   const addNote = () => {
     if (!draft.trim()) return;
@@ -29,8 +31,15 @@ export default function LeadNotesSection({ notes: initialNotes }) {
     setEditingId(null);
   };
 
-  const deleteNote = (id) => {
-    if (window.confirm('Delete this note?')) setNotes(notes.filter((n) => n.id !== id));
+  const deleteNote = async (id) => {
+    const ok = await confirm({
+      title: 'Delete note?',
+      message: 'This note will be removed permanently.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (ok) setNotes(notes.filter((n) => n.id !== id));
   };
 
   return (
@@ -109,6 +118,7 @@ export default function LeadNotesSection({ notes: initialNotes }) {
           <Send className="w-4 h-4" />
         </Button>
       </div>
+      {dialogNode}
     </div>
   );
 }

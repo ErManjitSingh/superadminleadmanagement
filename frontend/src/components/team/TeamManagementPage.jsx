@@ -15,6 +15,7 @@ import TeamPerformanceDashboard from './TeamPerformanceDashboard';
 import { DEPARTMENTS, TABS } from './constants';
 import { toast } from '../../context/ToastContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 
 const tabIcons = { Users, Shield, Activity, Trophy };
 const emptyFilters = { search: '', status: '', roleId: '', department: '' };
@@ -35,6 +36,7 @@ export default function TeamManagementPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [drawerUser, setDrawerUser] = useState(null);
+  const { confirm, dialogNode } = useConfirmDialog();
 
   const fetchUsers = useCallback(() => {
     const params = {
@@ -92,27 +94,48 @@ export default function TeamManagementPage() {
   };
 
   const handleResetPassword = async (user) => {
-    if (!window.confirm(`Reset password for ${user.email}? A temporary password will be generated.`)) return;
+    const ok = await confirm({
+      title: 'Reset password?',
+      message: `Reset password for ${user.email}? A temporary password will be generated.`,
+      confirmLabel: 'Reset Password',
+      cancelLabel: 'Cancel',
+      tone: 'warning',
+    });
+    if (!ok) return;
     const res = await API.post(`/users/reset-password/${user._id}`, null, { skipSuccessToast: true });
     const temp = res.data?.temporaryPassword;
     toast.info(
       temp
-        ? `Password reset ho gaya.\n\n${user.email} ke liye temporary password:\n${temp}\n\nUser ko securely share karein.`
-        : res.data?.message || 'Password reset ho gaya',
+        ? `Password has been reset.\n\nTemporary password for ${user.email}:\n${temp}\n\nShare it securely with the user.`
+        : res.data?.message || 'Password has been reset',
       10000
     );
     fetchLogs();
   };
 
   const handleDisable = async (user) => {
-    if (!window.confirm(`Disable ${user.name}?`)) return;
+    const ok = await confirm({
+      title: 'Disable user?',
+      message: `Disable ${user.name}?`,
+      confirmLabel: 'Disable',
+      cancelLabel: 'Cancel',
+      tone: 'warning',
+    });
+    if (!ok) return;
     await API.put(`/users/${user._id}`, { status: 'disabled' });
     fetchUsers();
     fetchLogs();
   };
 
   const handleDelete = async (user) => {
-    if (!window.confirm(`Permanently delete ${user.name}? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: 'Delete user permanently?',
+      message: `Delete ${user.name}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await API.delete(`/users/${user._id}`);
       fetchUsers();
@@ -134,7 +157,14 @@ export default function TeamManagementPage() {
   };
 
   const handleDeleteRole = async (id) => {
-    if (!window.confirm('Delete this role?')) return;
+    const ok = await confirm({
+      title: 'Delete role?',
+      message: 'This role will be removed permanently.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await API.delete(`/roles/${id}`);
       fetchRoles();
@@ -317,6 +347,7 @@ export default function TeamManagementPage() {
       <UserFormModal open={modalOpen} onClose={() => { setModalOpen(false); setEditUser(null); }} onSave={handleSaveUser} user={editUser} roles={roles} />
       <InviteUserModal open={inviteOpen} onClose={() => setInviteOpen(false)} onInvite={handleInvite} roles={roles} />
       <UserDetailDrawer user={drawerUser} open={!!drawerUser} onClose={() => setDrawerUser(null)} onEdit={userActions.canEdit ? (u) => { setDrawerUser(null); setEditUser(u); setModalOpen(true); } : undefined} />
+      {dialogNode}
     </div>
   );
 }

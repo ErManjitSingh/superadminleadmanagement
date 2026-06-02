@@ -30,7 +30,7 @@ export default function LeadEscalationsPage() {
     setEscalating(item._id);
     await API.post('/team-leader/escalations', { _id: item._id, leadName: item.name, type });
     setEscalating(null);
-    toast.success(`${item.name} — Sales Manager ko escalate ho gaya`);
+    toast.success(`${item.name} escalated to Sales Manager`);
     fetchData();
   };
 

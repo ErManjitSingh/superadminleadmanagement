@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import API from '../api/axios';
+import { useConfirmDialog } from './useConfirmDialog';
 
 export function useLeadAssign({ onAssigned } = {}) {
   const [assignees, setAssignees] = useState(null);
   const [assigneesLoading, setAssigneesLoading] = useState(false);
   const [assignModal, setAssignModal] = useState(null);
   const [assigning, setAssigning] = useState(false);
+  const { confirm, dialogNode } = useConfirmDialog();
 
   const fetchAssignees = useCallback(() => {
     setAssigneesLoading(true);
@@ -37,9 +39,13 @@ export function useLeadAssign({ onAssigned } = {}) {
         !assignModal?.bulk &&
         Boolean(assignModal?.assignedTo?._id || assignModal?.assignedTo);
       if (isReassign) {
-        const ok = window.confirm(
-          'Ye lead pehle se assigned hai. Kya aap isko dubara assign karna chahte hain?'
-        );
+        const ok = await confirm({
+          title: 'Reassign this lead?',
+          message: 'This lead is already assigned. Do you want to assign it again to another user?',
+          confirmLabel: 'Yes, Reassign',
+          cancelLabel: 'Cancel',
+          tone: 'warning',
+        });
         if (!ok) return;
       }
       setAssigning(true);
@@ -64,5 +70,6 @@ export function useLeadAssign({ onAssigned } = {}) {
     closeAssign,
     handleAssign,
     fetchAssignees,
+    assignConfirmDialog: dialogNode,
   };
 }

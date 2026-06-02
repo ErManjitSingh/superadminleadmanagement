@@ -53,7 +53,7 @@ export default function TeamPerformancePage() {
           <div className="col-span-full rounded-2xl border border-dashed border-subtle bg-surface/60 p-12 text-center">
             <Users className="w-10 h-10 mx-auto mb-3 text-content-muted opacity-50" />
             <p className="font-medium text-content-primary">No active sales executives</p>
-            <p className="text-sm text-content-muted mt-1">Team Management se Sales Executive add karein, phir performance yahan dikhegi.</p>
+            <p className="text-sm text-content-muted mt-1">Add Sales Executives from Team Management to view performance here.</p>
           </div>
         ) : executives.map((ex) => (
           <div key={ex._id} className="relative overflow-hidden rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl p-4">

@@ -89,7 +89,7 @@ export default function LeaderTeamLeadsPage() {
 
   const handleEscalate = async (lead) => {
     await API.post('/team-leader/escalations', { _id: lead._id, leadName: lead.name, type: 'stuck' });
-    toast.success(`${lead.name} — Sales Manager ko escalate ho gaya`);
+    toast.success(`${lead.name} escalated to Sales Manager`);
   };
 
   const columns = useMemo(() => [

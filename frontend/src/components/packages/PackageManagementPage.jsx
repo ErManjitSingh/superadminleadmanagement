@@ -8,6 +8,7 @@ import PackageFormModal from './PackageFormModal';
 import ResourceManagement from './ResourceManagement';
 import { PACKAGE_TYPES } from '../quotations/constants';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 
 export default function PackageManagementPage() {
   const [packages, setPackages] = useState([]);
@@ -19,6 +20,7 @@ export default function PackageManagementPage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editPackage, setEditPackage] = useState(null);
+  const { confirm, dialogNode } = useConfirmDialog();
 
   const fetchAll = useCallback(() => {
     setLoading(true);
@@ -52,7 +54,14 @@ export default function PackageManagementPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this package?')) return;
+    const ok = await confirm({
+      title: 'Delete package?',
+      message: 'This package will be removed permanently.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await API.delete(`/packages/${id}`);
     fetchAll();
   };
@@ -65,7 +74,14 @@ export default function PackageManagementPage() {
   };
 
   const handleResourceDelete = async (type, id) => {
-    if (!window.confirm('Delete this item?')) return;
+    const ok = await confirm({
+      title: 'Delete item?',
+      message: 'This item will be removed permanently.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      tone: 'danger',
+    });
+    if (!ok) return;
     await API.delete(`/${type}/${id}`);
     fetchAll();
   };
@@ -123,6 +139,7 @@ export default function PackageManagementPage() {
       <ResourceManagement hotels={hotels} cabs={cabs} flights={flights} onSave={handleResourceSave} onDelete={handleResourceDelete} />
 
       <PackageFormModal open={modalOpen} onClose={() => { setModalOpen(false); setEditPackage(null); }} onSubmit={handleSave} editPackage={editPackage} />
+      {dialogNode}
     </motion.div>
   );
 }
