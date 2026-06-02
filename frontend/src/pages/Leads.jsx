@@ -50,7 +50,9 @@ export default function Leads() {
   const [activeDragLead, setActiveDragLead] = useState(null);
   const [transferLead, setTransferLead] = useState(null);
   const [transferSubmitting, setTransferSubmitting] = useState(false);
+  const [seedingDemo, setSeedingDemo] = useState(false);
   const { confirm, dialogNode } = useConfirmDialog();
+  const isNewLeadsPage = location.pathname === '/leads/new-leads';
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
@@ -213,6 +215,27 @@ export default function Leads() {
 
   const pageCount = Math.max(1, Math.ceil(totalLeads / pagination.pageSize) || 1);
 
+  const handleSeedDemoLeads = async () => {
+    const ok = await confirm({
+      title: 'Add 10 demo leads?',
+      message: 'Ten sample leads will be added to New Leads for testing and training.',
+      confirmLabel: 'Add Demo Leads',
+      cancelLabel: 'Cancel',
+      tone: 'default',
+    });
+    if (!ok) return;
+    setSeedingDemo(true);
+    try {
+      const res = await API.post('/leads/seed-demo');
+      toast.success(res.data?.message || 'Demo leads added');
+      invalidateLeads();
+    } catch {
+      /* toast via axios */
+    } finally {
+      setSeedingDemo(false);
+    }
+  };
+
   return (
     <div className="animate-fade-up">
       <LeadPageHeader
@@ -220,6 +243,8 @@ export default function Leads() {
         total={view === 'table' ? totalLeads : kanbanLeads.length}
         view={view}
         onViewChange={setView}
+        onSeedDemo={isAdmin && isNewLeadsPage ? handleSeedDemoLeads : undefined}
+        seedingDemo={seedingDemo}
       />
 
       <LeadFilterBar

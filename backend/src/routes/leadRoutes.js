@@ -5,6 +5,7 @@ const {
   listLostLeads,
   getLead,
   createLead,
+  seedDemoLeads,
   updateLead,
   deleteLead,
   getAssignees,
@@ -22,6 +23,7 @@ const { validatePaginationQuery } = require('../validators/paginationValidator')
 
 router.use(protect);
 
+router.post('/seed-demo', authorize('admin'), seedDemoLeads);
 router.get('/assignees', getAssignees);
 router.get('/lost', listLostLeads);
 router.post('/assign', assignLeads);

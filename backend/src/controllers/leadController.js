@@ -17,13 +17,14 @@ const {
 } = require('../services/notificationService');
 const { LEAD_POPULATE, FOLLOWUP_POPULATE, enrichLead } = require('../utils/queryHelpers');
 const { createFollowUpForLead } = require('../services/followUpService');
-const { normalizeLeadInput } = require('../utils/normalizeLeadInput');
+const { normalizeLeadInput, computeLeadScoreByBudget } = require('../utils/normalizeLeadInput');
 const { ROLE_LABELS } = require('../config/roles');
 const { findLeadsPaginated } = require('../repositories/leadRepository');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { runLeadAutoAssignment } = require('../services/leadAutoAssignmentService');
 const { detectLeadType } = require('../services/leadTypeDetectionService');
+const { DEMO_LEADS } = require('../data/demoLeads');
 
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
@@ -179,6 +180,81 @@ const createLead = asyncHandler(async (req, res) => {
   invalidateDashboardCache('admin');
   notifyLeadCreated(enriched, req.user).catch(() => {});
   res.status(201).json(enriched);
+});
+
+const seedDemoLeads = asyncHandler(async (req, res) => {
+  let branchId = req.branchId || req.user.branchId;
+  if (!branchId) {
+    const branch = await Branch.findOne({ status: 'active' }).sort({ createdAt: 1 }).select('_id');
+    branchId = branch?._id;
+  }
+  if (!branchId) throw new ApiError(400, 'No active branch found. Create a branch first.');
+
+  const existing = await Lead.countDocuments({ branchId, channel: 'demo_seed' });
+  if (existing >= 10) {
+    throw new ApiError(400, '10 demo leads already exist for this branch. Delete them first to re-seed.');
+  }
+
+  const followUpBase = new Date();
+  followUpBase.setDate(followUpBase.getDate() + 1);
+  followUpBase.setHours(11, 0, 0, 0);
+
+  const created = [];
+  const templates = DEMO_LEADS.slice(0, 10 - existing);
+
+  for (let i = 0; i < templates.length; i += 1) {
+    const template = templates[i];
+    const travelDate = new Date();
+    travelDate.setDate(travelDate.getDate() + 20 + i * 3);
+
+    const nextFollowUp = new Date(followUpBase);
+    nextFollowUp.setHours(nextFollowUp.getHours() + i);
+
+    const typeDetection = detectLeadType(template);
+    const lead = await Lead.create({
+      ...template,
+      status: 'new',
+      leadType: typeDetection.leadType,
+      leadTypeSource: typeDetection.leadTypeSource,
+      travelDate,
+      budgetRange: template.budget >= 100000 ? 'above_100000' : 'custom',
+      leadScore: template.isHot ? 'hot' : computeLeadScoreByBudget(template.budget),
+      createdBy: req.user._id,
+      branchId,
+      channel: 'demo_seed',
+      nextFollowUp,
+    });
+
+    await createFollowUpForLead({
+      body: {
+        lead: lead._id,
+        scheduledAt: nextFollowUp.toISOString(),
+        notes: 'Demo follow-up — first contact',
+        category: 'warm',
+      },
+      user: req.user,
+    });
+
+    created.push(lead._id);
+  }
+
+  await logActivity({
+    type: 'lead_created',
+    user: req.user.name,
+    userId: req.user._id,
+    action: `Added ${created.length} demo leads`,
+    target: 'New Leads',
+    ip: getClientIp(req),
+    branchId,
+  });
+
+  invalidateDashboardCache('admin');
+
+  res.status(201).json({
+    message: `${created.length} demo lead(s) added to New Leads`,
+    created: created.length,
+    totalDemoLeads: existing + created.length,
+  });
 });
 
 const updateLead = asyncHandler(async (req, res) => {
@@ -505,6 +581,7 @@ module.exports = {
   listLostLeads,
   getLead,
   createLead,
+  seedDemoLeads,
   updateLead,
   deleteLead,
   getAssignees,
