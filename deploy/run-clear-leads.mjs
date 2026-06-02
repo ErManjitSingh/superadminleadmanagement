@@ -38,6 +38,8 @@ const conn = new Client();
 conn
   .on('ready', async () => {
     try {
+      console.log('==> Sync latest clear-leads script…');
+      await exec(conn, `cd ${APP_ROOT} && git fetch origin main && git checkout main && git pull origin main`);
       console.log('==> Clearing all leads on VPS…');
       await exec(conn, `cd ${APP_ROOT}/backend && npm run clear-leads`);
       console.log('CLEAR_LEADS_OK');
