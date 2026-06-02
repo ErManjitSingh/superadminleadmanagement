@@ -42,7 +42,15 @@ function formatBranchLabel(name) {
   const raw = String(name || '').trim();
   if (!raw) return '';
   const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
-  if (normalized.includes('bhatakhur') || normalized.includes('bhatakufar')) return 'PTW';
+  if (
+    normalized.includes('bhatakhur') ||
+    normalized.includes('bhatakufar') ||
+    normalized.includes('bhattakufer') ||
+    normalized.includes('bhattakufar') ||
+    normalized.includes('bhata')
+  ) {
+    return 'PTW';
+  }
   return raw;
 }
 

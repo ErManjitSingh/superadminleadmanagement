@@ -23,7 +23,15 @@ function formatBranchLabel(name) {
   const raw = String(name || '').trim();
   if (!raw) return '';
   const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
-  if (normalized.includes('bhatakhur') || normalized.includes('bhatakufar')) return 'PTW';
+  if (
+    normalized.includes('bhatakhur') ||
+    normalized.includes('bhatakufar') ||
+    normalized.includes('bhattakufer') ||
+    normalized.includes('bhattakufar') ||
+    normalized.includes('bhata')
+  ) {
+    return 'PTW';
+  }
   return raw;
 }
 
@@ -67,11 +75,9 @@ export default function AppSidebar({
   const effectiveUser = authUser || user;
   const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
   const selectedBranchLabel = formatBranchLabel(selectedBranch?.name);
-  const resolvedBrandTitle =
-    brandTitle ||
-    (effectiveUser?.role === 'admin' && selectedBranchLabel
-      ? `UNO Trips ${selectedBranchLabel}`
-      : 'UNO Trips');
+  const resolvedBrandTitle = brandTitle || 'UNO Trips';
+  const resolvedBrandSubtitle =
+    brandSubtitle || (effectiveUser?.role === 'admin' && selectedBranchLabel ? selectedBranchLabel : 'Travel Lead Management');
 
   return (
     <SidebarThemeProvider accent={accent} profilePath={resolvedProfilePath}>
@@ -93,7 +99,7 @@ export default function AppSidebar({
           <div className="absolute inset-0 sidebar-bg-scrim pointer-events-none" aria-hidden />
 
           <div className="relative z-10 flex flex-col h-full min-h-0">
-            <SidebarBrand title={resolvedBrandTitle} subtitle={brandSubtitle} />
+            <SidebarBrand title={resolvedBrandTitle} subtitle={resolvedBrandSubtitle} />
 
             <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
 
