@@ -23,8 +23,15 @@ const { findLeadsPaginated } = require('../repositories/leadRepository');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { runLeadAutoAssignment } = require('../services/leadAutoAssignmentService');
+const { LEAD_AUTO_ASSIGNMENT_ENABLED } = require('../config/assignment');
 const { detectLeadType } = require('../services/leadTypeDetectionService');
 const { DEMO_LEADS } = require('../data/demoLeads');
+const { clearAllLeadsData } = require('../services/clearAllLeadsService');
+const {
+  buildAssignmentPatch,
+  assertCanAssignLeads,
+  getAssigneesForUser,
+} = require('../services/leadAssignmentService');
 
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
@@ -149,7 +156,7 @@ const createLead = asyncHandler(async (req, res) => {
     req.body.skipAutoAssign !== true &&
     lead.branchId;
 
-  if (shouldAutoAssign) {
+  if (shouldAutoAssign && LEAD_AUTO_ASSIGNMENT_ENABLED) {
     await runLeadAutoAssignment(lead, { triggeredBy: req.user });
   }
 
@@ -254,6 +261,25 @@ const seedDemoLeads = asyncHandler(async (req, res) => {
     message: `${created.length} demo lead(s) added to New Leads`,
     created: created.length,
     totalDemoLeads: existing + created.length,
+  });
+});
+
+const clearAllLeads = asyncHandler(async (req, res) => {
+  const deleted = await clearAllLeadsData();
+
+  await logActivity({
+    type: 'lead_action',
+    user: req.user.name,
+    userId: req.user._id,
+    action: 'Cleared all leads from CRM',
+    target: `${deleted.leads} leads removed`,
+    ip: getClientIp(req),
+    branchId: req.branchId || req.user.branchId || null,
+  });
+
+  res.json({
+    message: 'All leads and related data have been deleted',
+    deleted,
   });
 });
 
@@ -429,23 +455,8 @@ const updateReactivationStage = asyncHandler(async (req, res) => {
 });
 
 const getAssignees = asyncHandler(async (req, res) => {
-  const users = await User.find({
-    status: 'active',
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  }).select('name email role').lean();
-  const mapUser = (u) => ({
-    _id: u._id,
-    name: u.name,
-    email: u.email,
-    role: u.role,
-    roleName: ROLE_LABELS[u.role] || u.role,
-  });
-
-  res.json({
-    salesManagers: users.filter((u) => u.role === 'sales_manager').map(mapUser),
-    teamLeaders: users.filter((u) => u.role === 'team_leader').map(mapUser),
-    salesExecutives: users.filter((u) => u.role === 'sales_executive').map(mapUser),
-  });
+  const payload = await getAssigneesForUser(req);
+  res.json(payload);
 });
 
 const assignLeads = asyncHandler(async (req, res) => {
@@ -453,29 +464,24 @@ const assignLeads = asyncHandler(async (req, res) => {
   const ids = leadIds || (req.body.leadId ? [req.body.leadId] : []);
 
   if (!ids.length) throw new ApiError(400, 'No leads selected');
+  if (!assigneeRole || !assigneeId) throw new ApiError(400, 'Assignee role and user are required');
 
-  const assignee = await User.findOne({
-    _id: assigneeId,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  }).select('name email role');
-  if (!assignee) throw new ApiError(404, 'Assignee not found');
+  const { assignee, branchId, teamId } = await assertCanAssignLeads(req, {
+    leadIds: ids,
+    assigneeRole,
+    assigneeId,
+  });
 
-  const patch = { assigneeRole };
-
-  if (assigneeRole === 'sales_manager') {
-    patch.assignedManager = assignee._id;
-    patch.assignedTeamLeader = null;
-    patch.assignedTo = assignee._id;
-  } else if (assigneeRole === 'team_leader') {
-    patch.assignedTeamLeader = assignee._id;
-    patch.assignedTo = assignee._id;
-  } else if (assigneeRole === 'sales_executive') {
-    patch.assignedTo = assignee._id;
-  } else {
-    throw new ApiError(400, 'Invalid assignee role');
+  const patch = buildAssignmentPatch(assigneeRole, assignee);
+  if (teamId && assigneeRole === 'sales_executive') {
+    patch.teamId = teamId;
+    patch.assignedTeamLeader = req.user._id;
   }
 
-  await Lead.updateMany({ _id: { $in: ids }, ...(req.branchId ? { branchId: req.branchId } : {}) }, patch);
+  await Lead.updateMany(
+    { _id: { $in: ids }, ...(branchId ? { branchId } : {}) },
+    patch
+  );
 
   await logActivity({
     type: 'lead_assigned',
@@ -582,6 +588,7 @@ module.exports = {
   getLead,
   createLead,
   seedDemoLeads,
+  clearAllLeads,
   updateLead,
   deleteLead,
   getAssignees,

@@ -6,6 +6,7 @@ const {
   getLead,
   createLead,
   seedDemoLeads,
+  clearAllLeads,
   updateLead,
   deleteLead,
   getAssignees,
@@ -24,9 +25,10 @@ const { validatePaginationQuery } = require('../validators/paginationValidator')
 router.use(protect);
 
 router.post('/seed-demo', authorize('admin'), seedDemoLeads);
+router.post('/clear-all', authorize('admin'), clearAllLeads);
 router.get('/assignees', getAssignees);
 router.get('/lost', listLostLeads);
-router.post('/assign', assignLeads);
+router.post('/assign', authorize('admin', 'sales_manager', 'team_leader'), assignLeads);
 router.patch('/:id/transfer-branch', authorize('admin'), transferLeadBranch);
 router.post('/:id/reactivate', authorize('admin', 'sales_manager'), reactivateLead);
 router.post('/:id/reassign-reactivated', authorize('admin', 'sales_manager'), reassignReactivatedLead);
