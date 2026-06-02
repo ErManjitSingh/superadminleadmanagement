@@ -16,7 +16,9 @@ export const authService = {
       skipErrorToast: true,
     });
     if (!data?.token) throw new AuthError('Invalid response from server', 'INVALID_RESPONSE');
-    authStorage.saveSession(data, data.token);
+    authStorage.saveSession(data, data.token, {
+      sessionExpiresAt: data.sessionExpiresAt,
+    });
     return data;
   },
 
@@ -33,7 +35,9 @@ export const authService = {
   async fetchCurrentUser() {
     const { data } = await API.get('/auth/me');
     const token = authStorage.getToken();
-    if (token) authStorage.saveSession(data, token);
+    if (token) {
+      authStorage.saveSession(data, token, { sessionExpiresAt: data.sessionExpiresAt });
+    }
     return data;
   },
 

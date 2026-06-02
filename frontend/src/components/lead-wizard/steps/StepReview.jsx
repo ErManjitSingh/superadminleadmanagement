@@ -1,5 +1,5 @@
 import { User, Plane, Megaphone } from 'lucide-react';
-import { LEAD_SOURCES, PRIORITIES } from '../constants';
+import { LEAD_SOURCES, PRIORITIES, LEAD_TYPES } from '../constants';
 import { defaultWizardValues } from '../constants';
 
 function ReviewSection({ icon: Icon, title, children, color = 'brand' }) {
@@ -59,6 +59,8 @@ export default function StepReview({ data }) {
       </ReviewSection>
 
       <ReviewSection icon={Plane} title="Travel Details" color="violet">
+        <Row label="Lead Type" value={LEAD_TYPES.find((t) => t.value === v.leadType)?.label || v.leadType} />
+        {v.leadType === 'corporate' && <Row label="Company" value={v.companyName} />}
         <Row label="Destination" value={v.destination} />
         <Row label="Travel Date" value={v.travelDate} />
         <Row label="Adults" value={v.adults} />

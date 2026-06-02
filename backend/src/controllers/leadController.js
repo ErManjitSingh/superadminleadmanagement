@@ -22,7 +22,8 @@ const { ROLE_LABELS } = require('../config/roles');
 const { findLeadsPaginated } = require('../repositories/leadRepository');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
-const { autoAssignLead } = require('../services/destinationAssignmentService');
+const { runLeadAutoAssignment } = require('../services/leadAutoAssignmentService');
+const { detectLeadType } = require('../services/leadTypeDetectionService');
 
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
@@ -119,6 +120,10 @@ const createLead = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'First follow-up date and time are required');
   }
 
+  const typeDetection = detectLeadType({ ...req.body, ...data });
+  data.leadType = typeDetection.leadType;
+  data.leadTypeSource = typeDetection.leadTypeSource;
+
   data.status = status;
   data.createdBy = req.user._id;
   if (req.user.role === 'admin' && req.body.branchId) {
@@ -144,7 +149,7 @@ const createLead = asyncHandler(async (req, res) => {
     lead.branchId;
 
   if (shouldAutoAssign) {
-    await autoAssignLead(lead, { triggeredBy: req.user });
+    await runLeadAutoAssignment(lead, { triggeredBy: req.user });
   }
 
   if (data.nextFollowUp) {

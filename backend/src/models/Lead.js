@@ -24,6 +24,8 @@ const BUDGET_RANGES = [
 
 const LEAD_SCORES = ['low', 'medium', 'high', 'hot'];
 
+const LEAD_TYPES = ['fit', 'group', 'corporate'];
+
 const REACTIVATION_STAGES = [
   'reactivated',
   'reassigned',
@@ -44,6 +46,9 @@ const leadSchema = new mongoose.Schema(
     city: { type: String, trim: true },
     state: { type: String, trim: true },
     destination: { type: String, required: true, trim: true, index: true },
+    leadType: { type: String, enum: LEAD_TYPES, default: 'fit', index: true },
+    leadTypeSource: { type: String, enum: ['manual', 'auto'], default: 'auto' },
+    companyName: { type: String, trim: true, default: '' },
     travelDate: { type: Date },
     returnDate: { type: Date },
     budget: { type: Number, default: 0 },
@@ -133,3 +138,4 @@ module.exports.LEAD_STATUSES = LEAD_STATUSES;
 module.exports.REACTIVATION_STAGES = REACTIVATION_STAGES;
 module.exports.BUDGET_RANGES = BUDGET_RANGES;
 module.exports.LEAD_SCORES = LEAD_SCORES;
+module.exports.LEAD_TYPES = LEAD_TYPES;

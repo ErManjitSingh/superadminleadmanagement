@@ -18,6 +18,7 @@ import {
   Settings,
   Clock,
   MapPin,
+  Award,
 } from 'lucide-react';
 
 export const teamManagementItems = [
@@ -37,6 +38,12 @@ export const teamManagementItems = [
     path: '/team/destination-assignment',
     label: 'Destination Assignment',
     icon: MapPin,
+    roles: ['admin', 'sales_manager'],
+  },
+  {
+    path: '/team/skill-assignment',
+    label: 'Skill Assignment',
+    icon: Award,
     roles: ['admin', 'sales_manager'],
   },
 ];

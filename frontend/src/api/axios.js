@@ -21,6 +21,7 @@ API.interceptors.request.use((config) => {
     typeof window !== 'undefined' ? window.localStorage.getItem(BRANCH_STORAGE_KEY) : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    authStorage.touchActivity();
   }
   if (selectedBranchId) {
     config.headers['x-branch-id'] = selectedBranchId;

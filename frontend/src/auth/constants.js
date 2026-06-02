@@ -2,6 +2,8 @@ export const AUTH_STORAGE_KEYS = {
   USER: 'user',
   ROLE: 'role',
   IS_AUTHENTICATED: 'isAuthenticated',
+  SESSION_EXPIRES_AT: 'sessionExpiresAt',
+  LAST_ACTIVITY_AT: 'lastActivityAt',
 };
 
 /** @typedef {'admin'|'sales_manager'|'sales_executive'|'team_leader'|'accountant'|'operations_manager'} RoleSlug */

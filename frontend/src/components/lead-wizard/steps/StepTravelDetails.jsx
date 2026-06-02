@@ -3,7 +3,7 @@ import { useWizardForm } from '../WizardFormContext';
 import { motion } from 'framer-motion';
 import { Search, Calendar, Clock, IndianRupee } from 'lucide-react';
 import WizardField, { WizardInput } from '../WizardField';
-import { DESTINATIONS } from '../constants';
+import { DESTINATIONS, LEAD_TYPES } from '../constants';
 import API from '../../../api/axios';
 import { cn } from '../../../lib/utils';
 
@@ -19,6 +19,7 @@ const BUDGET_RANGE_OPTIONS = [
 export default function StepTravelDetails() {
   const { register, watch, setValue, formState: { errors } } = useWizardForm();
   const destination = watch('destination') || '';
+  const leadType = watch('leadType') || 'fit';
   const budgetRange = watch('budgetRange') || '';
   const [open, setOpen] = useState(false);
   const [destinationOptions, setDestinationOptions] = useState(DESTINATIONS);
@@ -55,6 +56,35 @@ export default function StepTravelDetails() {
         <h2 className="text-xl font-bold text-content-primary">Travel Details</h2>
         <p className="text-sm text-content-muted mt-1">Where and when is the customer traveling?</p>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-content-primary mb-3">Lead Type</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {LEAD_TYPES.map((type) => (
+            <button
+              key={type.value}
+              type="button"
+              onClick={() => setValue('leadType', type.value)}
+              className={cn(
+                'p-3 rounded-xl border text-left transition-all',
+                leadType === type.value
+                  ? 'border-brand-500/40 bg-brand-500/10 ring-2 ring-brand-500/20'
+                  : 'border-subtle bg-surface hover:bg-surface-elevated'
+              )}
+            >
+              <p className="font-semibold text-sm text-content-primary">{type.label}</p>
+              <p className="text-xs text-content-muted mt-1">{type.description}</p>
+            </button>
+          ))}
+        </div>
+        <input type="hidden" {...register('leadType')} />
+      </div>
+
+      {leadType === 'corporate' && (
+        <WizardField label="Company Name">
+          <WizardInput {...register('companyName')} placeholder="Company / organization name" />
+        </WizardField>
+      )}
 
       <WizardField label="Destination" error={errors.destination?.message}>
         <div className="relative">

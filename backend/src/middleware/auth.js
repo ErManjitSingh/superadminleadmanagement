@@ -58,7 +58,30 @@ function formatUserResponse(user) {
   };
 }
 
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '30d' });
+const RESTRICTED_SESSION_ROLES = ['admin', 'sales_manager'];
 
-module.exports = { protect, formatUserResponse, generateToken };
+const generateToken = (id, role) => {
+  const restricted = RESTRICTED_SESSION_ROLES.includes(role);
+  const expiresIn = restricted
+    ? process.env.JWT_EXPIRES_IN_RESTRICTED || '30m'
+    : process.env.JWT_EXPIRES_IN || '30d';
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
+};
+
+const RESTRICTED_SESSION_MS = 30 * 60 * 1000;
+
+function getRestrictedSessionMeta(role) {
+  if (!RESTRICTED_SESSION_ROLES.includes(role)) return {};
+  return {
+    sessionExpiresAt: new Date(Date.now() + RESTRICTED_SESSION_MS).toISOString(),
+    sessionTimeoutMinutes: 30,
+  };
+}
+
+module.exports = {
+  protect,
+  formatUserResponse,
+  generateToken,
+  getRestrictedSessionMeta,
+  RESTRICTED_SESSION_ROLES,
+};

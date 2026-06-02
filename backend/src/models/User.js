@@ -16,6 +16,10 @@ const userSchema = new mongoose.Schema(
     teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
     managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     assignedLeads: { type: Number, default: 0 },
+    skills: {
+      type: [{ type: String, enum: ['fit', 'group', 'corporate'] }],
+      default: [],
+    },
     lastLogin: { type: Date },
     avatar: { type: String, default: null },
     inviteToken: String,

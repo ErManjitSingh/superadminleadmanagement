@@ -5,6 +5,7 @@ import { authStorage } from '../auth/authStorage';
 import store from '../store';
 import { setCredentials, clearCredentials } from '../store/slices/authSlice';
 import { clearBranchState, setSelectedBranch } from '../store/slices/branchSlice';
+import { useRestrictedSessionTimeout } from '../hooks/useRestrictedSessionTimeout';
 
 const AuthContext = createContext(null);
 
@@ -12,8 +13,24 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(async () => {
+    await authService.logout();
+    setUser(null);
+    store.dispatch(clearCredentials());
+    store.dispatch(clearBranchState());
+  }, []);
+
+  useRestrictedSessionTimeout(user, logout);
+
   useEffect(() => {
     const bootstrap = async () => {
+      if (authStorage.isRestrictedSessionExpired()) {
+        authStorage.clearSession();
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       const stored = authService.getCurrentUser();
       if (stored && authStorage.getToken()) {
         try {
@@ -42,13 +59,6 @@ export const AuthProvider = ({ children }) => {
       store.dispatch(setSelectedBranch(sessionUser.branchId));
     }
     return sessionUser;
-  }, []);
-
-  const logout = useCallback(async () => {
-    await authService.logout();
-    setUser(null);
-    store.dispatch(clearCredentials());
-    store.dispatch(clearBranchState());
   }, []);
 
   const getCurrentUser = useCallback(() => {

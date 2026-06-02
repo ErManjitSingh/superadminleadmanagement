@@ -1,25 +1,16 @@
-const Lead = require('../models/Lead');
 const User = require('../models/User');
-const Team = require('../models/Team');
-const Attendance = require('../models/Attendance');
 const Destination = require('../models/Destination');
 const UserDestination = require('../models/UserDestination');
 const BranchAssignmentSettings = require('../models/BranchAssignmentSettings');
 const LeadAssignmentLog = require('../models/LeadAssignmentLog');
-const AssignmentRoundRobin = require('../models/AssignmentRoundRobin');
 const { normalizeDestinationKey } = require('../models/Destination');
-const { startOfCalendarDay } = require('./attendanceService');
 const { notifyLeadAssigned } = require('./notificationService');
-
-const ACTIVE_LEAD_STATUSES = [
-  'new',
-  'contacted',
-  'working_progress',
-  'follow_up',
-  'quotation_sent',
-  'negotiation',
-  'reactivated',
-];
+const {
+  ACTIVE_LEAD_STATUSES,
+  filterEligibleExecutives,
+  pickExecutive,
+  applyExecutiveAssignment,
+} = require('./assignmentCoreService');
 
 const DEFAULT_DESTINATIONS = [
   { name: 'Manali', aliases: ['Manali Himachal'] },
@@ -85,29 +76,6 @@ async function resolveDestination(leadDestination) {
   return best;
 }
 
-async function countActiveLeadsForUser(userId, branchId) {
-  return Lead.countDocuments({
-    assignedTo: userId,
-    status: { $in: ACTIVE_LEAD_STATUSES },
-    ...(branchId ? { branchId } : {}),
-  });
-}
-
-async function getPresentUserIds(userIds, branchId) {
-  if (!userIds.length) return new Set();
-  const dayStart = startOfCalendarDay();
-  const rows = await Attendance.find({
-    userId: { $in: userIds },
-    date: dayStart,
-    status: { $in: ['present', 'late'] },
-    ...(branchId ? { branchId } : {}),
-  })
-    .select('userId')
-    .lean();
-
-  return new Set(rows.map((r) => String(r.userId)));
-}
-
 async function getBranchSettings(branchId) {
   if (!branchId) return null;
   let settings = await BranchAssignmentSettings.findOne({ branchId });
@@ -164,86 +132,6 @@ async function getFallbackExecutives(branchId, settings) {
     .lean();
 }
 
-async function advanceRoundRobin(key, poolLength) {
-  const state = await AssignmentRoundRobin.findOneAndUpdate(
-    { key },
-    { $setOnInsert: { key, lastIndex: -1 } },
-    { upsert: true, new: true }
-  );
-  const nextIndex = (state.lastIndex + 1) % poolLength;
-  state.lastIndex = nextIndex;
-  await state.save();
-  return nextIndex;
-}
-
-async function pickExecutive(candidates, { branchId, destinationId, poolType }) {
-  if (!candidates.length) return null;
-
-  const enriched = await Promise.all(
-    candidates.map(async (user) => ({
-      user,
-      activeLeadCount: await countActiveLeadsForUser(user._id, branchId),
-    }))
-  );
-
-  const minCount = Math.min(...enriched.map((c) => c.activeLeadCount));
-  const tied = enriched.filter((c) => c.activeLeadCount === minCount);
-
-  if (tied.length === 1) {
-    return {
-      executive: tied[0].user,
-      activeLeadCount: tied[0].activeLeadCount,
-      tieBreaker: 'lowest_lead_count',
-      candidates: enriched.map((c) => ({
-        userId: c.user._id,
-        name: c.user.name,
-        activeLeadCount: c.activeLeadCount,
-      })),
-    };
-  }
-
-  const sorted = tied.sort((a, b) => String(a.user._id).localeCompare(String(b.user._id)));
-  const rrKey = `${branchId}:${poolType}:${destinationId || 'fallback'}`;
-  const index = await advanceRoundRobin(rrKey, sorted.length);
-  const picked = sorted[index];
-
-  return {
-    executive: picked.user,
-    activeLeadCount: picked.activeLeadCount,
-    tieBreaker: 'round_robin',
-    roundRobinIndex: index,
-    candidates: enriched.map((c) => ({
-      userId: c.user._id,
-      name: c.user.name,
-      activeLeadCount: c.activeLeadCount,
-    })),
-  };
-}
-
-async function filterEligibleExecutives(executives, branchId) {
-  const presentIds = await getPresentUserIds(
-    executives.map((e) => e._id),
-    branchId
-  );
-
-  return executives.filter((e) => presentIds.has(String(e._id)));
-}
-
-async function applyAssignmentToLead(lead, executive) {
-  lead.assignedTo = executive._id;
-  lead.assigneeRole = 'sales_executive';
-
-  if (executive.teamId) {
-    const team = await Team.findById(executive.teamId).select('teamLeader').lean();
-    if (team?.teamLeader) {
-      lead.teamId = executive.teamId;
-      lead.assignedTeamLeader = team.teamLeader;
-    }
-  }
-
-  await lead.save();
-}
-
 async function writeAssignmentLog({
   lead,
   branchId,
@@ -260,6 +148,7 @@ async function writeAssignmentLog({
     leadId: lead._id,
     branchId: branchId || lead.branchId,
     leadDestination: lead.destination,
+    leadType: lead.leadType || null,
     destinationId: destination?._id || null,
     destinationName: destination?.name || null,
     assignedTo: assignedTo || null,
@@ -273,6 +162,10 @@ async function writeAssignmentLog({
 }
 
 async function autoAssignLead(lead, { triggeredBy } = {}) {
+  if (lead.assignedTo) {
+    return { assigned: false, reason: 'already_assigned' };
+  }
+
   const branchId = lead.branchId;
   if (!branchId) {
     await writeAssignmentLog({
@@ -341,11 +234,11 @@ async function autoAssignLead(lead, { triggeredBy } = {}) {
 
   const pick = await pickExecutive(eligible, {
     branchId,
+    poolKey: poolType,
     destinationId: destination?._id,
-    poolType,
   });
 
-  await applyAssignmentToLead(lead, pick.executive);
+  await applyExecutiveAssignment(lead, pick.executive);
 
   await writeAssignmentLog({
     lead,
@@ -435,7 +328,6 @@ module.exports = {
   resolveDestination,
   autoAssignLead,
   getAssignmentReport,
-  countActiveLeadsForUser,
   getBranchSettings,
   ACTIVE_LEAD_STATUSES,
 };

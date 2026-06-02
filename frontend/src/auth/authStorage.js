@@ -1,11 +1,28 @@
 import { AUTH_STORAGE_KEYS } from './constants';
+import { requiresRestrictedSession, SESSION_TIMEOUT_MS } from './sessionPolicy';
 
 export const authStorage = {
-  saveSession(user, token) {
+  saveSession(user, token, options = {}) {
     localStorage.setItem(AUTH_STORAGE_KEYS.USER, JSON.stringify(user));
     localStorage.setItem(AUTH_STORAGE_KEYS.ROLE, user.role);
     localStorage.setItem(AUTH_STORAGE_KEYS.IS_AUTHENTICATED, 'true');
     if (token) localStorage.setItem('token', token);
+
+    if (requiresRestrictedSession(user.role)) {
+      const expiresAt = options.sessionExpiresAt
+        ? new Date(options.sessionExpiresAt).getTime()
+        : Date.now() + SESSION_TIMEOUT_MS;
+      const now = Date.now();
+      localStorage.setItem(AUTH_STORAGE_KEYS.SESSION_EXPIRES_AT, String(expiresAt));
+      localStorage.setItem(AUTH_STORAGE_KEYS.LAST_ACTIVITY_AT, String(now));
+    } else {
+      this.clearRestrictedSessionKeys();
+    }
+  },
+
+  clearRestrictedSessionKeys() {
+    localStorage.removeItem(AUTH_STORAGE_KEYS.SESSION_EXPIRES_AT);
+    localStorage.removeItem(AUTH_STORAGE_KEYS.LAST_ACTIVITY_AT);
   },
 
   clearSession() {
@@ -13,9 +30,42 @@ export const authStorage = {
     localStorage.removeItem(AUTH_STORAGE_KEYS.ROLE);
     localStorage.removeItem(AUTH_STORAGE_KEYS.IS_AUTHENTICATED);
     localStorage.removeItem('token');
+    this.clearRestrictedSessionKeys();
+  },
+
+  touchActivity() {
+    const user = this.getStoredUser();
+    if (!user || !requiresRestrictedSession(user.role)) return;
+
+    const now = Date.now();
+    localStorage.setItem(AUTH_STORAGE_KEYS.LAST_ACTIVITY_AT, String(now));
+    localStorage.setItem(
+      AUTH_STORAGE_KEYS.SESSION_EXPIRES_AT,
+      String(now + SESSION_TIMEOUT_MS)
+    );
+  },
+
+  isRestrictedSessionExpired() {
+    const user = this.getStoredUser();
+    if (!user || !requiresRestrictedSession(user.role)) return false;
+
+    const expiresAt = Number(localStorage.getItem(AUTH_STORAGE_KEYS.SESSION_EXPIRES_AT));
+    const lastActivity = Number(localStorage.getItem(AUTH_STORAGE_KEYS.LAST_ACTIVITY_AT));
+
+    if (!expiresAt || !lastActivity) return true;
+
+    const now = Date.now();
+    if (now >= expiresAt) return true;
+    if (now - lastActivity >= SESSION_TIMEOUT_MS) return true;
+
+    return false;
   },
 
   isAuthenticated() {
+    if (this.isRestrictedSessionExpired()) {
+      this.clearSession();
+      return false;
+    }
     return localStorage.getItem(AUTH_STORAGE_KEYS.IS_AUTHENTICATED) === 'true' && !!this.getToken();
   },
 

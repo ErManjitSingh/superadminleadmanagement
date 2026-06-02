@@ -84,6 +84,9 @@ function normalizeLeadInput(body = {}, { isUpdate = false } = {}) {
     nextFollowUp: body.nextFollowUp,
     isHot: Boolean(body.isHot),
     channel: body.channel || 'crm',
+    companyName: body.companyName?.trim() || '',
+    leadType: body.leadType,
+    leadTypeSource: body.leadTypeSource,
   };
 
   const assignedTo = toObjectId(body.assignedTo) || toObjectId(body.assignedExecutive);

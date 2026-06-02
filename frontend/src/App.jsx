@@ -27,6 +27,7 @@ import {
   TeamUserProfile,
   AdminAttendancePage,
   DestinationAssignmentPage,
+  SkillAssignmentPage,
   Notifications,
   ReactivatedLeadsPage,
   SalesManagerLayout,
@@ -109,6 +110,7 @@ function App() {
               <Route path="leads/:filter" element={<TeamLeadsPage />} />
               <Route path="assignment" element={<LeadAssignmentPage />} />
               <Route path="destination-assignment" element={<DestinationAssignmentPage />} />
+              <Route path="skill-assignment" element={<SkillAssignmentPage />} />
               <Route path="teams" element={<TeamManagementPage />} />
               <Route path="teams/:id" element={<TeamDetailPage />} />
               <Route path="follow-ups" element={<FollowUpMonitoringPage />} />
@@ -217,6 +219,7 @@ function App() {
               <Route path="packages" element={<PermissionRoute module="packages"><Packages /></PermissionRoute>} />
               <Route path="team/attendance" element={<RoleRoute roles={['admin']}><AdminAttendancePage /></RoleRoute>} />
               <Route path="team/destination-assignment" element={<RoleRoute roles={['admin', 'sales_manager']}><DestinationAssignmentPage /></RoleRoute>} />
+              <Route path="team/skill-assignment" element={<RoleRoute roles={['admin', 'sales_manager']}><SkillAssignmentPage /></RoleRoute>} />
               <Route path="team" element={<PermissionRoute module="users"><Team /></PermissionRoute>} />
               <Route path="team/users/:id" element={<PermissionRoute module="users"><TeamUserProfile /></PermissionRoute>} />
               <Route path="reports" element={<PermissionRoute module="reports"><Reports /></PermissionRoute>} />

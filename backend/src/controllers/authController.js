@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
-const { formatUserResponse, generateToken } = require('../middleware/auth');
+const { formatUserResponse, generateToken, getRestrictedSessionMeta } = require('../middleware/auth');
 const { logActivity, getClientIp } = require('../services/activityService');
 
 const login = asyncHandler(async (req, res) => {
@@ -28,7 +28,11 @@ const login = asyncHandler(async (req, res) => {
   });
 
   const payload = formatUserResponse(user);
-  res.json({ ...payload, token: generateToken(user._id) });
+  res.json({
+    ...payload,
+    token: generateToken(user._id, user.role),
+    ...getRestrictedSessionMeta(user.role),
+  });
 });
 
 const logout = asyncHandler(async (req, res) => {
@@ -62,7 +66,11 @@ const register = asyncHandler(async (req, res) => {
   });
 
   const payload = formatUserResponse(user);
-  res.status(201).json({ ...payload, token: generateToken(user._id) });
+  res.status(201).json({
+    ...payload,
+    token: generateToken(user._id, user.role),
+    ...getRestrictedSessionMeta(user.role),
+  });
 });
 
 module.exports = { login, logout, getMe, register };

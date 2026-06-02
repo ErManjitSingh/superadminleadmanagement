@@ -35,6 +35,12 @@ export const INDIAN_STATES = [
   'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu & Kashmir', 'Ladakh',
 ];
 
+export const LEAD_TYPES = [
+  { value: 'fit', label: 'FIT', description: 'Individual / family travel' },
+  { value: 'group', label: 'Group', description: '10+ travelers or group tour' },
+  { value: 'corporate', label: 'Corporate', description: 'Business / MICE / company travel' },
+];
+
 export const DESTINATIONS = [
   'Goa', 'Kerala', 'Dubai', 'Thailand', 'Maldives', 'Manali', 'Shimla', 'Kashmir',
   'Rajasthan', 'Andaman', 'Bali', 'Singapore', 'Europe', 'Sri Lanka', 'Nepal', 'Bhutan',
@@ -66,4 +72,6 @@ export const defaultWizardValues = {
   leadSource: 'website',
   priority: 'medium',
   branchId: '',
+  leadType: 'fit',
+  companyName: '',
 };

@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 
-const ASSIGNMENT_TYPES = ['destination_match', 'fallback_queue', 'manual', 'self', 'unassigned'];
+const ASSIGNMENT_TYPES = [
+  'destination_match',
+  'fallback_queue',
+  'skill_match',
+  'sales_manager_queue',
+  'manual',
+  'self',
+  'unassigned',
+];
 
 const leadAssignmentLogSchema = new mongoose.Schema(
   {
@@ -9,6 +17,7 @@ const leadAssignmentLogSchema = new mongoose.Schema(
     leadDestination: { type: String, trim: true },
     destinationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Destination' },
     destinationName: { type: String, trim: true },
+    leadType: { type: String, enum: ['fit', 'group', 'corporate'], index: true },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     assigneeName: { type: String, trim: true },
     assignmentType: { type: String, enum: ASSIGNMENT_TYPES, required: true, index: true },
