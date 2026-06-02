@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { canManageFollowUps } from '../lib/followupPermissions';
 import { usePermissions } from '../hooks/usePermissions';
 import AdminAssignLeadModal from '../components/leads/AdminAssignLeadModal';
+import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
 import { Button } from '../components/ui/button';
 import { useLeadAssign } from '../hooks/useLeadAssign';
 import { useDataRefresh } from '../hooks/useDataRefresh';
@@ -27,6 +28,7 @@ export default function LeadDetail() {
   const { user } = useAuth();
   const { can } = usePermissions();
   const isAdmin = user?.role === 'admin';
+  const userCanAssignLeads = canAssignLeads(user?.role);
   const canCreateFollowUp = canManageFollowUps(user);
   const canEditLead = can('leads', 'edit');
   const [lead, setLead] = useState(null);
@@ -176,12 +178,12 @@ export default function LeadDetail() {
             canEditLead={canEditLead}
             editHref={canEditLead ? `/leads/${id}/edit` : undefined}
             onAddNote={scrollToNotes}
-            onAssign={isAdmin ? () => openAssign(lead) : undefined}
+            onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
           />
         </aside>
       </div>
 
-      {isAdmin && (
+      {userCanAssignLeads && (
         <AdminAssignLeadModal
           open={!!assignModal}
           lead={assignModal}
@@ -189,6 +191,7 @@ export default function LeadDetail() {
           loading={assigneesLoading}
           onClose={closeAssign}
           onAssign={handleAssign}
+          allowedRoles={assignAllowedRoles(user?.role)}
         />
       )}
 

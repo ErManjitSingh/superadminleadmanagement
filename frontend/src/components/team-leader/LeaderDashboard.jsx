@@ -6,15 +6,23 @@ import API from '../../api/axios';
 import PageHeader from '../ui/PageHeader';
 import LeaderKpiCards from './dashboard/LeaderKpiCards';
 import LeaderCharts from './dashboard/LeaderCharts';
+import MyTeamPanel from './MyTeamPanel';
 
 export default function LeaderDashboard() {
   const [data, setData] = useState(null);
+  const [myTeam, setMyTeam] = useState({ team: null, members: [], message: null });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    API.get('/team-leader/dashboard', { skipSuccessToast: true })
-      .then((r) => setData(r.data))
+    Promise.all([
+      API.get('/team-leader/dashboard', { skipSuccessToast: true }),
+      API.get('/team-leader/my-team', { skipSuccessToast: true }),
+    ])
+      .then(([dash, team]) => {
+        setData(dash.data);
+        setMyTeam(team.data || { team: null, members: [], message: null });
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,6 +49,8 @@ export default function LeaderDashboard() {
           breadcrumbs={['Team Leader', 'Dashboard']}
         />
       </motion.div>
+
+      <MyTeamPanel team={myTeam.team} members={myTeam.members} message={myTeam.message} loading={false} />
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}

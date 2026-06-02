@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X, UserPlus, Briefcase, Crown, Users } from 'lucide-react';
 import { Button } from '../ui/button';
 import AppModal from '../ui/AppModal';
@@ -18,10 +18,20 @@ export default function AdminAssignLeadModal({
   loading,
   onClose,
   onAssign,
+  allowedRoles = ['sales_manager', 'team_leader', 'sales_executive'],
 }) {
   const isBulk = lead?.bulk;
-  const [role, setRole] = useState('sales_executive');
+  const roleOptions = ROLE_OPTIONS.filter((r) => allowedRoles.includes(r.value));
+  const defaultRole = roleOptions[0]?.value || 'sales_executive';
+  const [role, setRole] = useState(defaultRole);
   const [assigneeId, setAssigneeId] = useState('');
+
+  useEffect(() => {
+    if (open) {
+      setRole(defaultRole);
+      setAssigneeId('');
+    }
+  }, [open, defaultRole]);
 
   const people =
     role === 'sales_manager'
@@ -31,7 +41,7 @@ export default function AdminAssignLeadModal({
         : assignees?.salesExecutives || [];
 
   const handleClose = () => {
-    setRole('sales_executive');
+    setRole(defaultRole);
     setAssigneeId('');
     onClose();
   };
@@ -74,8 +84,8 @@ export default function AdminAssignLeadModal({
             <label className="block text-xs font-semibold uppercase tracking-wider text-content-muted mb-2">
               Assign to role
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {ROLE_OPTIONS.map((opt) => {
+            <div className={`grid grid-cols-1 gap-2 ${roleOptions.length > 1 ? 'sm:grid-cols-3' : ''}`}>
+              {roleOptions.map((opt) => {
                 const Icon = opt.icon;
                 const selected = role === opt.value;
                 return (
@@ -100,7 +110,7 @@ export default function AdminAssignLeadModal({
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-content-muted mb-1.5">
-              Select {ROLE_OPTIONS.find((r) => r.value === role)?.label}
+              Select {roleOptions.find((r) => r.value === role)?.label}
             </label>
             {loading ? (
               <p className="text-sm text-content-muted py-2">Loading team members…</p>

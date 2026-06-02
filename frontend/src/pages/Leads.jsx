@@ -30,6 +30,7 @@ import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useLeadsQuery, useLeadsKanbanQuery } from '../features/leads/hooks/useLeadsQuery';
 import { DEFAULT_PAGE_SIZE } from '../components/ui/TablePagination';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
+import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
 
 export default function Leads() {
   const location = useLocation();
@@ -38,6 +39,7 @@ export default function Leads() {
   const { availableBranches, selectedBranchId } = useSelector((s) => s.branch);
   const { can } = usePermissions();
   const isAdmin = user?.role === 'admin';
+  const userCanAssignLeads = canAssignLeads(user?.role);
   const canEditLead = can('leads', 'edit');
   const config = pageConfig[location.pathname] || pageConfig['/leads'];
 
@@ -275,7 +277,7 @@ export default function Leads() {
           onRowSelectionChange={setRowSelection}
           onRowClick={setPreviewLead}
           onDelete={handleDelete}
-          onAssign={isAdmin ? openAssign : undefined}
+          onAssign={userCanAssignLeads ? openAssign : undefined}
           onTransferBranch={isAdmin ? setTransferLead : undefined}
           canEditLead={canEditLead}
           serverPagination={{
@@ -312,11 +314,11 @@ export default function Leads() {
       <LeadPreviewDrawer
         lead={previewLead}
         onClose={() => setPreviewLead(null)}
-        onAssign={isAdmin ? openAssign : undefined}
+        onAssign={userCanAssignLeads ? openAssign : undefined}
         canEditLead={canEditLead}
       />
 
-      {isAdmin && (
+      {userCanAssignLeads && (
         <AdminAssignLeadModal
           open={!!assignModal}
           lead={assignModal}
@@ -324,6 +326,7 @@ export default function Leads() {
           loading={assigneesLoading}
           onClose={closeAssign}
           onAssign={handleAssign}
+          allowedRoles={assignAllowedRoles(user?.role)}
         />
       )}
       {assignConfirmDialog}

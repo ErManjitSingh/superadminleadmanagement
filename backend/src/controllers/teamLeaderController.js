@@ -9,6 +9,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const {
   getExecutiveIdsForLeader,
   getTeamForLeader,
+  getLeaderLeadScopeFilter,
 } = require('../services/teamScopeService');
 const { buildTeamLeaderDashboard } = require('../services/dashboardService');
 const { sumConvertedPackageRevenue } = require('../utils/convertedPackageRevenue');
@@ -36,10 +37,33 @@ const {
 } = require('../utils/queryHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
-async function getSquadFilter(leaderId) {
-  const execIds = await getExecutiveIdsForLeader(leaderId);
-  return execIds.length ? { assignedTo: { $in: execIds } } : { assignedTo: null };
-}
+const getMyTeam = asyncHandler(async (req, res) => {
+  const team = await getTeamForLeader(req.user._id);
+  if (!team) {
+    return res.json({
+      team: null,
+      members: [],
+      message: 'No team is linked to your account. Ask your Sales Manager to create a team and add executives.',
+    });
+  }
+
+  const members = (team.members || [])
+    .filter((m) => m.role === 'sales_executive')
+    .map((m) => ({
+      _id: m._id,
+      name: m.name,
+      email: m.email,
+      role: m.role,
+      status: m.status,
+    }));
+
+  res.json({
+    team: { _id: team._id, name: team.name, description: team.description || '' },
+    members,
+    memberCount: members.length,
+    message: members.length ? null : 'Your team has no sales executives yet. Ask Sales Manager to add members.',
+  });
+});
 
 const getDashboard = asyncHandler(async (req, res) => {
   const stats = await getOrSet(
@@ -51,13 +75,13 @@ const getDashboard = asyncHandler(async (req, res) => {
 });
 
 const listLeads = asyncHandler(async (req, res) => {
-  const squadFilter = await getSquadFilter(req.user._id);
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
   const result = await findTeamLeaderLeadsPaginated(squadFilter, req.query, { branchId: req.branchId });
   res.json(result);
 });
 
 const getLeadDetail = asyncHandler(async (req, res) => {
-  const squadFilter = await getSquadFilter(req.user._id);
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
   const lead = await Lead.findOne({
     _id: req.params.id,
     ...squadFilter,
@@ -89,7 +113,7 @@ const getLeadDetail = asyncHandler(async (req, res) => {
 
 /** Team leaders: reassign within squad only — no editing lead fields. */
 const updateLead = asyncHandler(async (req, res) => {
-  const squadFilter = await getSquadFilter(req.user._id);
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
   const lead = await Lead.findOne({
     _id: req.params.id,
     ...squadFilter,
@@ -109,6 +133,12 @@ const updateLead = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Executive not in your team');
   }
   lead.assignedTo = executiveId;
+  lead.assigneeRole = 'sales_executive';
+  const team = await getTeamForLeader(req.user._id);
+  if (team) {
+    lead.teamId = team._id;
+    lead.assignedTeamLeader = req.user._id;
+  }
   await lead.save();
 
   notifyLeadAssigned({
@@ -123,7 +153,7 @@ const updateLead = asyncHandler(async (req, res) => {
 });
 
 const addLeadComment = asyncHandler(async (req, res) => {
-  const squadFilter = await getSquadFilter(req.user._id);
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
   const lead = await Lead.findOne({
     _id: req.params.id,
     ...squadFilter,
@@ -282,7 +312,7 @@ const approveQuotation = asyncHandler(async (req, res) => {
 });
 
 const getEscalations = asyncHandler(async (req, res) => {
-  const squadFilter = await getSquadFilter(req.user._id);
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
   const fiveDaysAgo = new Date(Date.now() - 5 * 86400000);
 
   const teamLeads = await Lead.find({
@@ -514,6 +544,7 @@ const getCalendar = asyncHandler(async (req, res) => {
 
 module.exports = {
   getDashboard,
+  getMyTeam,
   listLeads,
   getLeadDetail,
   updateLead,

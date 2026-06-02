@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getDashboard,
+  getMyTeam,
   listLeads,
   getLeadDetail,
   updateLead,
@@ -23,6 +24,7 @@ const { authorize } = require('../middleware/rbac');
 router.use(protect, authorize('team_leader'));
 
 router.get('/dashboard', getDashboard);
+router.get('/my-team', getMyTeam);
 router.get('/leads', listLeads);
 router.get('/leads/:id', getLeadDetail);
 router.put('/leads/:id', updateLead);

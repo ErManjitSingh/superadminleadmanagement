@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { toast } from '../context/ToastContext';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { cn } from '../lib/utils';
+import AutoAssignOffBanner from '../components/assignment/AutoAssignOffBanner';
 
 const TABS = [
   { id: 'skills', label: 'Skill Management', icon: Award },
@@ -25,11 +26,18 @@ export default function SkillAssignmentPage() {
   const [managers, setManagers] = useState([]);
   const [skillDraft, setSkillDraft] = useState({});
   const [managerQueueIds, setManagerQueueIds] = useState([]);
-  const [skillAutoEnabled, setSkillAutoEnabled] = useState(true);
+  const [skillAutoEnabled, setSkillAutoEnabled] = useState(false);
+  const [leadAutoAssignmentEnabled, setLeadAutoAssignmentEnabled] = useState(false);
   const [logs, setLogs] = useState([]);
   const [reports, setReports] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const fetchAssignmentStatus = useCallback(
+    () => API.get('/assignment/status', { skipSuccessToast: true }).then((r) => {
+      setLeadAutoAssignmentEnabled(r.data?.leadAutoAssignmentEnabled === true);
+    }),
+    []
+  );
   const fetchSkills = useCallback(
     () => API.get('/skill-assignment/skills', { skipSuccessToast: true }).then((r) => setSkills(r.data || [])),
     []
@@ -54,7 +62,7 @@ export default function SkillAssignmentPage() {
   const fetchSettings = useCallback(
     () => API.get('/skill-assignment/branch-settings', { skipSuccessToast: true }).then((r) => {
       setManagerQueueIds((r.data?.salesManagerQueueIds || []).map(String));
-      setSkillAutoEnabled(r.data?.skillAutoAssignEnabled !== false);
+      setSkillAutoEnabled(r.data?.skillAutoAssignEnabled === true);
     }),
     []
   );
@@ -70,11 +78,18 @@ export default function SkillAssignmentPage() {
   const refreshAll = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchSkills(), fetchExecutives(), fetchManagers(), fetchSettings(), fetchReports()]);
+      await Promise.all([
+        fetchAssignmentStatus(),
+        fetchSkills(),
+        fetchExecutives(),
+        fetchManagers(),
+        fetchSettings(),
+        fetchReports(),
+      ]);
     } finally {
       setLoading(false);
     }
-  }, [fetchSkills, fetchExecutives, fetchManagers, fetchSettings, fetchReports]);
+  }, [fetchAssignmentStatus, fetchSkills, fetchExecutives, fetchManagers, fetchSettings, fetchReports]);
 
   useEffect(() => {
     refreshAll();
@@ -133,7 +148,7 @@ export default function SkillAssignmentPage() {
     <div className="space-y-6">
       <PageHeader
         title="Skills Based Assignment"
-        description="Assign leads by FIT, Group, or Corporate skills with attendance and workload rules."
+        description="Skill rules and queue (auto-assign is off — use manual lead assignment)."
         actions={
           <Button type="button" variant="outline" onClick={refreshAll} disabled={loading}>
             <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
@@ -141,6 +156,8 @@ export default function SkillAssignmentPage() {
           </Button>
         }
       />
+
+      {!leadAutoAssignmentEnabled && <AutoAssignOffBanner />}
 
       <div className="flex flex-wrap gap-2 border-b border-subtle pb-2">
         {TABS.map(({ id, label, icon: Icon }) => (
@@ -221,8 +238,13 @@ export default function SkillAssignmentPage() {
             If no eligible executive with the required skill is present, the lead routes to the sales manager queue.
           </p>
           <label className="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" checked={skillAutoEnabled} onChange={(e) => setSkillAutoEnabled(e.target.checked)} />
-            Enable skill-based auto assignment
+            <input
+              type="checkbox"
+              checked={skillAutoEnabled}
+              disabled={!leadAutoAssignmentEnabled}
+              onChange={(e) => setSkillAutoEnabled(e.target.checked)}
+            />
+            Enable skill-based auto assignment (requires system auto-assign ON)
           </label>
           <div className="space-y-2">
             {managers.map((m) => (

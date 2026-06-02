@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
@@ -19,6 +19,9 @@ import {
 } from '../sales-manager/LeadListBadges';
 import { formatFollowUpDate } from './leaderUtils';
 import { toast } from '../../context/ToastContext';
+import { useLeadAssign } from '../../hooks/useLeadAssign';
+import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import MyTeamPanel from './MyTeamPanel';
 import {
   DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
@@ -38,13 +41,13 @@ export function ActionModal({ open, title, onClose, children }) {
 
 export default function LeaderTeamLeadsPage() {
   const queryClient = useQueryClient();
-  const [executives, setExecutives] = useState([]);
+  const [myTeam, setMyTeam] = useState({ team: null, members: [], message: null });
+  const [teamLoading, setTeamLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const debouncedSearch = useDebouncedValue(search, 350);
   const [modal, setModal] = useState(null);
   const [text, setText] = useState('');
-  const [reassignId, setReassignId] = useState('');
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
 
   const { data, isLoading } = useRoleLeadsQuery({
@@ -61,8 +64,26 @@ export default function LeaderTeamLeadsPage() {
 
   const fetchLeads = () => queryClient.invalidateQueries({ queryKey: ['leads', '/team-leader/leads'] });
 
+  const refreshAfterAssign = useCallback(() => {
+    fetchLeads();
+  }, [queryClient]);
+
+  const {
+    assignees,
+    assigneesLoading,
+    assignModal,
+    openAssign,
+    closeAssign,
+    handleAssign,
+    assignConfirmDialog,
+  } = useLeadAssign({ onAssigned: refreshAfterAssign });
+
   useEffect(() => {
-    API.get('/team-leader/executives').then((r) => setExecutives(r.data));
+    setTeamLoading(true);
+    API.get('/team-leader/my-team')
+      .then((r) => setMyTeam(r.data || { team: null, members: [], message: null }))
+      .catch(() => setMyTeam({ team: null, members: [], message: 'Could not load team' }))
+      .finally(() => setTeamLoading(false));
   }, []);
 
   useEffect(() => {
@@ -76,14 +97,6 @@ export default function LeaderTeamLeadsPage() {
     await API.post(`/team-leader/leads/${modal.lead._id}/comment`, { text });
     setModal(null);
     setText('');
-    fetchLeads();
-  };
-
-  const handleReassign = async () => {
-    if (!modal?.lead || !reassignId) return;
-    await API.put(`/team-leader/leads/${modal.lead._id}`, { executiveId: reassignId });
-    setModal(null);
-    setReassignId('');
     fetchLeads();
   };
 
@@ -129,8 +142,8 @@ export default function LeaderTeamLeadsPage() {
             <DropdownMenuItem onClick={() => handleEscalate(row.original)} className="flex items-center gap-2 cursor-pointer">
               <AlertTriangle className="w-4 h-4" /> Escalate Lead
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => { setModal({ type: 'reassign', lead: row.original }); setReassignId(''); }} className="flex items-center gap-2 cursor-pointer">
-              <UserPlus className="w-4 h-4" /> {['lost', 'booked_from_another_company'].includes(row.original.status) ? 'Reassign Lost Lead' : 'Reassign Within Team'}
+            <DropdownMenuItem onClick={() => openAssign(row.original)} className="flex items-center gap-2 cursor-pointer">
+              <UserPlus className="w-4 h-4" /> {['lost', 'booked_from_another_company'].includes(row.original.status) ? 'Reassign Lost Lead' : 'Assign to Executive'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuRoot>
@@ -143,6 +156,13 @@ export default function LeaderTeamLeadsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Team Leads" description="Leads assigned to your squad — coach and convert" breadcrumbs={['Team Leader', 'Team Leads']} />
+
+      <MyTeamPanel
+        team={myTeam.team}
+        members={myTeam.members}
+        message={myTeam.message}
+        loading={teamLoading}
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -229,21 +249,16 @@ export default function LeaderTeamLeadsPage() {
         </div>
       </ActionModal>
 
-      <ActionModal
-        open={modal?.type === 'reassign'}
-        title={['lost', 'booked_from_another_company'].includes(modal?.lead?.status) ? 'Reassign Lost Lead' : 'Reassign Within Team'}
-        onClose={() => setModal(null)}
-      >
-        <p className="text-sm text-content-secondary mb-3">Reassign {modal?.lead?.name} to another executive in your squad</p>
-        <select value={reassignId} onChange={(e) => setReassignId(e.target.value)} className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4">
-          <option value="">Select executive…</option>
-          {executives.map((ex) => <option key={ex._id} value={ex._id}>{ex.name}</option>)}
-        </select>
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setModal(null)}>Cancel</Button>
-          <Button onClick={handleReassign}>Reassign</Button>
-        </div>
-      </ActionModal>
+      <AdminAssignLeadModal
+        open={!!assignModal}
+        lead={assignModal}
+        assignees={assignees}
+        loading={assigneesLoading}
+        onClose={closeAssign}
+        onAssign={handleAssign}
+        allowedRoles={['sales_executive']}
+      />
+      {assignConfirmDialog}
     </div>
   );
 }

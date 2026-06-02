@@ -33,6 +33,7 @@ const attendanceRoutes = require('./attendanceRoutes');
 const branchRoutes = require('./branchRoutes');
 const destinationAssignmentRoutes = require('./destinationAssignmentRoutes');
 const skillAssignmentRoutes = require('./skillAssignmentRoutes');
+const assignmentConfigRoutes = require('./assignmentConfigRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/invites', inviteRoutes);
@@ -63,5 +64,6 @@ router.use('/attendance', attendanceRoutes);
 router.use('/branches', branchRoutes);
 router.use('/destination-assignment', destinationAssignmentRoutes);
 router.use('/skill-assignment', skillAssignmentRoutes);
+router.use('/assignment', assignmentConfigRoutes);
 
 module.exports = router;

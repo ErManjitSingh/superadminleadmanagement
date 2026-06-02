@@ -6,6 +6,7 @@ import { Button } from '../components/ui/button';
 import { toast } from '../context/ToastContext';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { cn } from '../lib/utils';
+import AutoAssignOffBanner from '../components/assignment/AutoAssignOffBanner';
 
 const TABS = [
   { id: 'destinations', label: 'Destination Master', icon: MapPin },
@@ -37,8 +38,16 @@ export default function DestinationAssignmentPage() {
   const [editingDest, setEditingDest] = useState(null);
   const [mappingDraft, setMappingDraft] = useState({});
   const [fallbackIds, setFallbackIds] = useState([]);
-  const [autoAssignEnabled, setAutoAssignEnabled] = useState(true);
+  const [autoAssignEnabled, setAutoAssignEnabled] = useState(false);
+  const [leadAutoAssignmentEnabled, setLeadAutoAssignmentEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const fetchAssignmentStatus = useCallback(
+    () => API.get('/assignment/status', { skipSuccessToast: true }).then((r) => {
+      setLeadAutoAssignmentEnabled(r.data?.leadAutoAssignmentEnabled === true);
+    }),
+    []
+  );
 
   const fetchDestinations = useCallback(
     () => API.get('/destination-assignment/destinations', { skipSuccessToast: true }).then((r) => setDestinations(r.data || [])),
@@ -59,7 +68,7 @@ export default function DestinationAssignmentPage() {
     () => API.get('/destination-assignment/branch-settings', { skipSuccessToast: true }).then((r) => {
       setBranchSettings(r.data);
       setFallbackIds((r.data?.fallbackUserIds || []).map(String));
-      setAutoAssignEnabled(r.data?.autoAssignEnabled !== false);
+      setAutoAssignEnabled(r.data?.autoAssignEnabled === true);
     }),
     []
   );
@@ -79,6 +88,7 @@ export default function DestinationAssignmentPage() {
     setLoading(true);
     try {
       await Promise.all([
+        fetchAssignmentStatus(),
         fetchDestinations(),
         fetchMappings(),
         fetchBranchSettings(),
@@ -87,7 +97,7 @@ export default function DestinationAssignmentPage() {
     } finally {
       setLoading(false);
     }
-  }, [fetchDestinations, fetchMappings, fetchBranchSettings, fetchReports]);
+  }, [fetchAssignmentStatus, fetchDestinations, fetchMappings, fetchBranchSettings, fetchReports]);
 
   useEffect(() => {
     refreshAll();
@@ -198,7 +208,7 @@ export default function DestinationAssignmentPage() {
     <div className="space-y-6">
       <PageHeader
         title="Destination Assignment"
-        description="Auto-assign leads by destination expertise, branch, attendance, and workload."
+        description="Destination rules and mappings (auto-assign is off — use manual lead assignment)."
         actions={
           <Button type="button" variant="outline" onClick={refreshAll} disabled={loading}>
             <RefreshCw className={cn('w-4 h-4 mr-2', loading && 'animate-spin')} />
@@ -206,6 +216,8 @@ export default function DestinationAssignmentPage() {
           </Button>
         }
       />
+
+      {!leadAutoAssignmentEnabled && <AutoAssignOffBanner />}
 
       <div className="flex flex-wrap gap-2 border-b border-subtle pb-2">
         {TABS.map(({ id, label, icon: Icon }) => (
@@ -304,7 +316,7 @@ export default function DestinationAssignmentPage() {
       {tab === 'mappings' && (
         <div className="space-y-4">
           <p className="text-sm text-content-muted">
-            Assign destination expertise to sales executives. New leads auto-assign to a present specialist with the lowest active lead count; ties use round robin.
+            Assign destination expertise to sales executives. When auto-assign is turned on later, new leads can route to a present specialist with the lowest active lead count.
           </p>
           {mappings.map((row) => (
             <div key={row.userId} className="rounded-2xl border border-subtle bg-surface/80 p-4">
@@ -356,9 +368,10 @@ export default function DestinationAssignmentPage() {
             <input
               type="checkbox"
               checked={autoAssignEnabled}
+              disabled={!leadAutoAssignmentEnabled}
               onChange={(e) => setAutoAssignEnabled(e.target.checked)}
             />
-            Enable auto-assignment for this branch
+            Enable auto-assignment for this branch (requires system auto-assign ON)
           </label>
           <div className="space-y-2">
             {mappings.map((row) => (

@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { Search, Users, Inbox, UserCheck, Flame, XCircle, TrendingUp, Eye, UserPlus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/button';
-import AssignLeadModal from './AssignLeadModal';
+import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import { useLeadAssign } from '../../hooks/useLeadAssign';
 import {
   useReactTable,
   getCoreRowModel,
@@ -45,7 +46,6 @@ export default function TeamLeadsPage() {
   const { filter = 'all' } = useParams();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 350);
-  const [executives, setExecutives] = useState([]);
   const [assignLead, setAssignLead] = useState(null);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const meta = TITLES[filter] || TITLES.all;
@@ -67,23 +67,23 @@ export default function TeamLeadsPage() {
   const fetchLeads = () => queryClient.invalidateQueries({ queryKey: ['leads', '/sales-manager/leads'] });
 
   useEffect(() => {
-    API.get('/sales-manager/executives').then((r) => setExecutives(r.data)).catch(() => setExecutives([]));
-  }, []);
-
-  useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [filter, debouncedSearch]);
 
   useDataRefresh(['leads'], fetchLeads);
 
-  const handleAssign = async ({ executiveId, leadIds }) => {
-    try {
-      await API.post('/sales-manager/assign', { executiveId, leadIds });
+  const { assignees, assigneesLoading, handleAssign, assignConfirmDialog } = useLeadAssign({
+    onAssigned: () => {
       setAssignLead(null);
       fetchLeads();
-    } catch (err) {
-      /* toast via axios */
-    }
+    },
+  });
+
+  const onConfirmAssign = async (payload) => {
+    await handleAssign({
+      ...payload,
+      leadIds: payload.leadIds || (assignLead?._id ? [assignLead._id] : []),
+    });
   };
 
   useEffect(() => {
@@ -250,13 +250,16 @@ export default function TeamLeadsPage() {
         )}
       </motion.div>
 
-      <AssignLeadModal
+      <AdminAssignLeadModal
         open={!!assignLead}
         lead={assignLead}
-        executives={executives}
+        assignees={assignees}
+        loading={assigneesLoading}
         onClose={() => setAssignLead(null)}
-        onAssign={handleAssign}
+        onAssign={onConfirmAssign}
+        allowedRoles={['sales_manager', 'team_leader', 'sales_executive']}
       />
+      {assignConfirmDialog}
     </div>
   );
 }

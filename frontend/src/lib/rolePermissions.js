@@ -34,7 +34,7 @@ const ROLE_PERMISSIONS = {
   },
   team_leader: {
     ...noPerms(),
-    leads: { view: true, create: false, edit: false, delete: false },
+    leads: { view: true, create: false, edit: true, delete: false },
     customers: { view: true, create: false, edit: false, delete: false },
     quotations: { view: true, create: true, edit: true, delete: false, approve: true },
     reports: { view: true, export: true },

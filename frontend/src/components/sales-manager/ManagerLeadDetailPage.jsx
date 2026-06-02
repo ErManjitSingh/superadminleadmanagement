@@ -5,7 +5,8 @@ import { ArrowLeft, UserPlus } from 'lucide-react';
 import API from '../../api/axios';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { Button } from '../ui/button';
-import AssignLeadModal from './AssignLeadModal';
+import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import { useLeadAssign } from '../../hooks/useLeadAssign';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import {
   LeadDetailHeader,
@@ -37,22 +38,22 @@ export default function ManagerLeadDetailPage() {
 
   useEffect(() => {
     loadLead();
-    API.get('/sales-manager/executives').then((r) => setExecutives(r.data)).catch(() => setExecutives([]));
+    API.get('/leads/assignees')
+      .then((r) => setExecutives(r.data?.salesExecutives || []))
+      .catch(() => setExecutives([]));
   }, [loadLead]);
 
   useDataRefresh(['leads'], loadLead);
 
-  const handleAssign = async ({ executiveId, leadIds }) => {
-    try {
-      await API.post('/sales-manager/assign', {
-        executiveId,
-        leadIds: leadIds || [id],
-      });
+  const { assignees, assigneesLoading, handleAssign, assignConfirmDialog } = useLeadAssign({
+    onAssigned: async () => {
       setAssignOpen(false);
       await loadLead();
-    } catch {
-      /* toast via axios */
-    }
+    },
+  });
+
+  const onConfirmAssign = async (payload) => {
+    await handleAssign({ ...payload, leadIds: payload.leadIds || [id] });
   };
 
   const handleReactivationAction = async (payload) => {
@@ -134,13 +135,16 @@ export default function ManagerLeadDetailPage() {
         </main>
       </div>
 
-      <AssignLeadModal
+      <AdminAssignLeadModal
         open={assignOpen}
         lead={lead}
-        executives={executives}
+        assignees={assignees}
+        loading={assigneesLoading}
         onClose={() => setAssignOpen(false)}
-        onAssign={handleAssign}
+        onAssign={onConfirmAssign}
+        allowedRoles={['sales_manager', 'team_leader', 'sales_executive']}
       />
+      {assignConfirmDialog}
       <ReactivationActionsModal
         open={!!reactivationMode}
         mode={reactivationMode || 'reactivate'}

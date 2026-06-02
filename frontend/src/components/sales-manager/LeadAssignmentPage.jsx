@@ -7,8 +7,9 @@ import { useDataRefresh } from '../../hooks/useDataRefresh';
 import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import PriorityBadge from './PriorityBadge';
-import AssignLeadModal from './AssignLeadModal';
 import AssignTeamLeadModal from './teams/AssignTeamLeadModal';
+import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import { useLeadAssign } from '../../hooks/useLeadAssign';
 import { compactTable, compactTh, compactTd } from '../ui/compactTable';
 import {
   LeadIdPill,
@@ -21,10 +22,10 @@ import {
 } from './LeadListBadges';
 
 const AUTO_RULES = [
-  { id: 'destination-match', name: 'Destination Match', desc: 'Auto-assign on lead create to destination specialists (active + present)', enabled: true, color: 'from-emerald-500/20 to-teal-500/15 border-emerald-500/25' },
-  { id: 'load-balance', name: 'Lowest Active Leads', desc: 'Prefer executive with fewest active pipeline leads', enabled: true, color: 'from-sky-500/20 to-blue-500/15 border-sky-500/25' },
-  { id: 'round-robin', name: 'Round Robin', desc: 'Tie-breaker when multiple executives have the same load', enabled: true, color: 'from-violet-500/20 to-purple-500/15 border-violet-500/25' },
-  { id: 'fallback-queue', name: 'Branch Fallback', desc: 'Used when no destination specialist is available', enabled: true, color: 'from-amber-500/20 to-orange-500/15 border-amber-500/25' },
+  { id: 'destination-match', name: 'Destination Match', desc: 'Auto-assign on lead create (currently disabled — manual assign only)', enabled: false, color: 'from-emerald-500/20 to-teal-500/15 border-emerald-500/25' },
+  { id: 'load-balance', name: 'Lowest Active Leads', desc: 'Prefer executive with fewest active pipeline leads', enabled: false, color: 'from-sky-500/20 to-blue-500/15 border-sky-500/25' },
+  { id: 'round-robin', name: 'Round Robin', desc: 'Tie-breaker when multiple executives have the same load', enabled: false, color: 'from-violet-500/20 to-purple-500/15 border-violet-500/25' },
+  { id: 'fallback-queue', name: 'Branch Fallback', desc: 'Used when no destination specialist is available', enabled: false, color: 'from-amber-500/20 to-orange-500/15 border-amber-500/25' },
 ];
 
 const theme = FILTER_THEMES.unassigned;
@@ -33,7 +34,6 @@ const columns = ['Lead ID', 'Customer', 'Destination', 'Budget', 'Source', 'Prio
 export default function LeadAssignmentPage() {
   const [leads, setLeads] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [executives, setExecutives] = useState([]);
   const [selected, setSelected] = useState([]);
   const [search, setSearch] = useState('');
   const [modalLead, setModalLead] = useState(null);
@@ -45,16 +45,21 @@ export default function LeadAssignmentPage() {
     Promise.all([
       API.get('/sales-manager/leads', { params: { filter: 'unassigned', search } }),
       API.get('/sales-manager/teams'),
-      API.get('/sales-manager/executives'),
     ])
-      .then(([l, t, ex]) => {
+      .then(([l, t]) => {
         setLeads(l.data);
         setTeams(t.data);
-        setExecutives(ex.data);
         if (!t.data?.length) setAssignMode('quick');
       })
       .finally(() => setLoading(false));
   };
+
+  const {
+    assignees,
+    assigneesLoading,
+    handleAssign: submitAssign,
+    assignConfirmDialog,
+  } = useLeadAssign({ onAssigned: fetchData });
 
   useEffect(() => {
     fetchData();
@@ -66,17 +71,13 @@ export default function LeadAssignmentPage() {
   const toggleAll = () => setSelected(selected.length === leads.length ? [] : leads.map((l) => l._id));
 
   const handleAssign = async (payload) => {
-    try {
-      await API.post('/sales-manager/assign', {
-        ...payload,
-        leadIds: payload.leadIds || selected,
-      });
-      setSelected([]);
-      setModalLead(null);
-      fetchData();
-    } catch (err) {
-      /* toast via axios */
-    }
+    await submitAssign({
+      assigneeRole: payload.assigneeRole,
+      assigneeId: payload.assigneeId,
+      leadIds: payload.leadIds || selected,
+    });
+    setSelected([]);
+    setModalLead(null);
   };
 
   const openAssign = (lead) => {
@@ -88,7 +89,7 @@ export default function LeadAssignmentPage() {
     <div className="space-y-6">
       <PageHeader
         title="Lead Assignment"
-        description="Assign unassigned leads to sales executives"
+        description="Manual assignment only — auto-assign is off for now"
         breadcrumbs={['Sales Manager', 'Lead Assignment']}
         actions={
           selected.length > 0 && (
@@ -218,15 +219,18 @@ export default function LeadAssignmentPage() {
         </div>
       </div>
 
-      {assignMode === 'quick' || !teams.length ? (
-        <AssignLeadModal
+      {(assignMode === 'quick' || !teams.length) && (
+        <AdminAssignLeadModal
           open={!!modalLead}
           lead={modalLead}
-          executives={executives}
+          assignees={assignees}
+          loading={assigneesLoading}
           onClose={() => setModalLead(null)}
           onAssign={handleAssign}
+          allowedRoles={['sales_manager', 'team_leader', 'sales_executive']}
         />
-      ) : (
+      )}
+      {assignMode === 'team' && teams.length > 0 && (
         <AssignTeamLeadModal
           open={!!modalLead}
           lead={modalLead}
@@ -235,6 +239,7 @@ export default function LeadAssignmentPage() {
           onAssign={handleAssign}
         />
       )}
+      {assignConfirmDialog}
     </div>
   );
 }

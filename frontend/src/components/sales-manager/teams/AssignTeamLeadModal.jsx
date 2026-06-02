@@ -21,7 +21,22 @@ export default function AssignTeamLeadModal({ open, lead, teams, onClose, onAssi
     e.preventDefault();
     const fd = new FormData(e.target);
     const executiveId = fd.get('executiveId');
-    onAssign({ teamId, executiveId, leadIds: isBulk ? undefined : [lead._id] });
+    onAssign({
+      assigneeRole: 'sales_executive',
+      assigneeId: executiveId,
+      leadIds: isBulk ? undefined : [lead._id],
+    });
+    setStep(1);
+    setTeamId('');
+  };
+
+  const assignToTeamLeader = () => {
+    if (!selectedTeam?.teamLeader?._id) return;
+    onAssign({
+      assigneeRole: 'team_leader',
+      assigneeId: selectedTeam.teamLeader._id,
+      leadIds: isBulk ? undefined : [lead._id],
+    });
     setStep(1);
     setTeamId('');
   };
@@ -87,9 +102,12 @@ export default function AssignTeamLeadModal({ open, lead, teams, onClose, onAssi
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col sm:flex-row justify-end gap-2">
                 <Button type="button" variant="secondary" onClick={() => setStep(1)}>Back</Button>
-                <Button type="button" onClick={() => setStep(3)}>Next</Button>
+                <Button type="button" variant="outline" onClick={assignToTeamLeader}>
+                  Assign to Team Leader only
+                </Button>
+                <Button type="button" onClick={() => setStep(3)}>Assign to Executive →</Button>
               </div>
             </>
           )}

@@ -5,6 +5,9 @@ import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
+import { useLeadAssign } from '../../hooks/useLeadAssign';
+import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import { UserPlus } from 'lucide-react';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import {
   LeadDetailHeader, LeadStatusPipeline, LeadCustomerPanel, LeadActivityTimeline,
@@ -17,6 +20,7 @@ export default function LeaderLeadDetailPage() {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [stageModalOpen, setStageModalOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const notesRef = useRef(null);
 
   const loadLead = useCallback(() => {
@@ -32,6 +36,13 @@ export default function LeaderLeadDetailPage() {
   }, [loadLead]);
 
   useDataRefresh(['leads'], loadLead);
+
+  const { assignees, assigneesLoading, handleAssign, assignConfirmDialog } = useLeadAssign({
+    onAssigned: async () => {
+      setAssignOpen(false);
+      await loadLead();
+    },
+  });
 
   if (loading) {
     return <div className="flex justify-center py-32"><div className="w-9 h-9 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -59,11 +70,14 @@ export default function LeaderLeadDetailPage() {
       <Link to="/team-leader/leads" className="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-500 mb-4">
         <ArrowLeft className="w-4 h-4" /> Back to Team Leads
       </Link>
-      {lead?.reactivation?.isReactivated && (
-        <div className="mb-4">
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button variant="gradient" className="gap-2" onClick={() => setAssignOpen(true)}>
+          <UserPlus className="w-4 h-4" /> Assign to Executive
+        </Button>
+        {lead?.reactivation?.isReactivated && (
           <Button variant="outline" onClick={() => setStageModalOpen(true)}>Update Reactivation Stage</Button>
-        </div>
-      )}
+        )}
+      </div>
       <LeadDetailHeader lead={lead} />
       <div className="mb-6"><LeadStatusPipeline status={lead.status} /></div>
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -77,6 +91,16 @@ export default function LeaderLeadDetailPage() {
           <LeadQuotationSection quotations={lead.quotations || detail.quotations} />
         </main>
       </div>
+      <AdminAssignLeadModal
+        open={assignOpen}
+        lead={lead}
+        assignees={assignees}
+        loading={assigneesLoading}
+        onClose={() => setAssignOpen(false)}
+        onAssign={(payload) => handleAssign({ ...payload, leadIds: [id] })}
+        allowedRoles={['sales_executive']}
+      />
+      {assignConfirmDialog}
       <ReactivationActionsModal
         open={stageModalOpen}
         mode="stage"
