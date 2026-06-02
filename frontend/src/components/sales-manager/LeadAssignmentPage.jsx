@@ -1,0 +1,239 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { UserPlus, Zap, Search, CheckSquare, Square, Inbox, Eye } from 'lucide-react';
+import API from '../../api/axios';
+import { useDataRefresh } from '../../hooks/useDataRefresh';
+import PageHeader from '../ui/PageHeader';
+import { Button } from '../ui/button';
+import PriorityBadge from './PriorityBadge';
+import AssignLeadModal from './AssignLeadModal';
+import AssignTeamLeadModal from './teams/AssignTeamLeadModal';
+import { compactTable, compactTh, compactTd } from '../ui/compactTable';
+import {
+  LeadIdPill,
+  SourceBadge,
+  DestinationChip,
+  BudgetBadge,
+  ManagerStatusBadge,
+  CustomerCell,
+  FILTER_THEMES,
+} from './LeadListBadges';
+
+const AUTO_RULES = [
+  { id: 'round-robin', name: 'Round Robin', desc: 'Distribute leads evenly across active executives', enabled: true, color: 'from-violet-500/20 to-purple-500/15 border-violet-500/25' },
+  { id: 'source-match', name: 'Source Match', desc: 'Assign by lead source expertise', enabled: true, color: 'from-sky-500/20 to-blue-500/15 border-sky-500/25' },
+  { id: 'load-balance', name: 'Load Balance', desc: 'Assign to executive with fewest active leads', enabled: false, color: 'from-slate-500/15 to-zinc-500/10 border-slate-500/20' },
+];
+
+const theme = FILTER_THEMES.unassigned;
+const columns = ['Lead ID', 'Customer', 'Destination', 'Budget', 'Source', 'Priority', 'Status', 'Actions'];
+
+export default function LeadAssignmentPage() {
+  const [leads, setLeads] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [search, setSearch] = useState('');
+  const [modalLead, setModalLead] = useState(null);
+  const [assignMode, setAssignMode] = useState('quick');
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = () => {
+    setLoading(true);
+    Promise.all([
+      API.get('/sales-manager/leads', { params: { filter: 'unassigned', search } }),
+      API.get('/sales-manager/teams'),
+      API.get('/sales-manager/executives'),
+    ])
+      .then(([l, t, ex]) => {
+        setLeads(l.data);
+        setTeams(t.data);
+        setExecutives(ex.data);
+        if (!t.data?.length) setAssignMode('quick');
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [search]);
+
+  useDataRefresh(['leads'], fetchData);
+
+  const toggle = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  const toggleAll = () => setSelected(selected.length === leads.length ? [] : leads.map((l) => l._id));
+
+  const handleAssign = async (payload) => {
+    try {
+      await API.post('/sales-manager/assign', {
+        ...payload,
+        leadIds: payload.leadIds || selected,
+      });
+      setSelected([]);
+      setModalLead(null);
+      fetchData();
+    } catch (err) {
+      /* toast via axios */
+    }
+  };
+
+  const openAssign = (lead) => {
+    setAssignMode(teams.length ? 'team' : 'quick');
+    setModalLead(lead);
+  };
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Lead Assignment"
+        description="Assign unassigned leads to sales executives"
+        breadcrumbs={['Sales Manager', 'Lead Assignment']}
+        actions={
+          selected.length > 0 && (
+            <Button onClick={() => openAssign({ bulk: true, count: selected.length })} variant="gradient">
+              <UserPlus className="w-4 h-4 mr-1.5" /> Bulk Assign ({selected.length})
+            </Button>
+          )
+        }
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`rounded-2xl border ${theme.border} bg-gradient-to-r ${theme.gradient} p-5 flex items-center gap-4`}
+      >
+        <div className="p-3 rounded-2xl bg-surface/80 text-amber-600"><Inbox className="w-6 h-6" /></div>
+        <div>
+          <p className="text-2xl font-bold text-content-primary tabular-nums">{leads.length}</p>
+          <p className="text-sm text-content-secondary">Unassigned leads waiting for assignment</p>
+        </div>
+      </motion.div>
+
+      {teams.length > 0 && (
+        <div className="flex gap-2 p-1 rounded-xl bg-surface-elevated/50 border border-subtle w-fit">
+          <button
+            type="button"
+            onClick={() => setAssignMode('quick')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${assignMode === 'quick' ? 'bg-violet-500/15 text-violet-700' : 'text-content-muted'}`}
+          >
+            Quick assign (executive)
+          </button>
+          <button
+            type="button"
+            onClick={() => setAssignMode('team')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${assignMode === 'team' ? 'bg-violet-500/15 text-violet-700' : 'text-content-muted'}`}
+          >
+            Assign via team
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {AUTO_RULES.map((rule, i) => (
+          <motion.div
+            key={rule.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.06 }}
+            className={`rounded-2xl border bg-gradient-to-br ${rule.color} backdrop-blur-xl p-4 shadow-sm opacity-80`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Zap className={`w-4 h-4 ${rule.enabled ? 'text-amber-500' : 'text-content-muted'}`} />
+                <h3 className="font-semibold text-sm text-content-primary">{rule.name}</h3>
+              </div>
+              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full ring-1 ring-inset bg-surface-elevated text-content-muted">
+                Soon
+              </span>
+            </div>
+            <p className="text-xs text-content-muted mt-2">{rule.desc}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search unassigned leads…" className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-amber-500/25 bg-surface/80 text-sm outline-none focus:ring-2 focus:ring-amber-500/30" />
+      </div>
+
+      <div className={`rounded-2xl border ${theme.border} bg-surface/80 backdrop-blur-xl overflow-hidden shadow-lg shadow-amber-500/5`}>
+        <div className="overflow-x-auto">
+          <table className={compactTable}>
+            <thead>
+              <tr className={`border-b ${theme.border} bg-gradient-to-r ${theme.header}`}>
+                <th className={`${compactTh} w-8`}>
+                  <button type="button" onClick={toggleAll} className="text-amber-600 hover:text-amber-500">
+                    {selected.length === leads.length && leads.length ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                  </button>
+                </th>
+                {columns.map((h) => (
+                  <th key={h} className={compactTh}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={9} className="p-12 text-center text-content-muted">Loading…</td></tr>
+              ) : leads.length === 0 ? (
+                <tr><td colSpan={9} className="p-12 text-center text-content-muted">No unassigned leads</td></tr>
+              ) : leads.map((lead, i) => (
+                <motion.tr
+                  key={lead._id}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className={`group border-b border-subtle/60 last:border-0 hover:bg-gradient-to-r hover:from-amber-500/[0.06] hover:to-orange-500/[0.04] ${selected.includes(lead._id) ? 'bg-amber-500/[0.08]' : lead.isHot ? 'bg-rose-500/[0.04]' : i % 2 === 0 ? 'bg-surface/40' : ''}`}
+                >
+                  <td className={compactTd}>
+                    <button type="button" onClick={() => toggle(lead._id)} className="text-content-muted hover:text-amber-600">
+                      {selected.includes(lead._id) ? <CheckSquare className="w-3.5 h-3.5 text-amber-600" /> : <Square className="w-3.5 h-3.5" />}
+                    </button>
+                  </td>
+                  <td className={compactTd}><LeadIdPill id={lead.leadId} /></td>
+                  <td className={compactTd}><div className="flex items-center gap-1 min-w-0 flex-wrap"><CustomerCell name={lead.name} lead={lead} /><PriorityBadge lead={lead} /></div></td>
+                  <td className={compactTd}><DestinationChip name={lead.destination} /></td>
+                  <td className={compactTd}><BudgetBadge amount={lead.budget} /></td>
+                  <td className={compactTd}><SourceBadge source={lead.source} label={lead.sourceLabel} /></td>
+                  <td className={compactTd}><PriorityBadge lead={lead} /></td>
+                  <td className={compactTd}><ManagerStatusBadge status={lead.status} /></td>
+                  <td className={compactTd}>
+                    <div className="flex items-center gap-1">
+                      <Link
+                        to={`/sales-manager/leads/${lead._id}/view`}
+                        className="inline-flex items-center h-7 px-2 rounded-md border border-subtle text-[11px] font-medium hover:bg-surface-elevated"
+                      >
+                        <Eye className="w-3 h-3 mr-0.5" /> View
+                      </Link>
+                      <Button size="sm" variant="gradient" onClick={() => openAssign(lead)} className="h-7 px-2 text-[11px]">
+                        <UserPlus className="w-3 h-3 mr-0.5" /> Assign
+                      </Button>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {assignMode === 'quick' || !teams.length ? (
+        <AssignLeadModal
+          open={!!modalLead}
+          lead={modalLead}
+          executives={executives}
+          onClose={() => setModalLead(null)}
+          onAssign={handleAssign}
+        />
+      ) : (
+        <AssignTeamLeadModal
+          open={!!modalLead}
+          lead={modalLead}
+          teams={teams}
+          onClose={() => setModalLead(null)}
+          onAssign={handleAssign}
+        />
+      )}
+    </div>
+  );
+}

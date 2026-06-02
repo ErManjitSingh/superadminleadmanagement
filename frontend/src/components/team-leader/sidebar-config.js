@@ -1,0 +1,41 @@
+import {
+  LayoutDashboard,
+  Users,
+  CalendarClock,
+  Trophy,
+  AlertTriangle,
+  FileText,
+  BarChart3,
+  Calendar,
+  Bell,
+  User,
+  RefreshCw,
+  Clock,
+  MessageSquare,
+  CheckCircle2,
+  XOctagon,
+} from 'lucide-react';
+
+export const teamLeaderNavItems = [
+  { path: '/team-leader/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/team-leader/leads', label: 'Team Leads', icon: Users, countKey: 'leads.all' },
+  { path: '/team-leader/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw },
+  { path: '/team-leader/follow-ups', label: 'Team Follow-ups', icon: CalendarClock, badgeKey: 'followups.due' },
+  { path: '/team-leader/performance', label: 'Executive Performance', icon: Trophy },
+  { path: '/team-leader/escalations', label: 'Lead Escalations', icon: AlertTriangle, badgeKey: 'escalations' },
+  {
+    id: 'quotations',
+    label: 'Quotations',
+    icon: FileText,
+    children: [
+      { path: '/team-leader/quotations/pending', label: 'Pending', icon: Clock, badgeKey: 'quotations.pending' },
+      { path: '/team-leader/quotations/negotiation', label: 'Negotiation', icon: MessageSquare, countKey: 'quotations.negotiation' },
+      { path: '/team-leader/quotations/approved', label: 'Approved', icon: CheckCircle2, countKey: 'quotations.approved' },
+      { path: '/team-leader/quotations/rejected', label: 'Rejected', icon: XOctagon, countKey: 'quotations.rejected' },
+    ],
+  },
+  { path: '/team-leader/reports', label: 'Reports', icon: BarChart3 },
+  { path: '/team-leader/calendar', label: 'Calendar', icon: Calendar },
+  { path: '/team-leader/notifications', label: 'Notifications', icon: Bell, badgeKey: 'notifications.unread' },
+  { path: '/team-leader/profile', label: 'Profile', icon: User },
+];

@@ -1,0 +1,13 @@
+export { default as OperationsManagerLayout } from './OperationsManagerLayout';
+export { default as OperationsDashboard } from './OperationsDashboard';
+export { default as BookingsListPage } from './bookings/BookingsListPage';
+export { default as BookingDetailPage } from './bookings/BookingDetailPage';
+export { default as OperationsHotelsPage } from './hotels/OperationsHotelsPage';
+export { default as OperationsTransportPage } from './transport/OperationsTransportPage';
+export { default as OperationsActivitiesPage } from './activities/OperationsActivitiesPage';
+export { default as VendorsPage } from './vendors/VendorsPage';
+export { default as VouchersPage } from './vouchers/VouchersPage';
+export { default as SupportTicketsPage } from './support/SupportTicketsPage';
+export { default as OperationsReportsPage } from './OperationsReportsPage';
+export { default as OperationsCalendarPage } from './OperationsCalendarPage';
+export { default as OperationsProfilePage } from './OperationsProfilePage';

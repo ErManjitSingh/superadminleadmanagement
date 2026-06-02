@@ -1,0 +1,80 @@
+const noPerms = () => ({
+  users: { view: false, create: false, edit: false, delete: false },
+  leads: { view: false, create: false, edit: false, delete: false },
+  customers: { view: false, create: false, edit: false, delete: false },
+  quotations: { view: false, create: false, edit: false, delete: false, approve: false },
+  reports: { view: false, export: false },
+  packages: { view: false, create: false, edit: false, delete: false },
+  payments: { view: false, create: false, edit: false, delete: false },
+  operations: { view: false, create: false, edit: false, delete: false },
+});
+
+const fullPerms = () => ({
+  users: { view: true, create: true, edit: true, delete: true },
+  leads: { view: true, create: true, edit: true, delete: true },
+  customers: { view: true, create: true, edit: true, delete: true },
+  quotations: { view: true, create: true, edit: true, delete: true, approve: true },
+  reports: { view: true, export: true },
+  packages: { view: true, create: true, edit: true, delete: true },
+  payments: { view: true, create: true, edit: true, delete: true },
+  operations: { view: true, create: true, edit: true, delete: true },
+});
+
+const ROLE_PERMISSIONS = {
+  admin: fullPerms(),
+  sales_manager: {
+    ...noPerms(),
+    users: { view: true, create: false, edit: false, delete: false },
+    leads: { view: true, create: true, edit: true, delete: false },
+    customers: { view: true, create: true, edit: true, delete: false },
+    quotations: { view: true, create: true, edit: true, delete: false, approve: true },
+    reports: { view: true, export: true },
+    packages: { view: true, create: false, edit: false, delete: false },
+  },
+  team_leader: {
+    ...noPerms(),
+    leads: { view: true, create: false, edit: false, delete: false },
+    customers: { view: true, create: false, edit: false, delete: false },
+    quotations: { view: true, create: true, edit: true, delete: false, approve: true },
+    reports: { view: true, export: true },
+    packages: { view: true, create: false, edit: false, delete: false },
+    users: { view: true, create: false, edit: false, delete: false },
+  },
+  sales_executive: {
+    ...noPerms(),
+    leads: { view: true, create: false, edit: false, delete: false },
+    customers: { view: true, create: false, edit: false, delete: false },
+    quotations: { view: true, create: true, edit: true, delete: false, approve: false },
+    reports: { view: true, export: false },
+    packages: { view: true, create: false, edit: false, delete: false },
+  },
+  accountant: {
+    ...noPerms(),
+    quotations: { view: true, create: false, edit: false, delete: false, approve: true },
+    reports: { view: true, export: true },
+    payments: { view: true, create: true, edit: true, delete: false },
+  },
+  operations_manager: {
+    ...noPerms(),
+    packages: { view: true, create: true, edit: true, delete: true },
+    operations: { view: true, create: true, edit: true, delete: true },
+    leads: { view: true, create: false, edit: false, delete: false },
+  },
+};
+
+const PERMISSION_MODULES = [
+  { key: 'users', label: 'Users & Roles' },
+  { key: 'leads', label: 'Leads & Follow-ups' },
+  { key: 'customers', label: 'Customers' },
+  { key: 'quotations', label: 'Quotations' },
+  { key: 'reports', label: 'Reports' },
+  { key: 'packages', label: 'Packages & Inventory' },
+  { key: 'payments', label: 'Payments' },
+  { key: 'operations', label: 'Operations' },
+];
+
+function getPermissionsForRole(role) {
+  return ROLE_PERMISSIONS[role] || noPerms();
+}
+
+module.exports = { ROLE_PERMISSIONS, PERMISSION_MODULES, getPermissionsForRole, noPerms, fullPerms };

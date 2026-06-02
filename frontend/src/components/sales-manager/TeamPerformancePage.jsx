@@ -1,0 +1,131 @@
+import { useEffect, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Medal, Trophy, TrendingUp, PhoneCall, Target, IndianRupee, Users } from 'lucide-react';
+import {
+  useReactTable, getCoreRowModel, flexRender, createColumnHelper,
+} from '@tanstack/react-table';
+import API from '../../api/axios';
+import { useDataRefresh } from '../../hooks/useDataRefresh';
+import PageHeader from '../ui/PageHeader';
+import { formatCurrency } from './managerUtils';
+const columnHelper = createColumnHelper();
+
+export default function TeamPerformancePage() {
+  const [executives, setExecutives] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchExecutives = () => {
+    setLoading(true);
+    API.get('/sales-manager/executives', { skipSuccessToast: true })
+      .then((r) => setExecutives(r.data))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchExecutives();
+  }, []);
+
+  useDataRefresh(['leads', 'followups', 'quotations', 'dashboard'], fetchExecutives);
+  const columns = useMemo(() => [
+    columnHelper.accessor('rank', { header: 'Rank', cell: (i) => (
+      <span className={`inline-flex w-7 h-7 items-center justify-center rounded-full text-xs font-bold ${i.getValue() === 1 ? 'bg-amber-500/20 text-amber-600' : 'bg-surface-elevated text-content-muted'}`}>
+        {i.getValue() === 1 ? <Medal className="w-3.5 h-3.5" /> : i.getValue()}
+      </span>
+    ) }),
+    columnHelper.accessor('name', { header: 'Executive', cell: (i) => <span className="font-semibold text-content-primary">{i.getValue()}</span> }),
+    columnHelper.accessor('assignedLeads', { header: 'Leads Assigned' }),
+    columnHelper.accessor('contacted', { header: 'Contacted' }),
+    columnHelper.accessor('followUpsDone', { header: 'Follow-ups' }),
+    columnHelper.accessor('quotationsSent', { header: 'Quotations' }),
+    columnHelper.accessor('conversions', { header: 'Conversions' }),
+    columnHelper.accessor('revenue', { header: 'Revenue', cell: (i) => <span className="font-bold tabular-nums">{formatCurrency(i.getValue())}</span> }),
+    columnHelper.accessor('conversionRate', { header: 'CR %', cell: (i) => <span className="text-emerald-600 font-semibold">{i.getValue()}%</span> }),
+  ], []);
+
+  const table = useReactTable({ data: executives, columns, getCoreRowModel: getCoreRowModel() });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader title="Team Performance" description="Detailed executive metrics and ranking system" breadcrumbs={['Sales Manager', 'Team Performance']} />
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {!loading && executives.length === 0 ? (
+          <div className="col-span-full rounded-2xl border border-dashed border-subtle bg-surface/60 p-12 text-center">
+            <Users className="w-10 h-10 mx-auto mb-3 text-content-muted opacity-50" />
+            <p className="font-medium text-content-primary">No active sales executives</p>
+            <p className="text-sm text-content-muted mt-1">Team Management se Sales Executive add karein, phir performance yahan dikhegi.</p>
+          </div>
+        ) : executives.map((ex) => (
+          <div key={ex._id} className="relative overflow-hidden rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-brand-600 flex items-center justify-center text-white font-bold text-xs">
+                {ex.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+              </div>
+              <div>
+                <p className="font-bold text-sm text-content-primary">{ex.name}</p>
+                <p className="text-xs text-content-muted">Rank #{ex.rank}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 rounded-lg bg-surface-elevated/50"><Target className="w-3 h-3 text-content-muted mb-0.5" /><p className="text-content-muted">Leads</p><p className="font-bold">{ex.assignedLeads}</p></div>
+              <div className="p-2 rounded-lg bg-surface-elevated/50"><PhoneCall className="w-3 h-3 text-content-muted mb-0.5" /><p className="text-content-muted">Follow-ups</p><p className="font-bold">{ex.followUpsDone}</p></div>
+              <div className="p-2 rounded-lg bg-surface-elevated/50"><Trophy className="w-3 h-3 text-content-muted mb-0.5" /><p className="text-content-muted">Conv.</p><p className="font-bold">{ex.conversions}</p></div>
+              <div className="p-2 rounded-lg bg-surface-elevated/50"><IndianRupee className="w-3 h-3 text-content-muted mb-0.5" /><p className="text-content-muted">Revenue</p><p className="font-bold">{formatCurrency(ex.revenue)}</p></div>
+            </div>
+            <p className="text-xs text-emerald-600 font-semibold mt-2 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {ex.conversionRate}% conversion</p>
+          </div>
+        ))}
+      </motion.div>
+
+      {!loading && executives.length > 0 && (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {executives.slice(0, 3).map((ex, i) => (
+          <div key={ex._id} className={`rounded-2xl border p-5 backdrop-blur-xl ${i === 0 ? 'border-amber-500/30 bg-amber-500/5' : 'border-subtle bg-surface/80'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className={`w-5 h-5 ${i === 0 ? 'text-amber-500' : 'text-content-muted'}`} />
+              <span className="text-xs font-semibold uppercase tracking-wider text-content-muted">#{ex.rank} Performer</span>
+            </div>
+            <p className="text-lg font-bold text-content-primary">{ex.name}</p>
+            <p className="text-sm text-content-secondary mt-1">{formatCurrency(ex.revenue)} · {ex.conversionRate}% CR</p>
+          </div>
+        ))}
+      </motion.div>
+      )}
+
+      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
+        {loading ? (
+          <div className="p-16 text-center text-content-muted">Loading…</div>
+        ) : executives.length === 0 ? (
+          <div className="p-16 text-center text-content-muted">Performance data tab dikhegi jab executives assign honge.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                {table.getHeaderGroups().map((hg) => (
+                  <tr key={hg.id} className="border-b border-subtle bg-surface-elevated/50">
+                    {hg.headers.map((h) => (
+                      <th key={h.id} className="text-left px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted whitespace-nowrap">
+                        {flexRender(h.column.columnDef.header, h.getContext())}
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-subtle">
+                {table.getRowModel().rows.map((row) => (
+                  <tr key={row.id} className="hover:bg-violet-500/[0.03]">
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3.5 text-content-secondary whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,136 @@
+/** Fired after any successful API mutation (and via Socket.IO for other clients). */
+export const DATA_CHANGED_EVENT = 'crm:data-changed';
+
+let pendingKeys = new Set();
+let emitTimer = null;
+
+export function emitDataChanged(keys) {
+  if (typeof window === 'undefined') return;
+  const normalized = normalizeKeys(keys);
+  if (!normalized.length) return;
+
+  normalized.forEach((k) => pendingKeys.add(k));
+  if (emitTimer) clearTimeout(emitTimer);
+  emitTimer = setTimeout(() => {
+    const merged = [...pendingKeys];
+    pendingKeys = new Set();
+    emitTimer = null;
+    window.dispatchEvent(
+      new CustomEvent(DATA_CHANGED_EVENT, { detail: { keys: merged } })
+    );
+  }, 80);
+}
+
+export function normalizeKeys(keys) {
+  if (!keys) return [];
+  const list = Array.isArray(keys) ? keys : [keys];
+  return [...new Set(list.filter(Boolean))];
+}
+
+export function shouldEmitDataRefresh(config) {
+  if (!config || config.skipDataRefresh) return false;
+  const method = (config.method || '').toUpperCase();
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return false;
+
+  const path = (config.url || '').split('?')[0].toLowerCase();
+  if (
+    path.includes('/auth/') ||
+    path.includes('/invites/accept') ||
+    path.includes('/notifications')
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** Map mutation URL → cache keys that should refetch. */
+export function keysFromMutationUrl(url, _method) {
+  const path = (url || '').split('?')[0].toLowerCase();
+  const keys = new Set(['nav-counts']);
+
+  const leadPath =
+    /\/leads(\/|$)/.test(path) ||
+    /\/sales-manager\/leads/.test(path) ||
+    /\/sales-executive\/leads/.test(path) ||
+    /\/team-leader\/leads/.test(path) ||
+    /\/whatsapp\/leads/.test(path);
+
+  if (leadPath || /\/sales-manager\/assign/.test(path) || /\/leads\/assign/.test(path)) {
+    keys.add('leads');
+    keys.add('dashboard');
+  }
+
+  if (/\/followup/.test(path)) {
+    keys.add('followups');
+    keys.add('leads');
+    keys.add('dashboard');
+  }
+
+  if (/\/users(\/|$)/.test(path) || /\/roles(\/|$)/.test(path) || /\/team(\/|$)/.test(path)) {
+    keys.add('users');
+    keys.add('team');
+    keys.add('dashboard');
+  }
+
+  if (/\/sales-manager\/teams/.test(path) || /\/teams(\/|$)/.test(path)) {
+    keys.add('teams');
+    keys.add('leads');
+    keys.add('dashboard');
+  }
+
+  if (/\/quotations/.test(path)) {
+    keys.add('quotations');
+    keys.add('leads');
+    keys.add('dashboard');
+  }
+
+  if (
+    /\/packages/.test(path) ||
+    /\/hotels/.test(path) ||
+    /\/cabs/.test(path) ||
+    /\/flights/.test(path)
+  ) {
+    keys.add('packages');
+  }
+
+  if (/\/whatsapp/.test(path)) {
+    keys.add('whatsapp');
+    keys.add('leads');
+  }
+
+  if (/\/operations-manager/.test(path) || /\/payments/.test(path)) {
+    keys.add('operations');
+    keys.add('dashboard');
+  }
+
+  if (/\/dashboard/.test(path)) {
+    keys.add('dashboard');
+  }
+
+  if (/\/activity-logs/.test(path)) {
+    keys.add('activity');
+  }
+
+  if (/\/reports/.test(path)) {
+    keys.add('reports');
+  }
+
+  if (/\/attendance/.test(path)) {
+    keys.add('attendance');
+    keys.add('dashboard');
+  }
+
+  if (keys.size <= 1 && keys.has('nav-counts')) {
+    keys.add('*');
+  }
+
+  return [...keys];
+}
+
+export function matchesDataKeys(watchKeys, changedKeys) {
+  const watch = normalizeKeys(watchKeys);
+  const changed = normalizeKeys(changedKeys);
+  if (!watch.length || !changed.length) return false;
+  if (changed.includes('*') || watch.includes('*')) return true;
+  return watch.some((k) => changed.includes(k));
+}

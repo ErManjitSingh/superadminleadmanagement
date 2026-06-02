@@ -1,0 +1,68 @@
+import { User, Plane, Megaphone, ClipboardCheck } from 'lucide-react';
+
+export const WIZARD_STEP_COUNT = 4;
+
+export const WIZARD_STEPS = [
+  { id: 1, key: 'customer', title: 'Customer Details', subtitle: 'Contact & location', icon: User },
+  { id: 2, key: 'travel', title: 'Travel Details', subtitle: 'Destination & dates', icon: Plane },
+  { id: 3, key: 'lead', title: 'Lead Information', subtitle: 'Source & priority', icon: Megaphone },
+  { id: 4, key: 'review', title: 'Review', subtitle: 'Confirm & save', icon: ClipboardCheck },
+];
+
+export const LEAD_SOURCES = [
+  { value: 'google_ads', label: 'Website (Google Ads)' },
+  { value: 'facebook_ads', label: 'FB Lead' },
+  { value: 'website', label: 'Website' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'organic', label: 'Organic' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'social', label: 'Social' },
+];
+
+export const PRIORITIES = [
+  { value: 'low', label: 'Low', color: 'text-slate-600 bg-slate-500/10 border-slate-500/30' },
+  { value: 'medium', label: 'Medium', color: 'text-sky-600 bg-sky-500/10 border-sky-500/30' },
+  { value: 'high', label: 'High', color: 'text-amber-600 bg-amber-500/10 border-amber-500/30' },
+  { value: 'urgent', label: 'Urgent', color: 'text-red-600 bg-red-500/10 border-red-500/30' },
+];
+
+export const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
+  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
+  'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu & Kashmir', 'Ladakh',
+];
+
+export const DESTINATIONS = [
+  'Goa', 'Kerala', 'Dubai', 'Thailand', 'Maldives', 'Manali', 'Shimla', 'Kashmir',
+  'Rajasthan', 'Andaman', 'Bali', 'Singapore', 'Europe', 'Sri Lanka', 'Nepal', 'Bhutan',
+  'Mauritius', 'Vietnam', 'Turkey', 'Switzerland', 'Paris', 'London', 'New York',
+  'Himachal Pradesh', 'Uttarakhand', 'Ladakh', 'Spiti Valley', 'Rishikesh',
+];
+
+export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v7';
+
+export const defaultWizardValues = {
+  name: '',
+  phone: '',
+  whatsapp: '',
+  email: '',
+  city: '',
+  state: '',
+  destination: '',
+  travelDate: '',
+  adults: 2,
+  children: 0,
+  infants: 0,
+  hotelCategory: '3_star',
+  requirements: '',
+  budgetRange: '',
+  customBudget: '',
+  budget: '',
+  firstFollowUpDate: '',
+  firstFollowUpTime: '',
+  leadSource: 'website',
+  priority: 'medium',
+};

@@ -1,0 +1,118 @@
+import { useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { useSidebar } from '../../context/SidebarContext';
+import { useAuth } from '../../context/AuthContext';
+import { filterNavItems } from '../../lib/permissions';
+import { applySidebarCounts } from '../../lib/applySidebarCounts';
+import { useSidebarCounts } from '../../hooks/useSidebarCounts';
+import { TooltipProvider } from '../ui/tooltip';
+import SidebarBrand from './SidebarBrand';
+import SidebarSearch from './SidebarSearch';
+import SidebarNavItem from './SidebarNavItem';
+import SidebarNavGroup from './SidebarNavGroup';
+import SidebarNavSection from './SidebarNavSection';
+import SidebarUserCard from './SidebarUserCard';
+import { SidebarThemeProvider } from './SidebarThemeContext';
+import { mainNavItems } from './sidebar-config';
+import { filterNavItemsBySearch, injectSectionHeaders, isNavItemActive } from './sidebar-utils';
+import { cn } from '../../lib/utils';
+
+export default function AppSidebar({
+  user,
+  className = '',
+  navItems: navItemsProp,
+  brandTitle,
+  brandSubtitle,
+  accent = 'brand',
+  profilePath,
+}) {
+  const location = useLocation();
+  const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
+  const { user: authUser } = useAuth();
+  const { selectedBranchId, availableBranches } = useSelector((s) => s.branch);
+  const [searchQuery, setSearchQuery] = useState('');
+  const width = collapsed ? collapsedWidth : expandedWidth;
+
+  const sidebarCounts = useSidebarCounts();
+
+  const baseNavItems = useMemo(() => {
+    const items = navItemsProp ? navItemsProp : filterNavItems(mainNavItems, authUser || user);
+    return applySidebarCounts(items, sidebarCounts);
+  }, [navItemsProp, authUser, user, sidebarCounts]);
+
+  const navItems = useMemo(() => {
+    const filtered = filterNavItemsBySearch(baseNavItems, searchQuery);
+    const hasSections = filtered.some((item) => item.section);
+    return hasSections ? injectSectionHeaders(filtered) : filtered;
+  }, [baseNavItems, searchQuery]);
+
+  const resolvedProfilePath =
+    profilePath ||
+    (location.pathname.startsWith('/operations-manager') ? '/operations-manager/profile' :
+      location.pathname.startsWith('/sales-manager') ? '/sales-manager/profile' :
+        location.pathname.startsWith('/team-leader') ? '/team-leader/profile' :
+          location.pathname.startsWith('/sales-executive') ? '/sales-executive/profile' :
+            '/profile');
+
+  const effectiveUser = authUser || user;
+  const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
+  const resolvedBrandTitle =
+    brandTitle ||
+    (effectiveUser?.role === 'admin' && selectedBranch?.name
+      ? `UNO Trips ${selectedBranch.name}`
+      : 'UNO CRM');
+
+  return (
+    <SidebarThemeProvider accent={accent} profilePath={resolvedProfilePath}>
+      <TooltipProvider delayDuration={0}>
+        <motion.aside
+          animate={{ width }}
+          transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+          className={cn(
+            'sidebar-with-image relative flex flex-col h-full shrink-0 overflow-hidden',
+            'border-r border-sidebar-border',
+            'shadow-[4px_0_32px_-8px_rgba(15,23,42,0.12)]',
+            'dark:shadow-[4px_0_40px_-12px_rgba(0,0,0,0.55)]',
+            className
+          )}
+        >
+          {/* Background image at 50% opacity */}
+          <div className="absolute inset-0 sidebar-bg-image pointer-events-none" aria-hidden />
+          {/* Frosted scrim for readable text */}
+          <div className="absolute inset-0 sidebar-bg-scrim pointer-events-none" aria-hidden />
+
+          <div className="relative z-10 flex flex-col h-full min-h-0">
+            <SidebarBrand title={resolvedBrandTitle} subtitle={brandSubtitle} />
+
+            <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
+
+            <nav className="relative flex-1 px-2.5 py-1 space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
+              {navItems.length === 0 && searchQuery && !collapsed && (
+                <p className="px-3 py-6 text-center text-xs text-sidebar-muted">No menu items match your search.</p>
+              )}
+              {navItems.map((item) => {
+                if (item.type === 'section') {
+                  return <SidebarNavSection key={`section-${item.label}`} label={item.label} />;
+                }
+                if (item.children) {
+                  return <SidebarNavGroup key={item.id} group={item} defaultOpen={!!searchQuery} />;
+                }
+                return (
+                  <SidebarNavItem
+                    key={item.path}
+                    item={item}
+                    isActive={isNavItemActive(location.pathname, item.path)}
+                  />
+                );
+              })}
+            </nav>
+
+            <SidebarUserCard user={user} />
+          </div>
+        </motion.aside>
+      </TooltipProvider>
+    </SidebarThemeProvider>
+  );
+}

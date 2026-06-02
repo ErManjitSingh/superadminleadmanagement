@@ -1,0 +1,827 @@
+const Lead = require('../models/Lead');
+const FollowUp = require('../models/FollowUp');
+const Quotation = require('../models/Quotation');
+const Payment = require('../models/Payment');
+const Package = require('../models/Package');
+const User = require('../models/User');
+const Team = require('../models/Team');
+const { startOfDay, endOfDay, enrichLead } = require('../utils/queryHelpers');
+const {
+  sumConvertedPackageRevenue,
+  aggregateConvertedPackageRevenueByMonth,
+} = require('../utils/convertedPackageRevenue');
+const { getExecutiveIdsForLeader } = require('./teamScopeService');
+const { withBranch } = require('../utils/branchScope');
+
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DASHBOARD_NEW_LEADS_LIMIT = 5;
+
+async function buildReactivationWidget(branchId, assigneeIds = null) {
+  const base = withBranch({ 'reactivation.isReactivated': true }, branchId);
+  if (Array.isArray(assigneeIds)) {
+    base.assignedTo = assigneeIds.length ? { $in: assigneeIds } : null;
+  }
+
+  const [total, stageAgg, recent] = await Promise.all([
+    Lead.countDocuments(base),
+    Lead.aggregate([{ $match: base }, { $group: { _id: '$reactivation.stage', count: { $sum: 1 } } }]),
+    Lead.find(base)
+      .populate('assignedTo', 'name')
+      .sort({ updatedAt: -1 })
+      .limit(8)
+      .lean(),
+  ]);
+  const stageMap = Object.fromEntries(stageAgg.map((row) => [row._id || 'unknown', row.count]));
+
+  return {
+    totalReactivated: total,
+    stageCounts: {
+      reactivated: stageMap.reactivated || 0,
+      reassigned: stageMap.reassigned || 0,
+      contacted: stageMap.contacted || 0,
+      followUpScheduled: stageMap.follow_up_scheduled || 0,
+      quotationSent: stageMap.quotation_sent || 0,
+      converted: stageMap.converted || 0,
+    },
+    liveProgress: recent.map((lead) => ({
+      _id: lead._id,
+      leadId: lead.leadId,
+      name: lead.name,
+      status: lead.status,
+      stage: lead.reactivation?.stage || 'reactivated',
+      stageUpdatedAt: lead.reactivation?.stageUpdatedAt || lead.updatedAt,
+      executive: lead.assignedTo?.name || 'Unassigned',
+    })),
+  };
+}
+
+async function aggregateRevenueByMonth(match = {}, branchId = null) {
+  const rows = await Payment.aggregate([
+    { $match: withBranch({ ...match, status: { $in: ['paid', 'partial'] } }, branchId) },
+    {
+      $group: {
+        _id: { year: { $year: '$paidAt' }, month: { $month: '$paidAt' } },
+        revenue: { $sum: '$paidAmount' },
+      },
+    },
+    { $sort: { '_id.year': 1, '_id.month': 1 } },
+  ]);
+
+  return rows.map((r) => ({
+    month: MONTH_LABELS[(r._id.month || 1) - 1],
+    revenue: r.revenue || 0,
+  }));
+}
+
+async function buildAdminDashboard(options = {}) {
+  const { branchId } = options;
+  const todayStart = startOfDay();
+  const todayEnd = endOfDay();
+
+  const [
+    totalLeads,
+    todayLeads,
+    convertedLeads,
+    lostLeads,
+    pendingFollowups,
+    overdueFollowups,
+    leadsByStatus,
+    leadsBySource,
+    budgetAgg,
+    revenueAgg,
+    recentLeadsRaw,
+    newLeadsRaw,
+    upcomingFollowups,
+    topAgents,
+    leadsWithoutBudget,
+    leadsWithoutFollowup,
+    hotLeadsCount,
+    highBudgetLeadsCount,
+  ] = await Promise.all([
+    Lead.countDocuments(withBranch({}, branchId)),
+    Lead.countDocuments(withBranch({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId)),
+    Lead.countDocuments(withBranch({ status: 'converted' }, branchId)),
+    Lead.countDocuments(withBranch({ status: { $in: ['lost', 'booked_from_another_company'] } }, branchId)),
+    FollowUp.countDocuments(withBranch({ status: 'pending' }, branchId)),
+    FollowUp.countDocuments({
+      ...(branchId ? { branchId } : {}),
+      $or: [{ status: 'missed' }, { status: 'pending', scheduledAt: { $lt: todayStart } }],
+    }),
+    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: '$source', count: { $sum: 1 } } }]),
+    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: null, total: { $sum: '$budget' } } }]),
+    Payment.aggregate([
+      { $match: withBranch({ status: { $in: ['paid', 'partial'] } }, branchId) },
+      { $group: { _id: null, total: { $sum: '$paidAmount' } } },
+    ]),
+    Lead.find(withBranch({}, branchId))
+      .populate('assignedTo', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean(),
+    Lead.find(withBranch({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId))
+      .populate('assignedTo', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(DASHBOARD_NEW_LEADS_LIMIT)
+      .lean(),
+    FollowUp.find(withBranch({ status: 'pending', scheduledAt: { $gte: new Date() } }, branchId))
+      .populate('lead', 'name phone destination')
+      .sort({ scheduledAt: 1 })
+      .limit(5)
+      .lean(),
+    Lead.aggregate([
+      { $match: withBranch({ status: 'converted', assignedTo: { $ne: null } }, branchId) },
+      {
+        $group: {
+          _id: '$assignedTo',
+          conversions: { $sum: 1 },
+          revenue: { $sum: '$budget' },
+        },
+      },
+      { $sort: { conversions: -1 } },
+      { $limit: 5 },
+    ]),
+    Lead.countDocuments(withBranch({ $or: [{ budget: { $exists: false } }, { budget: { $lte: 0 } }] }, branchId)),
+    Lead.countDocuments(withBranch({ $or: [{ nextFollowUp: { $exists: false } }, { nextFollowUp: null }] }, branchId)),
+    Lead.countDocuments(withBranch({ $or: [{ isHot: true }, { leadScore: 'hot' }] }, branchId)),
+    Lead.countDocuments(withBranch({ budget: { $gte: 60000 } }, branchId)),
+  ]);
+
+  const agentIds = topAgents.map((a) => a._id);
+  const agents = await User.find(withBranch({ _id: { $in: agentIds } }, branchId)).select('name').lean();
+  const agentMap = Object.fromEntries(agents.map((a) => [a._id.toString(), a.name]));
+
+  const conversionRate = totalLeads ? Math.round((convertedLeads / totalLeads) * 1000) / 10 : 0;
+  const totalBudget = budgetAgg[0]?.total || 0;
+  const revenue = revenueAgg[0]?.total || 0;
+  const monthlyRevenue = await aggregateRevenueByMonth({}, branchId);
+  const reactivationWidget = await buildReactivationWidget(branchId);
+
+  const statusCounts = Object.fromEntries(leadsByStatus.map((s) => [s._id, s.count]));
+  const salesFunnel = [
+    { stage: 'New Lead', count: statusCounts.new || 0 },
+    { stage: 'Contacted', count: statusCounts.contacted || 0 },
+    { stage: 'Follow Up', count: (statusCounts.follow_up || 0) + (statusCounts.negotiation || 0) },
+    { stage: 'Quotation Sent', count: statusCounts.quotation_sent || 0 },
+    { stage: 'Negotiation', count: statusCounts.negotiation || 0 },
+    { stage: 'Converted', count: convertedLeads },
+  ];
+
+  const todayFollowUps = await FollowUp.find(withBranch({
+    scheduledAt: { $gte: todayStart, $lte: todayEnd },
+  }, branchId))
+    .populate('lead', 'name phone')
+    .sort({ scheduledAt: 1 })
+    .limit(10)
+    .lean();
+
+  return {
+    totalLeads,
+    todayLeads,
+    newLeadsToday: todayLeads,
+    followUpsToday: todayFollowUps.length,
+    convertedLeads,
+    wonLeads: convertedLeads,
+    lostLeads,
+    pendingFollowups,
+    overdueFollowups,
+    conversionRate,
+    totalBudget,
+    revenue,
+    revenueChange: 0,
+    leadsByStatus,
+    leadsBySource,
+    newLeads: newLeadsRaw.map(enrichLead),
+    newLeadsTotal: todayLeads,
+    recentLeads: recentLeadsRaw.map(enrichLead),
+    todayFollowUps: todayFollowUps.map((f) => ({
+      _id: f._id,
+      customerName: f.lead?.name,
+      phone: f.lead?.phone,
+      scheduledAt: f.scheduledAt,
+      status: f.status,
+    })),
+    upcomingFollowups,
+    salesFunnel,
+    monthlyRevenue,
+    leadSourceAnalytics: leadsBySource.map((s) => ({
+      name: s._id || 'Unknown',
+      value: s.count,
+      pct: totalLeads ? Math.round((s.count / totalLeads) * 100) : 0,
+    })),
+    topAgents: topAgents.map((a, i) => ({
+      name: agentMap[a._id?.toString()] || 'Unknown',
+      conversions: a.conversions,
+      revenue: a.revenue,
+      rank: i + 1,
+    })),
+    teamPerformance: topAgents.slice(0, 3).map((a) => ({
+      name: agentMap[a._id?.toString()] || 'Unknown',
+      assigned: a.conversions * 3,
+      converted: a.conversions,
+      revenue: a.revenue,
+      conversionRate: totalLeads ? Math.round((a.conversions / totalLeads) * 100) : 0,
+    })),
+    reactivationWidget,
+    qualificationWidgets: {
+      leadsWithoutBudget,
+      leadsWithoutFollowup,
+      hotLeads: hotLeadsCount,
+      highBudgetLeads: highBudgetLeadsCount,
+    },
+    activityTimeline: [],
+    kpiSparklines: {
+      totalLeads: [totalLeads],
+      newLeads: [todayLeads],
+      followUps: [todayFollowUps.length],
+      converted: [convertedLeads],
+      conversionRate: [conversionRate],
+      revenue: [revenue],
+    },
+  };
+}
+
+async function buildExecutiveDashboard(userId, options = {}) {
+  const { branchId } = options;
+  const execId = userId;
+  const todayStart = startOfDay();
+  const todayEnd = endOfDay();
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const leadScope = withBranch({ assignedTo: execId }, branchId);
+  const leadIds = await Lead.find(leadScope).distinct('_id');
+  const followScope = { $or: [{ assignedTo: execId }, { lead: { $in: leadIds } }] };
+  const quoteScope = { $or: [{ createdByExecutive: execId }, { lead: { $in: leadIds } }] };
+
+  const [
+    myLeads,
+    hotLeads,
+    convertedCount,
+    todayFollowups,
+    quotesSentCount,
+    monthlyRevenueAgg,
+    recentLeadsRaw,
+    myFollowups,
+    statusAgg,
+  ] = await Promise.all([
+    Lead.countDocuments({ ...leadScope, status: { $nin: ['lost', 'booked_from_another_company'] } }),
+    Lead.countDocuments({ ...leadScope, isHot: true, status: { $nin: ['converted', 'lost', 'booked_from_another_company'] } }),
+    Lead.countDocuments({ ...leadScope, status: 'converted' }),
+    FollowUp.find({
+      ...followScope,
+      scheduledAt: { $gte: todayStart, $lte: todayEnd },
+      status: 'pending',
+    })
+      .populate('lead', 'name destination')
+      .lean(),
+    Quotation.countDocuments({
+      ...quoteScope,
+      status: { $in: ['sent', 'negotiation', 'approved', 'viewed', 'pending_approval'] },
+    }),
+    Payment.aggregate([
+      { $match: withBranch({ status: { $in: ['paid', 'partial'] }, createdAt: { $gte: monthStart } }, branchId) },
+      { $group: { _id: null, total: { $sum: '$paidAmount' } } },
+    ]),
+    Lead.find(leadScope).sort({ createdAt: -1 }).limit(6).lean(),
+    FollowUp.find({ ...followScope, status: 'pending' })
+      .populate('lead', 'name destination')
+      .sort({ scheduledAt: 1 })
+      .limit(6)
+      .lean(),
+    Lead.aggregate([
+      { $match: leadScope },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const statusCounts = Object.fromEntries(statusAgg.map((s) => [s._id, s.count]));
+  const enrichedRecent = recentLeadsRaw.map(enrichLead);
+  const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
+  const totalAssigned = Object.values(statusCounts).reduce((s, n) => s + n, 0);
+
+  return {
+    kpis: {
+      myLeads,
+      todayFollowups: todayFollowups.length,
+      hotLeads,
+      quotationsSent: quotesSentCount,
+      convertedLeads: convertedCount,
+      monthlyRevenue,
+    },
+    todayTasks: todayFollowups.slice(0, 5).map((f) => ({
+      _id: f._id,
+      title: `Follow up with ${f.lead?.name}`,
+      time: f.scheduledAt,
+      priority: f.priority || 'medium',
+      destination: f.lead?.destination,
+    })),
+    recentLeads: enrichedRecent.map((l) => ({
+      _id: l._id,
+      leadId: l.leadId,
+      name: l.name,
+      destination: l.destination,
+      budget: l.budget,
+      status: l.status,
+      isHot: l.isHot,
+    })),
+    upcomingFollowups: myFollowups.map((f) => ({
+      _id: f._id,
+      customer: f.lead?.name,
+      destination: f.lead?.destination,
+      scheduledAt: f.scheduledAt,
+      priority: f.priority || 'medium',
+    })),
+    conversionProgress: [
+      { stage: 'New', count: statusCounts.new || 0, color: '#0EA5E9' },
+      { stage: 'Contacted', count: statusCounts.contacted || 0, color: '#8B5CF6' },
+      {
+        stage: 'Follow-up',
+        count: (statusCounts.follow_up || 0) + (statusCounts.negotiation || 0),
+        color: '#F59E0B',
+      },
+      { stage: 'Quotation', count: statusCounts.quotation_sent || 0, color: '#6366F1' },
+      { stage: 'Converted', count: convertedCount, color: '#10B981' },
+    ],
+    target: {
+      monthlyTarget: 1500000,
+      revenueAchieved: monthlyRevenue,
+      leadsConverted: convertedCount,
+      conversionRate: totalAssigned
+        ? Math.round((convertedCount / totalAssigned) * 1000) / 10
+        : 0,
+      progress: Math.min(100, Math.round((monthlyRevenue / 1500000) * 100)),
+      weeklyRevenue: [],
+    },
+  };
+}
+
+async function buildSalesManagerDashboard(options = {}) {
+  const { branchId } = options;
+  const todayStart = startOfDay();
+  const todayEnd = endOfDay();
+
+  const [
+    totalTeamLeads,
+    newToday,
+    pendingFollowups,
+    converted,
+    pendingQuotes,
+    teamRevenue,
+    recentLeadsRaw,
+    upcomingFollowups,
+    sourceAgg,
+  ] = await Promise.all([
+    Lead.countDocuments(withBranch({}, branchId)),
+    Lead.countDocuments(withBranch({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId)),
+    FollowUp.countDocuments(withBranch({ status: 'pending' }, branchId)),
+    Lead.countDocuments(withBranch({ status: 'converted' }, branchId)),
+    Quotation.find(withBranch({ status: { $in: ['sent', 'negotiation', 'pending_approval'] } }, branchId))
+      .populate('lead', 'name destination')
+      .populate('createdByExecutive', 'name')
+      .limit(5)
+      .lean(),
+    sumConvertedPackageRevenue({ branchId }),
+    Lead.find(withBranch({}, branchId))
+      .populate('assignedTo', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .lean(),
+    FollowUp.find(withBranch({ status: 'pending' }, branchId))
+      .populate('lead', 'name destination')
+      .populate('assignedTo', 'name')
+      .sort({ scheduledAt: 1 })
+      .limit(6)
+      .lean(),
+    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: '$source', count: { $sum: 1 } } }]),
+  ]);
+
+  const recentLeads = recentLeadsRaw.map(enrichLead);
+  const conversionRate = totalTeamLeads ? Math.round((converted / totalTeamLeads) * 1000) / 10 : 0;
+  const reactivationWidget = await buildReactivationWidget(branchId);
+
+  const executives = await User.find(withBranch({ role: 'sales_executive', status: 'active' }, branchId))
+    .select('name email')
+    .lean();
+  const executivePerformance = await Promise.all(
+    executives.map(async (ex) => {
+      const [exLeads, exConverted, exRevenue] = await Promise.all([
+        Lead.countDocuments({ assignedTo: ex._id }),
+        Lead.countDocuments({ assignedTo: ex._id, status: 'converted' }),
+        sumConvertedPackageRevenue({ assigneeId: ex._id, branchId }),
+      ]);
+      return {
+        name: ex.name.split(' ')[0],
+        fullName: ex.name,
+        leads: exLeads,
+        revenue: exRevenue,
+        conversions: exConverted,
+      };
+    })
+  );
+
+  const colors = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626'];
+
+  return {
+    kpis: {
+      totalTeamLeads,
+      newLeadsToday: newToday,
+      pendingFollowups,
+      convertedLeads: converted,
+      teamRevenue,
+      conversionRate,
+    },
+    leadSources: sourceAgg.map((s, i) => ({
+      name: s._id || 'Other',
+      value: s.count,
+      color: colors[i % colors.length],
+    })),
+    teamRevenueChart: await aggregateConvertedPackageRevenueByMonth({ branchId }),
+    executivePerformance,
+    monthlyConversion: [],
+    recentLeads: recentLeads.map((l) => ({
+      _id: l._id,
+      leadId: l.leadId,
+      name: l.name,
+      destination: l.destination,
+      budget: l.budget,
+      status: l.status,
+      executive: l.assignedTo?.name || 'Unassigned',
+      source: l.sourceLabel || l.source,
+      isHot: l.isHot,
+    })),
+    pendingApprovals: pendingQuotes.map((q) => ({
+      _id: q._id,
+      quoteNumber: q.quoteNumber,
+      customer: q.lead?.name,
+      destination: q.lead?.destination,
+      amount: q.pricing?.total,
+      margin: q.pricing?.profitMargin,
+      executive: q.createdByExecutive?.name || q.lead?.assignedTo?.name,
+      status: q.status === 'negotiation' ? 'pending_approval' : q.status,
+    })),
+    upcomingFollowups: upcomingFollowups.map((f) => ({
+      _id: f._id,
+      customer: f.lead?.name,
+      destination: f.lead?.destination,
+      executive: f.assignedTo?.name,
+      scheduledAt: f.scheduledAt,
+      priority: f.priority || 'medium',
+    })),
+    teamRanking: executivePerformance.sort((a, b) => b.revenue - a.revenue),
+    reactivationWidget,
+  };
+}
+
+async function buildTeamLeaderDashboard(leaderId, options = {}) {
+  const { branchId } = options;
+  const execIds = await getExecutiveIdsForLeader(leaderId);
+  const squadFilter = withBranch(execIds.length ? { assignedTo: { $in: execIds } } : { assignedTo: null }, branchId);
+
+  const [teamLeadsRaw, teamFollowups, teamQuotes, teamRevenue] = await Promise.all([
+    Lead.find(squadFilter).populate('assignedTo', 'name email').lean(),
+    FollowUp.countDocuments({
+      status: 'pending',
+      $or: [{ assignedTo: { $in: execIds } }, { lead: { $in: [] } }],
+    }),
+    Quotation.find({ status: 'pending_approval' }).populate('lead', 'assignedTo').lean(),
+    sumConvertedPackageRevenue({ assigneeIds: execIds, branchId }),
+  ]);
+
+  const teamLeads = teamLeadsRaw.map(enrichLead);
+  const leadIds = teamLeadsRaw.map((l) => l._id);
+  const activeFollowups = await FollowUp.countDocuments({
+    status: 'pending',
+    $or: [{ assignedTo: { $in: execIds } }, { lead: { $in: leadIds } }],
+  });
+
+  const converted = teamLeads.filter((l) => l.status === 'converted');
+  const conversionRate = teamLeads.length
+    ? Math.round((converted.length / teamLeads.length) * 1000) / 10
+    : 0;
+  const monthlyTarget = 3500000;
+
+  const squadQuotes = teamQuotes.filter((q) =>
+    execIds.some((id) => q.lead?.assignedTo?.toString?.() === id.toString())
+  );
+
+  const executives = await User.find({ _id: { $in: execIds } }).select('name email').lean();
+  const executiveRanking = await Promise.all(
+    executives.map(async (ex, i) => {
+      const [assignedLeads, conversions, revenue] = await Promise.all([
+        Lead.countDocuments({ assignedTo: ex._id }),
+        Lead.countDocuments({ assignedTo: ex._id, status: 'converted' }),
+        sumConvertedPackageRevenue({ assigneeId: ex._id, branchId }),
+      ]);
+      return {
+        _id: ex._id,
+        name: ex.name,
+        email: ex.email,
+        assignedLeads,
+        conversions,
+        revenue,
+        conversionRate: assignedLeads ? Math.round((conversions / assignedLeads) * 1000) / 10 : 0,
+        rank: i + 1,
+      };
+    })
+  );
+
+  executiveRanking.sort((a, b) => b.revenue - a.revenue).forEach((e, i) => {
+    e.rank = i + 1;
+  });
+
+  const sourceAgg = await Lead.aggregate([
+    { $match: squadFilter },
+    { $group: { _id: '$source', count: { $sum: 1 } } },
+  ]);
+  const reactivationWidget = await buildReactivationWidget(branchId, execIds);
+
+  return {
+    kpis: {
+      teamLeads: teamLeads.filter((l) => !['lost', 'booked_from_another_company'].includes(l.status)).length,
+      activeFollowups,
+      teamConversions: converted.length,
+      teamRevenue,
+      conversionRate,
+      targetAchievement: Math.round((teamRevenue / monthlyTarget) * 100),
+    },
+    teamRevenueTrend: await aggregateConvertedPackageRevenueByMonth({ assigneeIds: execIds, branchId }),
+    executiveRanking,
+    conversionFunnel: [
+      { stage: 'New', count: teamLeads.filter((l) => l.status === 'new').length, fill: '#F59E0B' },
+      { stage: 'Contacted', count: teamLeads.filter((l) => l.status === 'contacted').length, fill: '#8B5CF6' },
+      {
+        stage: 'Follow-up',
+        count: teamLeads.filter((l) => ['follow_up', 'negotiation'].includes(l.status)).length,
+        fill: '#6366F1',
+      },
+      {
+        stage: 'Quotation',
+        count: teamLeads.filter((l) => l.status === 'quotation_sent').length,
+        fill: '#0EA5E9',
+      },
+      { stage: 'Converted', count: converted.length, fill: '#10B981' },
+    ],
+    leadSources: sourceAgg.map((s) => ({
+      source: s._id || 'Other',
+      count: s.count,
+      fill: '#0EA5E9',
+    })),
+    monthlyTarget,
+    teamRevenue,
+    pendingApprovalsCount: squadQuotes.length,
+    reactivationWidget,
+  };
+}
+
+const SOURCE_LABELS = {
+  website: 'Website',
+  referral: 'Referral',
+  social: 'Facebook Ads',
+  'walk-in': 'Walk-in',
+  phone: 'Phone',
+  whatsapp: 'WhatsApp',
+  other: 'Organic',
+};
+
+async function buildReportsAnalytics(options = {}) {
+  const { branchId } = options;
+  const [
+    totalLeads,
+    convertedLeads,
+    revenueAgg,
+    sourceAgg,
+    destAgg,
+    statusAgg,
+    executives,
+    packages,
+    monthlyPayments,
+  ] = await Promise.all([
+    Lead.countDocuments(withBranch({}, branchId)),
+    Lead.countDocuments(withBranch({ status: 'converted' }, branchId)),
+    Payment.aggregate([
+      { $match: withBranch({ status: { $in: ['paid', 'partial'] } }, branchId) },
+      { $group: { _id: null, total: { $sum: '$paidAmount' } } },
+    ]),
+    Lead.aggregate([
+      { $match: withBranch({}, branchId) },
+      {
+        $group: {
+          _id: '$source',
+          leads: { $sum: 1 },
+          conversions: {
+            $sum: { $cond: [{ $eq: ['$status', 'converted'] }, 1, 0] },
+          },
+          revenue: {
+            $sum: { $cond: [{ $eq: ['$status', 'converted'] }, '$budget', 0] },
+          },
+        },
+      },
+      { $sort: { leads: -1 } },
+    ]),
+    Lead.aggregate([
+      { $match: withBranch({}, branchId) },
+      {
+        $group: {
+          _id: '$destination',
+          leads: { $sum: 1 },
+          conversions: {
+            $sum: { $cond: [{ $eq: ['$status', 'converted'] }, 1, 0] },
+          },
+          revenue: {
+            $sum: { $cond: [{ $eq: ['$status', 'converted'] }, '$budget', 0] },
+          },
+        },
+      },
+      { $sort: { leads: -1 } },
+      { $limit: 8 },
+    ]),
+    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+    User.find(withBranch({ role: 'sales_executive', status: 'active' }, branchId)).select('name email').lean(),
+    Package.find().select('name').limit(6).lean(),
+    Payment.aggregate([
+      { $match: withBranch({ status: { $in: ['paid', 'partial'] }, paidAt: { $exists: true } }, branchId) },
+      {
+        $group: {
+          _id: { year: { $year: '$paidAt' }, month: { $month: '$paidAt' } },
+          revenue: { $sum: '$paidAmount' },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+    ]),
+  ]);
+
+  const totalRevenue = revenueAgg[0]?.total || 0;
+  const conversionRate = totalLeads ? Math.round((convertedLeads / totalLeads) * 1000) / 10 : 0;
+  const avgBookingValue = convertedLeads ? Math.round(totalRevenue / convertedLeads) : 0;
+
+  const execStats = await Promise.all(
+    executives.map(async (ex) => {
+      const [assignedLeads, followUpsDone, conversions, revenue] = await Promise.all([
+        Lead.countDocuments({ assignedTo: ex._id }),
+        FollowUp.countDocuments({ assignedTo: ex._id, status: 'completed' }),
+        Lead.countDocuments({ assignedTo: ex._id, status: 'converted' }),
+        sumConvertedPackageRevenue({ assigneeId: ex._id, branchId }),
+      ]);
+      const rev = revenue;
+      return {
+        name: ex.name,
+        assignedLeads,
+        followUpsDone,
+        conversions,
+        revenue: rev,
+        conversionRate: assignedLeads ? Math.round((conversions / assignedLeads) * 1000) / 10 : 0,
+      };
+    })
+  );
+
+  execStats.sort((a, b) => b.revenue - a.revenue).forEach((e, i) => {
+    e.rank = i + 1;
+  });
+
+  const statusMap = Object.fromEntries(statusAgg.map((s) => [s._id, s.count]));
+  const funnelStages = [
+    { stage: 'Lead Created', key: null },
+    { stage: 'Contacted', key: 'contacted' },
+    { stage: 'Follow Up', key: 'follow_up' },
+    { stage: 'Quotation Sent', key: 'quotation_sent' },
+    { stage: 'Negotiation', key: 'negotiation' },
+    { stage: 'Converted', key: 'converted' },
+  ];
+
+  const funnel = funnelStages.map((f) => {
+    let count = totalLeads;
+    if (f.key === 'contacted') {
+      count =
+        (statusMap.contacted || 0) +
+        (statusMap.follow_up || 0) +
+        (statusMap.quotation_sent || 0) +
+        (statusMap.negotiation || 0) +
+        convertedLeads;
+    } else if (f.key === 'follow_up') {
+      count =
+        (statusMap.follow_up || 0) + (statusMap.negotiation || 0) + convertedLeads;
+    } else if (f.key === 'quotation_sent') {
+      count = (statusMap.quotation_sent || 0) + (statusMap.negotiation || 0) + convertedLeads;
+    } else if (f.key === 'negotiation') {
+      count = (statusMap.negotiation || 0) + convertedLeads;
+    } else if (f.key === 'converted') {
+      count = convertedLeads;
+    }
+    return {
+      stage: f.stage,
+      count,
+      pct: totalLeads ? Math.round((count / totalLeads) * 100) : 0,
+    };
+  });
+
+  const quoteCounts = await Quotation.aggregate([
+    { $group: { _id: '$package', sent: { $sum: 1 }, converted: { $sum: 0 } } },
+  ]);
+  const quoteByPackage = Object.fromEntries(
+    quoteCounts.map((q) => [q._id?.toString(), q.sent])
+  );
+  const reactivationWidget = await buildReactivationWidget(branchId);
+
+  return {
+    summary: {
+      totalLeads,
+      totalConversions: convertedLeads,
+      conversionRate,
+      totalRevenue,
+      avgBookingValue,
+      profitMargin: 14.8,
+      sparklines: {
+        totalLeads: [totalLeads],
+        conversions: [convertedLeads],
+        conversionRate: [conversionRate],
+        revenue: [totalRevenue],
+        avgBooking: [avgBookingValue],
+        profitMargin: [14.8],
+      },
+    },
+    leadSources: sourceAgg.map((s) => ({
+      source: SOURCE_LABELS[s._id] || s._id || 'Other',
+      leads: s.leads,
+      conversions: s.conversions,
+      revenue: s.revenue,
+      costPerLead: 0,
+      roi: s.leads && s.conversions ? Math.round((s.conversions / s.leads) * 100) : 0,
+    })),
+    executives: execStats,
+    destinations: destAgg.map((d) => ({
+      destination: d._id,
+      leads: d.leads,
+      conversions: d.conversions,
+      revenue: d.revenue,
+    })),
+    packages: packages.map((p) => ({
+      name: p.name,
+      views: 0,
+      quotationsSent: quoteByPackage[p._id?.toString()] || 0,
+      conversions: 0,
+      revenue: 0,
+    })),
+    revenue: {
+      daily: [],
+      weekly: [],
+      monthly: monthlyPayments.map((r) => ({
+        label: MONTH_LABELS[(r._id.month || 1) - 1],
+        revenue: r.revenue,
+      })),
+      yearly: [],
+    },
+    funnel,
+    forecast: {
+      expectedRevenue: Math.round(totalRevenue * 0.4),
+      expectedConversions: Math.max(1, Math.round(convertedLeads * 0.4)),
+      upcomingBookings: [],
+    },
+    reactivationWidget,
+  };
+}
+
+async function buildTeamPerformance(options = {}) {
+  const { branchId } = options;
+  const executives = await User.find(withBranch({ role: 'sales_executive', status: 'active' }, branchId)).lean();
+  const members = await Promise.all(
+    executives.map(async (ex) => {
+      const [assigned, converted, followUps, revenue] = await Promise.all([
+        Lead.countDocuments({ assignedTo: ex._id }),
+        Lead.countDocuments({ assignedTo: ex._id, status: 'converted' }),
+        FollowUp.countDocuments({ assignedTo: ex._id, status: 'pending' }),
+        sumConvertedPackageRevenue({ assigneeId: ex._id, branchId }),
+      ]);
+      return {
+        name: ex.name,
+        assigned,
+        converted,
+        conversions: converted,
+        followUps,
+        revenue,
+        conversionRate: assigned ? Math.round((converted / assigned) * 100) : 0,
+        rank: 0,
+      };
+    })
+  );
+
+  members.sort((a, b) => b.revenue - a.revenue);
+  members.forEach((m, i) => {
+    m.rank = i + 1;
+  });
+
+  return {
+    members,
+    teamRevenue: members.reduce((sum, m) => sum + m.revenue, 0),
+    teamConversions: members.reduce((sum, m) => sum + m.conversions, 0),
+    teamFollowUps: await FollowUp.countDocuments({ status: 'pending' }),
+  };
+}
+
+module.exports = {
+  buildAdminDashboard,
+  buildExecutiveDashboard,
+  buildSalesManagerDashboard,
+  buildTeamLeaderDashboard,
+  buildTeamPerformance,
+  buildReportsAnalytics,
+};

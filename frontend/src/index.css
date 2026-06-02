@@ -1,0 +1,444 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-app: #eef1f6;
+    --color-surface: #ffffff;
+    --color-surface-elevated: #ffffff;
+    --color-glass: rgba(255, 255, 255, 0.72);
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #475569;
+    --color-text-muted: #94a3b8;
+    --color-border-subtle: #e2e8f0;
+    --color-border-strong: #cbd5e1;
+    --sidebar-bg: rgba(255, 255, 255, 0.92);
+    --sidebar-border: rgba(226, 232, 240, 0.95);
+    --sidebar-text: #0f172a;
+    --sidebar-muted: #64748b;
+    --sidebar-hover: rgba(241, 245, 249, 0.95);
+    --sidebar-active: rgba(37, 99, 235, 0.08);
+    --sidebar-active-text: #1d4ed8;
+
+    /* Sidebar with decorative background image */
+    --sidebar-image-text: #1e293b;
+    --sidebar-image-muted: #475569;
+    --sidebar-image-hover: rgba(255, 255, 255, 0.62);
+    --sidebar-image-active: rgba(255, 255, 255, 0.82);
+    --sidebar-image-border: rgba(51, 65, 85, 0.14);
+    --sidebar-image-active-text: #ea580c;
+    --sidebar-image-scrim: rgba(255, 252, 248, 0.72);
+
+    /* WhatsApp Inbox — light */
+    --wa-panel: #ffffff;
+    --wa-header: #f0f2f5;
+    --wa-chat-bg: #efeae2;
+    --wa-input: #f0f2f5;
+    --wa-border: #e9edef;
+    --wa-divider: #e9edef;
+    --wa-list-hover: #f5f6f6;
+    --wa-list-active: #f0f2f5;
+    --wa-text-primary: #111b21;
+    --wa-text-secondary: #667781;
+    --wa-text-muted: #8696a0;
+    --wa-bubble-out: #d9fdd3;
+    --wa-bubble-out-text: #111b21;
+    --wa-bubble-in: #ffffff;
+    --wa-bubble-in-text: #111b21;
+  }
+
+  .dark {
+    --color-bg-app: #0b0f17;
+    --color-surface: #111827;
+    --color-surface-elevated: #1a2234;
+    --color-glass: rgba(17, 24, 39, 0.75);
+    --color-text-primary: #f1f5f9;
+    --color-text-secondary: #94a3b8;
+    --color-text-muted: #64748b;
+    --color-border-subtle: #1f2937;
+    --color-border-strong: #374151;
+    --sidebar-bg: rgba(10, 15, 28, 0.94);
+    --sidebar-border: rgba(51, 65, 85, 0.45);
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #94a3b8;
+    --sidebar-hover: rgba(30, 41, 59, 0.85);
+    --sidebar-active: rgba(59, 130, 246, 0.12);
+    --sidebar-active-text: #93c5fd;
+
+    --sidebar-image-text: #f8fafc;
+    --sidebar-image-muted: #cbd5e1;
+    --sidebar-image-hover: rgba(15, 23, 42, 0.55);
+    --sidebar-image-active: rgba(15, 23, 42, 0.72);
+    --sidebar-image-border: rgba(255, 255, 255, 0.12);
+    --sidebar-image-active-text: #fb923c;
+    --sidebar-image-scrim: rgba(15, 23, 42, 0.78);
+
+    /* WhatsApp Inbox — dark */
+    --wa-panel: #111b21;
+    --wa-header: #202c33;
+    --wa-chat-bg: #0b141a;
+    --wa-input: #2a3942;
+    --wa-border: #222d34;
+    --wa-divider: #222d34;
+    --wa-list-hover: #202c33;
+    --wa-list-active: #2a3942;
+    --wa-text-primary: #e9edef;
+    --wa-text-secondary: #8696a0;
+    --wa-text-muted: #667781;
+    --wa-bubble-out: #005c4b;
+    --wa-bubble-out-text: #e9edef;
+    --wa-bubble-in: #202c33;
+    --wa-bubble-in-text: #e9edef;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--color-bg-app);
+    color: var(--color-text-primary);
+  }
+
+  button,
+  [type='button'],
+  [type='submit'],
+  [type='reset'] {
+    appearance: none;
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: var(--color-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+  }
+
+  .dark .glass-panel {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .wa-chat-pattern {
+    background-color: var(--wa-chat-bg);
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .dark .wa-chat-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+
+  .wa-inbox {
+    background: var(--wa-panel);
+  }
+
+  .card-premium {
+    background-color: var(--color-surface);
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-border-subtle);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+  }
+
+  .card-premium:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-lg
+      active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none appearance-none;
+    background-color: #1d4ed8;
+  }
+
+  .btn-primary:hover {
+    background-color: #2563eb;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium
+      rounded-lg active:scale-[0.98] transition-all appearance-none;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-strong);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors;
+    color: var(--color-text-secondary);
+  }
+
+  .btn-ghost:hover {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .input-premium {
+    @apply w-full px-4 py-2.5 rounded-lg text-sm outline-none transition-all;
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border-strong);
+  }
+
+  .input-premium::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .input-premium:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+  }
+
+  .nav-item-active {
+    @apply text-white border-l-2;
+    background-color: rgba(29, 78, 216, 0.2);
+    border-left-color: #2563eb;
+  }
+
+  .metric-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply rounded-full;
+    background-color: #cbd5e1;
+  }
+
+  .dark .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #475569;
+  }
+}
+
+@layer utilities {
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+
+  .bg-surface-elevated {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .bg-surface-app {
+    background-color: var(--color-bg-app);
+  }
+
+  .text-content-primary {
+    color: var(--color-text-primary);
+  }
+
+  .text-content-secondary {
+    color: var(--color-text-secondary);
+  }
+
+  .text-content-muted {
+    color: var(--color-text-muted);
+  }
+
+  .border-subtle {
+    border-color: var(--color-border-subtle);
+  }
+
+  .border-strong {
+    border-color: var(--color-border-strong);
+  }
+
+  .divide-subtle > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--color-border-subtle);
+  }
+
+  .bg-sidebar-bg {
+    background-color: var(--sidebar-bg);
+  }
+
+  .border-sidebar-border {
+    border-color: var(--sidebar-border);
+  }
+
+  .text-sidebar-text {
+    color: var(--sidebar-text);
+  }
+
+  .text-sidebar-muted {
+    color: var(--sidebar-muted);
+  }
+
+  .text-sidebar-active-text {
+    color: var(--sidebar-active-text);
+  }
+
+  .bg-sidebar-hover {
+    background-color: var(--sidebar-hover);
+  }
+
+  .bg-sidebar-active {
+    background-color: var(--sidebar-active);
+  }
+
+  .hover\:bg-sidebar-hover:hover {
+    background-color: var(--sidebar-hover);
+  }
+
+  /* Sidebar decorative background */
+  .sidebar-with-image {
+    --sidebar-text: var(--sidebar-image-text);
+    --sidebar-muted: var(--sidebar-image-muted);
+    --sidebar-hover: var(--sidebar-image-hover);
+    --sidebar-active: var(--sidebar-image-active);
+    --sidebar-border: var(--sidebar-image-border);
+    --sidebar-active-text: var(--sidebar-image-active-text);
+    --sidebar-bg: transparent;
+  }
+
+  .sidebar-bg-image {
+    background-image: url('/sidebar-bg.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    opacity: 0.5;
+  }
+
+  .sidebar-bg-scrim {
+    background-color: var(--sidebar-image-scrim);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  /* FullCalendar v6 — premium follow-up calendar */
+  .followup-calendar .fc {
+    --fc-border-color: var(--color-border-subtle);
+    --fc-page-bg-color: var(--color-surface);
+    --fc-neutral-bg-color: var(--color-surface-elevated);
+    --fc-today-bg-color: rgba(124, 58, 237, 0.1);
+    --fc-event-border-color: transparent;
+    --fc-event-text-color: #ffffff;
+    --fc-now-indicator-color: #7c3aed;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  .followup-calendar .fc-theme-standard td,
+  .followup-calendar .fc-theme-standard th {
+    border-color: var(--color-border-subtle);
+    background-color: var(--color-surface);
+  }
+
+  .followup-calendar .fc-scrollgrid {
+    border-color: var(--color-border-subtle);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background-color: var(--color-surface);
+  }
+
+  .followup-calendar .fc-scrollgrid-section > * {
+    background-color: var(--color-surface);
+  }
+
+  .followup-calendar .fc-daygrid-day,
+  .followup-calendar .fc-daygrid-day-frame,
+  .followup-calendar .fc-timegrid-col,
+  .followup-calendar .fc-timegrid-col-frame,
+  .followup-calendar .fc-timegrid-slot-lane,
+  .followup-calendar .fc-day {
+    background-color: var(--color-surface);
+  }
+
+  .followup-calendar .fc-day-other .fc-daygrid-day-frame {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .followup-calendar .fc-day-today .fc-daygrid-day-frame,
+  .followup-calendar .fc-day-today .fc-timegrid-col-frame {
+    background-color: rgba(124, 58, 237, 0.08) !important;
+  }
+
+  .followup-calendar .fc-timegrid-slot-label {
+    background-color: var(--color-surface-elevated);
+  }
+
+  .followup-calendar .fc-col-header-cell {
+    background: var(--color-surface-elevated);
+    padding: 0.5rem 0;
+  }
+
+  .followup-calendar .fc-toolbar-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .followup-calendar .fc-button {
+    background: var(--color-surface-elevated) !important;
+    border: 1px solid var(--color-border-subtle) !important;
+    color: var(--color-text-secondary) !important;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    border-radius: 0.625rem !important;
+    padding: 0.375rem 0.75rem !important;
+    box-shadow: none !important;
+    text-transform: capitalize;
+  }
+
+  .followup-calendar .fc-button-active,
+  .followup-calendar .fc-button:hover {
+    background: #7c3aed !important;
+    border-color: #7c3aed !important;
+    color: white !important;
+  }
+
+  .followup-calendar .fc-col-header-cell-cushion,
+  .followup-calendar .fc-timegrid-slot-label-cushion,
+  .followup-calendar .fc-daygrid-day-number {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .followup-calendar .fc-event {
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 1px 4px;
+    cursor: pointer;
+    border: none !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+  }
+
+  .followup-calendar .fc-event .fc-event-main {
+    color: #ffffff;
+  }
+
+  .followup-calendar .fc-daygrid-event {
+    margin-top: 2px;
+    padding: 2px 4px;
+  }
+
+  .followup-calendar .fc-timegrid-event {
+    border-radius: 0.375rem;
+  }
+
+  .followup-calendar .fc-timegrid-now-indicator-line {
+    border-color: #7c3aed;
+  }
+
+  @media print {
+    body * {
+      visibility: hidden;
+    }
+    .print\\:hidden {
+      display: none !important;
+    }
+  }
+}

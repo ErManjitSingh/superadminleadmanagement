@@ -1,0 +1,15 @@
+export { default as SalesManagerLayout } from './SalesManagerLayout';
+export { default as ManagerDashboard } from './ManagerDashboard';
+export { default as TeamLeadsPage } from './TeamLeadsPage';
+export { default as ManagerLeadDetailPage } from './ManagerLeadDetailPage';
+export { default as LeadAssignmentPage } from './LeadAssignmentPage';
+export { default as TeamMonitoringPage } from './TeamMonitoringPage';
+export { default as FollowUpMonitoringPage } from './FollowUpMonitoringPage';
+export { default as QuotationApprovalPage } from './QuotationApprovalPage';
+export { default as TeamManagementPage } from './TeamManagementPage';
+export { default as TeamDetailPage } from './TeamDetailPage';
+export { default as TeamPerformancePage } from './TeamPerformancePage';
+export { default as ManagerReportsPage } from './ManagerReportsPage';
+export { default as ManagerCalendarPage } from './ManagerCalendarPage';
+export { default as ManagerNotificationsPage } from './ManagerNotificationsPage';
+export { default as ManagerProfilePage } from './ManagerProfilePage';

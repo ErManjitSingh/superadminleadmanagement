@@ -1,0 +1,55 @@
+const express = require('express');
+const router = express.Router();
+const {
+  getDashboard,
+  listLeads,
+  getLeadDetail,
+  assignLeads,
+  listExecutives,
+  listFollowUps,
+  listQuotations,
+  updateQuotation,
+  listNotifications,
+  getReports,
+  getCalendar,
+} = require('../controllers/salesManagerController');
+const {
+  listTeams,
+  getTeam,
+  createTeam,
+  updateTeam,
+  deleteTeam,
+  listTeamLeaders,
+  listAvailableExecutives,
+  addMember,
+  removeMember,
+  transferMember,
+  updateTeamLeader,
+} = require('../controllers/teamController');
+const { protect } = require('../middleware/auth');
+const { authorize } = require('../middleware/rbac');
+
+router.use(protect, authorize('sales_manager', 'admin'));
+
+router.get('/dashboard', getDashboard);
+router.get('/leads', listLeads);
+router.get('/leads/:id', getLeadDetail);
+router.post('/assign', assignLeads);
+router.get('/executives', listExecutives);
+router.get('/followups', listFollowUps);
+router.get('/quotations/:segment?', listQuotations);
+router.put('/quotations/:id', updateQuotation);
+router.get('/notifications', listNotifications);
+router.get('/reports', getReports);
+router.get('/calendar', getCalendar);
+
+router.get('/teams/leaders', listTeamLeaders);
+router.get('/teams/available-executives', listAvailableExecutives);
+router.post('/teams/:id/members', addMember);
+router.delete('/teams/:id/members/:memberId', removeMember);
+router.put('/teams/:id/transfer', transferMember);
+router.put('/teams/:id/leader', updateTeamLeader);
+router.route('/teams').get(listTeams).post(createTeam);
+router.route('/teams/:id').get(getTeam).put(updateTeam).delete(deleteTeam);
+
+module.exports = router;

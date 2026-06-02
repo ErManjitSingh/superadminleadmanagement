@@ -1,0 +1,69 @@
+const Role = require('../models/Role');
+const User = require('../models/User');
+const ApiError = require('../utils/apiError');
+const asyncHandler = require('../utils/asyncHandler');
+const { logActivity, getClientIp } = require('../services/activityService');
+
+const attachUserCount = async (role) => {
+  const userCount = await User.countDocuments({ roleId: role._id });
+  return { ...role.toObject?.() || role, userCount };
+};
+
+const listRoles = asyncHandler(async (req, res) => {
+  const roles = await Role.find().sort({ name: 1 });
+  const result = await Promise.all(roles.map(attachUserCount));
+  res.json(result);
+});
+
+const getRole = asyncHandler(async (req, res) => {
+  const role = await Role.findById(req.params.id);
+  if (!role) throw new ApiError(404, 'Role not found');
+  res.json(await attachUserCount(role));
+});
+
+const createRole = asyncHandler(async (req, res) => {
+  const role = await Role.create({
+    ...req.body,
+    slug: req.body.slug || req.body.name?.toLowerCase().replace(/\s+/g, '_'),
+    isSystem: false,
+  });
+
+  await logActivity({
+    type: 'user_action',
+    user: req.user.name,
+    userId: req.user._id,
+    action: 'Created role',
+    target: role.name,
+    ip: getClientIp(req),
+    branchId: req.branchId || req.user.branchId || null,
+  });
+
+  res.status(201).json(await attachUserCount(role));
+});
+
+const updateRole = asyncHandler(async (req, res) => {
+  const role = await Role.findById(req.params.id);
+  if (!role) throw new ApiError(404, 'Role not found');
+
+  if (role.isSystem && req.body.permissions) {
+    throw new ApiError(403, 'System role permissions cannot be modified');
+  }
+
+  Object.assign(role, req.body);
+  await role.save();
+  res.json(await attachUserCount(role));
+});
+
+const deleteRole = asyncHandler(async (req, res) => {
+  const role = await Role.findById(req.params.id);
+  if (!role) throw new ApiError(404, 'Role not found');
+  if (role.isSystem) throw new ApiError(403, 'System roles cannot be deleted');
+
+  const inUse = await User.exists({ roleId: role._id });
+  if (inUse) throw new ApiError(400, 'Role is assigned to users');
+
+  await role.deleteOne();
+  res.json({ message: 'Role deleted' });
+});
+
+module.exports = { listRoles, getRole, createRole, updateRole, deleteRole };

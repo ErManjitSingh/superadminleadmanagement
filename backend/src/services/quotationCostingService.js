@@ -1,0 +1,136 @@
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function resolveUnitPrice(item = {}) {
+  return toNumber(
+    item.sellPrice ??
+      item.price ??
+      item.cost ??
+      item.startingPrice ??
+      item.amount ??
+      item.unitPrice
+  );
+}
+
+function buildLineItems({ packageSnapshot, selectedHotels, selectedCabs, selectedFlights, selectedActivities }) {
+  const lines = [];
+
+  if (packageSnapshot) {
+    lines.push({
+      category: 'package',
+      label: packageSnapshot.name || 'Base Package',
+      quantity: 1,
+      unitPrice: resolveUnitPrice(packageSnapshot),
+    });
+  }
+
+  (selectedHotels || []).forEach((item) => {
+    lines.push({
+      category: 'hotel',
+      label: item.name || item.snapshot?.name || 'Hotel',
+      quantity: 1,
+      unitPrice: resolveUnitPrice(item),
+    });
+  });
+
+  (selectedCabs || []).forEach((item) => {
+    lines.push({
+      category: 'cab',
+      label: item.vehicleType || item.snapshot?.vehicleType || 'Cab',
+      quantity: 1,
+      unitPrice: resolveUnitPrice(item),
+    });
+  });
+
+  (selectedFlights || []).forEach((item) => {
+    lines.push({
+      category: 'flight',
+      label: item.flightNumber || item.airline || 'Flight',
+      quantity: 1,
+      unitPrice: resolveUnitPrice(item),
+    });
+  });
+
+  (selectedActivities || []).forEach((item) => {
+    lines.push({
+      category: 'activity',
+      label: item.name || item.snapshot?.name || 'Activity',
+      quantity: toNumber(item.quantity) || 1,
+      unitPrice: resolveUnitPrice(item),
+    });
+  });
+
+  return lines;
+}
+
+function calculateQuotationPricing({
+  packageSnapshot = null,
+  selectedHotels = [],
+  selectedCabs = [],
+  selectedFlights = [],
+  selectedActivities = [],
+  pricingInput = {},
+}) {
+  const lineItems = buildLineItems({
+    packageSnapshot,
+    selectedHotels,
+    selectedCabs,
+    selectedFlights,
+    selectedActivities,
+  });
+
+  const categoryTotals = lineItems.reduce(
+    (acc, line) => {
+      const total = toNumber(line.quantity) * toNumber(line.unitPrice);
+      acc.subtotal += total;
+      if (line.category === 'package') acc.baseCost += total;
+      if (line.category === 'hotel') acc.hotelCost += total;
+      if (line.category === 'cab') acc.cabCost += total;
+      if (line.category === 'flight') acc.flightCost += total;
+      if (line.category === 'activity') acc.activityCost += total;
+      return acc;
+    },
+    { subtotal: 0, baseCost: 0, hotelCost: 0, cabCost: 0, flightCost: 0, activityCost: 0 }
+  );
+
+  const taxes = toNumber(pricingInput.taxes);
+  const markup = toNumber(pricingInput.markup);
+  const discount = toNumber(pricingInput.discount);
+  const gross = categoryTotals.subtotal + taxes + markup;
+  const total = Math.max(0, gross - discount);
+  const profitAmount = total - (categoryTotals.subtotal + taxes);
+  const profitMargin = total > 0 ? Math.round((profitAmount / total) * 1000) / 10 : 0;
+
+  return {
+    pricing: {
+      baseCost: categoryTotals.baseCost,
+      hotelCost: categoryTotals.hotelCost,
+      cabCost: categoryTotals.cabCost,
+      flightCost: categoryTotals.flightCost,
+      activityCost: categoryTotals.activityCost,
+      taxes,
+      markup,
+      discount,
+      total,
+      profitMargin,
+    },
+    costing: {
+      lineItems: lineItems.map((line) => ({
+        ...line,
+        lineTotal: toNumber(line.quantity) * toNumber(line.unitPrice),
+      })),
+      subtotal: categoryTotals.subtotal,
+      taxes,
+      markup,
+      discount,
+      grandTotal: total,
+      profitMargin,
+    },
+  };
+}
+
+module.exports = {
+  calculateQuotationPricing,
+};

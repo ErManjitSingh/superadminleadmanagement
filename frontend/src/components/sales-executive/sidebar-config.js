@@ -1,0 +1,38 @@
+import {
+  LayoutDashboard,
+  Users,
+  Sparkles,
+  Phone,
+  CalendarClock,
+  Flame,
+  Trophy,
+  XCircle,
+  Bell,
+  FileText,
+  UserCircle,
+  Calendar,
+  User,
+} from 'lucide-react';
+
+export const salesExecutiveNavItems = [
+  { path: '/sales-executive/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  {
+    id: 'my-leads',
+    label: 'My Leads',
+    icon: Users,
+    children: [
+      { path: '/sales-executive/leads/new', label: 'New Leads', icon: Sparkles, badgeKey: 'leads.new' },
+      { path: '/sales-executive/leads/contacted', label: 'Contacted Leads', icon: Phone, countKey: 'leads.contacted' },
+      { path: '/sales-executive/leads/follow-up', label: 'Follow-up Leads', icon: CalendarClock, countKey: 'leads.followUp' },
+      { path: '/sales-executive/leads/hot', label: 'Hot Leads', icon: Flame, badgeKey: 'leads.hot' },
+      { path: '/sales-executive/leads/converted', label: 'Converted Leads', icon: Trophy, countKey: 'leads.converted' },
+      { path: '/sales-executive/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost' },
+    ],
+  },
+  { path: '/sales-executive/follow-ups', label: 'Follow-ups', icon: CalendarClock, badgeKey: 'followups.due' },
+  { path: '/sales-executive/quotations', label: 'Quotations', icon: FileText, countKey: 'quotations.total' },
+  { path: '/sales-executive/customers', label: 'Customers', icon: UserCircle, countKey: 'customers' },
+  { path: '/sales-executive/calendar', label: 'Calendar', icon: Calendar },
+  { path: '/sales-executive/notifications', label: 'Notifications', icon: Bell, badgeKey: 'notifications.unread' },
+  { path: '/sales-executive/profile', label: 'Profile', icon: User },
+];

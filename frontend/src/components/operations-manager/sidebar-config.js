@@ -1,0 +1,42 @@
+import {
+  LayoutDashboard,
+  ClipboardList,
+  Clock,
+  CheckCircle2,
+  Plane,
+  CircleCheck,
+  Hotel,
+  Car,
+  Compass,
+  Building2,
+  Ticket,
+  Headphones,
+  Calendar,
+  BarChart3,
+  User,
+} from 'lucide-react';
+
+export const operationsManagerNavItems = [
+  { section: 'Overview', path: '/operations-manager/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  {
+    section: 'Bookings',
+    id: 'bookings',
+    label: 'Bookings',
+    icon: ClipboardList,
+    children: [
+      { path: '/operations-manager/bookings/pending', label: 'Pending', icon: Clock, badgeKey: 'bookings.pending' },
+      { path: '/operations-manager/bookings/confirmed', label: 'Confirmed', icon: CheckCircle2, countKey: 'bookings.confirmed' },
+      { path: '/operations-manager/bookings/active', label: 'Active Trips', icon: Plane, badgeKey: 'bookings.active' },
+      { path: '/operations-manager/bookings/completed', label: 'Completed Trips', icon: CircleCheck, countKey: 'bookings.completed' },
+    ],
+  },
+  { section: 'Trip Execution', path: '/operations-manager/hotels', label: 'Hotels', icon: Hotel },
+  { path: '/operations-manager/transport', label: 'Transport', icon: Car },
+  { path: '/operations-manager/activities', label: 'Activities', icon: Compass },
+  { section: 'Resources', path: '/operations-manager/vendors', label: 'Vendors', icon: Building2 },
+  { path: '/operations-manager/vouchers', label: 'Vouchers', icon: Ticket },
+  { path: '/operations-manager/support', label: 'Support Tickets', icon: Headphones, badgeKey: 'support.open' },
+  { section: 'Insights', path: '/operations-manager/calendar', label: 'Calendar', icon: Calendar },
+  { path: '/operations-manager/reports', label: 'Reports', icon: BarChart3 },
+  { section: 'Account', path: '/operations-manager/profile', label: 'Profile', icon: User },
+];

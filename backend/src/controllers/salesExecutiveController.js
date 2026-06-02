@@ -1,0 +1,456 @@
+const Lead = require('../models/Lead');
+const LeadNote = require('../models/LeadNote');
+const FollowUp = require('../models/FollowUp');
+const Quotation = require('../models/Quotation');
+const Notification = require('../models/Notification');
+const ActivityLog = require('../models/ActivityLog');
+const ApiError = require('../utils/apiError');
+const asyncHandler = require('../utils/asyncHandler');
+const { LEAD_STATUSES } = require('../models/Lead');
+const { buildExecutiveDashboard } = require('../services/dashboardService');
+const { getTeamLeaderForExecutive } = require('../services/teamScopeService');
+const { logActivity, getClientIp } = require('../services/activityService');
+const { notifyQuotationCreated } = require('../services/notificationService');
+const {
+  LEAD_POPULATE,
+  FOLLOWUP_POPULATE,
+  QUOTATION_POPULATE,
+  enrichLead,
+  buildLeadSearchFilter,
+  buildFollowUpTabFilter,
+  buildFollowUpCategoryFilter,
+  formatNotification,
+  generateQuoteNumber,
+} = require('../utils/queryHelpers');
+const { createFollowUpForLead, updateFollowUpRecord } = require('../services/followUpService');
+const { getExecutiveFollowUpSummary, getMissedFollowUpsPreview } = require('../services/followUpSummaryService');
+const { ROLE_LABELS } = require('../config/roles');
+const { getOrSet, cacheKey } = require('../services/dashboardCacheService');
+const {
+  findExecutiveLeadsPaginated,
+  findScopedFollowUpsPaginated,
+  findScopedQuotationsPaginated,
+} = require('../repositories/roleScopedRepository');
+
+const LEAD_FILTER_KEYS = ['new', 'contacted', 'follow-up', 'hot', 'converted', 'lost', 'all'];
+
+async function getExecutiveLeadIds(userId, branchId = null) {
+  const leads = await Lead.find({
+    assignedTo: userId,
+    ...(branchId ? { branchId } : {}),
+  })
+    .select('_id')
+    .lean();
+  return leads.map((l) => l._id);
+}
+
+function buildExecutiveLeadFilter(filter) {
+  if (filter === 'new') return { status: 'new' };
+  if (filter === 'contacted') return { status: 'contacted' };
+  if (filter === 'follow-up') return { status: { $in: ['follow_up', 'negotiation'] } };
+  if (filter === 'converted') return { status: 'converted' };
+  if (filter === 'lost') return { status: { $in: ['lost', 'booked_from_another_company'] } };
+  return {};
+}
+
+const getDashboard = asyncHandler(async (req, res) => {
+  const stats = await getOrSet(
+    cacheKey('sales_executive', `${req.user._id}:${req.branchId || 'all'}`),
+    () => buildExecutiveDashboard(req.user._id, { branchId: req.branchId }),
+    60 * 1000
+  );
+  res.json(stats);
+});
+
+const listLeads = asyncHandler(async (req, res) => {
+  const filterKey = req.query.filter || req.params.filter;
+  const result = await findExecutiveLeadsPaginated(
+    req.user._id,
+    {
+      ...req.query,
+      filter: filterKey,
+    },
+    { branchId: req.branchId }
+  );
+  res.json(result);
+});
+
+const getLeadDetail = asyncHandler(async (req, res) => {
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    assignedTo: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  })
+    .populate(LEAD_POPULATE)
+    .lean();
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const leadIds = [lead._id];
+  const [followups, quotations] = await Promise.all([
+    FollowUp.find({
+      lead: lead._id,
+      $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
+    })
+      .populate(FOLLOWUP_POPULATE)
+      .sort({ scheduledAt: -1 })
+      .lean(),
+    Quotation.find({
+      lead: lead._id,
+      $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
+    })
+      .populate(QUOTATION_POPULATE)
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  res.json({ ...enrichLead(lead), followups, quotations });
+});
+
+/** Executives may only update pipeline status — not edit lead details. */
+const updateLead = asyncHandler(async (req, res) => {
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    assignedTo: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const { status, statusReason } = req.body;
+  const otherFields = Object.keys(req.body).filter((k) => !['status', 'statusReason'].includes(k));
+  if (otherFields.length > 0) {
+    throw new ApiError(403, 'You can only change lead status, not edit lead details');
+  }
+  if (!status) throw new ApiError(400, 'Status is required');
+  if (!LEAD_STATUSES.includes(status)) throw new ApiError(400, 'Invalid lead status');
+  const trimmedReason = typeof statusReason === 'string' ? statusReason.trim() : '';
+  if (['lost', 'booked_from_another_company'].includes(status) && !trimmedReason) {
+    throw new ApiError(400, 'Reason is required for this status');
+  }
+
+  lead.status = status;
+  lead.statusReason = trimmedReason;
+  lead.statusReasonUpdatedAt = new Date();
+  await lead.save();
+
+  const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
+  res.json(enrichLead(populated));
+});
+
+const addLeadNote = asyncHandler(async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) throw new ApiError(400, 'Note text is required');
+
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    assignedTo: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const note = await LeadNote.create({
+    lead: lead._id,
+    text: text.trim(),
+    user: req.user._id,
+  });
+
+  const stamp = new Date().toISOString();
+  lead.notes = `${lead.notes || ''}\n[${stamp}] ${text.trim()}`.trim();
+  await lead.save();
+
+  res.status(201).json({
+    date: stamp,
+    text: text.trim(),
+    user: req.user.name,
+    _id: note._id,
+  });
+});
+
+const listFollowUps = asyncHandler(async (req, res) => {
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const result = await findScopedFollowUpsPaginated(
+    { $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }] },
+    req.query,
+    { branchId: req.branchId }
+  );
+  res.json(result);
+});
+
+const getFollowUpSummary = asyncHandler(async (req, res) => {
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const baseFilter = { $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }] };
+  const [summary, missedPreview] = await Promise.all([
+    getExecutiveFollowUpSummary(req.user._id, leadIds),
+    getMissedFollowUpsPreview(baseFilter, 8),
+  ]);
+  res.json({ ...summary, missedPreview });
+});
+
+const createFollowUp = asyncHandler(async (req, res) => {
+  const leadId = req.body.lead || req.body.leadId;
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const lead = await Lead.findOne({ _id: leadId, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const owns =
+    lead.assignedTo?.toString() === req.user._id.toString() ||
+    leadIds.some((id) => id.toString() === leadId.toString());
+  if (!owns) throw new ApiError(403, 'This lead is not assigned to you');
+
+  const populated = await createFollowUpForLead({ body: req.body, user: req.user });
+  res.status(201).json(populated);
+});
+
+const updateFollowUp = asyncHandler(async (req, res) => {
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const followup = await FollowUp.findOne({
+    _id: req.params.id,
+    $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!followup) throw new ApiError(404, 'Follow-up not found');
+
+  const populated = await updateFollowUpRecord({ followup, body: req.body });
+  res.json(populated);
+});
+
+const listQuotations = asyncHandler(async (req, res) => {
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const filter = {
+    $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
+  };
+  if (req.query.status) filter.status = req.query.status;
+
+  const result = await findScopedQuotationsPaginated(filter, req.query, { branchId: req.branchId });
+  res.json(result);
+});
+
+const createQuotation = asyncHandler(async (req, res) => {
+  const lead = await Lead.findOne({
+    _id: req.body.leadId,
+    assignedTo: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!lead) throw new ApiError(403, 'Lead not assigned to you');
+
+  const teamLeader = await getTeamLeaderForExecutive(req.user._id);
+  const status = req.body.status === 'draft' ? 'draft' : 'pending_approval';
+  const now = new Date();
+
+  const timeline = [
+    {
+      type: 'created',
+      date: now,
+      user: req.user.name,
+      notes: 'Quote created by sales executive',
+    },
+  ];
+
+  if (status === 'pending_approval' && teamLeader) {
+    timeline.push({
+      type: 'pending_approval',
+      date: now,
+      user: req.user.name,
+      notes: `Submitted to ${teamLeader.name} (Team Leader) for approval`,
+    });
+  }
+
+  const quotation = await Quotation.create({
+    quoteNumber: req.body.quoteNumber || generateQuoteNumber(),
+    lead: lead._id,
+    package: req.body.packageId || req.body.package,
+    packageSnapshot: req.body.package,
+    status,
+    pricing: req.body.pricing,
+    selectedHotels: req.body.selectedHotels || [],
+    selectedCabs: req.body.selectedCabs || [],
+    selectedFlights: req.body.selectedFlights || [],
+    customizations: req.body.customizations,
+    createdByExecutive: req.user._id,
+    branchId: req.branchId || req.user.branchId || null,
+    teamLeader: teamLeader?._id,
+    timeline,
+    createdBy: req.user._id,
+  });
+
+  if (status === 'pending_approval' && lead.status === 'new') {
+    lead.status = 'quotation_sent';
+    await lead.save();
+  }
+
+  await logActivity({
+    type: 'quotation_created',
+    user: req.user.name,
+    userId: req.user._id,
+    action: status === 'pending_approval' ? 'Submitted quote for approval' : 'Saved quote draft',
+    target: quotation.quoteNumber,
+    ip: getClientIp(req),
+    branchId: req.branchId || lead.branchId || req.user.branchId || null,
+  });
+
+  const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
+  if (status === 'pending_approval') {
+    notifyQuotationCreated(populated, lead, { approverIds: teamLeader ? [teamLeader._id] : [] }).catch(() => {});
+  }
+  res.status(201).json(populated);
+});
+
+const updateQuotation = asyncHandler(async (req, res) => {
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const quotation = await Quotation.findOne({
+    _id: req.params.id,
+    $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!quotation) throw new ApiError(404, 'Quotation not found');
+
+  const { action, data, remarks } = req.body;
+  const now = new Date();
+
+  if (action === 'send') {
+    if (quotation.status === 'pending_approval') {
+      throw new ApiError(400, 'Awaiting Team Leader approval before sending to customer');
+    }
+    if (quotation.status !== 'approved') {
+      throw new ApiError(400, 'Quotation must be approved by Team Leader before sending');
+    }
+    quotation.status = 'sent';
+    quotation.sentAt = now;
+    quotation.timeline.push({
+      type: 'sent',
+      date: now,
+      user: req.user.name,
+      notes: remarks || 'Sent to customer',
+    });
+  } else if (action === 'submit') {
+    const teamLeader = quotation.teamLeader || (await getTeamLeaderForExecutive(req.user._id));
+    quotation.status = 'pending_approval';
+    quotation.timeline.push({
+      type: 'pending_approval',
+      date: now,
+      user: req.user.name,
+      notes: teamLeader
+        ? `Submitted to ${teamLeader.name || 'Team Leader'} for approval`
+        : 'Submitted for approval',
+    });
+  } else if (action === 'edit') {
+    Object.assign(quotation, data || {});
+    quotation.status = 'draft';
+  } else {
+    Object.assign(quotation, req.body);
+  }
+
+  await quotation.save();
+  const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
+  res.json(populated);
+});
+
+const listCustomers = asyncHandler(async (req, res) => {
+  const leads = await Lead.find({
+    assignedTo: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+    $or: [{ status: 'converted' }, { isRepeatCustomer: true }],
+  })
+    .select('name email phone destination budget isRepeatCustomer')
+    .lean();
+
+  res.json(
+    leads.map((l) => ({
+      _id: l._id,
+      name: l.name,
+      email: l.email,
+      phone: l.phone,
+      destination: l.destination,
+      trips: l.isRepeatCustomer ? 2 : 1,
+      totalSpent: l.budget,
+    }))
+  );
+});
+
+const listNotifications = asyncHandler(async (req, res) => {
+  const notifications = await Notification.find({
+    user: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .lean();
+  res.json(notifications.map(formatNotification));
+});
+
+const getProfile = asyncHandler(async (req, res) => {
+  const dashboard = await buildExecutiveDashboard(req.user._id, { branchId: req.branchId });
+  const activity = await ActivityLog.find({
+    userId: req.user._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  })
+    .sort({ createdAt: -1 })
+    .limit(8)
+    .lean();
+
+  res.json({
+    user: {
+      name: req.user.name,
+      email: req.user.email,
+      roleName: ROLE_LABELS[req.user.role] || req.user.role,
+      department: req.user.department || 'Sales',
+    },
+    metrics: dashboard.target,
+    activity,
+  });
+});
+
+const getCalendar = asyncHandler(async (req, res) => {
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+
+  const [followups, travelLeads] = await Promise.all([
+    FollowUp.find({
+      $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
+      ...(req.branchId ? { branchId: req.branchId } : {}),
+    })
+      .populate('lead', 'name')
+      .lean(),
+    Lead.find({
+      assignedTo: req.user._id,
+      travelDate: { $exists: true, $ne: null },
+      ...(req.branchId ? { branchId: req.branchId } : {}),
+    })
+      .select('name destination travelDate')
+      .lean(),
+  ]);
+
+  const fuEvents = followups.map((f) => ({
+    _id: f._id,
+    title: `Follow-up: ${f.lead?.name}`,
+    start: f.scheduledAt,
+    type: 'followup',
+  }));
+
+  const travelEvents = travelLeads.map((l) => ({
+    _id: `travel-${l._id}`,
+    title: `Travel: ${l.name} → ${l.destination}`,
+    start: l.travelDate,
+    type: 'travel',
+  }));
+
+  res.json([...fuEvents, ...travelEvents]);
+});
+
+module.exports = {
+  LEAD_FILTER_KEYS,
+  getDashboard,
+  listLeads,
+  getLeadDetail,
+  updateLead,
+  addLeadNote,
+  listFollowUps,
+  getFollowUpSummary,
+  createFollowUp,
+  updateFollowUp,
+  listQuotations,
+  createQuotation,
+  updateQuotation,
+  listCustomers,
+  listNotifications,
+  getProfile,
+  getCalendar,
+};

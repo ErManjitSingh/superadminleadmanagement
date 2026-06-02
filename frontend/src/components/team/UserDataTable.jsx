@@ -1,0 +1,116 @@
+import { useNavigate } from 'react-router-dom';
+import { Eye, Pencil, KeyRound, UserX, Trash2, MoreHorizontal } from 'lucide-react';
+import Avatar from '../ui/Avatar';
+import UserStatusBadge from './UserStatusBadge';
+import { formatLastLogin } from './constants';
+import { compactTable, compactTh, compactTd } from '../ui/compactTable';
+import {
+  DropdownMenuRoot,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
+
+export default function UserDataTable({ users, onEdit, onResetPassword, onDisable, onDelete, onView, permissions = {} }) {
+  const navigate = useNavigate();
+  const hasActions = onEdit || onResetPassword || onDisable || onDelete || onView;
+
+  if (!users.length) {
+    return (
+      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl p-12 text-center text-content-muted">
+        No users match your filters
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className={compactTable}>
+          <thead>
+            <tr className="border-b border-subtle bg-surface-elevated/50">
+              {['Profile', 'Name', 'Email', 'Phone', 'Role', 'Department', 'Status', 'Last Login', 'Assigned Leads', 'Actions'].map((h) => (
+                <th key={h} className={compactTh}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-subtle">
+            {users.map((user) => (
+              <tr key={user._id} className="group hover:bg-brand-500/[0.03] transition-colors">
+                <td className={compactTd}>
+                  <Avatar name={user.name} size="sm" className="!w-7 !h-7 ring-1 ring-brand-500/10" />
+                </td>
+                <td className={compactTd}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/team/users/${user._id}`)}
+                    className="text-sm font-semibold text-content-primary hover:text-brand-600 transition-colors whitespace-nowrap"
+                  >
+                    {user.name}
+                  </button>
+                </td>
+                <td className={`${compactTd} text-content-secondary max-w-[160px] truncate`}>{user.email}</td>
+                <td className={`${compactTd} text-content-secondary`}>{user.phone || '—'}</td>
+                <td className={compactTd}>
+                  <span className="inline-flex px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-1 ring-violet-500/20 whitespace-nowrap">
+                    {user.roleName}
+                  </span>
+                </td>
+                <td className={`${compactTd} text-content-secondary`}>{user.department}</td>
+                <td className={compactTd}><UserStatusBadge status={user.status} /></td>
+                <td className={`${compactTd} text-content-muted text-xs`}>{formatLastLogin(user.lastLogin)}</td>
+                <td className={compactTd}>
+                  <span className="text-sm font-semibold text-content-primary tabular-nums">{user.assignedLeads ?? 0}</span>
+                </td>
+                <td className={compactTd} onClick={(e) => e.stopPropagation()}>
+                  {hasActions ? (
+                  <DropdownMenuRoot>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-2 rounded-xl hover:bg-surface-elevated text-content-muted opacity-60 group-hover:opacity-100 transition-all">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => (onView ? onView(user) : navigate(`/team/users/${user._id}`))}>
+                        <Eye className="w-4 h-4 mr-2 text-sky-600" /> View User
+                      </DropdownMenuItem>
+                      {onEdit && (
+                        <DropdownMenuItem onClick={() => onEdit(user)}>
+                          <Pencil className="w-4 h-4 mr-2 text-violet-600" /> Edit User
+                        </DropdownMenuItem>
+                      )}
+                      {onResetPassword && (
+                        <DropdownMenuItem onClick={() => onResetPassword(user)}>
+                          <KeyRound className="w-4 h-4 mr-2 text-amber-600" /> Reset Password
+                        </DropdownMenuItem>
+                      )}
+                      {onDisable && user.status === 'active' && (
+                        <DropdownMenuItem onClick={() => onDisable(user)}>
+                          <UserX className="w-4 h-4 mr-2 text-orange-600" /> Disable User
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onDelete(user)} className="text-rose-600 focus:text-rose-600">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete User
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenuRoot>
+                  ) : (
+                    <button type="button" onClick={() => navigate(`/team/users/${user._id}`)} className="p-2 rounded-xl hover:bg-surface-elevated text-content-muted">
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
