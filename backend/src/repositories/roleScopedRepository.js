@@ -14,6 +14,24 @@ const {
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
 const { withBranch } = require('../utils/branchScope');
 
+function applyReactivationQueryFilters(mongoFilter, query = {}) {
+  const stage = query.reactivationStage || query.stage;
+  if (stage) mongoFilter['reactivation.stage'] = stage;
+  if (query.status) mongoFilter.status = query.status;
+  if (query.executiveId) mongoFilter.assignedTo = query.executiveId;
+  const from = query.reactivatedFrom || query.from;
+  const to = query.reactivatedTo || query.to;
+  if (from || to) {
+    mongoFilter['reactivation.reactivatedAt'] = {};
+    if (from) mongoFilter['reactivation.reactivatedAt'].$gte = new Date(from);
+    if (to) {
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+      mongoFilter['reactivation.reactivatedAt'].$lte = end;
+    }
+  }
+}
+
 function buildManagerLeadFilter(query = {}) {
   const { filter, search } = query;
   const mongoFilter = { ...buildLeadSearchFilter(search) };
@@ -21,8 +39,10 @@ function buildManagerLeadFilter(query = {}) {
   if (filter === 'unassigned') mongoFilter.assignedTo = null;
   else if (filter === 'assigned') mongoFilter.assignedTo = { $ne: null };
   else if (filter === 'lost') mongoFilter.status = { $in: ['lost', 'booked_from_another_company'] };
-  else if (filter === 'reactivated') mongoFilter['reactivation.isReactivated'] = true;
-  else if (filter === 'hot') {
+  else if (filter === 'reactivated') {
+    mongoFilter['reactivation.isReactivated'] = true;
+    applyReactivationQueryFilters(mongoFilter, query);
+  } else if (filter === 'hot') {
     mongoFilter.isHot = true;
     mongoFilter.status = { $nin: ['lost', 'booked_from_another_company'] };
   }
@@ -82,7 +102,10 @@ async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
   const extra = {};
-  if (query.filter === 'reactivated') extra['reactivation.isReactivated'] = true;
+  if (query.filter === 'reactivated') {
+    extra['reactivation.isReactivated'] = true;
+    applyReactivationQueryFilters(extra, query);
+  }
   if (query.filter === 'lost') extra.status = { $in: ['lost', 'booked_from_another_company'] };
   if (query.filter === 'assigned') extra.assignedTo = { $ne: null };
   if (query.filter === 'unassigned') extra.assignedTo = null;

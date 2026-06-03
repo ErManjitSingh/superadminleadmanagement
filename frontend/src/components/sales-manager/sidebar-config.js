@@ -34,7 +34,7 @@ export const salesManagerNavItems = [
       { path: '/sales-manager/leads/assigned', label: 'Assigned Leads', icon: UserCheck, countKey: 'leads.assigned' },
       { path: '/sales-manager/leads/hot', label: 'Hot Leads', icon: Flame, badgeKey: 'leads.hot' },
       { path: '/sales-manager/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost' },
-      { path: '/sales-manager/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw },
+      { path: '/sales-manager/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw, countKey: 'leads.reactivated' },
     ],
   },
   { path: '/sales-manager/assignment', label: 'Lead Assignment', icon: UserPlus, badgeKey: 'assignment' },

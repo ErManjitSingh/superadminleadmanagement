@@ -111,6 +111,7 @@ async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
     leadsAssigned,
     leadsHot,
     leadsLost,
+    leadsReactivated,
     followUpsDue,
     quotationsPending,
     quotationsApproved,
@@ -123,6 +124,7 @@ async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
     Lead.countDocuments(withBranch({ assignedTo: { $ne: null } }, branchId)),
     countHotLeads({}, branchId),
     Lead.countDocuments(withBranch({ status: { $in: ['lost', 'booked_from_another_company'] } }, branchId)),
+    Lead.countDocuments(withBranch({ 'reactivation.isReactivated': true }, branchId)),
     countFollowUpsDue({}, branchId),
     Quotation.countDocuments(withBranch({ status: { $in: ['sent', 'negotiation', 'pending_approval'] } }, branchId)),
     Quotation.countDocuments(withBranch({ status: 'approved' }, branchId)),
@@ -138,6 +140,7 @@ async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
       assigned: leadsAssigned,
       hot: leadsHot,
       lost: leadsLost,
+      reactivated: leadsReactivated,
     },
     assignment: leadsUnassigned,
     followups: { due: followUpsDue },
@@ -234,6 +237,8 @@ async function buildTeamLeaderNavCounts(userId, { branchId } = {}) {
 
   const [
     leadsAll,
+    leadsLost,
+    leadsReactivated,
     followUpsDue,
     quotationsPending,
     quotationsNegotiation,
@@ -242,6 +247,11 @@ async function buildTeamLeaderNavCounts(userId, { branchId } = {}) {
     notificationsUnread,
   ] = await Promise.all([
     Lead.countDocuments(squadFilter),
+    Lead.countDocuments({
+      ...squadFilter,
+      status: { $in: ['lost', 'booked_from_another_company'] },
+    }),
+    Lead.countDocuments({ ...squadFilter, 'reactivation.isReactivated': true }),
     countFollowUpsDue(squadFollowFilter, branchId),
     Quotation.countDocuments(withBranch({ ...quoteFilter, status: 'pending_approval' }, branchId)),
     Quotation.countDocuments(withBranch({ ...quoteFilter, status: 'negotiation' }, branchId)),
@@ -251,7 +261,7 @@ async function buildTeamLeaderNavCounts(userId, { branchId } = {}) {
   ]);
 
   return {
-    leads: { all: leadsAll },
+    leads: { all: leadsAll, lost: leadsLost, reactivated: leadsReactivated },
     followups: { due: followUpsDue },
     escalations,
     quotations: {

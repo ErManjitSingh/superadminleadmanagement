@@ -52,7 +52,7 @@ export default function LeadDetail() {
   }, [loadLead]);
 
   useEffect(() => {
-    if (!(user?.role === 'admin' || user?.role === 'sales_manager')) return;
+    if (!['admin', 'sales_manager', 'team_leader'].includes(user?.role)) return;
     API.get('/leads/assignees', { skipSuccessToast: true, skipErrorToast: true })
       .then((res) => setReactivationExecs(res.data?.salesExecutives || []))
       .catch(() => setReactivationExecs([]));
@@ -149,7 +149,7 @@ export default function LeadDetail() {
 
         {/* Right — Quick Actions */}
         <aside className="xl:col-span-3 order-3">
-          {(user?.role === 'admin' || user?.role === 'sales_manager') && (
+          {['admin', 'sales_manager', 'team_leader'].includes(user?.role) && (
             <div className="mb-4 rounded-xl border border-subtle bg-surface/80 p-3 space-y-2">
               {['lost', 'booked_from_another_company'].includes(lead.status) && (
                 <Button type="button" variant="teal" className="w-full" onClick={() => setReactivationMode('reactivate')}>

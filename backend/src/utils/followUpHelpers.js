@@ -1,5 +1,6 @@
 const FollowUp = require('../models/FollowUp');
 const Lead = require('../models/Lead');
+const { promoteReactivatedLeadOnFollowUp } = require('../services/reactivationService');
 
 const FOLLOWUP_CATEGORIES = ['warm', 'cold', 'converted', 'expected_conv'];
 
@@ -50,6 +51,8 @@ async function applyCategoryToLead(lead, category, status) {
       lead.status = 'follow_up';
     }
   }
+
+  promoteReactivatedLeadOnFollowUp(lead, lead.assignedTo);
 
   await lead.save();
 }

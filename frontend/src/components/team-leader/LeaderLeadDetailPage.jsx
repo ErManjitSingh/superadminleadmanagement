@@ -6,8 +6,9 @@ import { ArrowLeft } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import { useLeadAssign } from '../../hooks/useLeadAssign';
+import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, RefreshCw } from 'lucide-react';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import {
   LeadDetailHeader, LeadStatusPipeline, LeadCustomerPanel, LeadActivityTimeline,
@@ -19,8 +20,8 @@ export default function LeaderLeadDetailPage() {
   const { id } = useParams();
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [stageModalOpen, setStageModalOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [executives, setExecutives] = useState([]);
   const notesRef = useRef(null);
 
   const loadLead = useCallback(() => {
@@ -33,6 +34,9 @@ export default function LeaderLeadDetailPage() {
 
   useEffect(() => {
     loadLead();
+    API.get('/leads/assignees', { skipSuccessToast: true, skipErrorToast: true })
+      .then((r) => setExecutives(r.data?.salesExecutives || []))
+      .catch(() => setExecutives([]));
   }, [loadLead]);
 
   useDataRefresh(['leads'], loadLead);
@@ -43,6 +47,8 @@ export default function LeaderLeadDetailPage() {
       await loadLead();
     },
   });
+
+  const reactivate = useLeadReactivate({ leadId: id, onSuccess: loadLead });
 
   if (loading) {
     return <div className="flex justify-center py-32"><div className="w-9 h-9 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -59,23 +65,26 @@ export default function LeaderLeadDetailPage() {
 
   const detail = getLeadDetailData({ ...lead, followUps: lead.followups || [], quotations: lead.quotations || [] });
 
-  const handleStageUpdate = async (payload) => {
-    await API.patch(`/leads/${id}/reactivation-stage`, payload);
-    setStageModalOpen(false);
-    await loadLead();
-  };
-
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
       <Link to="/team-leader/leads" className="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-500 mb-4">
         <ArrowLeft className="w-4 h-4" /> Back to Team Leads
       </Link>
       <div className="mb-4 flex flex-wrap gap-2">
-        <Button variant="gradient" className="gap-2" onClick={() => setAssignOpen(true)}>
-          <UserPlus className="w-4 h-4" /> Assign to Executive
-        </Button>
+        {reactivate.isLost(lead) ? (
+          <Button variant="teal" className="gap-2" onClick={reactivate.openReactivate}>
+            <RefreshCw className="w-4 h-4" /> Reactivate Lead
+          </Button>
+        ) : (
+          <Button variant="gradient" className="gap-2" onClick={() => setAssignOpen(true)}>
+            <UserPlus className="w-4 h-4" /> Assign to Executive
+          </Button>
+        )}
+        {lead.status === 'reactivated' && (
+          <Button variant="outline" onClick={reactivate.openReassign}>Reassign Reactivated Lead</Button>
+        )}
         {lead?.reactivation?.isReactivated && (
-          <Button variant="outline" onClick={() => setStageModalOpen(true)}>Update Reactivation Stage</Button>
+          <Button variant="outline" onClick={reactivate.openStage}>Update Reactivation Stage</Button>
         )}
       </div>
       <LeadDetailHeader lead={lead} />
@@ -102,10 +111,11 @@ export default function LeaderLeadDetailPage() {
       />
       {assignConfirmDialog}
       <ReactivationActionsModal
-        open={stageModalOpen}
-        mode="stage"
-        onClose={() => setStageModalOpen(false)}
-        onSubmit={handleStageUpdate}
+        open={!!reactivate.mode}
+        mode={reactivate.mode || 'reactivate'}
+        executives={executives}
+        onClose={reactivate.close}
+        onSubmit={reactivate.submit}
       />
     </motion.div>
   );

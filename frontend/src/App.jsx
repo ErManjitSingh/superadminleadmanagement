@@ -155,6 +155,7 @@ function App() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<LeaderDashboard />} />
               <Route path="leads/:id/view" element={<LeaderLeadDetailPage />} />
+              <Route path="leads/:filter" element={<LeaderTeamLeadsPage />} />
               <Route path="leads" element={<LeaderTeamLeadsPage />} />
               <Route path="follow-ups" element={<LeaderFollowUpsPage />} />
               <Route path="performance" element={<ExecutivePerformancePage />} />

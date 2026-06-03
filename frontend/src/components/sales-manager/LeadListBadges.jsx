@@ -95,8 +95,11 @@ export function ExecutiveBadge({ name, unassigned }) {
   );
 }
 
-export function ManagerStatusBadge({ status }) {
-  const label = status?.replace(/_/g, ' ') || 'new';
+export function ManagerStatusBadge({ status, lead }) {
+  const isActiveReactivated =
+    lead?.reactivation?.isReactivated &&
+    ['follow_up', 'working_progress', 'contacted', 'negotiation', 'quotation_sent'].includes(status);
+  const label = isActiveReactivated ? 'active' : (status?.replace(/_/g, ' ') || 'new');
   return (
     <span className={cn(
       'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset capitalize whitespace-nowrap',
@@ -110,7 +113,8 @@ export function ManagerStatusBadge({ status }) {
         'bg-orange-500': status === 'negotiation',
         'bg-emerald-500': status === 'converted',
         'bg-rose-500': status === 'lost',
-      }[status] || 'bg-sky-500')} />
+        'bg-teal-500': isActiveReactivated,
+      }[isActiveReactivated ? 'active' : status] || 'bg-sky-500')} />
       {label}
     </span>
   );
@@ -158,5 +162,11 @@ export const FILTER_THEMES = {
     border: 'border-slate-500/25',
     header: 'from-slate-500/10 to-zinc-500/8',
     icon: 'text-slate-500',
+  },
+  reactivated: {
+    gradient: 'from-teal-500/25 via-cyan-500/15 to-emerald-500/15',
+    border: 'border-teal-500/30',
+    header: 'from-teal-500/12 via-cyan-500/8 to-emerald-500/10',
+    icon: 'text-teal-600',
   },
 };

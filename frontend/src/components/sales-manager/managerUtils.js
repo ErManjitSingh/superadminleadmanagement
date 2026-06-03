@@ -16,6 +16,7 @@ export const STATUS_STYLES = {
   quotation_sent: 'bg-gradient-to-r from-indigo-500/20 to-blue-500/15 text-indigo-700 dark:text-indigo-300 ring-indigo-400/35',
   negotiation: 'bg-gradient-to-r from-orange-500/20 to-amber-500/15 text-orange-700 dark:text-orange-300 ring-orange-400/35',
   reactivated: 'bg-gradient-to-r from-teal-500/20 to-cyan-500/15 text-teal-700 dark:text-teal-300 ring-teal-400/35',
+  active: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-400/35',
   converted: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-400/35',
   lost: 'bg-gradient-to-r from-rose-500/15 to-slate-500/10 text-rose-600 dark:text-rose-300 ring-rose-400/30',
 };

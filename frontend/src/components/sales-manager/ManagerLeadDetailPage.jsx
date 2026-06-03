@@ -7,6 +7,7 @@ import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { Button } from '../ui/button';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
 import { useLeadAssign } from '../../hooks/useLeadAssign';
+import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import {
   LeadDetailHeader,
@@ -25,7 +26,6 @@ export default function ManagerLeadDetailPage() {
   const [executives, setExecutives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
-  const [reactivationMode, setReactivationMode] = useState('');
   const notesRef = useRef(null);
 
   const loadLead = useCallback(() => {
@@ -52,21 +52,10 @@ export default function ManagerLeadDetailPage() {
     },
   });
 
+  const reactivate = useLeadReactivate({ leadId: id, onSuccess: loadLead });
+
   const onConfirmAssign = async (payload) => {
     await handleAssign({ ...payload, leadIds: payload.leadIds || [id] });
-  };
-
-  const handleReactivationAction = async (payload) => {
-    const endpoint =
-      reactivationMode === 'reactivate'
-        ? `/leads/${id}/reactivate`
-        : reactivationMode === 'reassign'
-          ? `/leads/${id}/reassign-reactivated`
-          : `/leads/${id}/reactivation-stage`;
-    const method = reactivationMode === 'stage' ? 'patch' : 'post';
-    await API[method](endpoint, payload);
-    setReactivationMode('');
-    await loadLead();
   };
 
   if (loading) {
@@ -99,20 +88,22 @@ export default function ManagerLeadDetailPage() {
         >
           <ArrowLeft className="w-4 h-4" /> Back to leads
         </Link>
-        <Button variant="gradient" onClick={() => setAssignOpen(true)}>
-          <UserPlus className="w-4 h-4 mr-1.5" />
-          {lead.assignedTo ? 'Reassign Lead' : 'Assign Lead'}
-        </Button>
+        {!reactivate.isLost(lead) && (
+          <Button variant="gradient" onClick={() => setAssignOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            {lead.assignedTo ? 'Reassign Lead' : 'Assign Lead'}
+          </Button>
+        )}
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
-        {['lost', 'booked_from_another_company'].includes(lead.status) && (
-          <Button variant="teal" onClick={() => setReactivationMode('reactivate')}>Reactivate Lead</Button>
+        {reactivate.isLost(lead) && (
+          <Button variant="teal" onClick={reactivate.openReactivate}>Reactivate Lead</Button>
         )}
         {lead.status === 'reactivated' && (
-          <Button variant="outline" onClick={() => setReactivationMode('reassign')}>Reassign Reactivated Lead</Button>
+          <Button variant="outline" onClick={reactivate.openReassign}>Reassign Reactivated Lead</Button>
         )}
         {lead?.reactivation?.isReactivated && (
-          <Button variant="outline" onClick={() => setReactivationMode('stage')}>Update Reactivation Stage</Button>
+          <Button variant="outline" onClick={reactivate.openStage}>Update Reactivation Stage</Button>
         )}
       </div>
 
@@ -146,11 +137,11 @@ export default function ManagerLeadDetailPage() {
       />
       {assignConfirmDialog}
       <ReactivationActionsModal
-        open={!!reactivationMode}
-        mode={reactivationMode || 'reactivate'}
+        open={!!reactivate.mode}
+        mode={reactivate.mode || 'reactivate'}
         executives={executives}
-        onClose={() => setReactivationMode('')}
-        onSubmit={handleReactivationAction}
+        onClose={reactivate.close}
+        onSubmit={reactivate.submit}
       />
     </motion.div>
   );

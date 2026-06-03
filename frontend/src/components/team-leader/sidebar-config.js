@@ -14,12 +14,21 @@ import {
   MessageSquare,
   CheckCircle2,
   XOctagon,
+  XCircle,
 } from 'lucide-react';
 
 export const teamLeaderNavItems = [
   { path: '/team-leader/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/team-leader/leads', label: 'Team Leads', icon: Users, countKey: 'leads.all' },
-  { path: '/team-leader/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw },
+  {
+    id: 'lead-management',
+    label: 'Lead Management',
+    icon: Users,
+    children: [
+      { path: '/team-leader/leads', label: 'Team Leads', icon: Users, countKey: 'leads.all' },
+      { path: '/team-leader/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost' },
+      { path: '/team-leader/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw, countKey: 'leads.reactivated' },
+    ],
+  },
   { path: '/team-leader/follow-ups', label: 'Team Follow-ups', icon: CalendarClock, badgeKey: 'followups.due' },
   { path: '/team-leader/performance', label: 'Executive Performance', icon: Trophy },
   { path: '/team-leader/escalations', label: 'Lead Escalations', icon: AlertTriangle, badgeKey: 'escalations' },

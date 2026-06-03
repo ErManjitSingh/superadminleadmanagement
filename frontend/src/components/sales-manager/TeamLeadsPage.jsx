@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Users, Inbox, UserCheck, Flame, XCircle, TrendingUp, Eye, UserPlus } from 'lucide-react';
+import { Search, Users, Inbox, UserCheck, Flame, XCircle, TrendingUp, Eye, UserPlus, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/button';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import { useLeadAssign } from '../../hooks/useLeadAssign';
+import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import {
   useReactTable,
   getCoreRowModel,
@@ -30,6 +32,7 @@ import {
   CustomerCell,
   FILTER_THEMES,
 } from './LeadListBadges';
+import { ReactivationFlowSteps, ReactivationEmptyState } from '../leads/ReactivationPanelUi';
 
 const TITLES = {
   all: { title: 'All Team Leads', desc: 'Complete pipeline across your sales team', icon: Users },
@@ -47,10 +50,12 @@ export default function TeamLeadsPage() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 350);
   const [assignLead, setAssignLead] = useState(null);
+  const [reactivateLead, setReactivateLead] = useState(null);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const meta = TITLES[filter] || TITLES.all;
   const theme = FILTER_THEMES[filter] || FILTER_THEMES.all;
   const Icon = meta.icon;
+  const isLostView = filter === 'lost';
 
   const { data, isLoading } = useRoleLeadsQuery({
     endpoint: '/sales-manager/leads',
@@ -75,6 +80,14 @@ export default function TeamLeadsPage() {
   const { assignees, assigneesLoading, handleAssign, assignConfirmDialog } = useLeadAssign({
     onAssigned: () => {
       setAssignLead(null);
+      fetchLeads();
+    },
+  });
+
+  const reactivate = useLeadReactivate({
+    leadId: reactivateLead?._id,
+    onSuccess: () => {
+      setReactivateLead(null);
       fetchLeads();
     },
   });
@@ -122,7 +135,7 @@ export default function TeamLeadsPage() {
     }),
     columnHelper.accessor('status', {
       header: 'Status',
-      cell: (i) => <ManagerStatusBadge status={i.getValue()} />,
+      cell: ({ row }) => <ManagerStatusBadge status={row.original.status} lead={row.original} />,
     }),
     columnHelper.display({
       id: 'actions',
@@ -135,9 +148,23 @@ export default function TeamLeadsPage() {
           >
             <Eye className="w-3 h-3 mr-0.5" /> View
           </Link>
-          <Button size="sm" variant="gradient" className="h-7 px-2 text-[11px]" onClick={() => setAssignLead(row.original)}>
-            <UserPlus className="w-3 h-3 mr-0.5" /> {['lost', 'booked_from_another_company'].includes(row.original.status) ? 'Reassign Lost' : (row.original.assignedTo ? 'Reassign' : 'Assign')}
-          </Button>
+          {reactivate.isLost(row.original) ? (
+            <Button
+              size="sm"
+              variant="teal"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => {
+                setReactivateLead(row.original);
+                reactivate.openReactivate();
+              }}
+            >
+              <RefreshCw className="w-3 h-3 mr-0.5" /> Reactivate
+            </Button>
+          ) : (
+            <Button size="sm" variant="gradient" className="h-7 px-2 text-[11px]" onClick={() => setAssignLead(row.original)}>
+              <UserPlus className="w-3 h-3 mr-0.5" /> {row.original.assignedTo ? 'Reassign' : 'Assign'}
+            </Button>
+          )}
         </div>
       ),
     }),
@@ -157,6 +184,8 @@ export default function TeamLeadsPage() {
     <div className="space-y-6">
       <PageHeader title={meta.title} description={meta.desc} breadcrumbs={['Sales Manager', 'Leads', meta.title]} />
 
+      {isLostView && <ReactivationFlowSteps />}
+
       {/* Colorful filter banner */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
@@ -173,9 +202,15 @@ export default function TeamLeadsPage() {
               <p className="text-sm text-content-secondary">{meta.title}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full ring-1 ring-emerald-500/20">
-            <TrendingUp className="w-4 h-4" /> Live pipeline
-          </div>
+          {isLostView ? (
+            <div className="flex items-center gap-2 text-sm font-semibold text-teal-700 bg-teal-500/10 px-3 py-1.5 rounded-full ring-1 ring-teal-500/25">
+              <RefreshCw className="w-4 h-4" /> Reactivate to recover
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full ring-1 ring-emerald-500/20">
+              <TrendingUp className="w-4 h-4" /> Live pipeline
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -200,10 +235,12 @@ export default function TeamLeadsPage() {
             <p className="text-content-muted">Loading leads…</p>
           </div>
         ) : leads.length === 0 ? (
-          <div className="p-16 text-center">
-            <Icon className={`w-12 h-12 mx-auto mb-3 opacity-40 ${theme.icon}`} />
-            <p className="text-content-muted font-medium">No leads in this view</p>
-          </div>
+          isLostView ? <ReactivationEmptyState isLost /> : (
+            <div className="p-16 text-center">
+              <Icon className={`w-12 h-12 mx-auto mb-3 opacity-40 ${theme.icon}`} />
+              <p className="text-content-muted font-medium">No leads in this view</p>
+            </div>
+          )
         ) : (
           <div className="overflow-x-auto">
             <table className={compactTable}>
@@ -258,6 +295,15 @@ export default function TeamLeadsPage() {
         onClose={() => setAssignLead(null)}
         onAssign={onConfirmAssign}
         allowedRoles={['sales_manager', 'team_leader', 'sales_executive']}
+      />
+      <ReactivationActionsModal
+        open={!!reactivateLead && reactivate.mode === 'reactivate'}
+        mode="reactivate"
+        onClose={() => {
+          reactivate.close();
+          setReactivateLead(null);
+        }}
+        onSubmit={reactivate.submit}
       />
       {assignConfirmDialog}
     </div>

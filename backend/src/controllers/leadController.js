@@ -32,6 +32,11 @@ const {
   assertCanAssignLeads,
   getAssigneesForUser,
 } = require('../services/leadAssignmentService');
+const { setReactivationStage } = require('../services/reactivationService');
+const {
+  getLeaderLeadScopeFilter,
+  getExecutiveIdsForLeader,
+} = require('../services/teamScopeService');
 
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
@@ -42,15 +47,24 @@ const REACTIVATION_STATUS_TO_STAGE = {
   converted: 'converted',
 };
 
-function setReactivationStage(lead, stage, byUserId, note = '') {
-  if (!REACTIVATION_STAGES.includes(stage)) return;
-  lead.reactivation = lead.reactivation || {};
-  lead.reactivation.isReactivated = true;
-  lead.reactivation.stage = stage;
-  lead.reactivation.stageUpdatedAt = new Date();
-  const history = Array.isArray(lead.reactivation.stageHistory) ? lead.reactivation.stageHistory : [];
-  history.push({ stage, by: byUserId, at: new Date(), note });
-  lead.reactivation.stageHistory = history;
+const REACTIVATION_MANAGER_ROLES = ['admin', 'sales_manager', 'team_leader'];
+
+async function assertLeadReactivationAccess(req, lead) {
+  if (!REACTIVATION_MANAGER_ROLES.includes(req.user.role)) {
+    throw new ApiError(403, 'You do not have permission to manage lead reactivation');
+  }
+  if (req.branchId && lead.branchId && String(lead.branchId) !== String(req.branchId)) {
+    throw new ApiError(403, 'Lead is outside your branch');
+  }
+  if (req.user.role === 'team_leader') {
+    const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
+    const inScope = await Lead.exists({
+      _id: lead._id,
+      ...squadFilter,
+      ...(req.branchId ? { branchId: req.branchId } : {}),
+    });
+    if (!inScope) throw new ApiError(403, 'Lead is outside your team');
+  }
 }
 
 function hasFirstFollowUp(payload = {}) {
@@ -336,11 +350,9 @@ const deleteLead = asyncHandler(async (req, res) => {
 });
 
 const reactivateLead = asyncHandler(async (req, res) => {
-  if (!['admin', 'sales_manager'].includes(req.user.role)) {
-    throw new ApiError(403, 'Only Admin and Sales Manager can reactivate leads');
-  }
   const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
   if (!lead) throw new ApiError(404, 'Lead not found');
+  await assertLeadReactivationAccess(req, lead);
   if (!LOST_LEAD_STATUSES.includes(lead.status)) {
     throw new ApiError(400, 'Only lost leads can be reactivated');
   }
@@ -361,6 +373,9 @@ const reactivateLead = asyncHandler(async (req, res) => {
   setReactivationStage(lead, 'reactivated', req.user._id, reason);
 
   await lead.save();
+  invalidateDashboardCache('admin');
+  invalidateDashboardCache('sales_manager');
+  invalidateDashboardCache('team_leader');
   await logActivity({
     type: 'lead_reactivated',
     user: req.user.name,
@@ -377,11 +392,9 @@ const reactivateLead = asyncHandler(async (req, res) => {
 });
 
 const reassignReactivatedLead = asyncHandler(async (req, res) => {
-  if (!['admin', 'sales_manager'].includes(req.user.role)) {
-    throw new ApiError(403, 'Only Admin and Sales Manager can reassign reactivated leads');
-  }
   const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
   if (!lead) throw new ApiError(404, 'Lead not found');
+  await assertLeadReactivationAccess(req, lead);
   if (!lead.reactivation?.isReactivated || lead.status !== 'reactivated') {
     throw new ApiError(400, 'Lead is not in reactivated state');
   }
@@ -395,6 +408,13 @@ const reassignReactivatedLead = asyncHandler(async (req, res) => {
     ...(req.branchId ? { branchId: req.branchId } : {}),
   }).select('name');
   if (!executive) throw new ApiError(404, 'Executive not found');
+
+  if (req.user.role === 'team_leader') {
+    const execIds = await getExecutiveIdsForLeader(req.user._id);
+    if (!execIds.includes(String(executive._id))) {
+      throw new ApiError(403, 'You can only assign to executives in your team');
+    }
+  }
 
   lead.assignedTo = executive._id;
   lead.assigneeRole = 'sales_executive';
@@ -428,6 +448,7 @@ const reassignReactivatedLead = asyncHandler(async (req, res) => {
 const updateReactivationStage = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
   if (!lead) throw new ApiError(404, 'Lead not found');
+  await assertLeadReactivationAccess(req, lead);
   if (!lead.reactivation?.isReactivated) throw new ApiError(400, 'Lead is not reactivated');
   const stage = req.body.stage;
   if (!REACTIVATION_STAGES.includes(stage)) throw new ApiError(400, 'Invalid reactivation stage');

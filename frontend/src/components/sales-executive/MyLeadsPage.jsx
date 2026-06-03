@@ -138,7 +138,7 @@ export default function MyLeadsPage() {
     }),
     columnHelper.accessor('status', {
       header: 'Status',
-      cell: (i) => <ManagerStatusBadge status={i.getValue()} />,
+      cell: ({ row }) => <ManagerStatusBadge status={row.original.status} lead={row.original} />,
     }),
     columnHelper.accessor('priority', {
       header: 'Priority',

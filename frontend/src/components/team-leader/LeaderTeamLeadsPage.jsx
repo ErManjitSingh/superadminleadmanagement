@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
-import { Search, Users, MoreHorizontal, Eye, MessageSquare, AlertTriangle, UserPlus } from 'lucide-react';
+import { Search, Users, MoreHorizontal, Eye, MessageSquare, AlertTriangle, UserPlus, RefreshCw, XCircle, Flame } from 'lucide-react';
 import {
   useReactTable, getCoreRowModel, flexRender, createColumnHelper,
 } from '@tanstack/react-table';
@@ -15,12 +15,17 @@ import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import { Button } from '../ui/button';
 import PriorityBadge from '../sales-manager/PriorityBadge';
 import {
-  DestinationChip, BudgetBadge, ExecutiveBadge, ManagerStatusBadge, CustomerCell,
+  DestinationChip, BudgetBadge, ExecutiveBadge, ManagerStatusBadge, CustomerCell, FILTER_THEMES,
 } from '../sales-manager/LeadListBadges';
+import {
+  ReactivationHeroBanner, ReactivationFlowSteps, ReactivationEmptyState,
+} from '../leads/ReactivationPanelUi';
 import { formatFollowUpDate } from './leaderUtils';
 import { toast } from '../../context/ToastContext';
 import { useLeadAssign } from '../../hooks/useLeadAssign';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
+import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
+import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import MyTeamPanel from './MyTeamPanel';
 import {
   DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -39,12 +44,25 @@ export function ActionModal({ open, title, onClose, children }) {
   );
 }
 
+const FILTER_META = {
+  all: { title: 'Team Leads', desc: 'Leads assigned to your squad — coach and convert', icon: Users },
+  lost: { title: 'Lost Leads', desc: 'Closed-lost opportunities from your team', icon: XCircle },
+  reactivated: { title: 'Reactivated Leads', desc: 'Leads brought back into the pipeline', icon: RefreshCw },
+  hot: { title: 'Hot Leads', desc: 'High-value or urgent squad leads', icon: Flame },
+};
+
 export default function LeaderTeamLeadsPage() {
   const queryClient = useQueryClient();
+  const { filter: routeFilter } = useParams();
+  const filter = routeFilter && FILTER_META[routeFilter] ? routeFilter : 'all';
+  const meta = FILTER_META[filter] || FILTER_META.all;
+  const MetaIcon = meta.icon;
+  const theme = FILTER_THEMES[filter] || FILTER_THEMES.all;
+  const showRecoveryUi = filter === 'lost' || filter === 'reactivated';
   const [myTeam, setMyTeam] = useState({ team: null, members: [], message: null });
   const [teamLoading, setTeamLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [reactivateLeadRow, setReactivateLeadRow] = useState(null);
   const debouncedSearch = useDebouncedValue(search, 350);
   const [modal, setModal] = useState(null);
   const [text, setText] = useState('');
@@ -77,6 +95,14 @@ export default function LeaderTeamLeadsPage() {
     handleAssign,
     assignConfirmDialog,
   } = useLeadAssign({ onAssigned: refreshAfterAssign });
+
+  const reactivate = useLeadReactivate({
+    leadId: reactivateLeadRow?._id,
+    onSuccess: () => {
+      setReactivateLeadRow(null);
+      refreshAfterAssign();
+    },
+  });
 
   useEffect(() => {
     setTeamLoading(true);
@@ -118,13 +144,30 @@ export default function LeaderTeamLeadsPage() {
     columnHelper.accessor('destination', { header: 'Destination', cell: (i) => <DestinationChip name={i.getValue()} /> }),
     columnHelper.accessor('assignedTo', { header: 'Executive', cell: (i) => <ExecutiveBadge name={i.getValue()?.name} /> }),
     columnHelper.accessor('budget', { header: 'Budget', cell: (i) => <BudgetBadge amount={i.getValue()} /> }),
-    columnHelper.accessor('status', { header: 'Status', cell: (i) => <ManagerStatusBadge status={i.getValue()} /> }),
+    columnHelper.accessor('status', {
+      header: 'Status',
+      cell: ({ row }) => <ManagerStatusBadge status={row.original.status} lead={row.original} />,
+    }),
     columnHelper.accessor('nextFollowUp', { header: 'Next Follow-up', cell: (i) => <span className="text-xs">{formatFollowUpDate(i.getValue())}</span> }),
     columnHelper.accessor('priority', { header: 'Priority', cell: ({ row }) => <PriorityBadge lead={row.original} /> }),
     columnHelper.display({
       id: 'actions',
       header: 'Actions',
       cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          {reactivate.isLost(row.original) && (
+            <Button
+              size="sm"
+              variant="teal"
+              className="h-7 px-2 text-[11px]"
+              onClick={() => {
+                setReactivateLeadRow(row.original);
+                reactivate.openReactivate();
+              }}
+            >
+              <RefreshCw className="w-3 h-3 mr-0.5" /> Reactivate
+            </Button>
+          )}
         <DropdownMenuRoot>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0"><MoreHorizontal className="w-4 h-4" /></Button>
@@ -142,11 +185,24 @@ export default function LeaderTeamLeadsPage() {
             <DropdownMenuItem onClick={() => handleEscalate(row.original)} className="flex items-center gap-2 cursor-pointer">
               <AlertTriangle className="w-4 h-4" /> Escalate Lead
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => openAssign(row.original)} className="flex items-center gap-2 cursor-pointer">
-              <UserPlus className="w-4 h-4" /> {['lost', 'booked_from_another_company'].includes(row.original.status) ? 'Reassign Lost Lead' : 'Assign to Executive'}
-            </DropdownMenuItem>
+            {reactivate.isLost(row.original) ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  setReactivateLeadRow(row.original);
+                  reactivate.openReactivate();
+                }}
+                className="flex items-center gap-2 cursor-pointer text-teal-700"
+              >
+                <RefreshCw className="w-4 h-4" /> Reactivate Lead
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => openAssign(row.original)} className="flex items-center gap-2 cursor-pointer">
+                <UserPlus className="w-4 h-4" /> Assign to Executive
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenuRoot>
+        </div>
       ),
     }),
   ], []);
@@ -155,28 +211,43 @@ export default function LeaderTeamLeadsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Team Leads" description="Leads assigned to your squad — coach and convert" breadcrumbs={['Team Leader', 'Team Leads']} />
+      <PageHeader title={meta.title} description={meta.desc} breadcrumbs={['Team Leader', 'Leads', meta.title]} />
 
-      <MyTeamPanel
-        team={myTeam.team}
-        members={myTeam.members}
-        message={myTeam.message}
-        loading={teamLoading}
-      />
+      {filter === 'all' && (
+        <MyTeamPanel
+          team={myTeam.team}
+          members={myTeam.members}
+          message={myTeam.message}
+          loading={teamLoading}
+        />
+      )}
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl border border-amber-500/25 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-indigo-500/15 p-5"
-      >
-        <div className="flex items-center gap-4">
-          <div className="p-3 rounded-2xl bg-surface/80 text-amber-600"><Users className="w-6 h-6" /></div>
-          <div>
-            <p className="text-2xl font-bold tabular-nums">{isLoading ? '—' : total}</p>
-            <p className="text-sm text-content-secondary">Team pipeline leads</p>
+      {showRecoveryUi && <ReactivationFlowSteps />}
+
+      {showRecoveryUi ? (
+        <ReactivationHeroBanner
+          title={meta.title}
+          subtitle={meta.desc}
+          total={total}
+          loading={isLoading}
+          theme={filter}
+          icon={MetaIcon}
+        />
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`relative overflow-hidden rounded-2xl border ${theme.border} bg-gradient-to-r ${theme.gradient} p-5`}
+        >
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl bg-surface/80 ${theme.icon}`}><MetaIcon className="w-6 h-6" /></div>
+            <div>
+              <p className="text-2xl font-bold tabular-nums">{isLoading ? '—' : total}</p>
+              <p className="text-sm text-content-secondary">{meta.title}</p>
+            </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
@@ -187,27 +258,12 @@ export default function LeaderTeamLeadsPage() {
           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
         />
       </div>
-      <div className="max-w-xs">
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          className="w-full rounded-xl border border-subtle bg-surface px-3 py-2.5 text-sm"
-        >
-          <option value="all">All Team Leads</option>
-          <option value="lost">Lost Leads</option>
-          <option value="reactivated">Reactivated Leads</option>
-          <option value="assigned">Assigned Leads</option>
-          <option value="unassigned">Unassigned Leads</option>
-          <option value="hot">Hot Leads</option>
-        </select>
-      </div>
-
-      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
+      <div className={`rounded-2xl border ${showRecoveryUi ? 'border-teal-500/25 shadow-lg shadow-teal-500/5' : 'border-subtle'} bg-surface/80 backdrop-blur-xl overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-subtle bg-surface-elevated/50">
+                <tr key={hg.id} className={`border-b ${showRecoveryUi ? `bg-gradient-to-r ${theme.header} ${theme.border}` : 'border-subtle bg-surface-elevated/50'}`}>
                   {hg.headers.map((h) => (
                     <th key={h.id} className="text-left px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted whitespace-nowrap">
                       {flexRender(h.column.columnDef.header, h.getContext())}
@@ -220,7 +276,7 @@ export default function LeaderTeamLeadsPage() {
               {isLoading ? (
                 <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">Loading…</td></tr>
               ) : leads.length === 0 ? (
-                <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">No team leads found</td></tr>
+                <tr><td colSpan={columns.length}><ReactivationEmptyState isLost={filter === 'lost'} /></td></tr>
               ) : table.getRowModel().rows.map((row, i) => (
                 <motion.tr key={row.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="hover:bg-amber-500/[0.03]">
                   {row.getVisibleCells().map((cell) => (
@@ -257,6 +313,15 @@ export default function LeaderTeamLeadsPage() {
         onClose={closeAssign}
         onAssign={handleAssign}
         allowedRoles={['sales_executive']}
+      />
+      <ReactivationActionsModal
+        open={!!reactivateLeadRow && reactivate.mode === 'reactivate'}
+        mode="reactivate"
+        onClose={() => {
+          reactivate.close();
+          setReactivateLeadRow(null);
+        }}
+        onSubmit={reactivate.submit}
       />
       {assignConfirmDialog}
     </div>

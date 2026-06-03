@@ -18,6 +18,9 @@ function buildLeadListFilter(query = {}) {
     dateTo,
     reactivationStage,
     reactivatedOnly,
+    executiveId,
+    reactivatedFrom,
+    reactivatedTo,
   } = query;
 
   const mongoFilter = { ...buildLeadSearchFilter(search) };
@@ -25,6 +28,18 @@ function buildLeadListFilter(query = {}) {
   if (status) mongoFilter.status = status;
   if (reactivatedOnly === 'true') mongoFilter['reactivation.isReactivated'] = true;
   if (reactivationStage) mongoFilter['reactivation.stage'] = reactivationStage;
+  if (executiveId) mongoFilter.assignedTo = executiveId;
+  const reactFrom = reactivatedFrom;
+  const reactTo = reactivatedTo;
+  if (reactFrom || reactTo) {
+    mongoFilter['reactivation.reactivatedAt'] = {};
+    if (reactFrom) mongoFilter['reactivation.reactivatedAt'].$gte = new Date(reactFrom);
+    if (reactTo) {
+      const end = new Date(reactTo);
+      end.setHours(23, 59, 59, 999);
+      mongoFilter['reactivation.reactivatedAt'].$lte = end;
+    }
+  }
   if (listFilter === 'unassigned') mongoFilter.assignedTo = null;
   else if (listFilter === 'assigned') mongoFilter.assignedTo = { $ne: null };
   if (destination) mongoFilter.destination = destination;
