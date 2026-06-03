@@ -19,7 +19,7 @@ export const ACTIVITY_TYPES = [
 
 export const TABS = [
   { id: 'users', label: 'Users', icon: 'Users' },
-  { id: 'roles', label: 'Roles', icon: 'Shield' },
+  { id: 'roles', label: 'Role Management', icon: 'Shield' },
   { id: 'activity', label: 'Activity Log', icon: 'Activity' },
   { id: 'performance', label: 'Performance', icon: 'Trophy' },
 ];

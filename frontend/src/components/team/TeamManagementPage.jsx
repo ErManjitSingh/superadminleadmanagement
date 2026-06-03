@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Shield, Activity, Trophy, Plus, Search, UserCheck, UserX, Send } from 'lucide-react';
 import API from '../../api/axios';
@@ -25,8 +26,10 @@ const emptyActivityFilters = { search: '', type: '' };
 export default function TeamManagementPage() {
   const { can } = usePermissions();
   const { user: authUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [togglingUserId, setTogglingUserId] = useState(null);
-  const [tab, setTab] = useState('users');
+  const initialTab = searchParams.get('tab') || 'users';
+  const [tab, setTab] = useState(initialTab);
   const [users, setUsers] = useState([]);
   const [usersPagination, setUsersPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [roles, setRoles] = useState([]);
@@ -182,8 +185,8 @@ export default function TeamManagementPage() {
   };
 
   const handleUpdateRole = async (id, data) => {
-    await API.put(`/roles/${id}`, data);
-    fetchRoles();
+    await API.put(`/roles/${id}`, data, { skipSuccessToast: true });
+    await fetchRoles();
   };
 
   const handleDeleteRole = async (id) => {
@@ -226,9 +229,13 @@ export default function TeamManagementPage() {
   return (
     <div>
       <PageHeader
-        title="User Management & RBAC"
-        description="Enterprise-grade access control, roles, and team performance"
-        breadcrumbs={['Team', 'User Management']}
+        title={tab === 'roles' ? 'Role Management' : 'User Management & RBAC'}
+        description={
+          tab === 'roles'
+            ? 'Select a role, toggle module permissions, then save'
+            : 'Enterprise-grade access control, roles, and team performance'
+        }
+        breadcrumbs={tab === 'roles' ? ['Admin', 'Role Management'] : ['Team', 'User Management']}
         actions={
           tab === 'users' && can('users', 'create') ? (
             <div className="flex items-center gap-2">
@@ -277,7 +284,10 @@ export default function TeamManagementPage() {
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => {
+                setTab(id);
+                setSearchParams(id === 'users' ? {} : { tab: id }, { replace: true });
+              }}
               className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === id ? 'text-brand-600' : 'text-content-muted hover:text-content-primary'}`}
             >
               {tab === id && (
