@@ -26,6 +26,7 @@ const protect = asyncHandler(async (req, res, next) => {
   }
 
   req.user = user;
+  req.permissions = await resolveUserPermissions(user);
   req.branchId =
     user.role === 'admin'
       ? requestedBranchId || userBranchId || null
@@ -36,8 +37,9 @@ const protect = asyncHandler(async (req, res, next) => {
   next();
 });
 
-function formatUserResponse(user) {
+function formatUserResponse(user, permissions) {
   const obj = user.toObject ? user.toObject() : user;
+  const perms = permissions || getPermissionsForRole(obj.role);
   return {
     _id: obj._id,
     id: obj._id,
