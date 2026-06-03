@@ -45,8 +45,20 @@ const updateRole = asyncHandler(async (req, res) => {
   const role = await Role.findById(req.params.id);
   if (!role) throw new ApiError(404, 'Role not found');
 
-  if (role.isSystem && req.body.permissions) {
-    throw new ApiError(403, 'System role permissions cannot be modified');
+  if (role.isSystem) {
+    if (req.user.role !== 'admin') {
+      throw new ApiError(403, 'Only admin can modify system roles');
+    }
+    if (req.body.permissions) {
+      role.permissions = req.body.permissions;
+      await role.save();
+      return res.json(await attachUserCount(role));
+    }
+    const { name, slug, description, ...rest } = req.body;
+    if (name || slug || description || Object.keys(rest).length) {
+      throw new ApiError(403, 'System role name and metadata cannot be modified');
+    }
+    return res.json(await attachUserCount(role));
   }
 
   Object.assign(role, req.body);

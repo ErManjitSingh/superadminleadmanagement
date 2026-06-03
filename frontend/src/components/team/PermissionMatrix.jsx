@@ -32,14 +32,15 @@ export default function PermissionMatrix({ permissions, onChange, readOnly = fal
           <thead>
             <tr className="bg-gradient-to-r from-brand-600/[0.06] to-violet-500/[0.04] border-b border-subtle">
               <th className="text-left px-4 py-3.5 text-[11px] font-bold uppercase tracking-wider text-content-muted">
-                Module
+                Permission
               </th>
               {ALL_ACTIONS.map((action) => (
                 <th
                   key={action}
-                  className="px-3 py-3.5 text-[11px] font-bold uppercase tracking-wider text-content-muted text-center capitalize"
+                  className="px-3 py-3.5 text-[11px] font-bold uppercase tracking-wider text-content-muted text-center"
                 >
-                  {action}
+                  <span className="capitalize block">{action}</span>
+                  {!readOnly && <span className="text-[9px] font-normal normal-case text-content-muted/80">Allow</span>}
                 </th>
               ))}
             </tr>

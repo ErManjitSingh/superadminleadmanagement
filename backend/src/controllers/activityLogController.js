@@ -1,11 +1,15 @@
 const ActivityLog = require('../models/ActivityLog');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
-const { logActivity, getClientIp } = require('../services/activityService');
+const { logActivity, getClientIp, purgeOldActivityLogs } = require('../services/activityService');
+const { ACTIVITY_LOG_RETENTION_MS } = require('../services/activityService');
 
 const listActivityLogs = asyncHandler(async (req, res) => {
+  await purgeOldActivityLogs();
+
   const { type, search } = req.query;
-  const filter = {};
+  const since = new Date(Date.now() - ACTIVITY_LOG_RETENTION_MS);
+  const filter = { createdAt: { $gte: since } };
   if (req.branchId) filter.branchId = req.branchId;
 
   if (type) filter.type = type;
@@ -18,7 +22,7 @@ const listActivityLogs = asyncHandler(async (req, res) => {
     ];
   }
 
-  const logs = await ActivityLog.find(filter).sort({ createdAt: -1 }).limit(100).lean();
+  const logs = await ActivityLog.find(filter).sort({ createdAt: -1 }).limit(200).lean();
 
   res.json(
     logs.map((l) => ({

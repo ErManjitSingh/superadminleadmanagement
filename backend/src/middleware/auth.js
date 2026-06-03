@@ -3,6 +3,7 @@ const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { getPermissionsForRole } = require('../config/permissions');
+const { resolveUserPermissions } = require('../services/permissionsService');
 const { ROLE_LABELS, ROLE_DASHBOARD_PATHS } = require('../config/roles');
 
 const protect = asyncHandler(async (req, res, next) => {
@@ -51,7 +52,7 @@ function formatUserResponse(user) {
     branchId: obj.branchId || null,
     allowedBranchIds: obj.role === 'admin' ? [] : (obj.branchId ? [obj.branchId] : []),
     teamId: obj.teamId,
-    permissions: getPermissionsForRole(obj.role),
+    permissions: perms,
     dashboardPath: ROLE_DASHBOARD_PATHS[obj.role] || '/',
     executiveName: obj.role === 'sales_executive' ? obj.name : undefined,
     teamLeaderName: obj.role === 'team_leader' ? obj.name : undefined,

@@ -39,6 +39,7 @@ async function ensureIndexes() {
 
     Attendance.collection.createIndex({ userId: 1, date: 1 }, { unique: true, background: true }),
     ActivityLog.collection.createIndex({ branchId: 1, createdAt: -1 }, { background: true }),
+    ActivityLog.collection.createIndex({ createdAt: 1 }, { expireAfterSeconds: 86400, background: true }),
     Attendance.collection.createIndex({ date: 1, workMode: 1 }, { background: true }),
     Attendance.collection.createIndex({ date: 1, status: 1 }, { background: true }),
   ]);

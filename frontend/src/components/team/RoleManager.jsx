@@ -42,12 +42,12 @@ export default function RoleManager({
   }, [active?._id, active?.permissions]);
 
   const isDirty = useMemo(() => {
-    if (!active || !draftPerms || active.isSystem) return false;
+    if (!active || !draftPerms) return false;
     return JSON.stringify(draftPerms) !== JSON.stringify(active.permissions);
   }, [active, draftPerms]);
 
   const handlePermChange = (mod, action, checked) => {
-    if (!active || active.isSystem || !canEdit) return;
+    if (!active || !canEdit) return;
     setDraftPerms((p) => ({ ...p, [mod]: { ...p[mod], [action]: checked } }));
   };
 
@@ -56,7 +56,7 @@ export default function RoleManager({
   };
 
   const handleSavePermissions = async () => {
-    if (!active || !isDirty || active.isSystem) return;
+    if (!active || !isDirty) return;
     setSaving(true);
     try {
       await onUpdateRole(active._id, { permissions: draftPerms });
@@ -134,6 +134,14 @@ export default function RoleManager({
                   <p className="text-sm text-content-secondary mt-1">
                     {active.name}
                     {active.description ? ` · ${active.description}` : ''}
+                    {active.isSystem && (
+                      <span className="ml-2 text-[10px] font-semibold uppercase text-violet-600 dark:text-violet-400">
+                        System role
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-content-muted mt-2">
+                    Har permission ke saamne toggle — ON = is role ko permission milegi, OFF = nahi milegi. Save par apply hogi.
                   </p>
                 </div>
                 {!active.isSystem && canEdit && (
@@ -156,57 +164,51 @@ export default function RoleManager({
               </div>
 
               <PermissionMatrix
-                permissions={active.isSystem ? active.permissions : draftPerms}
+                permissions={draftPerms ?? active.permissions}
                 onChange={handlePermChange}
-                readOnly={active.isSystem || !canEdit}
+                readOnly={!canEdit}
               />
 
-              {active.isSystem ? (
-                <p className="text-xs text-content-muted italic rounded-xl border border-subtle bg-surface-elevated/40 px-4 py-3">
-                  System roles have predefined permissions and cannot be modified.
-                </p>
-              ) : (
+              {canEdit && (
                 <AnimatePresence>
-                  {canEdit && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur-xl ${
-                        isDirty
-                          ? 'border-brand-500/30 bg-surface/95 shadow-brand-500/10'
-                          : 'border-subtle bg-surface/80'
-                      }`}
-                    >
-                      <p className="text-sm text-content-secondary">
-                        {isDirty ? (
-                          <span className="text-amber-600 dark:text-amber-400 font-medium">Unsaved permission changes</span>
-                        ) : (
-                          'Toggle permissions, then save'
-                        )}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={!isDirty || saving}
-                          onClick={handleDiscard}
-                        >
-                          <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={!isDirty || saving}
-                          onClick={handleSavePermissions}
-                          className="min-w-[120px]"
-                        >
-                          <Save className="w-3.5 h-3.5 mr-1.5" />
-                          {saving ? 'Saving…' : 'Save'}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  )}
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`sticky bottom-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 shadow-lg backdrop-blur-xl ${
+                      isDirty
+                        ? 'border-brand-500/30 bg-surface/95 shadow-brand-500/10'
+                        : 'border-subtle bg-surface/80'
+                    }`}
+                  >
+                    <p className="text-sm text-content-secondary">
+                      {isDirty ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Unsaved changes — Save karein</span>
+                      ) : (
+                        'Toggle karke Save dabayein — users ko dubara login karna pad sakta hai'
+                      )}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!isDirty || saving}
+                        onClick={handleDiscard}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!isDirty || saving}
+                        onClick={handleSavePermissions}
+                        className="min-w-[120px]"
+                      >
+                        <Save className="w-3.5 h-3.5 mr-1.5" />
+                        {saving ? 'Saving…' : 'Save'}
+                      </Button>
+                    </div>
+                  </motion.div>
                 </AnimatePresence>
               )}
             </motion.div>

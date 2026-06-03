@@ -2,6 +2,7 @@ const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { formatUserResponse, generateToken, getRestrictedSessionMeta } = require('../middleware/auth');
+const { resolveUserPermissions } = require('../services/permissionsService');
 const { logActivity, getClientIp } = require('../services/activityService');
 
 const login = asyncHandler(async (req, res) => {
@@ -27,7 +28,8 @@ const login = asyncHandler(async (req, res) => {
     branchId: user.branchId || req.branchId || null,
   });
 
-  const payload = formatUserResponse(user);
+  const permissions = await resolveUserPermissions(user);
+  const payload = formatUserResponse(user, permissions);
   res.json({
     ...payload,
     token: generateToken(user._id, user.role),
@@ -48,7 +50,8 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 const getMe = asyncHandler(async (req, res) => {
-  res.json(formatUserResponse(req.user));
+  const permissions = req.permissions || (await resolveUserPermissions(req.user));
+  res.json(formatUserResponse(req.user, permissions));
 });
 
 const register = asyncHandler(async (req, res) => {
@@ -65,7 +68,8 @@ const register = asyncHandler(async (req, res) => {
     role: role || 'sales_executive',
   });
 
-  const payload = formatUserResponse(user);
+  const permissions = await resolveUserPermissions(user);
+  const payload = formatUserResponse(user, permissions);
   res.status(201).json({
     ...payload,
     token: generateToken(user._id, user.role),

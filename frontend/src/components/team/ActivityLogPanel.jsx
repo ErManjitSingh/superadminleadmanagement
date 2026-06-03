@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LogIn, LogOut, UserPlus, Pencil, FileText, Shield, Search } from 'lucide-react';
+import { LogIn, LogOut, UserPlus, Pencil, FileText, Shield, Search, Clock } from 'lucide-react';
 import { ACTIVITY_TYPES } from './constants';
 
 const iconMap = { LogIn, LogOut, UserPlus, Pencil, FileText, Shield };
@@ -21,6 +21,12 @@ function getIcon(type) {
 export default function ActivityLogPanel({ logs, filters, onFilterChange }) {
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-2.5 text-xs text-content-secondary">
+        <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+        <span>
+          <strong className="text-content-primary">Last 24 hours only</strong> — purane logs auto-delete ho jate hain.
+        </span>
+      </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted" />
@@ -43,7 +49,7 @@ export default function ActivityLogPanel({ logs, filters, onFilterChange }) {
 
       <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
         {!logs.length ? (
-          <div className="p-12 text-center text-content-muted">No activity logs found</div>
+          <div className="p-12 text-center text-content-muted">No activity in the last 24 hours</div>
         ) : (
           <div className="divide-y divide-subtle">
             {logs.map((log, i) => {

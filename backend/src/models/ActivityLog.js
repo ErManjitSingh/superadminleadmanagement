@@ -15,5 +15,7 @@ const activityLogSchema = new mongoose.Schema(
 );
 
 activityLogSchema.index({ branchId: 1, createdAt: -1 });
+/** Auto-delete entries older than 24 hours */
+activityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
 
 module.exports = mongoose.model('ActivityLog', activityLogSchema);

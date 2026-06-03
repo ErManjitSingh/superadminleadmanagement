@@ -10,6 +10,7 @@ const { applySecurityMiddleware } = require('./middleware/security');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { initializeSocket } = require('./socket');
 const { startNotificationScheduler } = require('./services/notificationScheduler');
+const { purgeOldActivityLogs } = require('./services/activityService');
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use(errorHandler);
 async function start() {
   await connectDB();
   await ensureIndexes();
+  await purgeOldActivityLogs();
 
   const httpServer = http.createServer(app);
   initializeSocket(httpServer);
