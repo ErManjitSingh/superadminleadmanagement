@@ -131,6 +131,8 @@ export default function LeaderTeamLeadsPage() {
     toast.success(`${lead.name} escalated to Sales Manager`);
   };
 
+  const reactivationExecs = assignees?.salesExecutives || [];
+
   const columns = useMemo(() => [
     columnHelper.accessor('name', {
       header: 'Customer',
@@ -317,6 +319,9 @@ export default function LeaderTeamLeadsPage() {
       <ReactivationActionsModal
         open={!!reactivateLeadRow && reactivate.mode === 'reactivate'}
         mode="reactivate"
+        lead={reactivateLeadRow}
+        executives={reactivationExecs}
+        executivesLoading={assigneesLoading}
         onClose={() => {
           reactivate.close();
           setReactivateLeadRow(null);

@@ -198,6 +198,7 @@ export default function LeadDetail() {
       <ReactivationActionsModal
         open={!!reactivationMode}
         mode={reactivationMode || 'reactivate'}
+        lead={lead}
         executives={reactivationExecs}
         onClose={() => setReactivationMode('')}
         onSubmit={handleReactivationAction}

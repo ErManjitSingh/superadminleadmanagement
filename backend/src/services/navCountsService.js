@@ -165,6 +165,7 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
     leadsHot,
     leadsConverted,
     leadsLost,
+    leadsReactivated,
     followUpsDue,
     quotationsTotal,
     customers,
@@ -176,6 +177,11 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
     countHotLeads(base, branchId),
     Lead.countDocuments({ ...base, status: 'converted' }),
     Lead.countDocuments({ ...base, status: { $in: ['lost', 'booked_from_another_company'] } }),
+    Lead.countDocuments({
+      ...base,
+      'reactivation.isReactivated': true,
+      status: 'reactivated',
+    }),
     countFollowUpsDue({ assignedTo: userId }, branchId),
     leadIds.length
       ? Quotation.countDocuments({
@@ -197,6 +203,7 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
       hot: leadsHot,
       converted: leadsConverted,
       lost: leadsLost,
+      reactivated: leadsReactivated,
     },
     followups: { due: followUpsDue },
     quotations: { total: quotationsTotal },

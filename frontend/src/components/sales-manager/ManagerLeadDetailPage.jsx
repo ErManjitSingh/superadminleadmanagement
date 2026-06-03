@@ -139,6 +139,7 @@ export default function ManagerLeadDetailPage() {
       <ReactivationActionsModal
         open={!!reactivate.mode}
         mode={reactivate.mode || 'reactivate'}
+        lead={lead}
         executives={executives}
         onClose={reactivate.close}
         onSubmit={reactivate.submit}

@@ -7,6 +7,11 @@ export const LEAD_FILTERS = {
   hot: { title: 'Hot Leads', desc: 'High budget, urgent travel, or repeat customers', icon: 'Flame' },
   converted: { title: 'Converted Leads', desc: 'Successfully closed bookings', icon: 'Trophy' },
   lost: { title: 'Lost Leads', desc: 'Closed-lost opportunities', icon: 'XCircle' },
+  reactivated: {
+    title: 'Reactivated Leads',
+    desc: 'Leads recovered by your manager — add follow-up to mark Active',
+    icon: 'RefreshCw',
+  },
 };
 
 export const EXEC_FILTER_THEMES = {
@@ -39,6 +44,11 @@ export const EXEC_FILTER_THEMES = {
     gradient: 'from-slate-500/15 via-zinc-500/10 to-neutral-500/10',
     border: 'border-slate-500/25',
     icon: 'text-slate-500',
+  },
+  reactivated: {
+    gradient: 'from-teal-500/25 via-cyan-500/15 to-emerald-500/15',
+    border: 'border-teal-500/30',
+    icon: 'text-teal-600',
   },
 };
 

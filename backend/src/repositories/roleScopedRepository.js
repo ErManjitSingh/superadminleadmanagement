@@ -56,6 +56,12 @@ function buildExecutiveLeadFilter(filterKey) {
   if (filterKey === 'follow-up') return { status: { $in: ['follow_up', 'negotiation'] } };
   if (filterKey === 'converted') return { status: 'converted' };
   if (filterKey === 'lost') return { status: { $in: ['lost', 'booked_from_another_company'] } };
+  if (filterKey === 'reactivated') {
+    return {
+      'reactivation.isReactivated': true,
+      status: { $nin: ['lost', 'booked_from_another_company', 'converted'] },
+    };
+  }
   if (filterKey === 'hot') return { isHot: true };
   return {};
 }

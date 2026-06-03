@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, TrendingUp } from 'lucide-react';
+import { Search, Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, TrendingUp, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable,
@@ -30,7 +30,7 @@ import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import AddFollowUpModal from '../followups/AddFollowUpModal';
 import { createExecutiveFollowUp, buildFollowUpPayload } from '../followups/followupApi';
 
-const ICONS = { Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle };
+const ICONS = { Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, RefreshCw };
 
 const STATUSES = [
   'new',

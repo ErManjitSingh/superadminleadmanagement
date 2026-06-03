@@ -12,6 +12,7 @@ import {
   UserCircle,
   Calendar,
   User,
+  RefreshCw,
 } from 'lucide-react';
 
 export const salesExecutiveNavItems = [
@@ -25,6 +26,7 @@ export const salesExecutiveNavItems = [
       { path: '/sales-executive/leads/contacted', label: 'Contacted Leads', icon: Phone, countKey: 'leads.contacted' },
       { path: '/sales-executive/leads/follow-up', label: 'Follow-up Leads', icon: CalendarClock, countKey: 'leads.followUp' },
       { path: '/sales-executive/leads/hot', label: 'Hot Leads', icon: Flame, badgeKey: 'leads.hot' },
+      { path: '/sales-executive/leads/reactivated', label: 'Reactivated Leads', icon: RefreshCw, badgeKey: 'leads.reactivated' },
       { path: '/sales-executive/leads/converted', label: 'Converted Leads', icon: Trophy, countKey: 'leads.converted' },
       { path: '/sales-executive/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost' },
     ],

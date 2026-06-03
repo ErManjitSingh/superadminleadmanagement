@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, UserPlus, TrendingUp } from 'lucide-react';
+import { RefreshCw, UserPlus, TrendingUp, User } from 'lucide-react';
 import AppModal from '../ui/AppModal';
 import { Button } from '../ui/button';
+import { cn } from '../../lib/utils';
 
 const MODE_META = {
   reactivate: {
     title: 'Reactivate Lost Lead',
-    desc: 'Lead wapas pipeline me aayegi. Executive follow-up dalega to status Active ho jayega.',
+    desc: 'Executive select karo jisko ye lead assign karni hai — unke Reactivated Leads me turant dikhegi.',
     icon: RefreshCw,
-    submit: 'Reactivate',
+    submit: 'Reactivate & Assign',
   },
   reassign: {
     title: 'Reassign Reactivated Lead',
-    desc: 'Recovery ke baad lead ko squad executive ko assign karo.',
+    desc: 'Recovery ke baad lead ko dusre executive ko assign karo.',
     icon: UserPlus,
     submit: 'Assign Executive',
   },
@@ -28,6 +29,8 @@ export default function ReactivationActionsModal({
   open,
   mode = 'reactivate',
   executives = [],
+  executivesLoading = false,
+  lead = null,
   onClose,
   onSubmit,
 }) {
@@ -38,18 +41,21 @@ export default function ReactivationActionsModal({
 
   const meta = MODE_META[mode] || MODE_META.reactivate;
   const Icon = meta.icon;
+  const showExecutivePicker = mode === 'reactivate' || mode === 'reassign';
 
   useEffect(() => {
     if (!open) return;
     setReason('');
-    setExecutiveId('');
     setStage('contacted');
     setNote('');
-  }, [open, mode]);
+    const prevExec = lead?.assignedTo?._id || lead?.assignedTo || '';
+    setExecutiveId(prevExec ? String(prevExec) : '');
+  }, [open, mode, lead]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (mode === 'reactivate') onSubmit?.({ reason });
+    if (showExecutivePicker && !executiveId) return;
+    if (mode === 'reactivate') onSubmit?.({ reason, executiveId });
     if (mode === 'reassign') onSubmit?.({ executiveId });
     if (mode === 'stage') onSubmit?.({ stage, note });
   };
@@ -65,11 +71,64 @@ export default function ReactivationActionsModal({
             <div>
               <h3 className="text-lg font-bold text-content-primary">{meta.title}</h3>
               <p className="text-sm text-content-muted mt-0.5">{meta.desc}</p>
+              {lead?.name && (
+                <p className="text-xs font-semibold text-teal-700 mt-1">{lead.name}</p>
+              )}
             </div>
           </div>
         </div>
 
         <div className="p-6 space-y-4">
+          {showExecutivePicker && (
+            <div>
+              <span className="text-xs font-semibold uppercase text-content-muted mb-2 block">
+                Assign to executive <span className="text-rose-500">*</span>
+              </span>
+              {executivesLoading ? (
+                <div className="h-24 rounded-xl border border-subtle bg-surface-elevated/50 flex items-center justify-center text-sm text-content-muted">
+                  Loading executives…
+                </div>
+              ) : executives.length === 0 ? (
+                <div className="h-24 rounded-xl border border-amber-500/25 bg-amber-500/5 flex items-center justify-center text-sm text-amber-800 px-4 text-center">
+                  Koi active executive nahi mila. Pehle team me executive add karein.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                  {executives.map((ex) => {
+                    const id = String(ex._id);
+                    const selected = executiveId === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setExecutiveId(id)}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all',
+                          selected
+                            ? 'border-teal-500 bg-teal-500/10 ring-2 ring-teal-500/30'
+                            : 'border-subtle bg-surface hover:border-teal-500/40 hover:bg-teal-500/5'
+                        )}
+                      >
+                        <span className={cn(
+                          'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                          selected ? 'bg-teal-600 text-white' : 'bg-surface-elevated text-content-muted'
+                        )}>
+                          <User className="w-4 h-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-content-primary truncate">{ex.name}</span>
+                          {ex.email && (
+                            <span className="block text-[10px] text-content-muted truncate">{ex.email}</span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {mode === 'reactivate' && (
             <label className="block">
               <span className="text-xs font-semibold uppercase text-content-muted mb-1.5 block">
@@ -80,28 +139,23 @@ export default function ReactivationActionsModal({
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder="Example: Customer ne dubara inquiry ki, budget confirm hua…"
-                className="input-premium min-h-[120px] w-full"
+                className="input-premium min-h-[100px] w-full"
               />
             </label>
           )}
 
-          {mode === 'reassign' && (
-            <label className="block">
-              <span className="text-xs font-semibold uppercase text-content-muted mb-1.5 block">
-                Assign to executive <span className="text-rose-500">*</span>
-              </span>
-              <select
-                required
-                value={executiveId}
-                onChange={(e) => setExecutiveId(e.target.value)}
-                className="input-premium h-10 w-full"
-              >
-                <option value="">Select executive</option>
-                {executives.map((ex) => (
-                  <option key={ex._id} value={ex._id}>{ex.name}</option>
-                ))}
-              </select>
-            </label>
+          {mode === 'reassign' && executives.length > 0 && (
+            <select
+              required
+              value={executiveId}
+              onChange={(e) => setExecutiveId(e.target.value)}
+              className="input-premium h-10 w-full"
+            >
+              <option value="">Select executive</option>
+              {executives.map((ex) => (
+                <option key={ex._id} value={ex._id}>{ex.name}</option>
+              ))}
+            </select>
           )}
 
           {mode === 'stage' && (
@@ -133,7 +187,12 @@ export default function ReactivationActionsModal({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="teal" className="gap-1.5">
+            <Button
+              type="submit"
+              variant="teal"
+              className="gap-1.5"
+              disabled={showExecutivePicker && (!executiveId || executives.length === 0)}
+            >
               <Icon className="w-4 h-4" />
               {meta.submit}
             </Button>

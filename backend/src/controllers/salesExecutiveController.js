@@ -32,7 +32,7 @@ const {
   findScopedQuotationsPaginated,
 } = require('../repositories/roleScopedRepository');
 
-const LEAD_FILTER_KEYS = ['new', 'contacted', 'follow-up', 'hot', 'converted', 'lost', 'all'];
+const LEAD_FILTER_KEYS = ['new', 'contacted', 'follow-up', 'hot', 'converted', 'lost', 'reactivated', 'all'];
 
 async function getExecutiveLeadIds(userId, branchId = null) {
   const leads = await Lead.find({

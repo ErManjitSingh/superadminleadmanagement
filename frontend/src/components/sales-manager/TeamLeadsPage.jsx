@@ -92,6 +92,8 @@ export default function TeamLeadsPage() {
     },
   });
 
+  const reactivationExecs = assignees?.salesExecutives || [];
+
   const onConfirmAssign = async (payload) => {
     await handleAssign({
       ...payload,
@@ -299,6 +301,9 @@ export default function TeamLeadsPage() {
       <ReactivationActionsModal
         open={!!reactivateLead && reactivate.mode === 'reactivate'}
         mode="reactivate"
+        lead={reactivateLead}
+        executives={reactivationExecs}
+        executivesLoading={assigneesLoading}
         onClose={() => {
           reactivate.close();
           setReactivateLead(null);

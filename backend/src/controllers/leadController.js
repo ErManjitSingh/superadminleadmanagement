@@ -37,6 +37,7 @@ const {
   getLeaderLeadScopeFilter,
   getExecutiveIdsForLeader,
 } = require('../services/teamScopeService');
+const Team = require('../models/Team');
 
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
@@ -48,6 +49,53 @@ const REACTIVATION_STATUS_TO_STAGE = {
 };
 
 const REACTIVATION_MANAGER_ROLES = ['admin', 'sales_manager', 'team_leader'];
+
+async function resolveReactivationExecutive(req, executiveId) {
+  const id = String(executiveId || '').trim();
+  if (!id) throw new ApiError(400, 'Executive selection is required to reactivate');
+
+  const executive = await User.findOne({
+    _id: id,
+    role: 'sales_executive',
+    status: 'active',
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  }).select('name email');
+
+  if (!executive) throw new ApiError(404, 'Executive not found');
+
+  if (req.user.role === 'team_leader') {
+    const execIds = await getExecutiveIdsForLeader(req.user._id);
+    if (!execIds.includes(String(executive._id))) {
+      throw new ApiError(403, 'You can only assign to executives in your team');
+    }
+  }
+
+  return executive;
+}
+
+async function assignReactivatedLeadToExecutive(lead, executive, actor, note = '') {
+  lead.assignedTo = executive._id;
+  lead.assigneeRole = 'sales_executive';
+
+  if (actor.role === 'team_leader') {
+    const team = await Team.findOne({ teamLeader: actor._id }).select('_id');
+    if (team?._id) {
+      lead.teamId = team._id;
+      lead.assignedTeamLeader = actor._id;
+    }
+  }
+
+  lead.reactivation = lead.reactivation || {};
+  lead.reactivation.reassignedTo = executive._id;
+  lead.reactivation.reassignedBy = actor._id;
+  lead.reactivation.reassignedAt = new Date();
+  setReactivationStage(
+    lead,
+    'reassigned',
+    actor._id,
+    note || `Assigned to ${executive.name}`
+  );
+}
 
 async function assertLeadReactivationAccess(req, lead) {
   if (!REACTIVATION_MANAGER_ROLES.includes(req.user.role)) {
@@ -360,6 +408,8 @@ const reactivateLead = asyncHandler(async (req, res) => {
   const reason = (req.body.reason || '').trim();
   if (!reason) throw new ApiError(400, 'Reactivation reason is required');
 
+  const executive = await resolveReactivationExecutive(req, req.body.executiveId);
+
   const previousStatus = lead.status;
   lead.status = 'reactivated';
   lead.statusReason = reason;
@@ -371,22 +421,35 @@ const reactivateLead = asyncHandler(async (req, res) => {
   lead.reactivation.reactivatedBy = req.user._id;
   lead.reactivation.reactivatedReason = reason;
   setReactivationStage(lead, 'reactivated', req.user._id, reason);
+  await assignReactivatedLeadToExecutive(
+    lead,
+    executive,
+    req.user,
+    `Reactivated and assigned to ${executive.name}`
+  );
 
   await lead.save();
   invalidateDashboardCache('admin');
   invalidateDashboardCache('sales_manager');
   invalidateDashboardCache('team_leader');
+  invalidateDashboardCache('sales_executive');
   await logActivity({
     type: 'lead_reactivated',
     user: req.user.name,
     userId: req.user._id,
-    action: `Reactivated lead ${lead.leadId || lead.name}`,
+    action: `Reactivated lead ${lead.leadId || lead.name} and assigned to ${executive.name}`,
     target: lead.name,
     ip: getClientIp(req),
     branchId: lead.branchId || req.branchId || null,
-    meta: { leadId: lead._id, reason },
+    meta: { leadId: lead._id, reason, executiveId: executive._id },
   });
-  notifyLeadReactivated({ lead, actor: req.user, assigneeId: lead.assignedTo }).catch(() => {});
+  notifyLeadReactivated({ lead, actor: req.user, assigneeId: executive._id }).catch(() => {});
+  notifyLeadReassigned({
+    lead,
+    actor: req.user,
+    assigneeId: executive._id,
+    assigneeName: executive.name,
+  }).catch(() => {});
   const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
   res.json(enrichLead(populated));
 });
@@ -399,31 +462,12 @@ const reassignReactivatedLead = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Lead is not in reactivated state');
   }
 
-  const executiveId = req.body.executiveId;
-  if (!executiveId) throw new ApiError(400, 'executiveId is required');
-  const executive = await User.findOne({
-    _id: executiveId,
-    role: 'sales_executive',
-    status: 'active',
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  }).select('name');
-  if (!executive) throw new ApiError(404, 'Executive not found');
+  const executive = await resolveReactivationExecutive(req, req.body.executiveId);
 
-  if (req.user.role === 'team_leader') {
-    const execIds = await getExecutiveIdsForLeader(req.user._id);
-    if (!execIds.includes(String(executive._id))) {
-      throw new ApiError(403, 'You can only assign to executives in your team');
-    }
-  }
-
-  lead.assignedTo = executive._id;
-  lead.assigneeRole = 'sales_executive';
-  lead.reactivation.reassignedTo = executive._id;
-  lead.reactivation.reassignedBy = req.user._id;
-  lead.reactivation.reassignedAt = new Date();
-  setReactivationStage(lead, 'reassigned', req.user._id, `Assigned to ${executive.name}`);
+  await assignReactivatedLeadToExecutive(lead, executive, req.user, `Assigned to ${executive.name}`);
   await lead.save();
 
+  invalidateDashboardCache('sales_executive');
   await logActivity({
     type: 'lead_reactivation_reassigned',
     user: req.user.name,
