@@ -217,19 +217,40 @@ async function getMyHistory(userId, limit = 30) {
   return records.map((r) => formatRecord(r, userMap));
 }
 
-async function buildTodaySummary(viewer, branchId = null) {
-  const dayStart = startOfCalendarDay();
-  const dayEnd = endOfCalendarDay();
+function isSameCalendarDay(a, b) {
+  return calendarParts(a).key === calendarParts(b).key;
+}
+
+function parseDateInput(input) {
+  if (!input) return new Date();
+  if (typeof input === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+    return new Date(`${input}T12:00:00+05:30`);
+  }
+  return new Date(input);
+}
+
+async function buildRangeSummary(viewer, branchId = null, fromInput = null, toInput = null) {
+  const fromDate = startOfCalendarDay(parseDateInput(fromInput));
+  const toDate = startOfCalendarDay(parseDateInput(toInput || fromInput));
+  const rangeEnd = fromDate > toDate ? fromDate : toDate;
+  const rangeStart = fromDate > toDate ? toDate : fromDate;
+  const isSingleDay = isSameCalendarDay(rangeStart, rangeEnd);
+  const isToday = isSingleDay && isSameCalendarDay(rangeStart, new Date());
+
   const scopedIds = await getScopedUserIds(viewer, branchId);
   const scopedObjectIds = scopedIds;
+
+  const dateFilter = isSingleDay
+    ? { date: rangeStart }
+    : { date: { $gte: rangeStart, $lte: rangeEnd } };
 
   const [records, scopedUsers] = await Promise.all([
     Attendance.find({
       userId: { $in: scopedObjectIds },
-      date: dayStart,
+      ...dateFilter,
       ...(branchId ? { branchId } : {}),
     })
-      .sort({ checkIn: -1 })
+      .sort({ date: -1, checkIn: -1 })
       .lean(),
     User.find({
       _id: { $in: scopedObjectIds },
@@ -243,41 +264,62 @@ async function buildTodaySummary(viewer, branchId = null) {
   const userMap = new Map(scopedUsers.map((u) => [u._id.toString(), u]));
   const formatted = records.map((r) => formatRecord(r, userMap));
 
-  const checkedInIds = new Set(records.map((r) => r.userId.toString()));
   const present = formatted.filter((r) => r.status === 'present').length;
   const late = formatted.filter((r) => r.status === 'late').length;
   const officeUsers = formatted.filter((r) => r.workMode === 'office');
   const wfhUsers = formatted.filter((r) => r.workMode === 'wfh');
-  const onlineUsers = formatted.filter((r) => r.isOnline);
-  const absent = scopedUsers.filter((u) => !checkedInIds.has(u._id.toString()));
+  const onlineUsers = isSingleDay && isToday ? formatted.filter((r) => r.isOnline) : [];
+  const uniqueUsers = new Set(formatted.map((r) => r.userId?.toString())).size;
 
-  const myStatus = await getTodayStatus(viewer._id);
+  let absentUsers = [];
+  if (isSingleDay) {
+    const checkedInIds = new Set(records.map((r) => r.userId.toString()));
+    absentUsers = scopedUsers
+      .filter((u) => !checkedInIds.has(u._id.toString()))
+      .map((u) => ({
+        userId: u._id,
+        userName: u.name,
+        userEmail: u.email,
+        userRole: u.role,
+      }));
+  }
+
+  const myStatus = isToday ? await getTodayStatus(viewer._id) : null;
+
+  const summary = {
+    presentToday: present,
+    absentToday: absentUsers.length,
+    lateToday: late,
+    officeCount: officeUsers.length,
+    wfhCount: wfhUsers.length,
+    onlineCount: onlineUsers.length,
+    totalScoped: scopedUsers.length,
+    totalCheckIns: formatted.length,
+    uniqueUsers,
+    dayCount: isSingleDay
+      ? 1
+      : Math.round((rangeEnd - rangeStart) / (24 * 60 * 60 * 1000)) + 1,
+  };
 
   return {
-    date: dayStart,
+    date: rangeStart,
+    dateTo: rangeEnd,
     timezone: ORG_TZ,
-    summary: {
-      presentToday: present,
-      absentToday: absent.length,
-      lateToday: late,
-      officeCount: officeUsers.length,
-      wfhCount: wfhUsers.length,
-      onlineCount: onlineUsers.length,
-      totalScoped: scopedUsers.length,
-    },
-    officeUsers,
-    wfhUsers,
-    lateUsers: formatted.filter((r) => r.status === 'late'),
+    isSingleDay,
+    isToday,
+    summary,
+    officeUsers: isSingleDay ? officeUsers : [],
+    wfhUsers: isSingleDay ? wfhUsers : [],
+    lateUsers: isSingleDay ? formatted.filter((r) => r.status === 'late') : [],
     onlineUsers,
-    absentUsers: absent.map((u) => ({
-      userId: u._id,
-      userName: u.name,
-      userEmail: u.email,
-      userRole: u.role,
-    })),
+    absentUsers,
     teamAttendance: formatted,
     myStatus,
   };
+}
+
+async function buildTodaySummary(viewer, branchId = null) {
+  return buildRangeSummary(viewer, branchId);
 }
 
 module.exports = {
@@ -288,5 +330,7 @@ module.exports = {
   getTodayStatus,
   getMyHistory,
   buildTodaySummary,
+  buildRangeSummary,
   startOfCalendarDay,
+  calendarParts,
 };

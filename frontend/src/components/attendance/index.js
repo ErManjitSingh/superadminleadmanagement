@@ -4,3 +4,4 @@ export { default as AttendanceLoginGate } from './AttendanceLoginGate';
 export { default as AttendanceLoginModal } from './AttendanceLoginModal';
 export { default as AttendanceStatsCards } from './AttendanceStatsCards';
 export { default as AttendanceTeamList } from './AttendanceTeamList';
+export { default as AttendanceFilterBar } from './AttendanceFilterBar';

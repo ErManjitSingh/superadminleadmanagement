@@ -5,6 +5,7 @@ const {
   getTodayStatus,
   getMyHistory,
   buildTodaySummary,
+  buildRangeSummary,
 } = require('../services/attendanceService');
 
 const getStatus = asyncHandler(async (req, res) => {
@@ -39,10 +40,17 @@ const getToday = asyncHandler(async (req, res) => {
   res.json(data);
 });
 
+const getSummary = asyncHandler(async (req, res) => {
+  const { from, to } = req.query;
+  const data = await buildRangeSummary(req.user, req.branchId, from, to || from);
+  res.json(data);
+});
+
 module.exports = {
   getStatus,
   postCheckIn,
   postCheckOut,
   getMe,
   getToday,
+  getSummary,
 };

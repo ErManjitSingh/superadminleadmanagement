@@ -1,20 +1,31 @@
 import { motion } from 'framer-motion';
-import { UserCheck, UserX, Clock, Building2, Home, Wifi } from 'lucide-react';
+import { UserCheck, UserX, Clock, Building2, Home, Wifi, Users, CalendarRange } from 'lucide-react';
 
-const cards = [
-  { key: 'presentToday', label: 'Present Today', icon: UserCheck, gradient: 'from-emerald-500 to-teal-600' },
-  { key: 'absentToday', label: 'Absent Today', icon: UserX, gradient: 'from-rose-500 to-pink-600' },
-  { key: 'lateToday', label: 'Late Today', icon: Clock, gradient: 'from-amber-500 to-orange-600' },
-  { key: 'officeCount', label: 'Office Users', icon: Building2, gradient: 'from-blue-500 to-indigo-600' },
-  { key: 'wfhCount', label: 'WFH Users', icon: Home, gradient: 'from-violet-500 to-purple-600' },
-  { key: 'onlineCount', label: 'Currently Online', icon: Wifi, gradient: 'from-cyan-500 to-sky-600' },
+const singleDayCards = [
+  { key: 'presentToday', label: 'Present', icon: UserCheck, gradient: 'from-emerald-500 to-teal-600' },
+  { key: 'absentToday', label: 'Absent', icon: UserX, gradient: 'from-rose-500 to-pink-600' },
+  { key: 'lateToday', label: 'Late', icon: Clock, gradient: 'from-amber-500 to-orange-600' },
+  { key: 'officeCount', label: 'Office', icon: Building2, gradient: 'from-blue-500 to-indigo-600' },
+  { key: 'wfhCount', label: 'WFH', icon: Home, gradient: 'from-violet-500 to-purple-600' },
+  { key: 'onlineCount', label: 'Online Now', icon: Wifi, gradient: 'from-cyan-500 to-sky-600' },
 ];
 
-export default function AttendanceStatsCards({ summary }) {
+const rangeCards = [
+  { key: 'totalCheckIns', label: 'Check-ins', icon: CalendarRange, gradient: 'from-brand-600 to-indigo-600' },
+  { key: 'uniqueUsers', label: 'Team Members', icon: Users, gradient: 'from-sky-500 to-cyan-600' },
+  { key: 'presentToday', label: 'On Time', icon: UserCheck, gradient: 'from-emerald-500 to-teal-600' },
+  { key: 'lateToday', label: 'Late', icon: Clock, gradient: 'from-amber-500 to-orange-600' },
+  { key: 'officeCount', label: 'Office', icon: Building2, gradient: 'from-blue-500 to-indigo-600' },
+  { key: 'wfhCount', label: 'WFH', icon: Home, gradient: 'from-violet-500 to-purple-600' },
+];
+
+export default function AttendanceStatsCards({ summary, isRange = false }) {
   if (!summary) return null;
 
+  const cards = isRange ? rangeCards : singleDayCards;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+    <div className={`grid gap-3 ${isRange ? 'grid-cols-2 md:grid-cols-3 xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-6'}`}>
       {cards.map(({ key, label, icon: Icon, gradient }, i) => (
         <motion.div
           key={key}
