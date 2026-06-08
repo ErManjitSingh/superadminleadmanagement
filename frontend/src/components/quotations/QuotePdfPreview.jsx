@@ -16,6 +16,7 @@ import {
   resolveBankAccounts,
   resolveTravelerCounts,
 } from './quotePdfHelpers';
+import DestinationGallery from './DestinationGallery';
 
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
@@ -196,6 +197,12 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           </table>
         </>
       )}
+
+      {/* Destination photo gallery — above day-wise itinerary */}
+      <DestinationGallery
+        quote={quote}
+        destination={pkg.routing || pkg.destination}
+      />
 
       {/* Day-wise itinerary */}
       {pkg.itinerary?.length > 0 && (

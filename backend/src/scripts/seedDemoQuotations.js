@@ -41,6 +41,13 @@ const DEMO_QUOTES = [
       adults: 5,
       kids: 1,
       cabCategory: 'SUV 6+1 {Ertiga, Marazzo, Kia Carens}',
+      coverImage: 'https://images.unsplash.com/photo-1626621341517-bbf3c99e4460?w=900&q=80',
+      destinationImages: [
+        { url: 'https://images.unsplash.com/photo-1626621341517-bbf3c99e4460?w=900&q=80', label: 'Manali Valley' },
+        { url: 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?w=600&q=80', label: 'Solang Valley' },
+        { url: 'https://images.unsplash.com/photo-1595815778869-8465134C4C70?w=600&q=80', label: 'Snow Peaks' },
+        { url: 'https://images.unsplash.com/photo-1585508889437-1f1a9e2a5c3d?w=600&q=80', label: 'Kasol Parvati River' },
+      ],
       hotels: [
         {
           city: 'Manali',
