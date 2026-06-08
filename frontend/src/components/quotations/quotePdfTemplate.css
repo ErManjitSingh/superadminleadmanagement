@@ -20,19 +20,19 @@
 }
 
 .quote-ht-pdf {
-  /* UNO TRIPS brand — yellow + orange + black */
-  --uno-yellow: #ffd700;
-  --uno-yellow-light: #fffbeb;
+  /* UNO TRIPS brand — black + orange only */
+  --uno-black: #1a1a1a;
+  --uno-black-soft: #2d2d2d;
   --uno-orange: #ff8c00;
   --uno-orange-bright: #ff9900;
   --uno-orange-deep: #e65100;
   --uno-orange-dark: #cc5500;
-  --uno-black: #1a1a1a;
   --uno-orange-light: #fff3e0;
-  --uno-orange-soft: #ffedd5;
-  --uno-border: #ffb74d;
-  --uno-muted: #64748b;
-  --uno-text: #1e293b;
+  --uno-orange-soft: #ffe0b2;
+  --uno-border: #ff9800;
+  --uno-muted: #666666;
+  --uno-text: #1a1a1a;
+  --uno-gray-bg: #f5f5f5;
   --ht-bhagwa: var(--uno-orange-bright);
   --ht-bhagwa-deep: var(--uno-orange-deep);
   --ht-bhagwa-light: var(--uno-orange-light);
@@ -45,7 +45,7 @@
   width: 100%;
   max-width: 794px;
   margin: 0 auto;
-  background: linear-gradient(180deg, var(--uno-yellow-light) 0%, #ffffff 140px);
+  background: #ffffff;
   color: var(--uno-text);
   font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
   font-size: 11px;
@@ -56,10 +56,10 @@
   box-sizing: border-box;
 }
 
-/* ── Top bar — UNO TRIPS logo on warm white ── */
+/* ── Top bar — black + orange ── */
 .quote-ht-topbar {
-  background: linear-gradient(180deg, #ffffff 0%, var(--uno-yellow-light) 100%);
-  color: var(--uno-black);
+  background: var(--uno-black);
+  color: #ffffff;
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -68,7 +68,7 @@
   position: relative;
   overflow: hidden;
   border-bottom: 4px solid var(--uno-orange);
-  box-shadow: 0 2px 12px rgba(255, 140, 0, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .quote-ht-topbar::before {
@@ -79,7 +79,7 @@
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background: rgba(255, 215, 0, 0.15);
+  background: rgba(255, 140, 0, 0.12);
 }
 
 .quote-ht-topbar::after {
@@ -90,7 +90,7 @@
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: rgba(255, 140, 0, 0.12);
+  background: rgba(255, 140, 0, 0.08);
 }
 
 .quote-ht-brand-row {
@@ -102,11 +102,15 @@
 }
 
 .quote-ht-logo-img {
-  height: 56px;
+  height: 52px;
   width: auto;
   max-width: 220px;
   object-fit: contain;
   display: block;
+  background: #ffffff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .quote-ht-quote-meta {
@@ -114,19 +118,19 @@
   font-size: 10px;
   position: relative;
   z-index: 1;
-  background: linear-gradient(135deg, var(--uno-orange-light), #fff);
-  color: var(--uno-black);
+  background: var(--uno-black-soft);
+  color: #ffffff;
   padding: 10px 14px;
   border-radius: 8px;
   border: 2px solid var(--uno-orange);
-  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.25);
 }
 
 .quote-ht-quote-meta .qnum {
   font-weight: 800;
   font-size: 12px;
   margin-bottom: 4px;
-  color: var(--uno-orange-deep);
+  color: var(--uno-orange-bright);
 }
 
 /* ── Package hero header ── */
@@ -142,20 +146,14 @@
   gap: 16px 24px;
   align-items: center;
   padding: 18px 20px 14px;
-  background: linear-gradient(
-    135deg,
-    var(--uno-yellow-light) 0%,
-    #ffffff 45%,
-    var(--uno-orange-light) 100%
-  );
-  border-bottom: 3px solid transparent;
-  border-image: linear-gradient(90deg, var(--uno-yellow), var(--uno-orange), var(--uno-yellow)) 1;
+  background: linear-gradient(135deg, #ffffff 0%, var(--uno-gray-bg) 100%);
+  border-bottom: 3px solid var(--uno-orange);
 }
 
 .pkg-code {
   display: inline-block;
-  background: linear-gradient(135deg, var(--uno-orange-deep), var(--uno-orange-bright));
-  color: #fff;
+  background: var(--uno-black);
+  color: var(--uno-orange-bright);
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -163,56 +161,48 @@
   padding: 5px 12px;
   border-radius: 6px;
   margin-bottom: 10px;
-  box-shadow: 0 3px 10px rgba(255, 153, 51, 0.45);
+  border: 1px solid var(--uno-orange);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .pkg-title {
   margin: 0 0 10px;
   font-size: 18px;
   font-weight: 800;
-  background: linear-gradient(90deg, var(--uno-orange-deep), var(--uno-orange));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--uno-black);
   line-height: 1.35;
   letter-spacing: -0.01em;
 }
 
-@supports not (background-clip: text) {
-  .pkg-title {
-    color: var(--uno-orange-deep);
-  }
-}
-
 .pkg-chip-duration {
-  background: linear-gradient(135deg, #fff7ed, #ffedd5);
-  color: #c2410c;
-  border-color: #fdba74;
+  background: var(--uno-black);
+  color: #ffffff;
+  border-color: var(--uno-orange);
 }
 
 .pkg-chip-route {
-  background: linear-gradient(135deg, var(--uno-orange-light), var(--uno-orange-soft));
-  color: var(--uno-orange-dark);
-  border-color: var(--uno-border);
+  background: #ffffff;
+  color: var(--uno-black);
+  border-color: var(--uno-orange);
 }
 
 .pkg-chip-category {
-  background: linear-gradient(135deg, var(--uno-yellow), var(--uno-orange));
-  color: #fff;
+  background: var(--uno-orange);
+  color: #ffffff;
   border-color: var(--uno-orange-deep);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  box-shadow: 0 2px 6px rgba(255, 153, 51, 0.35);
+  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.35);
 }
 
 .quote-ht-package-hero-price {
   text-align: right;
-  background: linear-gradient(145deg, #fff, var(--uno-orange-light));
+  background: var(--uno-black);
   border: 2px solid var(--uno-orange);
   border-radius: 12px;
   padding: 14px 18px;
   min-width: 160px;
-  box-shadow: 0 4px 16px rgba(255, 153, 51, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .quote-ht-package-hero-price .price-label {
@@ -221,7 +211,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--uno-orange-deep);
+  color: var(--uno-orange-bright);
   margin-bottom: 4px;
 }
 
@@ -229,24 +219,22 @@
   display: block;
   font-size: 28px;
   font-weight: 900;
-  background: linear-gradient(135deg, var(--uno-orange-deep), var(--uno-orange));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #ffffff;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
-@supports not (background-clip: text) {
-  .quote-ht-package-hero-price .price-value {
-    color: var(--uno-orange-deep);
-  }
+.quote-ht-package-hero-price .price-note {
+  display: block;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 6px;
 }
 
 .quote-ht-dest-compact {
   margin-top: 0;
   padding: 0 20px 16px;
-  background: linear-gradient(180deg, var(--uno-orange-light) 0%, #fff 100%);
+  background: var(--uno-gray-bg);
 }
 
 .quote-ht-package-hero-main {
@@ -267,13 +255,6 @@
   padding: 4px 10px;
   border-radius: 20px;
   border: 1px solid transparent;
-}
-
-.quote-ht-package-hero-price .price-note {
-  display: block;
-  font-size: 8px;
-  color: var(--ht-muted);
-  margin-top: 6px;
 }
 
 .quote-ht-dest-compact .quote-ht-dest-gallery {
@@ -333,7 +314,7 @@
   text-align: center;
   font-size: 15px;
   font-weight: 700;
-  color: var(--uno-orange-deep);
+  color: var(--uno-black);
   margin: 16px 20px 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -349,20 +330,20 @@
   transform: translateX(-50%);
   width: 100px;
   height: 4px;
-  background: linear-gradient(90deg, var(--uno-yellow), var(--uno-orange), var(--uno-yellow));
+  background: var(--uno-orange);
   border-radius: 2px;
 }
 
 /* ── Welcome ── */
 .quote-ht-welcome {
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--uno-orange);
   margin: 0 20px;
   padding: 14px 16px;
-  background: linear-gradient(180deg, var(--uno-orange-light) 0%, #fff 100%);
+  background: var(--uno-gray-bg);
   font-size: 11px;
-  color: #334155;
+  color: var(--uno-black);
   border-radius: 0 0 8px 8px;
-  border-top: 4px solid var(--uno-orange);
+  border-top: 4px solid var(--uno-black);
 }
 
 .quote-ht-welcome strong {
@@ -370,34 +351,30 @@
   font-size: 12px;
 }
 
-.quote-ht-welcome p {
-  margin: 0 0 8px;
-}
-
-/* ── Section titles — UNO yellow → orange ── */
+/* ── Section titles — black + orange accent ── */
 .quote-ht-section-title {
-  background: linear-gradient(90deg, var(--uno-orange-deep) 0%, var(--uno-orange-bright) 45%, var(--uno-yellow) 100%);
-  color: #fff;
+  background: var(--uno-black);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 700;
   padding: 9px 16px;
   margin: 18px 20px 0;
   border-radius: 6px 6px 0 0;
+  border-left: 5px solid var(--uno-orange);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   display: flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 2px 8px rgba(255, 153, 51, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .quote-ht-section-title::before {
   content: '';
   width: 4px;
   height: 14px;
-  background: #fff;
+  background: var(--uno-orange);
   border-radius: 2px;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
 }
 
 .quote-ht-section-title.standalone {
@@ -428,7 +405,7 @@
 }
 
 .quote-ht-overview tr:nth-child(even) .label {
-  background: linear-gradient(90deg, var(--uno-orange-soft), var(--uno-yellow-light));
+  background: var(--uno-gray-bg);
 }
 
 .quote-ht-overview tr:last-child td {
@@ -437,9 +414,10 @@
 
 .quote-ht-overview .label {
   width: 36%;
-  color: var(--uno-orange-deep);
-  font-weight: 600;
-  background: linear-gradient(90deg, var(--uno-orange-light), #fff);
+  color: var(--uno-black);
+  font-weight: 700;
+  background: var(--uno-orange-light);
+  border-right: 2px solid var(--uno-orange);
 }
 
 .quote-ht-overview .value {
@@ -460,12 +438,12 @@
 }
 
 .quote-ht-table th {
-  background: linear-gradient(180deg, var(--uno-orange-soft), var(--uno-yellow-light));
-  color: var(--uno-orange-deep);
+  background: var(--uno-black);
+  color: var(--uno-orange-bright);
   font-weight: 700;
   text-align: left;
   padding: 9px 12px;
-  border-bottom: 2px solid var(--uno-orange);
+  border-bottom: 3px solid var(--uno-orange);
 }
 
 .quote-ht-table td {
@@ -491,18 +469,18 @@
 /* ── Day cards ── */
 .quote-ht-day-card {
   margin: 0 20px 14px;
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--uno-orange);
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(255, 153, 51, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   page-break-inside: avoid;
 }
 
 .quote-ht-day-head {
-  background: linear-gradient(90deg, var(--uno-orange-light), var(--uno-yellow-light));
+  background: var(--uno-black);
   padding: 10px 14px;
-  border-bottom: 1px solid #fed7aa;
+  border-bottom: 2px solid var(--uno-orange);
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -516,20 +494,20 @@
   justify-content: center;
   min-width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, var(--uno-yellow), var(--uno-orange));
-  color: #fff;
+  background: var(--uno-orange);
+  color: #ffffff;
   font-weight: 800;
   font-size: 12px;
   border-radius: 6px;
   margin-right: 8px;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(255, 153, 51, 0.35);
+  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.4);
 }
 
 .quote-ht-day-head .day-title {
   font-weight: 700;
   font-size: 11.5px;
-  color: var(--uno-orange-deep);
+  color: #ffffff;
   text-transform: uppercase;
   display: flex;
   align-items: flex-start;
@@ -550,9 +528,9 @@
   align-items: center;
   gap: 4px;
   font-size: 9.5px;
-  color: var(--uno-orange-dark);
-  background: #fff;
-  border: 1px solid #fdba74;
+  color: var(--uno-black);
+  background: #ffffff;
+  border: 1px solid var(--uno-orange);
   padding: 3px 8px;
   border-radius: 20px;
   font-weight: 600;
@@ -581,7 +559,7 @@
 }
 
 .quote-ht-day-extra strong {
-  color: var(--uno-orange-dark);
+  color: var(--uno-black);
 }
 
 /* ── Inclusion / Exclusion ── */
@@ -602,11 +580,11 @@
 
 .quote-ht-inc-exc .inc {
   border-right: 1px solid var(--ht-border);
-  background: linear-gradient(180deg, #fff7ed, var(--uno-yellow-light));
+  background: var(--uno-gray-bg);
 }
 
 .quote-ht-inc-exc .exc {
-  background: linear-gradient(180deg, #fff1f2, #fff);
+  background: #ffffff;
 }
 
 .quote-ht-inc-exc h4 {
@@ -617,8 +595,8 @@
   border-bottom: 2px solid currentColor;
 }
 
-.quote-ht-inc-exc .inc h4 { color: var(--uno-orange-deep); border-bottom-color: var(--uno-orange); }
-.quote-ht-inc-exc .exc h4 { color: #be123c; }
+.quote-ht-inc-exc .inc h4 { color: var(--uno-black); border-bottom-color: var(--uno-orange); }
+.quote-ht-inc-exc .exc h4 { color: var(--uno-black); border-bottom-color: #999999; }
 
 .quote-ht-inc-exc ul {
   margin: 0;
@@ -638,7 +616,7 @@
   content: '✓';
   position: absolute;
   left: 0;
-  color: #16a34a;
+  color: var(--uno-orange);
   font-weight: 800;
 }
 
@@ -646,7 +624,7 @@
   content: '✗';
   position: absolute;
   left: 0;
-  color: #e11d48;
+  color: var(--uno-black);
   font-weight: 800;
 }
 
@@ -660,12 +638,12 @@
 }
 
 .quote-ht-policy-head {
-  background: linear-gradient(90deg, var(--uno-orange-light), var(--uno-yellow-light));
+  background: var(--uno-black);
   padding: 8px 14px;
   font-weight: 700;
   font-size: 11px;
-  color: var(--uno-orange-deep);
-  border-bottom: 1px solid #fed7aa;
+  color: var(--uno-orange-bright);
+  border-bottom: 2px solid var(--uno-orange);
 }
 
 .quote-ht-policy ul {
@@ -698,13 +676,14 @@
 }
 
 .quote-ht-bank-table th {
-  background: linear-gradient(90deg, var(--uno-orange-deep), var(--uno-orange));
-  color: #fff;
+  background: var(--uno-black);
+  color: var(--uno-orange-bright);
   font-weight: 600;
+  border-bottom: 2px solid var(--uno-orange);
 }
 
 .quote-ht-bank-table tr:nth-child(even) td {
-  background: var(--uno-orange-light);
+  background: var(--uno-gray-bg);
 }
 
 /* ── Planner + footer ── */
@@ -716,17 +695,18 @@
 }
 
 .quote-ht-planner-box {
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--uno-orange);
   padding: 12px 14px;
   font-size: 10.5px;
   border-radius: 8px;
-  background: linear-gradient(145deg, var(--uno-orange-light), #fff);
+  background: #ffffff;
+  border-top: 3px solid var(--uno-black);
 }
 
 .quote-ht-planner-box h4 {
   margin: 0 0 10px;
   font-size: 11px;
-  color: var(--uno-orange-deep);
+  color: var(--uno-black);
   font-weight: 700;
   padding-bottom: 6px;
   border-bottom: 2px solid var(--uno-orange);
@@ -767,7 +747,7 @@
   overflow: hidden;
   min-height: 220px;
   height: 100%;
-  background: linear-gradient(135deg, var(--uno-orange-deep), var(--uno-orange));
+  background: var(--uno-black);
 }
 
 .quote-ht-dest-stack {
@@ -783,7 +763,7 @@
   overflow: hidden;
   border-radius: 6px;
   min-height: 0;
-  background: linear-gradient(135deg, var(--uno-yellow), var(--uno-orange));
+  background: var(--uno-black-soft);
 }
 
 .quote-ht-dest-img {
@@ -806,7 +786,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--uno-orange-deep) 0%, var(--uno-orange) 100%);
+  background: var(--uno-black);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -819,9 +799,9 @@
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(230, 81, 0, 0.82) 0%,
-    rgba(255, 140, 0, 0.45) 50%,
-    rgba(0, 0, 0, 0.05) 100%
+    rgba(26, 26, 26, 0.92) 0%,
+    rgba(255, 140, 0, 0.55) 55%,
+    rgba(0, 0, 0, 0.1) 100%
   );
   display: flex;
   flex-direction: column;
@@ -833,7 +813,7 @@
 .quote-ht-dest-badge {
   display: inline-block;
   align-self: flex-start;
-  background: linear-gradient(135deg, var(--uno-orange-bright), var(--uno-orange-deep));
+  background: var(--uno-orange);
   color: #fff;
   font-size: 9px;
   font-weight: 700;
@@ -865,7 +845,7 @@
   left: 0;
   right: 0;
   padding: 6px 8px;
-  background: linear-gradient(transparent, rgba(230, 81, 0, 0.85));
+  background: linear-gradient(transparent, rgba(26, 26, 26, 0.9));
   color: #fff;
   font-size: 9px;
   font-weight: 600;
@@ -873,17 +853,12 @@
 
 .quote-ht-footer {
   margin-top: 16px;
-  background: linear-gradient(
-    120deg,
-    var(--uno-orange-deep) 0%,
-    var(--uno-orange-bright) 40%,
-    var(--uno-orange) 100%
-  );
-  color: #fff;
+  background: var(--uno-black);
+  color: #ffffff;
   padding: 18px 20px;
   font-size: 10px;
   text-align: center;
-  border-top: 4px solid var(--uno-yellow);
+  border-top: 4px solid var(--uno-orange);
 }
 
 .quote-ht-footer-logo {
