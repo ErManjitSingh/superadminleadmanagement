@@ -1,7 +1,60 @@
+import { useEffect, useState } from 'react';
 import { resolveDestinationImages } from './destinationGalleryUtils';
+
+function GalleryImage({ src, alt, className, style }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed || !src) {
+    return (
+      <div
+        className={`quote-ht-dest-fallback ${className || ''}`}
+        style={style}
+        aria-label={alt}
+      >
+        <span>{alt}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      style={style}
+      loading="eager"
+      decoding="sync"
+      crossOrigin="anonymous"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
 
 export default function DestinationGallery({ quote, destination }) {
   const images = resolveDestinationImages(quote);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!images.length) return undefined;
+    let cancelled = false;
+    const preload = images.map(
+      (img) =>
+        new Promise((resolve) => {
+          const el = new Image();
+          el.crossOrigin = 'anonymous';
+          el.referrerPolicy = 'no-referrer';
+          el.onload = () => resolve(true);
+          el.onerror = () => resolve(false);
+          el.src = img.url;
+        })
+    );
+    Promise.all(preload).then(() => {
+      if (!cancelled) setReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [quote?._id, quote?.quoteNumber, images.map((i) => i.url).join('|')]);
+
   if (!images.length) return null;
 
   const [hero, ...thumbs] = images;
@@ -11,9 +64,13 @@ export default function DestinationGallery({ quote, destination }) {
   return (
     <div className="quote-ht-dest-section">
       <div className="quote-ht-section-title">Destination Highlights — {destLabel}</div>
-      <div className="quote-ht-dest-gallery">
+      <div className={`quote-ht-dest-gallery ${ready ? 'quote-ht-dest-ready' : ''}`}>
         <div className="quote-ht-dest-hero">
-          <img src={hero.url} alt={hero.label} className="quote-ht-dest-img" crossOrigin="anonymous" />
+          <GalleryImage
+            src={hero.url}
+            alt={hero.label}
+            className="quote-ht-dest-img quote-ht-dest-img-hero"
+          />
           <div className="quote-ht-dest-hero-overlay">
             <span className="quote-ht-dest-badge">Your Journey</span>
             <h3 className="quote-ht-dest-hero-title">{hero.label}</h3>
@@ -24,7 +81,11 @@ export default function DestinationGallery({ quote, destination }) {
           <div className="quote-ht-dest-stack">
             {sideImages.map((img) => (
               <div key={img.url} className="quote-ht-dest-thumb">
-                <img src={img.url} alt={img.label} className="quote-ht-dest-img" crossOrigin="anonymous" />
+                <GalleryImage
+                  src={img.url}
+                  alt={img.label}
+                  className="quote-ht-dest-img"
+                />
                 <div className="quote-ht-dest-thumb-label">{img.label}</div>
               </div>
             ))}

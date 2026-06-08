@@ -28,7 +28,7 @@ export default function QuotationPdfOverlay({ quote, open, onClose, pdfRef: exte
   if (!open || !quote || typeof document === 'undefined') return null;
 
   const handlePrint = () => printQuotation(pdfRef.current, quote.quoteNumber);
-  const handleOpenTab = () => openQuotationPrintPreview(pdfRef.current, quote.quoteNumber);
+  const handleOpenTab = () => { openQuotationPrintPreview(pdfRef.current, quote.quoteNumber); };
 
   return createPortal(
     <div className="quotation-print-root fixed inset-0 z-[210] bg-slate-600/90 overflow-y-auto">

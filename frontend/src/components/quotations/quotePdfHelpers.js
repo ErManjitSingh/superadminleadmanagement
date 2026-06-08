@@ -2,7 +2,9 @@ import { getPackageTypeConfig } from './quotationUtils';
 import { getPackageCategoryLabel, QUOTE_POLICIES, QUOTE_BANK_ACCOUNTS } from './quoteTemplateDefaults';
 
 export function resolveQuotePackage(quote) {
-  const raw = quote?.package?.name ? quote.package : quote?.packageSnapshot || quote?.package || {};
+  const snap = quote?.packageSnapshot && typeof quote.packageSnapshot === 'object' ? quote.packageSnapshot : {};
+  const pop = quote?.package && typeof quote.package === 'object' ? quote.package : {};
+  const raw = { ...pop, ...snap };
   const itinerary = (raw.itinerary || []).map((day, i) => ({
     ...day,
     id: day.id || day._id || `day-${i}`,

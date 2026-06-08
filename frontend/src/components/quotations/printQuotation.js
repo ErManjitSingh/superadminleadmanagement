@@ -3,6 +3,7 @@
  * Uses inline template CSS so output always matches on-screen preview.
  */
 import quotePdfCss from './quotePdfTemplate.css?inline';
+import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 
 export function buildQuotationPrintDocument(contentHtml, title = 'Quotation') {
   const safeTitle = String(title || 'Quotation').replace(/[<>&"]/g, '');
@@ -53,7 +54,8 @@ export async function printQuotation(contentEl, title = 'Quotation') {
     return;
   }
 
-  const html = buildQuotationPrintDocument(contentEl.outerHTML, title);
+  const embedded = (await cloneWithEmbeddedImages(contentEl)) || contentEl;
+  const html = buildQuotationPrintDocument(embedded.outerHTML, title);
   const iframe = document.createElement('iframe');
   iframe.setAttribute('title', 'Quotation Print');
   iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
@@ -66,6 +68,7 @@ export async function printQuotation(contentEl, title = 'Quotation') {
   doc.close();
 
   await waitForPrintDocument(doc, win);
+  await waitForImages(doc.body, 5000);
 
   try {
     win.focus();
@@ -80,10 +83,11 @@ export async function printQuotation(contentEl, title = 'Quotation') {
 /**
  * Open print preview in a new tab (same styling as screen preview).
  */
-export function openQuotationPrintPreview(contentEl, title = 'Quotation') {
+export async function openQuotationPrintPreview(contentEl, title = 'Quotation') {
   if (!contentEl) return null;
 
-  const html = buildQuotationPrintDocument(contentEl.outerHTML, title);
+  const embedded = (await cloneWithEmbeddedImages(contentEl)) || contentEl;
+  const html = buildQuotationPrintDocument(embedded.outerHTML, title);
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const tab = window.open(url, '_blank', 'noopener,noreferrer');
