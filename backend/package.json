@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed": "node src/seed/seed.js",
+    "seed:demo-quotations": "node src/scripts/seedDemoQuotations.js",
     "clear-leads": "node src/scripts/clearLeads.js",
     "remove-sales-demo-users": "node src/scripts/removeSalesDemoUsers.js",
     "keep-admin-only": "node src/scripts/keepAdminOnly.js",

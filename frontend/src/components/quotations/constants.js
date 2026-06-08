@@ -1,4 +1,3 @@
-import { APP_BRAND_NAME } from '../../config/branding';
 
 export const PACKAGE_TYPES = [
   { value: 'honeymoon', label: 'Honeymoon', color: 'from-rose-500/20 to-pink-500/10 border-rose-400/40 text-rose-700' },
@@ -42,9 +41,9 @@ export const HOTEL_CATEGORIES = ['Budget', '3 Star', '4 Star', '5 Star', 'Luxury
 export const MEAL_PLANS = ['EP (Room Only)', 'CP (Breakfast)', 'MAP (Breakfast + Dinner)', 'AP (All Meals)', 'All Inclusive'];
 
 export const COMPANY_INFO = {
-  name: APP_BRAND_NAME,
-  tagline: 'Premium Travel Solutions',
-  phone: '+91 98765 00000',
-  email: 'quotes@unotravel.com',
-  address: 'Mumbai, Maharashtra, India',
+  name: 'UNO Trips',
+  tagline: 'Crafting Unforgettable Journeys Across India & Beyond',
+  phone: '+91 98765 43210',
+  email: 'quotes@unotrips.com',
+  address: 'Shimla, Himachal Pradesh · Pan-India Travel Desk',
 };

@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
-import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
-import QuotePdfPreview from './QuotePdfPreview';
 import QuotationFiltersPanel from './QuotationFiltersPanel';
 import QuotationDetailDrawer from './QuotationDetailDrawer';
+import QuotationPdfOverlay from './QuotationPdfOverlay';
 import { QUOTE_STATUSES } from './constants';
 import { formatINR } from './quotationUtils';
 import {
@@ -205,16 +204,12 @@ export default function QuotationListPage() {
         onDownloadPdf={handlePrint}
       />
 
-      {showPdf && selected && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[210] bg-white overflow-y-auto print:static print:inset-auto">
-          <div className="sticky top-0 bg-surface border-b border-subtle p-3 flex justify-between print:hidden">
-            <Button variant="outline" onClick={() => setShowPdf(false)} className="rounded-xl">Close</Button>
-            <Button onClick={() => window.print()} className="rounded-xl gap-2 bg-sky-600"><Download className="w-4 h-4" /> Print / Save PDF</Button>
-          </div>
-          <QuotePdfPreview ref={pdfRef} quote={selected} />
-        </div>,
-        document.body,
-      )}
+      <QuotationPdfOverlay
+        quote={selected}
+        open={showPdf}
+        onClose={() => setShowPdf(false)}
+        pdfRef={pdfRef}
+      />
     </motion.div>
   );
 }

@@ -437,6 +437,18 @@
     body * {
       visibility: hidden;
     }
+    .quotation-print-root,
+    .quotation-print-root * {
+      visibility: visible;
+    }
+    .quotation-print-root {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      overflow: visible !important;
+      background: white !important;
+    }
     .print\\:hidden {
       display: none !important;
     }

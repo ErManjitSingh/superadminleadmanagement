@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, MessageSquare, Plus } from 'lucide-react';
@@ -10,6 +10,7 @@ import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './leaderUtils';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
 import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
+import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import {
   emptyQuotationFilters,
   countQuotationActiveFilters,
@@ -33,6 +34,8 @@ export default function LeaderQuotationsPage() {
   const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [showPdf, setShowPdf] = useState(false);
+  const pdfRef = useRef(null);
   const meta = META[status] || META.pending;
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
 
@@ -195,8 +198,9 @@ export default function LeaderQuotationsPage() {
 
       <QuotationDetailDrawer
         quote={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
+        open={!!selected && !showPdf}
+        onClose={() => { setSelected(null); setShowPdf(false); }}
+        onDownloadPdf={() => setShowPdf(true)}
         actions={
           status === 'pending' && selected?.status === 'pending_approval' ? (
             <>
@@ -209,6 +213,13 @@ export default function LeaderQuotationsPage() {
             </>
           ) : null
         }
+      />
+
+      <QuotationPdfOverlay
+        quote={selected}
+        open={showPdf}
+        onClose={() => setShowPdf(false)}
+        pdfRef={pdfRef}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, FileText, CheckCircle2 } from 'lucide-react';
@@ -10,6 +10,7 @@ import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
 import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
+import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import {
   emptyQuotationFilters,
   countQuotationActiveFilters,
@@ -37,6 +38,8 @@ export default function ExecutiveQuotationsPage() {
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState(location.state?.message || '');
   const [selected, setSelected] = useState(null);
+  const [showPdf, setShowPdf] = useState(false);
+  const pdfRef = useRef(null);
 
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
 
@@ -221,8 +224,9 @@ export default function ExecutiveQuotationsPage() {
 
       <QuotationDetailDrawer
         quote={selected}
-        open={!!selected}
-        onClose={() => setSelected(null)}
+        open={!!selected && !showPdf}
+        onClose={() => { setSelected(null); setShowPdf(false); }}
+        onDownloadPdf={() => setShowPdf(true)}
         actions={
           selected?.status === 'draft' ? (
             <Button size="sm" variant="outline" className="flex-1" onClick={() => { handleSubmit(selected._id); setSelected(null); }}>
@@ -234,6 +238,13 @@ export default function ExecutiveQuotationsPage() {
             </Button>
           ) : null
         }
+      />
+
+      <QuotationPdfOverlay
+        quote={selected}
+        open={showPdf}
+        onClose={() => setShowPdf(false)}
+        pdfRef={pdfRef}
       />
     </div>
   );
