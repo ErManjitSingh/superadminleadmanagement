@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, MessageSquare } from 'lucide-react';
@@ -8,6 +8,14 @@ import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './leaderUtils';
+import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
+import {
+  emptyQuotationFilters,
+  countQuotationActiveFilters,
+  buildQuotationQueryParams,
+  SEGMENT_LABELS,
+} from '../quotations/quotationFilterUtils';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 const META = {
   pending: { title: 'Pending Approval', desc: 'Quotations from your team awaiting your approval' },
@@ -19,19 +27,38 @@ const META = {
 export default function LeaderQuotationsPage() {
   const { status = 'pending' } = useParams();
   const [quotes, setQuotes] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [loading, setLoading] = useState(true);
   const meta = META[status] || META.pending;
+  const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
+
+  const queryParams = useMemo(
+    () => ({
+      page: 1,
+      limit: 100,
+      ...buildQuotationQueryParams({ ...appliedFilters, search: debouncedSearch }, { ignoreStatus: true }),
+    }),
+    [appliedFilters, debouncedSearch]
+  );
+
+  useEffect(() => {
+    API.get('/leads/assignees', { skipSuccessToast: true, skipErrorToast: true })
+      .then((r) => setExecutives(r.data?.salesExecutives || []))
+      .catch(() => setExecutives([]));
+  }, []);
 
   const fetchQuotes = () => {
     setLoading(true);
-    API.get(`/team-leader/quotations/${status}`, { params: { page: 1, limit: 100 } })
+    API.get(`/team-leader/quotations/${status}`, { params: queryParams, skipSuccessToast: true })
       .then((r) => setQuotes(unwrapList(r.data)))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchQuotes();
-  }, [status]);
+  }, [status, queryParams]);
 
   const handleAction = async (id, action) => {
     const notes =
@@ -44,9 +71,26 @@ export default function LeaderQuotationsPage() {
     fetchQuotes();
   };
 
+  const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader title={meta.title} description={meta.desc} breadcrumbs={['Team Leader', 'Quotations', meta.title]} />
+
+      <QuotationFiltersPanel
+        filters={draftFilters}
+        onChange={setDraftFilters}
+        onApply={() => setAppliedFilters({ ...draftFilters })}
+        onClear={() => {
+          setDraftFilters(emptyQuotationFilters);
+          setAppliedFilters(emptyQuotationFilters);
+        }}
+        onRefresh={fetchQuotes}
+        hasActiveFilters={hasActiveFilters}
+        showExecutiveFilter
+        executives={executives}
+        segmentLabel={SEGMENT_LABELS[status] || status}
+      />
 
       <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -73,7 +117,7 @@ export default function LeaderQuotationsPage() {
               ) : quotes.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-12 text-center text-content-muted">
-                    No quotations found
+                    No quotations match your filters
                   </td>
                 </tr>
               ) : (
@@ -85,17 +129,17 @@ export default function LeaderQuotationsPage() {
                     transition={{ delay: i * 0.03 }}
                     className="hover:bg-amber-500/[0.03]"
                   >
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold text-amber-600">{q.quoteNumber}</td>
+                    <td className="px-4 py-3.5 font-mono text-xs font-medium text-amber-600">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5 font-medium">{q.lead?.name}</td>
                     <td className="px-4 py-3.5 text-content-secondary">{q.lead?.destination}</td>
                     <td className="px-4 py-3.5 text-content-secondary">
                       {q.createdByExecutive?.name || q.lead?.assignedTo?.name || '—'}
                     </td>
-                    <td className="px-4 py-3.5 font-bold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
+                    <td className="px-4 py-3.5 font-semibold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
                     <td className="px-4 py-3.5">
                       <span
                         className={cn(
-                          'text-[10px] font-bold uppercase px-2 py-1 rounded-full ring-1 ring-inset',
+                          'text-[10px] font-medium uppercase px-2 py-1 rounded-full ring-1 ring-inset',
                           QUOTE_STATUS_STYLES[q.status] || QUOTE_STATUS_STYLES.draft
                         )}
                       >
@@ -104,7 +148,7 @@ export default function LeaderQuotationsPage() {
                     </td>
                     <td className="px-4 py-3.5">
                       <span
-                        className={`font-semibold ${(q.pricing?.profitMargin || 0) >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}
+                        className={`font-medium ${(q.pricing?.profitMargin || 0) >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}
                       >
                         {q.pricing?.profitMargin}%
                       </span>

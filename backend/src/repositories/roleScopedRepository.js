@@ -13,6 +13,7 @@ const {
 } = require('../utils/queryHelpers');
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
 const { withBranch } = require('../utils/branchScope');
+const { applyQuotationQueryFilters } = require('./quotationRepository');
 
 function applyReactivationQueryFilters(mongoFilter, query = {}) {
   const stage = query.reactivationStage || query.stage;
@@ -165,12 +166,7 @@ async function findScopedFollowUpsPaginated(baseFilter, query = {}, options = {}
 async function findScopedQuotationsPaginated(baseFilter, query = {}, { mapRow, branchId } = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
-  const filter = withBranch(baseFilter, branchId);
-
-  if (query.status) filter.status = query.status;
-  if (query.search?.trim()) {
-    filter.$or = [{ quoteNumber: { $regex: query.search.trim(), $options: 'i' } }];
-  }
+  const filter = await applyQuotationQueryFilters(withBranch(baseFilter, branchId), query, branchId);
 
   const [rows, total] = await Promise.all([
     Quotation.find(filter).populate(QUOTATION_POPULATE).sort(sort).skip(skip).limit(limit).lean(),

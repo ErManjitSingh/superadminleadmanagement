@@ -21,6 +21,10 @@ export function useQuotationsQuery({
           filters: {
             search: debouncedSearch,
             status: filters.status || undefined,
+            destination: filters.destination || undefined,
+            executiveId: filters.executiveId || undefined,
+            dateFrom: filters.dateFrom || undefined,
+            dateTo: filters.dateTo || undefined,
           },
         },
         endpoint

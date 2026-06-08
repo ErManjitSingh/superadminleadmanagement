@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Download, Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Download, Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import AppDrawer from '../ui/AppDrawer';
@@ -13,8 +13,13 @@ import QuoteStatusBadge from './QuoteStatusBadge';
 import QuoteTimeline from './QuoteTimeline';
 import QuotePricingPanel from './QuotePricingPanel';
 import QuotePdfPreview from './QuotePdfPreview';
+import QuotationFiltersPanel from './QuotationFiltersPanel';
 import { QUOTE_STATUSES } from './constants';
 import { formatINR } from './quotationUtils';
+import {
+  emptyQuotationFilters,
+  countQuotationActiveFilters,
+} from './quotationFilterUtils';
 import { cn } from '../../lib/utils';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQuotationsQuery, useQuotationStatsQuery } from '../../features/quotations/hooks/useQuotationsQuery';
@@ -27,19 +32,26 @@ const KPI = [
   { key: 'value', label: 'Pipeline Value', color: 'from-amber-500/20 to-orange-500/10 border-amber-400/40', icon: TrendingUp, text: 'text-amber-700' },
 ];
 
+const STATUS_OPTIONS = [{ value: '', label: 'All Statuses' }, ...QUOTE_STATUSES.map((s) => ({ value: s.value, label: s.label }))];
+
 export default function QuotationListPage() {
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const [selected, setSelected] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
   const pdfRef = useRef(null);
   const [searchParams] = useSearchParams();
-  const debouncedSearch = useDebouncedValue(search, 350);
+  const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
+
+  const queryFilters = useMemo(
+    () => ({ ...appliedFilters, search: debouncedSearch }),
+    [appliedFilters, debouncedSearch]
+  );
 
   const { data, isLoading } = useQuotationsQuery({
-    filters: { search: debouncedSearch, status: statusFilter },
+    filters: queryFilters,
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
   });
@@ -58,7 +70,7 @@ export default function QuotationListPage() {
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
-  }, [debouncedSearch, statusFilter]);
+  }, [debouncedSearch, appliedFilters.status, appliedFilters.destination, appliedFilters.dateFrom, appliedFilters.dateTo]);
 
   useEffect(() => {
     const viewId = searchParams.get('view');
@@ -95,6 +107,8 @@ export default function QuotationListPage() {
     if (selected?._id === id) setSelected(null);
   };
 
+  const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
@@ -120,16 +134,20 @@ export default function QuotationListPage() {
         })}
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search quotes..." className="input-premium w-full h-10 pl-10 rounded-xl text-sm" />
-        </div>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-premium h-10 rounded-xl text-sm min-w-[140px]">
-          <option value="">All Statuses</option>
-          {QUOTE_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-      </div>
+      <QuotationFiltersPanel
+        filters={draftFilters}
+        onChange={setDraftFilters}
+        onApply={() => setAppliedFilters({ ...draftFilters })}
+        onClear={() => {
+          setDraftFilters(emptyQuotationFilters);
+          setAppliedFilters(emptyQuotationFilters);
+        }}
+        onRefresh={invalidate}
+        hasActiveFilters={hasActiveFilters}
+        showStatusFilter
+        statusOptions={STATUS_OPTIONS}
+        className="mb-4"
+      />
 
       <div className="rounded-2xl border border-subtle bg-surface shadow-sm overflow-hidden">
         {isLoading ? (
@@ -144,12 +162,18 @@ export default function QuotationListPage() {
                 ))}
               </tr></thead>
               <tbody className="divide-y divide-subtle">
-                {quotes.map((q) => (
+                {quotes.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-12 text-center text-content-muted">
+                      No quotations match your filters
+                    </td>
+                  </tr>
+                ) : quotes.map((q) => (
                   <tr key={q._id} className="hover:bg-sky-500/[0.03] cursor-pointer group" onClick={() => setSelected(q)}>
-                    <td className="px-4 py-3.5 font-mono text-sm font-bold text-sky-600">{q.quoteNumber}</td>
+                    <td className="px-4 py-3.5 font-mono text-sm font-medium text-sky-600">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5"><div className="flex items-center gap-2"><Avatar name={q.lead?.name} size="sm" className="!w-7 !h-7 !text-[10px]" /><span className="text-sm font-medium">{q.lead?.name}</span></div></td>
                     <td className="px-4 py-3.5 text-sm text-content-secondary">{q.package?.name}</td>
-                    <td className="px-4 py-3.5 text-sm font-bold metric-tabular">{formatINR(q.pricing?.total)}</td>
+                    <td className="px-4 py-3.5 text-sm font-semibold metric-tabular">{formatINR(q.pricing?.total)}</td>
                     <td className="px-4 py-3.5"><QuoteStatusBadge status={q.status} /></td>
                     <td className="px-4 py-3.5 text-xs text-content-muted">{new Date(q.createdAt).toLocaleDateString('en-IN')}</td>
                     <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>

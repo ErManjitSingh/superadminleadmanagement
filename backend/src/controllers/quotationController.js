@@ -30,7 +30,7 @@ function buildComputedPricingPayload({ body, packageSnapshot }) {
 }
 
 const listQuotations = asyncHandler(async (req, res) => {
-  const result = await findQuotationsPaginated(req.query);
+  const result = await findQuotationsPaginated(req.query, { branchId: req.branchId });
   res.json(result);
 });
 

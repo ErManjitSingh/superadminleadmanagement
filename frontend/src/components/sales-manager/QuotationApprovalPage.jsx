@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CheckCircle2, XCircle, MessageSquare } from 'lucide-react';
@@ -7,6 +7,14 @@ import { unwrapList } from '../../utils/apiHelpers';
 import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import { formatCurrency } from './managerUtils';
+import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
+import {
+  emptyQuotationFilters,
+  countQuotationActiveFilters,
+  buildQuotationQueryParams,
+  SEGMENT_LABELS,
+} from '../quotations/quotationFilterUtils';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 const META = {
   pending: { title: 'Pending Approval', desc: 'Review and approve team quotations' },
@@ -17,26 +25,64 @@ const META = {
 export default function QuotationApprovalPage() {
   const { status = 'pending' } = useParams();
   const [quotes, setQuotes] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [loading, setLoading] = useState(true);
   const meta = META[status] || META.pending;
+  const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
+
+  const queryParams = useMemo(
+    () => ({
+      page: 1,
+      limit: 100,
+      ...buildQuotationQueryParams({ ...appliedFilters, search: debouncedSearch }, { ignoreStatus: true }),
+    }),
+    [appliedFilters, debouncedSearch]
+  );
+
+  useEffect(() => {
+    API.get('/leads/assignees', { skipSuccessToast: true, skipErrorToast: true })
+      .then((r) => setExecutives(r.data?.salesExecutives || []))
+      .catch(() => setExecutives([]));
+  }, []);
 
   const fetchQuotes = () => {
     setLoading(true);
-    API.get(`/sales-manager/quotations/${status}`, { params: { page: 1, limit: 100 } })
+    API.get(`/sales-manager/quotations/${status}`, { params: queryParams, skipSuccessToast: true })
       .then((r) => setQuotes(unwrapList(r.data)))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchQuotes(); }, [status]);
+  useEffect(() => {
+    fetchQuotes();
+  }, [status, queryParams]);
 
   const handleAction = async (id, action) => {
     await API.put(`/sales-manager/quotations/${id}`, { action });
     fetchQuotes();
   };
 
+  const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader title={meta.title} description={meta.desc} breadcrumbs={['Sales Manager', 'Quotations', meta.title]} />
+
+      <QuotationFiltersPanel
+        filters={draftFilters}
+        onChange={setDraftFilters}
+        onApply={() => setAppliedFilters({ ...draftFilters })}
+        onClear={() => {
+          setDraftFilters(emptyQuotationFilters);
+          setAppliedFilters(emptyQuotationFilters);
+        }}
+        onRefresh={fetchQuotes}
+        hasActiveFilters={hasActiveFilters}
+        showExecutiveFilter
+        executives={executives}
+        segmentLabel={SEGMENT_LABELS[status] || status}
+      />
 
       <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -52,14 +98,14 @@ export default function QuotationApprovalPage() {
               {loading ? (
                 <tr><td colSpan={7} className="p-12 text-center text-content-muted">Loading…</td></tr>
               ) : quotes.length === 0 ? (
-                <tr><td colSpan={7} className="p-12 text-center text-content-muted">No quotations found</td></tr>
+                <tr><td colSpan={7} className="p-12 text-center text-content-muted">No quotations match your filters</td></tr>
               ) : quotes.map((q, i) => (
                 <motion.tr key={q._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="hover:bg-violet-500/[0.03]">
-                  <td className="px-4 py-3.5 font-mono text-xs font-semibold text-brand-600">{q.quoteNumber}</td>
+                  <td className="px-4 py-3.5 font-mono text-xs font-medium text-brand-600">{q.quoteNumber}</td>
                   <td className="px-4 py-3.5 font-medium text-content-primary">{q.lead?.name}</td>
                   <td className="px-4 py-3.5 text-content-secondary">{q.lead?.destination}</td>
-                  <td className="px-4 py-3.5 font-bold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
-                  <td className="px-4 py-3.5"><span className={`font-semibold ${(q.pricing?.profitMargin || 0) >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}>{q.pricing?.profitMargin}%</span></td>
+                  <td className="px-4 py-3.5 font-semibold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
+                  <td className="px-4 py-3.5"><span className={`font-medium ${(q.pricing?.profitMargin || 0) >= 10 ? 'text-emerald-600' : 'text-amber-600'}`}>{q.pricing?.profitMargin}%</span></td>
                   <td className="px-4 py-3.5 text-content-secondary">{q.executive || '—'}</td>
                   <td className="px-4 py-3.5">
                     {status === 'pending' && (

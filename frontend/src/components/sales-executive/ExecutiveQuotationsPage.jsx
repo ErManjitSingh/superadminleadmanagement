@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, FileText, CheckCircle2 } from 'lucide-react';
@@ -8,6 +8,13 @@ import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
+import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
+import {
+  emptyQuotationFilters,
+  countQuotationActiveFilters,
+  buildQuotationQueryParams,
+} from '../quotations/quotationFilterUtils';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 
 const STATUS_TABS = ['all', 'draft', 'pending_approval', 'approved', 'sent', 'rejected'];
 
@@ -23,20 +30,33 @@ const STATUS_LABELS = {
 export default function ExecutiveQuotationsPage() {
   const location = useLocation();
   const [quotes, setQuotes] = useState([]);
-  const [status, setStatus] = useState('all');
+  const [statusTab, setStatusTab] = useState('all');
+  const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
+  const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState(location.state?.message || '');
 
+  const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
+
+  const queryParams = useMemo(() => {
+    const params = buildQuotationQueryParams(
+      { ...appliedFilters, search: debouncedSearch },
+      { ignoreStatus: true }
+    );
+    if (statusTab !== 'all') params.status = statusTab;
+    return { page: 1, limit: 100, ...params };
+  }, [appliedFilters, debouncedSearch, statusTab]);
+
   const fetchQuotes = () => {
     setLoading(true);
-    API.get('/sales-executive/quotations', { params: { page: 1, limit: 100, ...(status === 'all' ? {} : { status }) } })
+    API.get('/sales-executive/quotations', { params: queryParams, skipSuccessToast: true })
       .then((r) => setQuotes(unwrapList(r.data)))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     fetchQuotes();
-  }, [status]);
+  }, [queryParams]);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -63,6 +83,8 @@ export default function ExecutiveQuotationsPage() {
     }
   };
 
+  const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -86,10 +108,10 @@ export default function ExecutiveQuotationsPage() {
           <button
             key={s}
             type="button"
-            onClick={() => setStatus(s)}
+            onClick={() => setStatusTab(s)}
             className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors',
-              status === s
+              'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+              statusTab === s
                 ? 'bg-sky-500/15 text-sky-700 ring-1 ring-sky-400/30'
                 : 'text-content-muted hover:text-content-primary hover:bg-surface-elevated'
             )}
@@ -103,6 +125,19 @@ export default function ExecutiveQuotationsPage() {
           </Button>
         </Link>
       </div>
+
+      <QuotationFiltersPanel
+        filters={draftFilters}
+        onChange={setDraftFilters}
+        onApply={() => setAppliedFilters({ ...draftFilters })}
+        onClear={() => {
+          setDraftFilters(emptyQuotationFilters);
+          setAppliedFilters(emptyQuotationFilters);
+        }}
+        onRefresh={fetchQuotes}
+        hasActiveFilters={hasActiveFilters}
+        segmentLabel={STATUS_LABELS[statusTab]}
+      />
 
       <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -129,7 +164,7 @@ export default function ExecutiveQuotationsPage() {
               ) : quotes.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center text-content-muted">
-                    No quotations found
+                    No quotations match your filters
                   </td>
                 </tr>
               ) : (
@@ -141,14 +176,14 @@ export default function ExecutiveQuotationsPage() {
                     transition={{ delay: i * 0.03 }}
                     className="hover:bg-sky-500/[0.03]"
                   >
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold text-sky-600">{q.quoteNumber}</td>
+                    <td className="px-4 py-3.5 font-mono text-xs font-medium text-sky-600">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5 font-medium text-content-primary">{q.lead?.name}</td>
                     <td className="px-4 py-3.5 text-content-secondary">{q.lead?.destination}</td>
-                    <td className="px-4 py-3.5 font-bold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
+                    <td className="px-4 py-3.5 font-semibold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
                     <td className="px-4 py-3.5">
                       <span
                         className={cn(
-                          'text-[10px] font-bold uppercase px-2 py-1 rounded-full ring-1 ring-inset',
+                          'text-[10px] font-medium uppercase px-2 py-1 rounded-full ring-1 ring-inset',
                           QUOTE_STATUS_STYLES[q.status] || QUOTE_STATUS_STYLES.draft
                         )}
                       >
