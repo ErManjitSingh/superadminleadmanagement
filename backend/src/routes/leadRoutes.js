@@ -35,6 +35,11 @@ const {
   bulkExportLeads,
   mergeDuplicateLeads,
   getTransferHistory,
+  getSourceAnalyticsHandler,
+  getExecutivePerformanceHandler,
+  getKpis,
+  getSlaAnalytics,
+  listAuditLog,
 } = require('../controllers/enterpriseLeadController');
 
 router.use(protect);
@@ -42,6 +47,11 @@ router.use(protect);
 router.get('/check-duplicate', checkDuplicate);
 router.get('/recycle-bin', listRecycleBin);
 router.get('/analytics/aging', getAgingAnalytics);
+router.get('/analytics/sources', getSourceAnalyticsHandler);
+router.get('/analytics/executives', getExecutivePerformanceHandler);
+router.get('/analytics/kpis', getKpis);
+router.get('/analytics/sla', getSlaAnalytics);
+router.get('/audit-log', listAuditLog);
 router.post('/bulk-status', requirePermission('leads', 'edit'), bulkUpdateStatus);
 router.post('/bulk-export', requirePermission('leads', 'view'), bulkExportLeads);
 router.post('/merge', authorize('admin', 'sales_manager'), mergeDuplicateLeads);

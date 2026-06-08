@@ -20,6 +20,10 @@ import {
   LeadForm,
   Followups,
   Reminders,
+  LeadAnalytics,
+  SlaMonitor,
+  RecycleBin,
+  LeadAuditLog,
   WhatsAppLeads,
   Packages,
   Quotations,
@@ -215,6 +219,10 @@ function App() {
               <Route path="leads/converted" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
               <Route path="leads/lost" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
               <Route path="leads/reactivated" element={<PermissionRoute module="leads"><ReactivatedLeadsPage /></PermissionRoute>} />
+              <Route path="leads/analytics" element={<PermissionRoute module="leads"><LeadAnalytics /></PermissionRoute>} />
+              <Route path="leads/sla" element={<PermissionRoute module="leads"><SlaMonitor /></PermissionRoute>} />
+              <Route path="leads/recycle-bin" element={<PermissionRoute module="leads"><RecycleBin /></PermissionRoute>} />
+              <Route path="leads/audit-log" element={<RoleRoute roles={['admin', 'sales_manager']}><LeadAuditLog /></RoleRoute>} />
               <Route path="leads/new" element={<PermissionRoute module="leads" action="create"><LeadForm /></PermissionRoute>} />
               <Route path="leads/:id/edit" element={<PermissionRoute module="leads" action="edit"><LeadForm /></PermissionRoute>} />
               <Route path="leads/:id" element={<PermissionRoute module="leads"><LeadDetail /></PermissionRoute>} />

@@ -50,4 +50,14 @@ async function getEntityAuditLog(entityType, entityId, { page = 1, limit = 50 } 
   return { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 0 } };
 }
 
-module.exports = { logAudit, diffLeadChanges, getEntityAuditLog };
+async function listBranchAuditLogs(branchId, { page = 1, limit = 50, action, entityType = 'lead' } = {}) {
+  const skip = (Math.max(1, page) - 1) * limit;
+  const filter = { entityType, ...(branchId ? { branchId } : {}), ...(action ? { action } : {}) };
+  const [data, total] = await Promise.all([
+    AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    AuditLog.countDocuments(filter),
+  ]);
+  return { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 0 } };
+}
+
+module.exports = { logAudit, diffLeadChanges, getEntityAuditLog, listBranchAuditLogs };

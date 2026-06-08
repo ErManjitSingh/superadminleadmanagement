@@ -215,6 +215,28 @@ async function notifyFollowUpReminder(followUp, lead) {
   });
 }
 
+async function notifySlaBreach(lead) {
+  if (!lead?._id) return;
+  const branchId = lead.branchId || null;
+  const recipients = await getActiveUserIdsByRolesInBranch(
+    ['admin', 'sales_manager', 'team_leader'],
+    branchId
+  );
+  if (lead.assignedTo) recipients.push(lead.assignedTo?._id || lead.assignedTo);
+
+  await notifyUsers(recipients, {
+    branchId,
+    type: T.LEAD_SLA_BREACH,
+    title: 'Lead SLA breached',
+    message: `${lead.name} was not contacted within 15 minutes`,
+    meta: {
+      leadId: lead._id,
+      href: `/leads/${lead._id}`,
+      persistent: true,
+    },
+  });
+}
+
 async function notifyLeadMerged({ target, source, actor }) {
   if (!target?._id) return;
   const branchId = target.branchId || actor?.branchId || null;
@@ -421,6 +443,7 @@ module.exports = {
   notifyFollowUpMissed,
   notifyFollowUpEscalation,
   notifyLeadMerged,
+  notifySlaBreach,
   notifyQuotationCreated,
   notifyQuotationApproved,
   notifyQuotationRejected,

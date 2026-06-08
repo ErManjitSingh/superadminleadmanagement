@@ -7,6 +7,7 @@ const {
   notifyFollowUpMissed,
 } = require('./notificationService');
 const { processFollowUpEscalations } = require('./escalationService');
+const { processSlaBreaches } = require('./slaService');
 const { startOfDay } = require('../utils/queryHelpers');
 
 const REMINDER_WINDOW_MS = 15 * 60 * 1000;
@@ -77,6 +78,7 @@ function startNotificationScheduler() {
       await processFollowUpReminders();
       await processMissedFollowUps();
       await processFollowUpEscalations();
+      await processSlaBreaches();
     } catch (err) {
       console.error('[NotificationScheduler]', err.message);
     }

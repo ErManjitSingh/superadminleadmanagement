@@ -10,3 +10,7 @@ export { default as TodayFollowUps } from './TodayFollowUps';
 export { default as TeamPerformance } from './TeamPerformance';
 export { default as ActivityTimeline } from './ActivityTimeline';
 export { default as DashboardSkeleton } from './DashboardSkeleton';
+export { default as EnterpriseKpiStrip } from './EnterpriseKpiStrip';
+export { default as SourceAnalyticsPanel } from './SourceAnalyticsPanel';
+export { default as ExecutivePerformancePanel } from './ExecutivePerformancePanel';
+export { default as AgingChartPanel } from './AgingChartPanel';

@@ -20,6 +20,7 @@ import {
   LeadQuotationSection,
   LeadActionPanel,
   LeadTransferHistory,
+  LeadAuditPanel,
   ReactivationActionsModal,
   getLeadDetailData,
 } from '../components/lead-detail';
@@ -159,6 +160,7 @@ export default function LeadDetail() {
           />
           <LeadQuotationSection quotations={detail.quotations} />
           <LeadTransferHistory leadId={id} />
+          <LeadAuditPanel leadId={id} canView={isAdmin || user?.role === 'sales_manager'} />
         </main>
 
         {/* Right — Quick Actions */}

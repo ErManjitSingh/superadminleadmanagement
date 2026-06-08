@@ -11,6 +11,7 @@ const {
   aggregateConvertedPackageRevenueByMonth,
 } = require('../utils/convertedPackageRevenue');
 const { getExecutiveIdsForLeader } = require('./teamScopeService');
+const { getEnterpriseKpis, getSourceAnalytics, getExecutivePerformance } = require('./leadAnalyticsService');
 const { withBranch } = require('../utils/branchScope');
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -156,6 +157,11 @@ async function buildAdminDashboard(options = {}) {
   const revenue = revenueAgg[0]?.total || 0;
   const monthlyRevenue = await aggregateRevenueByMonth({}, branchId);
   const reactivationWidget = await buildReactivationWidget(branchId);
+  const [enterpriseKpis, sourceAnalytics, executivePerformance] = await Promise.all([
+    getEnterpriseKpis(branchId),
+    getSourceAnalytics(branchId),
+    getExecutivePerformance(branchId),
+  ]);
 
   const statusCounts = Object.fromEntries(leadsByStatus.map((s) => [s._id, s.count]));
   const salesFunnel = [
@@ -230,6 +236,9 @@ async function buildAdminDashboard(options = {}) {
       highBudgetLeads: highBudgetLeadsCount,
     },
     activityTimeline: [],
+    enterpriseKpis,
+    sourceAnalytics,
+    executivePerformance,
     kpiSparklines: {
       totalLeads: [totalLeads],
       newLeads: [todayLeads],

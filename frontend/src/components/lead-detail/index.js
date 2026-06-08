@@ -7,5 +7,6 @@ export { default as LeadFollowUpSection } from './LeadFollowUpSection';
 export { default as LeadQuotationSection } from './LeadQuotationSection';
 export { default as LeadActionPanel } from './LeadActionPanel';
 export { default as LeadTransferHistory } from './LeadTransferHistory';
+export { default as LeadAuditPanel } from './LeadAuditPanel';
 export { default as ReactivationActionsModal } from './ReactivationActionsModal';
 export { getLeadDetailData } from './leadDetailData';

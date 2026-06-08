@@ -19,6 +19,10 @@ import {
   Clock,
   MapPin,
   Award,
+  BarChart2,
+  Shield,
+  Archive,
+  Timer,
 } from 'lucide-react';
 
 export const teamManagementItems = [
@@ -55,6 +59,10 @@ export const leadManagementItems = [
   { path: '/leads/assigned', label: 'Assigned Leads', icon: UserCheck, countKey: 'leads.assigned', permission: { module: 'leads', action: 'view' } },
   { path: '/followups', label: 'Follow Ups', icon: CalendarClock, badgeKey: 'followups.due', countKey: 'followups.total', permission: { module: 'leads', action: 'view' } },
   { path: '/reminders', label: 'Reminder Center', icon: Bell, badgeKey: 'reminders.overdue', permission: { module: 'leads', action: 'view' } },
+  { path: '/leads/analytics', label: 'Lead Analytics', icon: BarChart2, roles: ['admin', 'sales_manager', 'team_leader'], permission: { module: 'leads', action: 'view' } },
+  { path: '/leads/sla', label: 'SLA Monitor', icon: Timer, roles: ['admin', 'sales_manager', 'team_leader'], permission: { module: 'leads', action: 'view' } },
+  { path: '/leads/recycle-bin', label: 'Recycle Bin', icon: Archive, roles: ['admin', 'sales_manager'], permission: { module: 'leads', action: 'view' } },
+  { path: '/leads/audit-log', label: 'Audit Log', icon: Shield, roles: ['admin', 'sales_manager'], permission: { module: 'leads', action: 'view' } },
   { path: '/leads/converted', label: 'Converted Leads', icon: Trophy, countKey: 'leads.converted', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/reactivated', label: 'Reactivated Leads', icon: RefreshCw, permission: { module: 'leads', action: 'view' } },

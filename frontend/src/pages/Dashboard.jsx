@@ -4,14 +4,16 @@ import { useDataRefresh } from '../hooks/useDataRefresh';
 import {
   DashboardHeader,
   DashboardHero,
-  LeadSourceChart,
   RevenueChart,
   SalesFunnel,
   RecentLeadsTable,
   TodayFollowUps,
-  TeamPerformance,
   ActivityTimeline,
   DashboardSkeleton,
+  EnterpriseKpiStrip,
+  SourceAnalyticsPanel,
+  ExecutivePerformancePanel,
+  AgingChartPanel,
 } from '../components/dashboard';
 import DashboardPanel from '../components/dashboard/DashboardPanel';
 
@@ -40,6 +42,10 @@ export default function Dashboard() {
       <DashboardHeader />
       <DashboardHero stats={stats} />
 
+      {stats.enterpriseKpis && (
+        <EnterpriseKpiStrip kpis={stats.enterpriseKpis} />
+      )}
+
       <RecentLeadsTable
         leads={stats.newLeads || []}
         totalCount={stats.newLeadsTotal ?? stats.todayLeads}
@@ -55,8 +61,13 @@ export default function Dashboard() {
           <RevenueChart data={stats.monthlyRevenue || []} />
         </div>
         <div className="lg:col-span-4">
-          <LeadSourceChart data={stats.leadSourceAnalytics || []} />
+          <SourceAnalyticsPanel data={stats.sourceAnalytics} />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <AgingChartPanel aging={stats.enterpriseKpis?.aging || []} />
+        <ExecutivePerformancePanel data={stats.executivePerformance} compact />
       </div>
 
       <SalesFunnel data={stats.salesFunnel || []} />
@@ -79,10 +90,7 @@ export default function Dashboard() {
         </div>
       </DashboardPanel>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TeamPerformance agents={stats.teamPerformance || []} />
-        <ActivityTimeline activities={stats.activityTimeline || []} />
-      </div>
+      <ActivityTimeline activities={stats.activityTimeline || []} />
     </div>
   );
 }

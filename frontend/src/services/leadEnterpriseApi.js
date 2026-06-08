@@ -101,3 +101,28 @@ export async function fetchLeadTransferHistory(leadId, params = {}) {
   });
   return data;
 }
+
+export async function fetchSourceAnalytics() {
+  const { data } = await API.get('/leads/analytics/sources', { skipSuccessToast: true });
+  return data;
+}
+
+export async function fetchExecutivePerformance() {
+  const { data } = await API.get('/leads/analytics/executives', { skipSuccessToast: true });
+  return data;
+}
+
+export async function fetchLeadKpis() {
+  const { data } = await API.get('/leads/analytics/kpis', { skipSuccessToast: true });
+  return data;
+}
+
+export async function fetchSlaAnalytics(params = {}) {
+  const { data } = await API.get('/leads/analytics/sla', { params, skipSuccessToast: true });
+  return data;
+}
+
+export async function fetchGlobalAuditLog(params = {}) {
+  const { data } = await API.get('/leads/audit-log', { params, skipSuccessToast: true });
+  return data;
+}

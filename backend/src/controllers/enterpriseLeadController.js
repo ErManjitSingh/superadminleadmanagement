@@ -13,6 +13,13 @@ const { getClientIp } = require('../services/activityService');
 const { applyLeadMetrics } = require('../services/leadScoringService');
 const { mergeLeads } = require('../services/leadMergeService');
 const { getLeadTransferHistory } = require('../services/leadTransferService');
+const {
+  getSourceAnalytics,
+  getExecutivePerformance,
+  getEnterpriseKpis,
+} = require('../services/leadAnalyticsService');
+const { getSlaDashboard } = require('../services/slaService');
+const { listBranchAuditLogs } = require('../services/leadAuditService');
 
 const checkDuplicate = asyncHandler(async (req, res) => {
   const { phone, alternatePhone, email, excludeId } = req.query;
@@ -325,6 +332,43 @@ const getTransferHistory = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const getSourceAnalyticsHandler = asyncHandler(async (req, res) => {
+  const result = await getSourceAnalytics(req.branchId);
+  res.json(result);
+});
+
+const getExecutivePerformanceHandler = asyncHandler(async (req, res) => {
+  const result = await getExecutivePerformance(req.branchId);
+  res.json(result);
+});
+
+const getKpis = asyncHandler(async (req, res) => {
+  const result = await getEnterpriseKpis(req.branchId);
+  res.json(result);
+});
+
+const getSlaAnalytics = asyncHandler(async (req, res) => {
+  const result = await getSlaDashboard(req.branchId, {
+    tab: req.query.tab || 'breached',
+    page: Number(req.query.page) || 1,
+    limit: Number(req.query.limit) || 20,
+  });
+  res.json(result);
+});
+
+const listAuditLog = asyncHandler(async (req, res) => {
+  if (!['admin', 'sales_manager'].includes(req.user.role)) {
+    throw new ApiError(403, 'Audit log access restricted');
+  }
+  const result = await listBranchAuditLogs(req.branchId, {
+    page: Number(req.query.page) || 1,
+    limit: Number(req.query.limit) || 50,
+    action: req.query.action,
+    entityType: req.query.entityType || 'lead',
+  });
+  res.json(result);
+});
+
 module.exports = {
   checkDuplicate,
   getTimeline,
@@ -339,4 +383,9 @@ module.exports = {
   bulkExportLeads,
   mergeDuplicateLeads,
   getTransferHistory,
+  getSourceAnalyticsHandler,
+  getExecutivePerformanceHandler,
+  getKpis,
+  getSlaAnalytics,
+  listAuditLog,
 };

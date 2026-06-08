@@ -395,6 +395,10 @@ const updateLead = asyncHandler(async (req, res) => {
   }
 
   Object.assign(lead, data);
+  if (!lead.firstContactAt && (data.status === 'contacted' || ['contacted', 'working_progress', 'follow_up'].includes(nextStatus))) {
+    lead.firstContactAt = new Date();
+    if (!lead.slaContactedAt) lead.slaContactedAt = lead.firstContactAt;
+  }
   if (data.status && lead.reactivation?.isReactivated) {
     const nextStage = REACTIVATION_STATUS_TO_STAGE[data.status];
     if (nextStage) {
