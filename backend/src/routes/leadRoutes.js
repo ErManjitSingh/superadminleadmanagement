@@ -33,6 +33,8 @@ const {
   addCallNote,
   bulkUpdateStatus,
   bulkExportLeads,
+  mergeDuplicateLeads,
+  getTransferHistory,
 } = require('../controllers/enterpriseLeadController');
 
 router.use(protect);
@@ -42,7 +44,9 @@ router.get('/recycle-bin', listRecycleBin);
 router.get('/analytics/aging', getAgingAnalytics);
 router.post('/bulk-status', requirePermission('leads', 'edit'), bulkUpdateStatus);
 router.post('/bulk-export', requirePermission('leads', 'view'), bulkExportLeads);
+router.post('/merge', authorize('admin', 'sales_manager'), mergeDuplicateLeads);
 router.get('/:id/timeline', getTimeline);
+router.get('/:id/transfer-history', getTransferHistory);
 router.get('/:id/audit', getAudit);
 router.get('/:id/call-notes', listCallNotes);
 router.post('/:id/call-notes', addCallNote);

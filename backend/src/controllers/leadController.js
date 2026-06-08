@@ -34,6 +34,7 @@ const {
 } = require('../services/leadAssignmentService');
 const { setReactivationStage } = require('../services/reactivationService');
 const { logLeadActivity } = require('../services/leadActivityService');
+const { logLeadTransfer } = require('../services/leadTransferService');
 const { logAudit, diffLeadChanges } = require('../services/leadAuditService');
 const { applyLeadMetrics } = require('../services/leadScoringService');
 const {
@@ -631,21 +632,40 @@ const assignLeads = asyncHandler(async (req, res) => {
     patch.assignedTeamLeader = req.user._id;
   }
 
+  const leadsBefore = await Lead.find({
+    _id: { $in: ids },
+    ...(branchId ? { branchId } : {}),
+    isDeleted: { $ne: true },
+  }).select('_id assignedTo branchId');
+
   await Lead.updateMany(
     { _id: { $in: ids }, ...(branchId ? { branchId } : {}), isDeleted: { $ne: true } },
     patch
   );
 
+  const transferType = ids.length > 1 ? 'bulk_assign' : 'assign';
   await Promise.all(
-    ids.map((id) =>
-      logLeadActivity({
-        leadId: id,
-        branchId: branchId || req.branchId,
-        type: 'lead_assigned',
-        description: `Assigned to ${assignee.name}`,
-        actor: req.user,
-        meta: { assigneeId: assignee._id, role: assigneeRole },
-      })
+    leadsBefore.map((lead) =>
+      Promise.all([
+        logLeadActivity({
+          leadId: lead._id,
+          branchId: branchId || req.branchId,
+          type: lead.assignedTo ? 'lead_reassigned' : 'lead_assigned',
+          description: `Assigned to ${assignee.name}`,
+          actor: req.user,
+          meta: { assigneeId: assignee._id, role: assigneeRole },
+        }),
+        logLeadTransfer({
+          leadId: lead._id,
+          branchId: lead.branchId || branchId || req.branchId,
+          type: transferType,
+          actor: req.user,
+          fromUserId: lead.assignedTo || null,
+          toUserId: assignee._id,
+          note: `Assigned to ${assignee.name} (${assigneeRole})`,
+          meta: { assigneeRole },
+        }),
+      ])
     )
   );
 
@@ -693,12 +713,31 @@ const transferLeadBranch = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Lead is already in selected branch');
   }
 
+  const fromBranchId = lead.branchId;
   lead.branchId = targetBranch._id;
   lead.assignedTo = null;
   lead.assignedManager = null;
   lead.assignedTeamLeader = null;
   lead.assigneeRole = null;
   await lead.save();
+
+  await logLeadActivity({
+    leadId: lead._id,
+    branchId: targetBranch._id,
+    type: 'lead_transferred',
+    description: `Transferred to branch ${targetBranch.name}`,
+    actor: req.user,
+    meta: { fromBranchId, toBranchId: targetBranch._id },
+  });
+  await logLeadTransfer({
+    leadId: lead._id,
+    branchId: targetBranch._id,
+    type: 'branch_transfer',
+    actor: req.user,
+    fromBranchId,
+    toBranchId: targetBranch._id,
+    note: `Transferred to ${targetBranch.name}`,
+  });
 
   await logActivity({
     type: 'lead_branch_transferred',

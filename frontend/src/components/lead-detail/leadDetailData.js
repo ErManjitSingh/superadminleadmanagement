@@ -31,6 +31,8 @@ export const ACTIVITY_CONFIG = {
   quotation_sent: { label: 'Quotation Sent', icon: FileText, color: 'bg-orange-500/10 text-orange-600' },
   lead_reactivated: { label: 'Lead Reactivated', icon: RefreshCw, color: 'bg-teal-500/10 text-teal-700' },
   lead_reassigned: { label: 'Lead Reassigned', icon: UserCheck, color: 'bg-cyan-500/10 text-cyan-700' },
+  lead_transferred: { label: 'Lead Transferred', icon: UserCheck, color: 'bg-indigo-500/10 text-indigo-700' },
+  lead_merged: { label: 'Lead Merged', icon: UserPlus, color: 'bg-violet-500/10 text-violet-700' },
   reactivation_progress: { label: 'Reactivation Progress', icon: RefreshCw, color: 'bg-sky-500/10 text-sky-700' },
   status_changed: { label: 'Status Changed', icon: RefreshCw, color: 'bg-indigo-500/10 text-indigo-600' },
   lead_converted: { label: 'Lead Converted', icon: Trophy, color: 'bg-emerald-500/10 text-emerald-700' },

@@ -88,3 +88,16 @@ export async function fetchReminders({ tab = 'today', page = 1, limit = 25 } = {
   });
   return data;
 }
+
+export async function mergeLeads(sourceLeadId, targetLeadId) {
+  const { data } = await API.post('/leads/merge', { sourceLeadId, targetLeadId });
+  return data;
+}
+
+export async function fetchLeadTransferHistory(leadId, params = {}) {
+  const { data } = await API.get(`/leads/${leadId}/transfer-history`, {
+    params,
+    skipSuccessToast: true,
+  });
+  return data;
+}

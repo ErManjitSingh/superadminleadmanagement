@@ -5,10 +5,11 @@ import LeadStatusBadge from './LeadStatusBadge';
 import Avatar from '../ui/Avatar';
 import { formatLeadId } from './constants';
 
-export default function LeadKanbanCard({ lead, onClick }) {
+export default function LeadKanbanCard({ lead, onClick, canDrag = true }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead._id,
     data: { lead, status: lead.status },
+    disabled: !canDrag,
   });
 
   const style = {
@@ -26,14 +27,16 @@ export default function LeadKanbanCard({ lead, onClick }) {
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         <span className="font-mono text-[10px] text-brand-600 font-medium">{formatLeadId(lead._id)}</span>
-        <button
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-          className="p-0.5 rounded opacity-0 group-hover:opacity-100 text-content-muted hover:text-content-primary cursor-grab active:cursor-grabbing"
-        >
-          <GripVertical className="w-3.5 h-3.5" />
-        </button>
+        {canDrag ? (
+          <button
+            {...attributes}
+            {...listeners}
+            onClick={(e) => e.stopPropagation()}
+            className="p-0.5 rounded opacity-0 group-hover:opacity-100 text-content-muted hover:text-content-primary cursor-grab active:cursor-grabbing"
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+        ) : null}
       </div>
       <p className="text-sm font-semibold text-content-primary mb-2">{lead.name}</p>
       <div className="flex items-center gap-1.5 text-xs text-content-muted mb-1">

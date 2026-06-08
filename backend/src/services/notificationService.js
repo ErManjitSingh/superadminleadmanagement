@@ -215,6 +215,28 @@ async function notifyFollowUpReminder(followUp, lead) {
   });
 }
 
+async function notifyLeadMerged({ target, source, actor }) {
+  if (!target?._id) return;
+  const branchId = target.branchId || actor?.branchId || null;
+  const recipients = await getActiveUserIdsByRolesInBranch(
+    ['admin', 'sales_manager', 'team_leader'],
+    branchId
+  );
+  if (target.assignedTo) recipients.push(target.assignedTo);
+
+  await notifyUsers(recipients, {
+    branchId,
+    type: T.LEAD_MERGED,
+    title: 'Duplicate lead merged',
+    message: `${source?.name || 'Lead'} merged into ${target.name} by ${actor?.name || 'user'}`,
+    meta: {
+      leadId: target._id,
+      sourceLeadId: source?._id,
+      href: `/leads/${target._id}`,
+    },
+  });
+}
+
 async function notifyFollowUpEscalation({ followUp, lead, level, minutesOverdue, notifyRoles = [] }) {
   const branchId = followUp?.branchId || lead?.branchId || null;
   const recipients = await getActiveUserIdsByRolesInBranch(notifyRoles, branchId);
@@ -398,6 +420,7 @@ module.exports = {
   notifyFollowUpReminder,
   notifyFollowUpMissed,
   notifyFollowUpEscalation,
+  notifyLeadMerged,
   notifyQuotationCreated,
   notifyQuotationApproved,
   notifyQuotationRejected,

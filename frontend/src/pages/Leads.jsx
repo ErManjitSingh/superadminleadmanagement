@@ -33,6 +33,7 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
 import BulkStatusModal from '../components/leads/BulkStatusModal';
 import { bulkUpdateLeadStatus, bulkExportLeads } from '../services/leadEnterpriseApi';
+import { canDragLeadInKanban } from '../lib/kanbanPermissions';
 
 export default function Leads() {
   const location = useLocation();
@@ -210,6 +211,11 @@ export default function Leads() {
     setActiveDragLead(lead);
   };
 
+  const canDragKanban = useCallback(
+    (lead) => canDragLeadInKanban(lead, user),
+    [user]
+  );
+
   const handleDragEnd = (event) => {
     setActiveDragLead(null);
     const { active, over } = event;
@@ -226,7 +232,8 @@ export default function Leads() {
     }
 
     const lead = kanbanLeads.find((l) => l._id === leadId);
-    if (!lead || normalizeLeadStatus(lead.status) === newStatus) return;
+    if (!lead || !canDragKanban(lead)) return;
+    if (normalizeLeadStatus(lead.status) === newStatus) return;
 
     queryClient.setQueryData(['leads', 'kanban', { filters: apiFilters }], (old) => {
       if (!old?.data) return old;
@@ -325,6 +332,7 @@ export default function Leads() {
             columns={KANBAN_COLUMNS}
             leadsByStatus={leadsByStatus}
             onCardClick={setPreviewLead}
+            canDragLead={canDragKanban}
           />
           <DragOverlay>
             {activeDragLead ? (

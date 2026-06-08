@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import LeadKanbanCard from './LeadKanbanCard';
 
-function KanbanColumn({ column, leads, onCardClick }) {
+function KanbanColumn({ column, leads, onCardClick, canDragLead }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.value });
 
   return (
@@ -21,7 +21,12 @@ function KanbanColumn({ column, leads, onCardClick }) {
       >
         <SortableContext items={leads.map((l) => l._id)} strategy={verticalListSortingStrategy}>
           {leads.map((lead) => (
-            <LeadKanbanCard key={lead._id} lead={lead} onClick={onCardClick} />
+            <LeadKanbanCard
+              key={lead._id}
+              lead={lead}
+              onClick={onCardClick}
+              canDrag={canDragLead ? canDragLead(lead) : true}
+            />
           ))}
         </SortableContext>
         {leads.length === 0 && (
@@ -32,7 +37,7 @@ function KanbanColumn({ column, leads, onCardClick }) {
   );
 }
 
-export default function LeadKanbanBoard({ columns, leadsByStatus, onCardClick }) {
+export default function LeadKanbanBoard({ columns, leadsByStatus, onCardClick, canDragLead }) {
   return (
     <div className="overflow-x-auto pb-4 -mx-1 px-1">
       <div className="flex gap-4 min-w-max">
@@ -42,6 +47,7 @@ export default function LeadKanbanBoard({ columns, leadsByStatus, onCardClick })
             column={col}
             leads={leadsByStatus[col.value] || []}
             onCardClick={onCardClick}
+            canDragLead={canDragLead}
           />
         ))}
       </div>

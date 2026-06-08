@@ -10,6 +10,8 @@ const LeadActivity = require('../models/LeadActivity');
 const AuditLog = require('../models/AuditLog');
 const CallNote = require('../models/CallNote');
 const LeadEscalation = require('../models/LeadEscalation');
+const LeadMergeLog = require('../models/LeadMergeLog');
+const LeadTransferLog = require('../models/LeadTransferLog');
 
 async function ensureIndexes() {
   await Promise.all([
@@ -35,6 +37,8 @@ async function ensureIndexes() {
     AuditLog.collection.createIndex({ entityType: 1, entityId: 1, createdAt: -1 }, { background: true }),
     CallNote.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
     LeadEscalation.collection.createIndex({ followUpId: 1, level: 1 }, { unique: true, background: true }),
+    LeadMergeLog.collection.createIndex({ targetLeadId: 1, createdAt: -1 }, { background: true }),
+    LeadTransferLog.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
 
     FollowUp.collection.createIndex({ scheduledAt: 1, status: 1 }, { background: true }),
     FollowUp.collection.createIndex({ branchId: 1, status: 1, scheduledAt: 1 }, { background: true }),

@@ -6,7 +6,9 @@ export default function DuplicateLeadWarning({
   match,
   onOpenExisting,
   onCreateAnyway,
+  onMerge,
   canCreateAnyway = false,
+  canMerge = false,
 }) {
   if (!match) return null;
 
@@ -34,6 +36,11 @@ export default function DuplicateLeadWarning({
           ) : (
             <Button asChild size="sm" variant="outline" className="h-7 text-xs">
               <Link to={`/leads/${match._id}`}>Open Existing Lead</Link>
+            </Button>
+          )}
+          {canMerge && onMerge && (
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs border-violet-400/50 text-violet-700" onClick={onMerge}>
+              Merge into Existing
             </Button>
           )}
           {canCreateAnyway && onCreateAnyway && (

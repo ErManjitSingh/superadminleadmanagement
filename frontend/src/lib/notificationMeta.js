@@ -14,6 +14,7 @@ import {
 export const NOTIFICATION_META = {
   lead_created: { icon: UserPlus, color: 'text-sky-600 bg-sky-500/10' },
   lead_assigned: { icon: UserPlus, color: 'text-indigo-600 bg-indigo-500/10' },
+  lead_merged: { icon: UserPlus, color: 'text-violet-600 bg-violet-500/10' },
   followup_reminder: { icon: CalendarClock, color: 'text-violet-600 bg-violet-500/10' },
   followup_missed: { icon: AlertTriangle, color: 'text-amber-600 bg-amber-500/10' },
   followup_escalation: { icon: AlertTriangle, color: 'text-orange-600 bg-orange-500/10' },

@@ -19,11 +19,13 @@ import {
   LeadFollowUpSection,
   LeadQuotationSection,
   LeadActionPanel,
+  LeadTransferHistory,
   ReactivationActionsModal,
   getLeadDetailData,
 } from '../components/lead-detail';
 import { fetchLeadTimeline } from '../services/leadEnterpriseApi';
 import CallNoteModal from '../components/leads/CallNoteModal';
+import MergeLeadModal from '../components/leads/MergeLeadModal';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -40,6 +42,7 @@ export default function LeadDetail() {
   const [reactivationMode, setReactivationMode] = useState('');
   const [reactivationExecs, setReactivationExecs] = useState([]);
   const [callNoteOpen, setCallNoteOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const notesRef = useRef(null);
 
   const loadLead = useCallback(({ silent = false } = {}) => {
@@ -155,6 +158,7 @@ export default function LeadDetail() {
             onModalOpenChange={setFollowUpModalOpen}
           />
           <LeadQuotationSection quotations={detail.quotations} />
+          <LeadTransferHistory leadId={id} />
         </main>
 
         {/* Right — Quick Actions */}
@@ -180,6 +184,13 @@ export default function LeadDetail() {
               </Button>
             </div>
           )}
+          {isAdmin || user?.role === 'sales_manager' ? (
+            <div className="mb-4">
+              <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setMergeOpen(true)}>
+                Merge Duplicate Lead
+              </Button>
+            </div>
+          ) : null}
           <LeadActionPanel
             lead={lead}
             leadId={id}
@@ -211,6 +222,13 @@ export default function LeadDetail() {
         onClose={() => setCallNoteOpen(false)}
         leadId={id}
         onSaved={() => loadLead({ silent: true })}
+      />
+
+      <MergeLeadModal
+        open={mergeOpen}
+        onClose={() => setMergeOpen(false)}
+        targetLead={lead}
+        onMerged={() => loadLead({ silent: true })}
       />
 
       <ReactivationActionsModal

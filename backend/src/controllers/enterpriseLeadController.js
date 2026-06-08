@@ -11,6 +11,8 @@ const { logLeadActivity } = require('../services/leadActivityService');
 const { logAudit } = require('../services/leadAuditService');
 const { getClientIp } = require('../services/activityService');
 const { applyLeadMetrics } = require('../services/leadScoringService');
+const { mergeLeads } = require('../services/leadMergeService');
+const { getLeadTransferHistory } = require('../services/leadTransferService');
 
 const checkDuplicate = asyncHandler(async (req, res) => {
   const { phone, alternatePhone, email, excludeId } = req.query;
@@ -293,6 +295,36 @@ const bulkExportLeads = asyncHandler(async (req, res) => {
   res.send(csv);
 });
 
+const mergeDuplicateLeads = asyncHandler(async (req, res) => {
+  const { sourceLeadId, targetLeadId } = req.body;
+  if (!sourceLeadId || !targetLeadId) throw new ApiError(400, 'sourceLeadId and targetLeadId are required');
+
+  const { target, moved } = await mergeLeads({
+    sourceLeadId,
+    targetLeadId,
+    actor: req.user,
+    branchId: req.branchId,
+    ip: getClientIp(req),
+  });
+
+  const populated = await Lead.findById(target._id).populate(LEAD_POPULATE).lean();
+  res.json({ message: 'Leads merged successfully', lead: enrichLead(populated), moved });
+});
+
+const getTransferHistory = asyncHandler(async (req, res) => {
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  }).select('_id');
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const result = await getLeadTransferHistory(lead._id, {
+    page: Number(req.query.page) || 1,
+    limit: Number(req.query.limit) || 30,
+  });
+  res.json(result);
+});
+
 module.exports = {
   checkDuplicate,
   getTimeline,
@@ -305,4 +337,6 @@ module.exports = {
   addCallNote,
   bulkUpdateStatus,
   bulkExportLeads,
+  mergeDuplicateLeads,
+  getTransferHistory,
 };

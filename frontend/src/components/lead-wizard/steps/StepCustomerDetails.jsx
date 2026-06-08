@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useWizardForm } from '../WizardFormContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, User, Phone, MapPin } from 'lucide-react';
@@ -21,7 +22,9 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
   const [searching, setSearching] = useState(false);
   const [duplicate, setDuplicate] = useState(null);
   const [forceCreate, setForceCreate] = useState(false);
+  const navigate = useNavigate();
   const canCreateAnyway = ['admin', 'sales_manager'].includes(user?.role);
+  const canMerge = canCreateAnyway;
 
   useEffect(() => {
     if (forceCreate) return;
@@ -74,7 +77,9 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
             <DuplicateLeadWarning
               match={duplicate}
               canCreateAnyway={canCreateAnyway}
+              canMerge={canMerge}
               onCreateAnyway={() => setForceCreate(true)}
+              onMerge={() => navigate(`/leads/${duplicate._id}`)}
             />
           </motion.div>
         )}
