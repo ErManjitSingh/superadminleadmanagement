@@ -120,149 +120,141 @@
   margin-bottom: 4px;
 }
 
-/* ── Package hero card ── */
-.quote-ht-package-hero {
+/* ── Package hero header ── */
+.quote-ht-header-block {
   margin: 0;
-  padding: 16px 20px 18px;
-  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 45%, #fff7ed 100%);
   border-bottom: 1px solid var(--ht-border);
-  position: relative;
+  background: #fff;
 }
 
-.quote-ht-package-hero::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background: linear-gradient(180deg, var(--ht-teal), var(--ht-orange));
-}
-
-.quote-ht-package-hero-inner {
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.quote-ht-package-hero-left {
-  flex: 1;
-  min-width: 240px;
-  padding-left: 8px;
-}
-
-.quote-ht-package-hero-badges {
-  display: flex;
-  flex-wrap: wrap;
+.quote-ht-package-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px 24px;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
+  padding: 18px 20px 14px;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 48%, #fff7ed 100%);
+  border-bottom: 3px solid var(--ht-teal);
 }
 
-.quote-ht-package-hero .pkg-code {
+.quote-ht-package-hero-main {
+  min-width: 0;
+}
+
+.pkg-code {
+  display: inline-block;
   background: linear-gradient(135deg, var(--ht-teal-deep), var(--ht-teal));
   color: #fff;
   font-weight: 800;
-  font-size: 12px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 6px;
+  margin-bottom: 10px;
   box-shadow: 0 2px 8px rgba(15, 118, 110, 0.3);
 }
 
-.quote-ht-package-hero .pkg-category {
-  background: #fff;
-  color: #c2410c;
-  border: 1.5px solid #fdba74;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.quote-ht-package-hero .pkg-title {
+.pkg-title {
   margin: 0 0 10px;
   font-size: 18px;
   font-weight: 800;
   color: var(--ht-teal-deep);
   line-height: 1.35;
-  max-width: 520px;
+  letter-spacing: -0.01em;
 }
 
-.quote-ht-package-chips {
+.pkg-meta-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
-.quote-ht-package-chips .pkg-chip {
-  font-size: 9.5px;
+.pkg-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--ht-teal-deep);
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid #99f6e4;
   padding: 4px 10px;
   border-radius: 20px;
+  border: 1px solid transparent;
 }
 
-.quote-ht-package-chips .pkg-chip-duration {
-  background: var(--ht-teal-light);
-  border-color: #5eead4;
-  font-weight: 700;
+.pkg-chip-duration {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
 }
 
-.quote-ht-package-chips .pkg-chip-route {
-  max-width: 280px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.pkg-chip-route {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
 }
 
-.quote-ht-package-price-card {
-  flex-shrink: 0;
-  min-width: 160px;
-  background: linear-gradient(145deg, #fff7ed, #ffedd5);
-  border: 2px solid #fdba74;
+.pkg-chip-category {
+  background: var(--ht-orange-light);
+  color: #c2410c;
+  border-color: #fdba74;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quote-ht-package-hero-price {
+  text-align: right;
+  background: #fff;
+  border: 2px solid var(--ht-orange);
   border-radius: 12px;
   padding: 14px 18px;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  min-width: 160px;
   box-shadow: 0 4px 14px rgba(234, 88, 12, 0.12);
 }
 
-.quote-ht-package-price-card .pkg-price-label {
+.quote-ht-package-hero-price .price-label {
+  display: block;
   font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #9a3412;
+  color: var(--ht-muted);
   margin-bottom: 4px;
 }
 
-.quote-ht-package-price-card .pkg-price-value {
+.quote-ht-package-hero-price .price-value {
+  display: block;
   font-size: 28px;
   font-weight: 900;
   color: var(--ht-orange);
-  line-height: 1;
+  line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
-.quote-ht-package-price-card .pkg-price-note {
-  font-size: 8.5px;
-  color: #c2410c;
+.quote-ht-package-hero-price .price-note {
+  display: block;
+  font-size: 8px;
+  color: var(--ht-muted);
   margin-top: 6px;
-  opacity: 0.85;
 }
 
-/* legacy banner — unused */
+.quote-ht-dest-compact {
+  margin-top: 0;
+  padding: 0 20px 16px;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+}
+
+.quote-ht-dest-compact .quote-ht-dest-gallery {
+  margin: 0;
+}
+
+/* legacy banner — keep for reference */
 .quote-ht-package-banner {
-  display: none;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border-bottom: 4px solid var(--ht-orange);
+  padding: 14px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
 }
 
 .quote-ht-package-banner .pkg-short {
@@ -308,7 +300,7 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--ht-teal-deep);
-  margin: 8px 20px 12px;
+  margin: 16px 20px 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   position: relative;
@@ -710,8 +702,7 @@
 
 /* ── Destination gallery (above itinerary) ── */
 .quote-ht-dest-section {
-  margin-top: 14px;
-  margin-bottom: 0;
+  margin-top: 18px;
   page-break-inside: avoid;
 }
 
@@ -890,6 +881,15 @@
   .quote-ht-inc-exc .inc {
     border-right: none;
     border-bottom: 1px solid var(--ht-border);
+  }
+
+  .quote-ht-package-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .quote-ht-package-hero-price {
+    text-align: left;
+    width: 100%;
   }
 
   .quote-ht-dest-gallery {

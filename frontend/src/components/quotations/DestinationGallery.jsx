@@ -31,7 +31,7 @@ function GalleryImage({ src, alt, className, style }) {
   );
 }
 
-export default function DestinationGallery({ quote, destination, hideSectionTitle = false }) {
+export default function DestinationGallery({ quote, destination, compact = false }) {
   const images = resolveDestinationImages(quote);
   const [ready, setReady] = useState(false);
 
@@ -62,8 +62,8 @@ export default function DestinationGallery({ quote, destination, hideSectionTitl
   const destLabel = destination?.split(/[,·]/)[0]?.trim() || hero.label;
 
   return (
-    <div className="quote-ht-dest-section">
-      {!hideSectionTitle && (
+    <div className={`quote-ht-dest-section ${compact ? 'quote-ht-dest-compact' : ''}`}>
+      {!compact && (
         <div className="quote-ht-section-title">Destination Highlights — {destLabel}</div>
       )}
       <div className={`quote-ht-dest-gallery ${ready ? 'quote-ht-dest-ready' : ''}`}>
