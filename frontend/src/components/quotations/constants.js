@@ -45,5 +45,6 @@ export const COMPANY_INFO = {
   tagline: 'Crafting Unforgettable Journeys Across India & Beyond',
   phone: '+91 98765 43210',
   email: 'quotes@unotrips.com',
-  address: 'Shimla, Himachal Pradesh · Pan-India Travel Desk',
+  website: 'unotrips.com',
+  address: '2nd Floor, Sheril Villa, Near East End Hotel NH-22 Bye-Pass, Panthaghati, Shimla, Himachal Pradesh 171009',
 };

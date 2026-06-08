@@ -1,0 +1,410 @@
+/* PTW Holidays / Himachal Tour CRM quotation PDF template */
+.quote-ht-pdf {
+  --ht-teal: #0f766e;
+  --ht-teal-dark: #115e59;
+  --ht-teal-light: #ccfbf1;
+  --ht-orange: #ea580c;
+  --ht-border: #cbd5e1;
+  --ht-muted: #64748b;
+  --ht-text: #1e293b;
+  max-width: 794px;
+  margin: 0 auto;
+  background: #fff;
+  color: var(--ht-text);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.quote-ht-pdf * {
+  box-sizing: border-box;
+}
+
+.quote-ht-topbar {
+  background: linear-gradient(90deg, var(--ht-teal-dark) 0%, var(--ht-teal) 100%);
+  color: #fff;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-ht-logo-block h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.quote-ht-logo-block p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.quote-ht-package-banner {
+  background: #fff;
+  border-bottom: 3px solid var(--ht-orange);
+  padding: 12px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.quote-ht-package-banner .pkg-short {
+  background: var(--ht-teal);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 4px;
+}
+
+.quote-ht-package-banner .pkg-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ht-teal-dark);
+  flex: 1;
+  min-width: 200px;
+}
+
+.quote-ht-package-banner .pkg-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ht-orange);
+}
+
+.quote-ht-package-banner .pkg-badge {
+  background: var(--ht-teal-light);
+  color: var(--ht-teal-dark);
+  border: 1px solid var(--ht-teal);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.quote-ht-section-title {
+  background: var(--ht-teal);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  margin: 16px 18px 0;
+  border-radius: 3px 3px 0 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.quote-ht-section-title.standalone {
+  border-radius: 3px;
+  margin-bottom: 0;
+}
+
+.quote-ht-body {
+  padding: 0 18px 18px;
+}
+
+.quote-ht-welcome {
+  border: 1px solid var(--ht-border);
+  border-top: none;
+  margin: 0 18px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  font-size: 11px;
+  color: #334155;
+}
+
+.quote-ht-welcome strong {
+  color: var(--ht-teal-dark);
+  font-size: 12px;
+}
+
+.quote-ht-overview {
+  width: calc(100% - 36px);
+  margin: 0 18px;
+  border-collapse: collapse;
+  border: 1px solid var(--ht-border);
+  border-top: none;
+  font-size: 11px;
+}
+
+.quote-ht-overview td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.quote-ht-overview tr:last-child td {
+  border-bottom: none;
+}
+
+.quote-ht-overview .label {
+  width: 38%;
+  color: var(--ht-muted);
+  font-weight: 600;
+  background: #f8fafc;
+}
+
+.quote-ht-overview .value {
+  color: var(--ht-text);
+  font-weight: 500;
+}
+
+.quote-ht-table {
+  width: calc(100% - 36px);
+  margin: 0 18px;
+  border-collapse: collapse;
+  border: 1px solid var(--ht-border);
+  border-top: none;
+  font-size: 10.5px;
+}
+
+.quote-ht-table th {
+  background: #f1f5f9;
+  color: var(--ht-teal-dark);
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--ht-teal);
+}
+
+.quote-ht-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.quote-ht-table tr:last-child td {
+  border-bottom: none;
+}
+
+.quote-ht-day-card {
+  margin: 0 18px 12px;
+  border: 1px solid var(--ht-border);
+  border-left: 4px solid var(--ht-teal);
+  background: #fff;
+  page-break-inside: avoid;
+}
+
+.quote-ht-day-head {
+  background: #f0fdfa;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: center;
+}
+
+.quote-ht-day-head .day-title {
+  font-weight: 700;
+  font-size: 11.5px;
+  color: var(--ht-teal-dark);
+  text-transform: uppercase;
+}
+
+.quote-ht-day-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 10px;
+  color: var(--ht-muted);
+}
+
+.quote-ht-day-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quote-ht-day-body {
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.quote-ht-day-extra {
+  padding: 0 12px 10px;
+  font-size: 10.5px;
+  color: #64748b;
+}
+
+.quote-ht-day-extra strong {
+  color: var(--ht-teal-dark);
+}
+
+.quote-ht-inc-exc {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: 0 18px;
+  border: 1px solid var(--ht-border);
+  border-top: none;
+}
+
+.quote-ht-inc-exc > div {
+  padding: 10px 12px;
+}
+
+.quote-ht-inc-exc .inc {
+  border-right: 1px solid var(--ht-border);
+  background: #f0fdf4;
+}
+
+.quote-ht-inc-exc .exc {
+  background: #fff1f2;
+}
+
+.quote-ht-inc-exc h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.quote-ht-inc-exc .inc h4 { color: #166534; }
+.quote-ht-inc-exc .exc h4 { color: #be123c; }
+
+.quote-ht-inc-exc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quote-ht-inc-exc li {
+  margin-bottom: 5px;
+  padding-left: 16px;
+  position: relative;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+.quote-ht-inc-exc .inc li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.quote-ht-inc-exc .exc li::before {
+  content: '✗';
+  position: absolute;
+  left: 0;
+  color: #e11d48;
+  font-weight: 700;
+}
+
+.quote-ht-policy {
+  margin: 0 18px 10px;
+  border: 1px solid var(--ht-border);
+  page-break-inside: avoid;
+}
+
+.quote-ht-policy-head {
+  background: #f1f5f9;
+  padding: 7px 12px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--ht-teal-dark);
+  border-bottom: 1px solid var(--ht-border);
+}
+
+.quote-ht-policy ul {
+  margin: 0;
+  padding: 8px 12px 8px 28px;
+  font-size: 10.5px;
+  color: #475569;
+}
+
+.quote-ht-policy li {
+  margin-bottom: 4px;
+}
+
+.quote-ht-bank-table {
+  width: calc(100% - 36px);
+  margin: 0 18px;
+  border-collapse: collapse;
+  border: 1px solid var(--ht-border);
+  font-size: 10px;
+}
+
+.quote-ht-bank-table th,
+.quote-ht-bank-table td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.quote-ht-bank-table th {
+  background: var(--ht-teal);
+  color: #fff;
+  font-weight: 600;
+}
+
+.quote-ht-bank-table tr:nth-child(even) td {
+  background: #f8fafc;
+}
+
+.quote-ht-planner {
+  margin: 12px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.quote-ht-planner-box {
+  border: 1px solid var(--ht-border);
+  padding: 10px 12px;
+  font-size: 10.5px;
+}
+
+.quote-ht-planner-box h4 {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: var(--ht-teal-dark);
+  font-weight: 700;
+}
+
+.quote-ht-footer {
+  margin-top: 14px;
+  background: var(--ht-teal-dark);
+  color: #fff;
+  padding: 14px 18px;
+  font-size: 10px;
+  text-align: center;
+}
+
+.quote-ht-footer p {
+  margin: 3px 0;
+}
+
+.quote-ht-footer .brand {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.quote-ht-main-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ht-teal-dark);
+  margin: 14px 18px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media print {
+  .quote-ht-pdf {
+    max-width: none;
+  }
+  .quote-ht-day-card,
+  .quote-ht-policy,
+  .quote-ht-inc-exc {
+    page-break-inside: avoid;
+  }
+}
