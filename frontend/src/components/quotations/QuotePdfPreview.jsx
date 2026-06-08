@@ -46,17 +46,17 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const pax = resolveTravelerCounts(quote);
   const nights = Math.max(1, (pkg.duration || 1) - 1);
   const shortName = pkg.shortName || pkg.name?.split(' ').slice(0, 2).join(' ') || 'Package';
-  const brandInitials = COMPANY_INFO.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div ref={ref} className="quote-ht-pdf">
       <div className="quote-ht-topbar">
         <div className="quote-ht-brand-row">
-          <div className="quote-ht-logo-mark">{brandInitials}</div>
-          <div className="quote-ht-logo-block">
-            <h1>{COMPANY_INFO.name}</h1>
-            <p>{COMPANY_INFO.tagline}</p>
-          </div>
+          <img
+            src={COMPANY_INFO.logoUrl}
+            alt={COMPANY_INFO.name}
+            className="quote-ht-logo-img"
+            crossOrigin="anonymous"
+          />
         </div>
         <div className="quote-ht-quote-meta">
           <div className="qnum">{quote.quoteNumber}</div>
@@ -351,10 +351,16 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       </div>
 
       <div className="quote-ht-footer">
-        <p className="brand">{COMPANY_INFO.name}</p>
+        <img
+          src={COMPANY_INFO.logoUrl}
+          alt={COMPANY_INFO.name}
+          className="quote-ht-footer-logo"
+          crossOrigin="anonymous"
+        />
+        <p>{COMPANY_INFO.tagline}</p>
         <p>{COMPANY_INFO.address}</p>
         <p>{COMPANY_INFO.phone} · {COMPANY_INFO.email}</p>
-        <p style={{ marginTop: 8, opacity: 0.85 }}>Follow With Us · Thank you for choosing {COMPANY_INFO.name}</p>
+        <p style={{ marginTop: 8, opacity: 0.9 }}>Thank you for choosing {COMPANY_INFO.name}</p>
       </div>
     </div>
   );

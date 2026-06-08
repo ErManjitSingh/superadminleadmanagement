@@ -41,8 +41,9 @@ export const HOTEL_CATEGORIES = ['Budget', '3 Star', '4 Star', '5 Star', 'Luxury
 export const MEAL_PLANS = ['EP (Room Only)', 'CP (Breakfast)', 'MAP (Breakfast + Dinner)', 'AP (All Meals)', 'All Inclusive'];
 
 export const COMPANY_INFO = {
-  name: 'UNO Trips',
-  tagline: 'Crafting Unforgettable Journeys Across India & Beyond',
+  name: 'UNO TRIPS',
+  tagline: 'Travel made simple',
+  logoUrl: 'https://unotrips.com/images/homelogo.webp',
   phone: '+91 98765 43210',
   email: 'quotes@unotrips.com',
   website: 'unotrips.com',
