@@ -90,13 +90,13 @@ export function ReactivationFlowSteps() {
   ];
   return (
     <div className="rounded-2xl border border-teal-500/20 bg-surface/60 p-4 overflow-x-auto">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-content-muted mb-3">Lead recovery flow</p>
+      <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted mb-3">Lead recovery flow</p>
       <div className="flex items-center gap-2 min-w-max">
         {steps.map((step, i) => (
           <div key={step.label} className="flex items-center gap-2">
             <span
               className={cn(
-                'px-3 py-1.5 rounded-full text-xs font-semibold ring-1 ring-inset whitespace-nowrap',
+                'px-3 py-1.5 rounded-full text-xs font-medium ring-1 ring-inset whitespace-nowrap',
                 step.tone === 'slate' && 'bg-slate-500/10 text-slate-600 ring-slate-500/25',
                 step.tone === 'teal' && 'bg-teal-500/10 text-teal-700 ring-teal-500/25',
                 step.tone === 'amber' && 'bg-amber-500/10 text-amber-700 ring-amber-500/25',
@@ -199,7 +199,7 @@ export function ReactivationFiltersPanel({
           />
         </div>
         <label className="block">
-          <span className="text-[10px] uppercase font-semibold text-content-muted mb-1 block">Stage</span>
+          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">Stage</span>
           <select value={stage} onChange={(e) => onStageChange(e.target.value)} className="input-premium h-10 w-full">
             {stages.map((s) => (
               <option key={s.value || 'all'} value={s.value}>{s.label}</option>
@@ -207,7 +207,7 @@ export function ReactivationFiltersPanel({
           </select>
         </label>
         <label className="block">
-          <span className="text-[10px] uppercase font-semibold text-content-muted mb-1 block">Status</span>
+          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">Status</span>
           <select value={status} onChange={(e) => onStatusChange(e.target.value)} className="input-premium h-10 w-full">
             {statuses.map((s) => (
               <option key={s.value || 'all'} value={s.value}>{s.label}</option>
@@ -215,7 +215,7 @@ export function ReactivationFiltersPanel({
           </select>
         </label>
         <label className="block">
-          <span className="text-[10px] uppercase font-semibold text-content-muted mb-1 block">Executive</span>
+          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">Executive</span>
           <select value={executiveId} onChange={(e) => onExecutiveChange(e.target.value)} className="input-premium h-10 w-full">
             <option value="">All executives</option>
             {executives.map((ex) => (
@@ -224,11 +224,11 @@ export function ReactivationFiltersPanel({
           </select>
         </label>
         <label className="block">
-          <span className="text-[10px] uppercase font-semibold text-content-muted mb-1 block">From date</span>
+          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">From date</span>
           <input type="date" value={from} onChange={(e) => onFromChange(e.target.value)} className="input-premium h-10 w-full" />
         </label>
         <label className="block">
-          <span className="text-[10px] uppercase font-semibold text-content-muted mb-1 block">To date</span>
+          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">To date</span>
           <input type="date" value={to} onChange={(e) => onToChange(e.target.value)} className="input-premium h-10 w-full" />
         </label>
       </div>

@@ -11,7 +11,7 @@ function DetailRow({ icon: Icon, label, value }) {
     <div className="flex items-start gap-3 py-2.5 border-b border-subtle last:border-0">
       <Icon className="w-4 h-4 text-content-muted mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-[11px] font-medium text-content-muted uppercase tracking-wider">{label}</p>
+        <p className="text-[11px] text-content-muted uppercase tracking-wider">{label}</p>
         <p className="text-sm text-content-primary mt-0.5">{value || '—'}</p>
       </div>
     </div>
@@ -47,7 +47,7 @@ export default function LeadPreviewDrawer({ lead, onClose, onAssign, canEditLead
 
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-2">Customer Details</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-2">Customer Details</h3>
               <div className="rounded-xl border border-subtle bg-surface-elevated/40 px-4">
                 <DetailRow icon={Phone} label="Phone" value={lead.phone} />
                 <DetailRow icon={Mail} label="Email" value={lead.email} />
@@ -55,7 +55,7 @@ export default function LeadPreviewDrawer({ lead, onClose, onAssign, canEditLead
             </section>
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-2">Travel Details</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-2">Travel Details</h3>
               <div className="rounded-xl border border-subtle bg-surface-elevated/40 px-4">
                 <DetailRow icon={MapPin} label="Destination" value={lead.destination} />
                 <DetailRow icon={Calendar} label="Travel Date" value={lead.travelDate ? new Date(lead.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : null} />
@@ -66,7 +66,7 @@ export default function LeadPreviewDrawer({ lead, onClose, onAssign, canEditLead
 
             <section>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted">Assigned To</h3>
+                <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted">Assigned To</h3>
                 {onAssign && (
                   <button
                     type="button"
@@ -88,7 +88,7 @@ export default function LeadPreviewDrawer({ lead, onClose, onAssign, canEditLead
 
             {lead.notes && (
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-2">Notes</h3>
+                <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-2">Notes</h3>
                 <p className="text-sm text-content-secondary p-4 rounded-xl border border-subtle bg-surface-elevated/40 italic">
                   &ldquo;{lead.notes}&rdquo;
                 </p>
@@ -96,7 +96,7 @@ export default function LeadPreviewDrawer({ lead, onClose, onAssign, canEditLead
             )}
 
             <section>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-2">Follow Ups</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-2">Follow Ups</h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between p-3 rounded-lg bg-surface-elevated/40 border border-subtle">
                   <span className="text-content-muted">Last</span>

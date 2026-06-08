@@ -19,7 +19,7 @@ export default function MetricCard({ label, value, change, changeType = 'up', ic
       <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accentColors[accent]}`} />
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-2">{label}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-content-muted mb-2">{label}</p>
           <p className="text-3xl font-bold text-content-primary metric-tabular truncate">{value}</p>
           {change !== undefined && (
             <div className="flex items-center gap-1 mt-2">

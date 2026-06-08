@@ -29,7 +29,7 @@ export default function ManagerProfilePage() {
             <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-surface-elevated/50 border border-subtle">
               <div className="p-2 rounded-lg bg-violet-500/10"><Icon className="w-4 h-4 text-violet-600" /></div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{label}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
                 <p className="text-sm font-medium text-content-primary">{value}</p>
               </div>
             </div>

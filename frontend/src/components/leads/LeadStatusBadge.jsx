@@ -26,7 +26,7 @@ export default function LeadStatusBadge({ status, pulse = false, size = 'md' }) 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full font-semibold ring-1 ring-inset whitespace-nowrap',
+        'inline-flex items-center gap-1.5 rounded-full font-medium ring-1 ring-inset whitespace-nowrap',
         size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs',
         c.class,
         pulse && 'animate-pulse-soft'

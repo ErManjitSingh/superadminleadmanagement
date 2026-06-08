@@ -46,7 +46,7 @@ export default function TargetTracker({ target }) {
           { label: 'Remaining', value: formatCurrency(Math.max(0, target.monthlyTarget - target.revenueAchieved)) },
         ].map(({ label, value }) => (
           <div key={label} className="p-3 rounded-xl bg-surface-elevated/50 border border-subtle text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-content-muted">{label}</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
             <p className="text-lg font-bold text-content-primary tabular-nums mt-0.5">{value}</p>
           </div>
         ))}

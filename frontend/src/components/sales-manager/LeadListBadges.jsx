@@ -34,7 +34,7 @@ function destStyle(name = '') {
 
 export function LeadIdPill({ id }) {
   return (
-    <span className="inline-flex items-center gap-0.5 font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-gradient-to-r from-brand-500/15 to-indigo-500/15 text-brand-700 dark:text-brand-300 ring-1 ring-brand-400/30">
+    <span className="inline-flex items-center gap-0.5 font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-gradient-to-r from-brand-500/15 to-indigo-500/15 text-brand-700 dark:text-brand-300 ring-1 ring-brand-400/30">
       <Sparkles className="w-3 h-3 text-brand-500" />
       {id}
     </span>
@@ -50,7 +50,7 @@ export function SourceBadge({ source, label, sourceShort }) {
     (display === 'WA' ? SOURCE_STYLES.wa : null) ||
     SOURCE_STYLES.website;
   return (
-    <span className={cn('inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset whitespace-nowrap', style)}>
+    <span className={cn('inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset whitespace-nowrap', style)}>
       {display}
     </span>
   );
@@ -58,7 +58,7 @@ export function SourceBadge({ source, label, sourceShort }) {
 
 export function DestinationChip({ name }) {
   return (
-    <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-semibold ring-1 ring-inset bg-gradient-to-r max-w-[120px] truncate', destStyle(name))}>
+    <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-normal ring-1 ring-inset bg-gradient-to-r max-w-[120px] truncate', destStyle(name))}>
       <MapPin className="w-3 h-3 shrink-0 opacity-70" />
       {name}
     </span>
@@ -73,7 +73,7 @@ export function BudgetBadge({ amount }) {
     'bg-gradient-to-r from-sky-500/15 to-blue-500/10 text-sky-700 ring-sky-400/30';
 
   return (
-    <span className={cn('inline-flex px-1.5 py-0.5 rounded-md text-[11px] font-bold tabular-nums ring-1 ring-inset whitespace-nowrap', tier)}>
+    <span className={cn('inline-flex px-1.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ring-1 ring-inset whitespace-nowrap', tier)}>
       {formatBudget(amount)}
     </span>
   );
@@ -82,7 +82,7 @@ export function BudgetBadge({ amount }) {
 export function ExecutiveBadge({ name, unassigned }) {
   if (unassigned || !name) {
     return (
-      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-gradient-to-r from-amber-500/20 to-orange-500/15 text-amber-700 ring-1 ring-amber-400/40">
+      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-gradient-to-r from-amber-500/20 to-orange-500/15 text-amber-700 ring-1 ring-amber-400/40">
         <User className="w-3 h-3" /> Unassigned
       </span>
     );
@@ -90,7 +90,7 @@ export function ExecutiveBadge({ name, unassigned }) {
   return (
     <span className="inline-flex items-center gap-1.5 max-w-[130px]">
       <Avatar name={name} size="sm" className="!w-6 !h-6 !text-[9px] ring-1 ring-violet-500/20 shrink-0" />
-      <span className="text-[11px] font-semibold text-content-primary truncate">{name}</span>
+      <span className="text-[11px] font-normal text-content-primary truncate">{name}</span>
     </span>
   );
 }
@@ -102,7 +102,7 @@ export function ManagerStatusBadge({ status, lead }) {
   const label = isActiveReactivated ? 'active' : (status?.replace(/_/g, ' ') || 'new');
   return (
     <span className={cn(
-      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset capitalize whitespace-nowrap',
+      'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset capitalize whitespace-nowrap',
       STATUS_STYLES[status] || STATUS_STYLES.new
     )}>
       <span className={cn('w-1.5 h-1.5 rounded-full', status === 'new' && 'animate-pulse', {

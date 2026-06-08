@@ -113,13 +113,13 @@ export default function UserProfilePage() {
             <div key={label} className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-brand-500/10"><Icon className="w-4 h-4 text-brand-600" /></div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{label}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
                 <p className="text-sm font-medium text-content-primary">{value}</p>
               </div>
             </div>
           ))}
           <div className="pt-2 border-t border-subtle">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">Last Login</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted">Last Login</p>
             <p className="text-sm text-content-secondary mt-0.5">{formatLastLogin(profile.lastLogin)}</p>
           </div>
         </motion.div>

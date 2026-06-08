@@ -46,7 +46,7 @@ export default function ExecutiveProfilePage() {
             <div key={label} className="flex items-center gap-3 p-4 rounded-xl bg-surface-elevated/50 border border-subtle">
               <div className="p-2 rounded-lg bg-sky-500/10"><Icon className="w-4 h-4 text-sky-600" /></div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">{label}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
                 <p className="text-sm font-medium text-content-primary">{value}</p>
               </div>
             </div>
@@ -72,7 +72,7 @@ export default function ExecutiveProfilePage() {
             <div className={`inline-flex p-2 rounded-xl bg-gradient-to-br ${gradient} text-white mb-2`}>
               <Icon className="w-4 h-4" />
             </div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-content-muted">{label}</p>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
             <p className="text-lg font-bold text-content-primary tabular-nums">{value}</p>
           </motion.div>
         ))}

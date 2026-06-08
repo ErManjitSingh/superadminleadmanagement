@@ -130,7 +130,7 @@ export default function MyLeadsPage() {
     }),
     columnHelper.accessor('travelDate', {
       header: 'Travel Date',
-      cell: (i) => <span className="text-xs font-medium">{formatTravelDate(i.getValue())}</span>,
+      cell: (i) => <span className="text-xs text-content-secondary">{formatTravelDate(i.getValue())}</span>,
     }),
     columnHelper.accessor('budget', {
       header: 'Budget',

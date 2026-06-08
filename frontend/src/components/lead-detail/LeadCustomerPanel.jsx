@@ -8,7 +8,7 @@ function InfoRow({ label, value }) {
   return (
     <div className="flex justify-between gap-3 py-2 border-b border-subtle last:border-0 text-sm">
       <span className="text-content-muted shrink-0">{label}</span>
-      <span className="font-medium text-content-primary text-right capitalize">{value || '—'}</span>
+      <span className="text-content-primary text-right capitalize">{value || '—'}</span>
     </div>
   );
 }
@@ -49,7 +49,7 @@ export default function LeadCustomerPanel({ lead, valueScore }) {
 
       {/* Travel Info */}
       <div className="rounded-2xl border border-subtle bg-surface p-5 shadow-sm">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-3">Travel Information</h3>
+        <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-3">Travel Information</h3>
         <InfoRow label="Destination" value={lead.destination} />
         <InfoRow label="Travel Date" value={lead.travelDate ? new Date(lead.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} />
         <InfoRow label="Adults" value={lead.adults ?? Math.max(1, (lead.travelers || 2) - (lead.children || 0))} />
@@ -60,12 +60,12 @@ export default function LeadCustomerPanel({ lead, valueScore }) {
 
       {/* Assignment */}
       <div className="rounded-2xl border border-subtle bg-surface p-5 shadow-sm">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-3">Assignment</h3>
+        <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-3">Assignment</h3>
         {lead.assignedTo?.name ? (
           <div className="flex items-center gap-3">
             <Avatar name={lead.assignedTo.name} />
             <div>
-              <p className="text-sm font-semibold text-content-primary">{lead.assignedTo.name}</p>
+              <p className="text-sm font-medium text-content-primary">{lead.assignedTo.name}</p>
               <p className="text-xs text-content-muted capitalize">
                 {(lead.assigneeRole || 'sales_executive').replace(/_/g, ' ')}
               </p>
@@ -82,7 +82,7 @@ export default function LeadCustomerPanel({ lead, valueScore }) {
       {/* Value Score */}
       <div className="rounded-2xl border border-subtle bg-gradient-to-br from-brand-500/5 to-violet-500/5 p-5">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted">Customer Value Score</h3>
+          <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted">Customer Value Score</h3>
           <span className="text-2xl font-bold text-brand-600 metric-tabular">{valueScore}</span>
         </div>
         <div className="h-2 rounded-full bg-surface-elevated overflow-hidden">

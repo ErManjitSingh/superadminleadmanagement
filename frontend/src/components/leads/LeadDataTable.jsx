@@ -101,7 +101,7 @@ export default function LeadDataTable({
       {
         accessorKey: 'phone',
         header: 'Phone',
-        cell: ({ getValue }) => <span className="text-sm text-content-secondary whitespace-nowrap font-medium">{getValue()}</span>,
+        cell: ({ getValue }) => <span className="text-sm text-content-secondary whitespace-nowrap">{getValue()}</span>,
       },
       {
         accessorKey: 'destination',
@@ -112,7 +112,7 @@ export default function LeadDataTable({
         accessorKey: 'travelDate',
         header: 'Travel Date',
         cell: ({ getValue }) => (
-          <span className="text-xs font-medium px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-700 ring-1 ring-indigo-400/25 whitespace-nowrap">
+          <span className="text-xs px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-700 ring-1 ring-indigo-400/25 whitespace-nowrap">
             {formatDate(getValue())}
           </span>
         ),
@@ -165,13 +165,13 @@ export default function LeadDataTable({
       {
         accessorKey: 'lastFollowUp',
         header: 'Last Follow Up',
-        cell: ({ getValue }) => <span className="text-xs text-violet-600/80 font-medium whitespace-nowrap">{formatDateTime(getValue())}</span>,
+        cell: ({ getValue }) => <span className="text-xs text-violet-600/80 whitespace-nowrap">{formatDateTime(getValue())}</span>,
       },
       {
         accessorKey: 'nextFollowUp',
         header: 'Next Follow Up',
         cell: ({ getValue }) => (
-          <span className={`text-xs font-semibold whitespace-nowrap px-2 py-0.5 rounded-md ${getValue() ? 'bg-amber-500/10 text-amber-700' : 'text-content-muted'}`}>
+          <span className={`text-xs whitespace-nowrap px-2 py-0.5 rounded-md ${getValue() ? 'font-medium bg-amber-500/10 text-amber-700' : 'text-content-muted'}`}>
             {formatDateTime(getValue())}
           </span>
         ),

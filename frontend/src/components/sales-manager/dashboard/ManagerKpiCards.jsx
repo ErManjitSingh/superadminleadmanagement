@@ -36,7 +36,7 @@ export default function ManagerKpiCards({ kpis }) {
             <div className={`inline-flex p-2 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-md mb-3`}>
               <Icon className="w-4 h-4" />
             </div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-content-muted leading-tight">{label}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted leading-tight">{label}</p>
             <p className="text-xl font-bold text-content-primary mt-1 tabular-nums">
               {format ? format(kpis[key]) : `${kpis[key]}${suffix || ''}`}
             </p>
