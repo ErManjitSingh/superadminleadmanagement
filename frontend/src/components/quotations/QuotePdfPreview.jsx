@@ -18,6 +18,15 @@ import {
 } from './quotePdfHelpers';
 import DestinationGallery from './DestinationGallery';
 
+function displayPackageTitle(name, nights, duration) {
+  if (!name) return 'Travel Package';
+  if (/\d+\s*nights?\s*\d+\s*days?/i.test(name) || /\d+\s*days?\s*\d+\s*nights?/i.test(name)) {
+    return name;
+  }
+  if (nights > 0 && duration) return `${name} · ${nights} Nights ${duration} Days`;
+  return name;
+}
+
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
   return (
@@ -65,18 +74,30 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </div>
       </div>
 
-      {/* Package banner — same as reference PDF header row */}
-      <div className="quote-ht-package-banner">
-        <span className="pkg-short">{shortName}</span>
-        <span className="pkg-name">
-          {pkg.name}
-          {nights > 0 && ` · ${nights} Nights ${pkg.duration} Days`}
-        </span>
-        <span className="pkg-price">{formatINR(p.total)}</span>
-        <span className="pkg-badge">{pkg.packageCategory}</span>
+      {/* Package hero card */}
+      <div className="quote-ht-package-hero">
+        <div className="quote-ht-package-hero-inner">
+          <div className="quote-ht-package-hero-left">
+            <div className="quote-ht-package-hero-badges">
+              <span className="pkg-code">{shortName}</span>
+              <span className="pkg-category">{pkg.packageCategory}</span>
+            </div>
+            <h2 className="pkg-title">{displayPackageTitle(pkg.name, nights, pkg.duration)}</h2>
+            <div className="quote-ht-package-chips">
+              <span className="pkg-chip pkg-chip-duration">{nights}N / {pkg.duration}D</span>
+              {(pkg.routing || pkg.destination) && (
+                <span className="pkg-chip pkg-chip-route">{pkg.routing || pkg.destination}</span>
+              )}
+              {lead.name && <span className="pkg-chip">For: {lead.name}</span>}
+            </div>
+          </div>
+          <div className="quote-ht-package-price-card">
+            <span className="pkg-price-label">Total Package Cost</span>
+            <span className="pkg-price-value">{formatINR(p.total)}</span>
+            <span className="pkg-price-note">Inclusive quote · {quote.quoteNumber}</span>
+          </div>
+        </div>
       </div>
-
-      <h2 className="quote-ht-main-title">Detailed Day Wise Itinerary</h2>
 
       {/* Welcome block */}
       <div className="quote-ht-welcome">
@@ -198,18 +219,18 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Destination photo gallery — above day-wise itinerary */}
+      {/* Destination photos — directly above itinerary title */}
       <DestinationGallery
         quote={quote}
         destination={pkg.routing || pkg.destination}
+        hideSectionTitle
       />
+
+      <h2 className="quote-ht-main-title">Detailed Day Wise Itinerary</h2>
 
       {/* Day-wise itinerary */}
       {pkg.itinerary?.length > 0 && (
         <>
-          <div className="quote-ht-section-title standalone" style={{ marginTop: 16, marginBottom: 10 }}>
-            Day Wise Itinerary
-          </div>
           {pkg.itinerary.map((day) => {
             const dayDate = getDayDate(lead.travelDate, day.day);
             return (

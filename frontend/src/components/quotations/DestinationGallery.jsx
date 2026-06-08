@@ -31,7 +31,7 @@ function GalleryImage({ src, alt, className, style }) {
   );
 }
 
-export default function DestinationGallery({ quote, destination }) {
+export default function DestinationGallery({ quote, destination, hideSectionTitle = false }) {
   const images = resolveDestinationImages(quote);
   const [ready, setReady] = useState(false);
 
@@ -63,7 +63,9 @@ export default function DestinationGallery({ quote, destination }) {
 
   return (
     <div className="quote-ht-dest-section">
-      <div className="quote-ht-section-title">Destination Highlights — {destLabel}</div>
+      {!hideSectionTitle && (
+        <div className="quote-ht-section-title">Destination Highlights — {destLabel}</div>
+      )}
       <div className={`quote-ht-dest-gallery ${ready ? 'quote-ht-dest-ready' : ''}`}>
         <div className="quote-ht-dest-hero">
           <GalleryImage
