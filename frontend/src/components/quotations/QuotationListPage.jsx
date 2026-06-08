@@ -37,6 +37,7 @@ export default function QuotationListPage() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const [selected, setSelected] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
+  const [autoPrint, setAutoPrint] = useState(false);
   const pdfRef = useRef(null);
   const [searchParams] = useSearchParams();
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
@@ -83,16 +84,9 @@ export default function QuotationListPage() {
     value: 0,
   };
 
-  useEffect(() => {
-    if (!showPdf) return undefined;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prevOverflow; };
-  }, [showPdf]);
-
   const handlePrint = () => {
     setShowPdf(true);
-    setTimeout(() => { window.print(); }, 300);
+    setAutoPrint(true);
   };
 
   const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
@@ -207,8 +201,10 @@ export default function QuotationListPage() {
       <QuotationPdfOverlay
         quote={selected}
         open={showPdf}
-        onClose={() => setShowPdf(false)}
+        onClose={() => { setShowPdf(false); setAutoPrint(false); }}
         pdfRef={pdfRef}
+        autoPrint={autoPrint}
+        onAutoPrintDone={() => setAutoPrint(false)}
       />
     </motion.div>
   );

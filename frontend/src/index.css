@@ -432,25 +432,4 @@
   .followup-calendar .fc-timegrid-now-indicator-line {
     border-color: #7c3aed;
   }
-
-  @media print {
-    body * {
-      visibility: hidden;
-    }
-    .quotation-print-root,
-    .quotation-print-root * {
-      visibility: visible;
-    }
-    .quotation-print-root {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-      overflow: visible !important;
-      background: white !important;
-    }
-    .print\\:hidden {
-      display: none !important;
-    }
-  }
 }
