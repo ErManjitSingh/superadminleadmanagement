@@ -39,8 +39,14 @@ export default function Leads() {
   const { availableBranches, selectedBranchId } = useSelector((s) => s.branch);
   const { can } = usePermissions();
   const isAdmin = user?.role === 'admin';
+  const isSalesManager = user?.role === 'sales_manager';
+  const isManagerRole = isAdmin || isSalesManager;
+  const isLimitedRole = ['team_leader', 'sales_executive'].includes(user?.role);
   const userCanAssignLeads = canAssignLeads(user?.role);
   const canEditLead = can('leads', 'edit');
+  const leadMenuActions = isLimitedRole
+    ? { view: true, edit: false, assign: false, transferBranch: false, delete: false }
+    : { view: true, edit: isManagerRole, assign: isManagerRole, transferBranch: isManagerRole, delete: isManagerRole };
   const config = pageConfig[location.pathname] || pageConfig['/leads'];
 
   const [view, setView] = useState('table');
@@ -276,10 +282,12 @@ export default function Leads() {
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
           onRowClick={setPreviewLead}
-          onDelete={handleDelete}
-          onAssign={userCanAssignLeads ? openAssign : undefined}
-          onTransferBranch={isAdmin ? setTransferLead : undefined}
-          canEditLead={canEditLead}
+          onDelete={isManagerRole ? handleDelete : undefined}
+          onAssign={isManagerRole && userCanAssignLeads ? openAssign : undefined}
+          onTransferBranch={isManagerRole ? setTransferLead : undefined}
+          canEditLead={isManagerRole && canEditLead}
+          menuActions={leadMenuActions}
+          showAssignButton={isManagerRole && userCanAssignLeads}
           serverPagination={{
             pageIndex: pagination.pageIndex,
             pageSize: pagination.pageSize,

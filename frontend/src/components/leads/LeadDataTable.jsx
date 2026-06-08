@@ -7,8 +7,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Eye, Pencil, UserCheck, CalendarPlus, RefreshCw, Trash2 } from 'lucide-react';
+import { Eye, Pencil, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import LeadStatusBadge from './LeadStatusBadge';
 import { formatLeadId } from './constants';
 import {
@@ -52,6 +51,14 @@ function formatDateTime(d) {
   return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
+const defaultMenuActions = {
+  view: true,
+  edit: true,
+  assign: true,
+  transferBranch: true,
+  delete: true,
+};
+
 export default function LeadDataTable({
   leads,
   rowSelection,
@@ -61,8 +68,11 @@ export default function LeadDataTable({
   onAssign,
   onTransferBranch,
   canEditLead = true,
+  menuActions = defaultMenuActions,
+  showAssignButton = true,
   serverPagination = null,
 }) {
+  const actions = { ...defaultMenuActions, ...menuActions };
   const isServer = Boolean(serverPagination);
   const [clientPagination, setClientPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
 
@@ -192,9 +202,15 @@ export default function LeadDataTable({
         header: '',
         cell: ({ row }) => {
           const lead = row.original;
-          const showAssign = !lead.assignedTo?.name && onAssign;
+          const showAssign = showAssignButton && actions.assign && !lead.assignedTo?.name && onAssign;
+          const showEdit = actions.edit && canEditLead;
+          const showAssignMenu = actions.assign && onAssign;
+          const showTransfer = actions.transferBranch && onTransferBranch;
+          const showDelete = actions.delete && onDelete;
+          const hasMenuItems = actions.view || showEdit || showAssignMenu || showTransfer || showDelete;
+
           return (
-            <div className="inline-flex items-stretch justify-end gap-0" onClick={(e) => e.stopPropagation()}>
+            <div className="inline-flex items-stretch justify-end gap-0 isolate" onClick={(e) => e.stopPropagation()}>
               {showAssign && (
                 <Button
                   type="button"
@@ -206,50 +222,56 @@ export default function LeadDataTable({
                   Assign
                 </Button>
               )}
-              <DropdownMenuRoot>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className={showAssign ? moreLeadBtnClass : moreLeadBtnSoloClass}
-                  >
-                    More
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => onRowClick(lead)}>
-                    <Eye className="w-4 h-4 text-sky-600" /> View Lead
-                  </DropdownMenuItem>
-                  {canEditLead && (
-                    <DropdownMenuItem asChild>
-                      <Link to={`/leads/${lead._id}/edit`}><Pencil className="w-4 h-4 text-violet-600" /> Edit Lead</Link>
-                    </DropdownMenuItem>
-                  )}
-                  {onAssign && (
-                    <DropdownMenuItem onClick={() => onAssign(lead)}>
-                      <UserCheck className="w-4 h-4 text-emerald-600" /> Assign Lead
-                    </DropdownMenuItem>
-                  )}
-                  {onTransferBranch && (
-                    <DropdownMenuItem onClick={() => onTransferBranch(lead)}>
-                      <RefreshCw className="w-4 h-4 text-fuchsia-600" /> Transfer Branch
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem><CalendarPlus className="w-4 h-4 text-amber-600" /> Add Follow Up</DropdownMenuItem>
-                  <DropdownMenuItem><RefreshCw className="w-4 h-4 text-indigo-600" /> Change Status</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => onDelete(lead._id)}>
-                    <Trash2 className="w-4 h-4" /> Delete Lead
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenuRoot>
+              {hasMenuItems && (
+                <DropdownMenuRoot>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className={showAssign ? moreLeadBtnClass : moreLeadBtnSoloClass}
+                    >
+                      More
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    {actions.view && (
+                      <DropdownMenuItem onClick={() => onRowClick(lead)}>
+                        <Eye className="w-4 h-4 text-sky-600" /> View Lead
+                      </DropdownMenuItem>
+                    )}
+                    {showEdit && (
+                      <DropdownMenuItem asChild>
+                        <Link to={`/leads/${lead._id}/edit`}><Pencil className="w-4 h-4 text-violet-600" /> Edit Lead</Link>
+                      </DropdownMenuItem>
+                    )}
+                    {showAssignMenu && (
+                      <DropdownMenuItem onClick={() => onAssign(lead)}>
+                        <UserCheck className="w-4 h-4 text-emerald-600" /> Assign Lead
+                      </DropdownMenuItem>
+                    )}
+                    {showTransfer && (
+                      <DropdownMenuItem onClick={() => onTransferBranch(lead)}>
+                        <RefreshCw className="w-4 h-4 text-fuchsia-600" /> Transfer Branch
+                      </DropdownMenuItem>
+                    )}
+                    {showDelete && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => onDelete(lead._id)}>
+                          <Trash2 className="w-4 h-4" /> Delete Lead
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenuRoot>
+              )}
             </div>
           );
         },
       },
     ],
-    [onRowClick, onDelete, onAssign, onTransferBranch, canEditLead]
+    [onRowClick, onDelete, onAssign, onTransferBranch, canEditLead, actions, showAssignButton]
   );
 
   const table = useReactTable({
@@ -302,15 +324,18 @@ export default function LeadDataTable({
               </tr>
             ))}
           </thead>
-          <tbody>
-            {table.getRowModel().rows.map((row, i) => (
-              <motion.tr
+          <tbody className="isolate">
+            {table.getRowModel().rows.map((row, i) => {
+              const even = i % 2 === 0;
+              const rowBg = even ? 'bg-surface' : 'bg-white dark:bg-slate-800';
+              const rowHover = even
+                ? 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                : 'hover:bg-slate-100 dark:hover:bg-slate-700';
+              return (
+              <tr
                 key={row.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.015 }}
                 onClick={() => onRowClick(row.original)}
-                className={`group relative border-b border-subtle/50 last:border-0 cursor-pointer transition-all hover:z-20 hover:bg-gradient-to-r hover:from-brand-500/[0.06] hover:to-violet-500/[0.04] ${i % 2 === 1 ? 'bg-white dark:bg-slate-800/70' : 'bg-surface'}`}
+                className={`group relative z-0 hover:z-[5] border-b border-subtle/50 last:border-0 cursor-pointer transition-colors ${rowBg} ${rowHover}`}
               >
                 {row.getVisibleCells().map((cell) => {
                   const colId = cell.column.id;
@@ -321,8 +346,9 @@ export default function LeadDataTable({
                     </td>
                   );
                 })}
-              </motion.tr>
-            ))}
+              </tr>
+            );
+            })}
           </tbody>
         </table>
       </div>
