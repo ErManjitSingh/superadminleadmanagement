@@ -45,19 +45,22 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const pax = resolveTravelerCounts(quote);
   const nights = Math.max(1, (pkg.duration || 1) - 1);
   const shortName = pkg.shortName || pkg.name?.split(' ').slice(0, 2).join(' ') || 'Package';
+  const brandInitials = COMPANY_INFO.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
   return (
     <div ref={ref} className="quote-ht-pdf">
-      {/* Top company bar */}
       <div className="quote-ht-topbar">
-        <div className="quote-ht-logo-block">
-          <h1>{COMPANY_INFO.name}</h1>
-          <p>{COMPANY_INFO.tagline}</p>
+        <div className="quote-ht-brand-row">
+          <div className="quote-ht-logo-mark">{brandInitials}</div>
+          <div className="quote-ht-logo-block">
+            <h1>{COMPANY_INFO.name}</h1>
+            <p>{COMPANY_INFO.tagline}</p>
+          </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: 10 }}>
-          <div style={{ fontWeight: 700 }}>{quote.quoteNumber}</div>
-          <div style={{ opacity: 0.9 }}>{COMPANY_INFO.phone}</div>
-          <div style={{ opacity: 0.9 }}>{COMPANY_INFO.email}</div>
+        <div className="quote-ht-quote-meta">
+          <div className="qnum">{quote.quoteNumber}</div>
+          <div>{COMPANY_INFO.phone}</div>
+          <div>{COMPANY_INFO.email}</div>
         </div>
       </div>
 
@@ -114,7 +117,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       </table>
 
       {/* Package type cost row */}
-      <table className="quote-ht-table" style={{ marginTop: 12 }}>
+      <table className="quote-ht-table" style={{ marginTop: 14 }}>
         <thead>
           <tr>
             <th>Package Type</th>
@@ -122,11 +125,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           </tr>
         </thead>
         <tbody>
-          <tr>
+          <tr className="quote-ht-amount-row">
             <td style={{ fontWeight: 700 }}>{pkg.packageCategory}</td>
-            <td style={{ textAlign: 'right', fontWeight: 800, color: '#ea580c', fontSize: 13 }}>
-              {formatINR(p.total)}
-            </td>
+            <td style={{ textAlign: 'right' }}>{formatINR(p.total)}</td>
           </tr>
         </tbody>
       </table>
@@ -208,13 +209,24 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               <div key={day.id} className="quote-ht-day-card">
                 <div className="quote-ht-day-head">
                   <div className="day-title">
-                    Day : {day.day} — {day.title}
+                    <span className="quote-ht-day-num">{day.day}</span>
+                    <span>{day.title}</span>
                   </div>
                   <div className="quote-ht-day-meta">
-                    {dayDate && <span>📅 {formatQuoteDate(dayDate)}</span>}
-                    {day.meals && <span>🍽 {day.meals}</span>}
+                    {dayDate && (
+                      <span className="quote-ht-meta-pill">
+                        <span className="lbl">Date</span> {formatQuoteDate(dayDate)}
+                      </span>
+                    )}
+                    {day.meals && (
+                      <span className="quote-ht-meta-pill">
+                        <span className="lbl">Meals</span> {day.meals}
+                      </span>
+                    )}
                     {(day.transport || pkg.cabCategory) && (
-                      <span>🚐 {day.transport || pkg.cabCategory}</span>
+                      <span className="quote-ht-meta-pill">
+                        <span className="lbl">Cab</span> {day.transport || pkg.cabCategory}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -315,9 +327,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <div className="quote-ht-planner-box">
           <h4>Address &amp; Contact Info</h4>
           <div>{COMPANY_INFO.address}</div>
-          <div style={{ marginTop: 6 }}>📞 {COMPANY_INFO.phone}</div>
-          <div>✉ {COMPANY_INFO.email}</div>
-          <div>🌐 {COMPANY_INFO.website || 'unotrips.com'}</div>
+          <div className="quote-ht-contact-line">Phone: {COMPANY_INFO.phone}</div>
+          <div className="quote-ht-contact-line">Email: {COMPANY_INFO.email}</div>
+          <div className="quote-ht-contact-line">Web: {COMPANY_INFO.website || 'unotrips.com'}</div>
         </div>
       </div>
 

@@ -1,63 +1,97 @@
 /**
- * Opens quotation HTML in a dedicated print window so PDF/print
- * is not affected by the CRM shell (sidebar, visibility hacks, etc.).
+ * Builds a self-contained HTML document for quotation print / PDF.
+ * Uses inline template CSS so output always matches on-screen preview.
  */
-export function printQuotation(contentEl, title = 'Quotation') {
-  if (!contentEl) {
-    window.print();
-    return;
-  }
+import quotePdfCss from './quotePdfTemplate.css?inline';
 
-  const printWin = window.open('', '_blank', 'noopener,noreferrer,width=920,height=720');
-  if (!printWin) {
-    window.print();
-    return;
-  }
-
-  const stylesheets = [...document.querySelectorAll('link[rel="stylesheet"]')]
-    .map((link) => link.outerHTML)
-    .join('\n');
-
+export function buildQuotationPrintDocument(contentHtml, title = 'Quotation') {
   const safeTitle = String(title || 'Quotation').replace(/[<>&"]/g, '');
 
-  printWin.document.open();
-  printWin.document.write(`<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${safeTitle}</title>
-  ${stylesheets}
   <style>
-    @page { margin: 10mm; size: A4 portrait; }
+${quotePdfCss}
+    @page { margin: 8mm; size: A4 portrait; }
     html, body {
       margin: 0 !important;
       padding: 0 !important;
       background: #ffffff !important;
       overflow: visible !important;
-    }
-    * {
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
-    img { max-width: 100%; }
   </style>
 </head>
 <body>
-  ${contentEl.outerHTML}
+  ${contentHtml}
 </body>
-</html>`);
-  printWin.document.close();
+</html>`;
+}
 
-  const runPrint = () => {
-    try {
-      printWin.focus();
-      printWin.print();
-    } catch {
-      /* ignore */
+function waitForPrintDocument(doc, win) {
+  return new Promise((resolve) => {
+    const done = () => resolve();
+    if (doc.readyState === 'complete') {
+      setTimeout(done, 350);
+      return;
     }
-  };
+    win.addEventListener('load', () => setTimeout(done, 350), { once: true });
+    setTimeout(done, 2000);
+  });
+}
 
-  printWin.onload = () => setTimeout(runPrint, 500);
-  setTimeout(runPrint, 1500);
+/**
+ * Print via hidden iframe — same HTML/CSS as preview, no popup blockers.
+ */
+export async function printQuotation(contentEl, title = 'Quotation') {
+  if (!contentEl) {
+    window.print();
+    return;
+  }
+
+  const html = buildQuotationPrintDocument(contentEl.outerHTML, title);
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('title', 'Quotation Print');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(iframe);
+
+  const win = iframe.contentWindow;
+  const doc = iframe.contentDocument || win.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+
+  await waitForPrintDocument(doc, win);
+
+  try {
+    win.focus();
+    win.print();
+  } catch {
+    /* ignore */
+  }
+
+  setTimeout(() => iframe.remove(), 1500);
+}
+
+/**
+ * Open print preview in a new tab (same styling as screen preview).
+ */
+export function openQuotationPrintPreview(contentEl, title = 'Quotation') {
+  if (!contentEl) return null;
+
+  const html = buildQuotationPrintDocument(contentEl.outerHTML, title);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const tab = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!tab) {
+    URL.revokeObjectURL(url);
+    printQuotation(contentEl, title);
+    return null;
+  }
+  tab.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+  return tab;
 }
