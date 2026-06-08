@@ -43,7 +43,7 @@ export const MEAL_PLANS = ['EP (Room Only)', 'CP (Breakfast)', 'MAP (Breakfast +
 export const COMPANY_INFO = {
   name: 'UNO TRIPS',
   tagline: 'Travel made simple',
-  logoUrl: 'https://unotrips.com/images/homelogo.webp',
+  logoUrl: '/homelogo.webp',
   phone: '+91 98765 43210',
   email: 'quotes@unotrips.com',
   website: 'unotrips.com',
