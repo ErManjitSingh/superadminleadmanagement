@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
@@ -134,10 +134,10 @@ export default function QuotationListPage() {
         ) : (
           <>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[900px]">
               <thead><tr className="border-b border-subtle bg-surface-elevated/50">
                 {['Quote #', 'Customer', 'Package', 'Amount', 'Status', 'Date', 'Actions'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold uppercase text-content-muted">{h}</th>
+                  <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold uppercase text-content-muted whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
               <tbody className="divide-y divide-subtle">
@@ -148,15 +148,22 @@ export default function QuotationListPage() {
                     </td>
                   </tr>
                 ) : quotes.map((q) => (
-                  <tr key={q._id} className="hover:bg-sky-500/[0.03] cursor-pointer group" onClick={() => setSelected(q)}>
-                    <td className="px-4 py-3.5 font-mono text-sm font-medium text-sky-600">{q.quoteNumber}</td>
-                    <td className="px-4 py-3.5"><div className="flex items-center gap-2"><Avatar name={q.lead?.name} size="sm" className="!w-7 !h-7 !text-[10px]" /><span className="text-sm font-medium">{q.lead?.name}</span></div></td>
-                    <td className="px-4 py-3.5 text-sm text-content-secondary">{q.package?.name || q.packageSnapshot?.name || '—'}</td>
-                    <td className="px-4 py-3.5 text-sm font-semibold metric-tabular">{formatINR(q.pricing?.total)}</td>
-                    <td className="px-4 py-3.5"><QuoteStatusBadge status={q.status} /></td>
-                    <td className="px-4 py-3.5 text-xs text-content-muted">{new Date(q.createdAt).toLocaleDateString('en-IN')}</td>
-                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => { setSelected(q); setShowPdf(true); }} className="p-1.5 rounded-lg hover:bg-sky-500/10 text-sky-600 opacity-0 group-hover:opacity-100" title="Preview PDF"><Eye className="w-3.5 h-3.5" /></button>
+                  <tr key={q._id} className="hover:bg-sky-500/[0.03] group">
+                    <td className="px-4 py-3.5 font-mono text-sm font-medium text-sky-600 whitespace-nowrap">{q.quoteNumber}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center gap-2"><Avatar name={q.lead?.name} size="sm" className="!w-7 !h-7 !text-[10px]" /><span className="text-sm font-medium">{q.lead?.name}</span></div></td>
+                    <td className="px-4 py-3.5 text-sm text-content-secondary whitespace-nowrap">{q.package?.name || q.packageSnapshot?.name || '—'}</td>
+                    <td className="px-4 py-3.5 text-sm font-semibold metric-tabular whitespace-nowrap">{formatINR(q.pricing?.total)}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap"><QuoteStatusBadge status={q.status} /></td>
+                    <td className="px-4 py-3.5 text-xs text-content-muted whitespace-nowrap">{new Date(q.createdAt).toLocaleDateString('en-IN')}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2.5 text-xs"
+                        onClick={() => setSelected(q)}
+                      >
+                        View
+                      </Button>
                     </td>
                   </tr>
                 ))}

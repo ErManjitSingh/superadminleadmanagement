@@ -20,122 +20,108 @@ export default function QuotationFiltersPanel({
   const set = (key, val) => onChange({ ...filters, [key]: val });
 
   return (
-    <div className={cn('rounded-2xl border border-indigo-500/20 bg-surface/80 p-4 space-y-4 shadow-sm', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-content-primary">
+    <div className={cn('rounded-2xl border border-indigo-500/20 bg-surface/80 p-3 shadow-sm', className)}>
+      <div className="flex items-center gap-2 overflow-x-auto flex-nowrap">
+        <div className="flex items-center gap-1.5 shrink-0 text-sm font-medium text-content-primary">
           <Filter className="w-4 h-4 text-indigo-600" />
-          Filters
+          <span className="hidden sm:inline">Filters</span>
           {segmentLabel && (
-            <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 ring-1 ring-indigo-500/25">
+            <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-700 ring-1 ring-indigo-500/25 whitespace-nowrap">
               {segmentLabel}
             </span>
           )}
           {hasActiveFilters && (
-            <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/25">
+            <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 ring-1 ring-amber-500/25 whitespace-nowrap">
               Active
             </span>
           )}
         </div>
-        <div className="flex gap-2">
-          {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh} className="h-8 gap-1">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
-          )}
-          {hasActiveFilters && onClear && (
-            <Button variant="ghost" size="sm" onClick={onClear} className="h-8 gap-1 text-content-muted">
-              <X className="w-3.5 h-3.5" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        <div className="relative sm:col-span-2 lg:col-span-2 xl:col-span-2">
-          <Search className="w-4 h-4 text-indigo-600/70 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative shrink-0 w-44 sm:w-52 lg:w-60">
+          <Search className="w-4 h-4 text-indigo-600/70 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             value={filters.search}
             onChange={(e) => set('search', e.target.value)}
-            placeholder="Search quote #, customer, destination…"
-            className="w-full h-10 pl-10 pr-4 rounded-xl border border-indigo-500/20 bg-surface text-sm outline-none focus:ring-2 focus:ring-indigo-500/35"
+            placeholder="Search quote #, customer…"
+            className="w-full h-9 pl-9 pr-3 rounded-xl border border-indigo-500/20 bg-surface text-sm outline-none focus:ring-2 focus:ring-indigo-500/35"
           />
         </div>
 
         {showStatusFilter && (
-          <label className="block">
-            <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">Status</span>
-            <select
-              value={filters.status}
-              onChange={(e) => set('status', e.target.value)}
-              className="input-premium h-10 w-full"
-            >
-              {statusOptions.map((s) => (
-                <option key={s.value || 'all'} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        <label className="block">
-          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">Destination</span>
           <select
-            value={filters.destination}
-            onChange={(e) => set('destination', e.target.value)}
-            className="input-premium h-10 w-full"
+            value={filters.status}
+            onChange={(e) => set('status', e.target.value)}
+            className="input-premium h-9 w-32 shrink-0 text-sm"
+            title="Status"
           >
-            <option value="">All destinations</option>
-            {DESTINATIONS.map((d) => (
-              <option key={d} value={d}>{d}</option>
+            {statusOptions.map((s) => (
+              <option key={s.value || 'all'} value={s.value}>{s.label}</option>
             ))}
           </select>
-        </label>
-
-        {showExecutiveFilter && (
-          <label className="block">
-            <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">Executive</span>
-            <select
-              value={filters.executiveId}
-              onChange={(e) => set('executiveId', e.target.value)}
-              className="input-premium h-10 w-full"
-            >
-              <option value="">All executives</option>
-              {executives.map((ex) => (
-                <option key={ex._id} value={ex._id}>{ex.name}</option>
-              ))}
-            </select>
-          </label>
         )}
 
-        <label className="block">
-          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">From date</span>
-          <input
-            type="date"
-            value={filters.dateFrom}
-            onChange={(e) => set('dateFrom', e.target.value)}
-            className="input-premium h-10 w-full"
-          />
-        </label>
+        <select
+          value={filters.destination}
+          onChange={(e) => set('destination', e.target.value)}
+          className="input-premium h-9 w-36 shrink-0 text-sm"
+          title="Destination"
+        >
+          <option value="">All destinations</option>
+          {DESTINATIONS.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
 
-        <label className="block">
-          <span className="text-[10px] uppercase font-medium text-content-muted mb-1 block">To date</span>
-          <input
-            type="date"
-            value={filters.dateTo}
-            onChange={(e) => set('dateTo', e.target.value)}
-            className="input-premium h-10 w-full"
-          />
-        </label>
-      </div>
+        {showExecutiveFilter && (
+          <select
+            value={filters.executiveId}
+            onChange={(e) => set('executiveId', e.target.value)}
+            className="input-premium h-9 w-36 shrink-0 text-sm"
+            title="Executive"
+          >
+            <option value="">All executives</option>
+            {executives.map((ex) => (
+              <option key={ex._id} value={ex._id}>{ex.name}</option>
+            ))}
+          </select>
+        )}
 
-      {onApply && (
-        <div className="flex justify-end pt-1">
-          <Button size="sm" onClick={onApply} className="h-9 px-4 rounded-xl">
-            Apply filters
-          </Button>
+        <input
+          type="date"
+          value={filters.dateFrom}
+          onChange={(e) => set('dateFrom', e.target.value)}
+          className="input-premium h-9 w-36 shrink-0 text-sm"
+          title="From date"
+        />
+
+        <input
+          type="date"
+          value={filters.dateTo}
+          onChange={(e) => set('dateTo', e.target.value)}
+          className="input-premium h-9 w-36 shrink-0 text-sm"
+          title="To date"
+        />
+
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+          {onApply && (
+            <Button size="sm" onClick={onApply} className="h-9 px-3 rounded-xl whitespace-nowrap">
+              Apply
+            </Button>
+          )}
+          {onRefresh && (
+            <Button variant="outline" size="sm" onClick={onRefresh} className="h-9 gap-1 whitespace-nowrap">
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          )}
+          {hasActiveFilters && onClear && (
+            <Button variant="ghost" size="sm" onClick={onClear} className="h-9 gap-1 text-content-muted whitespace-nowrap">
+              <X className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Clear</span>
+            </Button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
