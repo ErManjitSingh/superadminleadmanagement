@@ -21,6 +21,7 @@ import {
   assignLeadBtnClass,
   moreLeadBtnClass,
   moreLeadBtnSoloClass,
+  AssignedExecutiveChip,
 } from '../sales-manager/LeadListBadges';
 import {
   DropdownMenuRoot,
@@ -202,7 +203,9 @@ export default function LeadDataTable({
         header: '',
         cell: ({ row }) => {
           const lead = row.original;
-          const showAssign = showAssignButton && actions.assign && !lead.assignedTo?.name && onAssign;
+          const assignedName = lead.assignedTo?.name;
+          const showAssign = showAssignButton && actions.assign && !assignedName && onAssign;
+          const showAssignedName = Boolean(assignedName);
           const showEdit = actions.edit && canEditLead;
           const showAssignMenu = actions.assign && onAssign;
           const showTransfer = actions.transferBranch && onTransferBranch;
@@ -222,13 +225,16 @@ export default function LeadDataTable({
                   Assign
                 </Button>
               )}
+              {showAssignedName && !showAssign && (
+                <AssignedExecutiveChip name={assignedName} />
+              )}
               {hasMenuItems && (
                 <DropdownMenuRoot>
                   <DropdownMenuTrigger asChild>
                     <Button
                       type="button"
                       variant="ghost"
-                      className={showAssign ? moreLeadBtnClass : moreLeadBtnSoloClass}
+                      className={showAssign || showAssignedName ? moreLeadBtnClass : moreLeadBtnSoloClass}
                     >
                       More
                     </Button>

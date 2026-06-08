@@ -152,6 +152,19 @@ export const moreLeadBtnClass =
 export const moreLeadBtnSoloClass =
   'h-6 px-1.5 py-0 text-[10px] leading-none font-medium text-content-secondary hover:text-violet-600 hover:bg-violet-500/10 rounded-md border border-subtle';
 
+export function AssignedExecutiveChip({ name }) {
+  if (!name) return null;
+  return (
+    <span
+      title={name}
+      className="inline-flex items-center gap-1 h-6 px-1.5 max-w-[92px] rounded-l-md border border-subtle border-r-0 bg-emerald-500/10 text-[10px] font-medium text-emerald-800 truncate"
+    >
+      <Avatar name={name} size="sm" className="!w-4 !h-4 !text-[8px] shrink-0 ring-1 ring-emerald-500/20" />
+      <span className="truncate">{name}</span>
+    </span>
+  );
+}
+
 export const FILTER_THEMES = {
   all: {
     gradient: 'from-brand-500/25 via-violet-500/15 to-indigo-500/20',
