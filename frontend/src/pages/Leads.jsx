@@ -28,7 +28,7 @@ import { KANBAN_COLUMNS, pageConfig, emptyFilters } from '../components/leads/co
 import { groupLeadsByStatus, countActiveFilters } from '../components/leads/leadFilters';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useLeadsQuery, useLeadsKanbanQuery } from '../features/leads/hooks/useLeadsQuery';
-import { DEFAULT_PAGE_SIZE } from '../components/ui/TablePagination';
+import { LEADS_PAGE_SIZE } from '../components/ui/TablePagination';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
 
@@ -46,7 +46,7 @@ export default function Leads() {
   const [view, setView] = useState('table');
   const [filters, setFilters] = useState({ ...emptyFilters, status: config.status || '' });
   const [appliedFilters, setAppliedFilters] = useState({ ...emptyFilters, status: config.status || '' });
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: LEADS_PAGE_SIZE });
   const [rowSelection, setRowSelection] = useState({});
   const [previewLead, setPreviewLead] = useState(null);
   const [activeDragLead, setActiveDragLead] = useState(null);

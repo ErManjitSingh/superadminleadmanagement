@@ -1,4 +1,4 @@
-import { MapPin, User, Sparkles } from 'lucide-react';
+import { MapPin, User, Sparkles, Users } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getLeadSourceShortLabel } from '../../lib/leadSourceLabels';
 import Avatar from '../ui/Avatar';
@@ -65,6 +65,20 @@ export function DestinationChip({ name }) {
   );
 }
 
+export function TravelersBadge({ travelers, adults, children }) {
+  const count = travelers ?? adults ?? null;
+  if (count == null || count === '') {
+    return <span className="text-xs text-content-muted">—</span>;
+  }
+  const detail = children > 0 ? `${count} (${children} child${children > 1 ? 'ren' : ''})` : String(count);
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-indigo-500/10 text-indigo-700 ring-1 ring-indigo-400/25 whitespace-nowrap">
+      <Users className="w-3 h-3 shrink-0" />
+      {detail}
+    </span>
+  );
+}
+
 export function BudgetBadge({ amount }) {
   const tier =
     amount >= 300000 ? 'bg-gradient-to-r from-rose-500/20 via-amber-500/15 to-orange-500/20 text-rose-700 ring-amber-400/40' :
@@ -120,17 +134,17 @@ export function ManagerStatusBadge({ status, lead }) {
   );
 }
 
-export function CustomerCell({ name, lead }) {
+export function CustomerCell({ name }) {
   return (
     <div className="flex items-center gap-2 min-w-0 max-w-[150px]">
       <Avatar name={name} size="sm" className="!w-7 !h-7 !text-[10px] ring-1 ring-violet-500/25 shrink-0" />
-      <div className="min-w-0">
-        <p className="font-semibold text-[13px] text-content-primary truncate">{name}</p>
-        {lead?.phone && <p className="text-[10px] text-content-muted truncate">{lead.phone}</p>}
-      </div>
+      <p className="font-semibold text-[13px] text-content-primary truncate">{name}</p>
     </div>
   );
 }
+
+export const assignLeadBtnClass =
+  'h-7 text-[11px] px-2.5 shadow-sm shadow-violet-600/20 whitespace-nowrap';
 
 export const FILTER_THEMES = {
   all: {

@@ -15,9 +15,11 @@ import {
   SourceBadge,
   DestinationChip,
   BudgetBadge,
+  TravelersBadge,
   LeadIdPill,
   CustomerCell,
   ExecutiveBadge,
+  assignLeadBtnClass,
 } from '../sales-manager/LeadListBadges';
 import {
   DropdownMenuRoot,
@@ -29,7 +31,16 @@ import {
 } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
 import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
-import { compactTable, compactTh, compactTd } from '../ui/compactTable';
+import { cn } from '../../lib/utils';
+import {
+  compactTable,
+  compactTh,
+  compactTd,
+  stickyAssignTh,
+  stickyActionsTh,
+  stickyAssignTd,
+  stickyActionsTd,
+} from '../ui/compactTable';
 
 function formatDate(d) {
   if (!d) return '—';
@@ -96,7 +107,7 @@ export default function LeadDataTable({
       {
         accessorKey: 'name',
         header: 'Customer',
-        cell: ({ row }) => <CustomerCell name={row.original.name} lead={row.original} />,
+        cell: ({ row }) => <CustomerCell name={row.original.name} />,
       },
       {
         accessorKey: 'phone',
@@ -123,6 +134,17 @@ export default function LeadDataTable({
         cell: ({ getValue }) => <BudgetBadge amount={getValue()} />,
       },
       {
+        accessorKey: 'travelers',
+        header: 'Pax',
+        cell: ({ row }) => (
+          <TravelersBadge
+            travelers={row.original.travelers}
+            adults={row.original.adults}
+            children={row.original.children}
+          />
+        ),
+      },
+      {
         accessorKey: 'source',
         header: 'Source',
         cell: ({ row }) => (
@@ -132,30 +154,6 @@ export default function LeadDataTable({
             sourceShort={row.original.sourceShort}
           />
         ),
-      },
-      {
-        accessorKey: 'assignedTo',
-        header: 'Assigned To',
-        cell: ({ getValue, row }) => {
-          const assigned = getValue();
-          if (!assigned?.name && onAssign) {
-            return (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-7 text-[11px] px-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAssign(row.original);
-                }}
-              >
-                Assign Lead
-              </Button>
-            );
-          }
-          return <ExecutiveBadge name={assigned?.name} unassigned={!assigned?.name} />;
-        },
       },
       {
         accessorKey: 'status',
@@ -180,6 +178,31 @@ export default function LeadDataTable({
         accessorKey: 'createdAt',
         header: 'Created',
         cell: ({ getValue }) => <span className="text-xs text-content-muted whitespace-nowrap">{formatDate(getValue())}</span>,
+      },
+      {
+        id: 'assignedTo',
+        accessorKey: 'assignedTo',
+        header: 'Assigned To',
+        cell: ({ getValue, row }) => {
+          const assigned = getValue();
+          if (!assigned?.name && onAssign) {
+            return (
+              <Button
+                type="button"
+                size="sm"
+                variant="gradient"
+                className={assignLeadBtnClass}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssign(row.original);
+                }}
+              >
+                Assign Lead
+              </Button>
+            );
+          }
+          return <ExecutiveBadge name={assigned?.name} unassigned={!assigned?.name} />;
+        },
       },
       {
         id: 'actions',
@@ -257,19 +280,26 @@ export default function LeadDataTable({
   return (
     <div className="rounded-2xl border border-brand-500/20 bg-surface/90 backdrop-blur-xl shadow-lg shadow-brand-500/5 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className={`${compactTable} min-w-[960px]`}>
+        <table className={`${compactTable} min-w-[1040px]`}>
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-brand-500/15 bg-gradient-to-r from-brand-600/10 via-violet-600/8 to-indigo-600/10">
-                {hg.headers.map((header) => (
-                  <th
-                    key={header.id}
-                    className={`${compactTh} cursor-pointer select-none hover:text-brand-600 transition-colors`}
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    {flexRender(header.column.columnDef.header, header.getContext())}
-                  </th>
-                ))}
+                {hg.headers.map((header) => {
+                  const colId = header.column.id;
+                  const thClass = cn(
+                    colId === 'assignedTo' ? stickyAssignTh : colId === 'actions' ? stickyActionsTh : compactTh,
+                    'cursor-pointer select-none hover:text-brand-600 transition-colors'
+                  );
+                  return (
+                    <th
+                      key={header.id}
+                      className={thClass}
+                      onClick={header.column.getToggleSortingHandler()}
+                    >
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  );
+                })}
               </tr>
             ))}
           </thead>
@@ -283,22 +313,44 @@ export default function LeadDataTable({
                 onClick={() => onRowClick(row.original)}
                 className={`group border-b border-subtle/50 last:border-0 cursor-pointer transition-all hover:bg-gradient-to-r hover:from-brand-500/[0.06] hover:to-violet-500/[0.04] ${i % 2 === 1 ? 'bg-white dark:bg-slate-800/70' : 'bg-transparent'}`}
               >
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className={compactTd}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+                {row.getVisibleCells().map((cell) => {
+                  const colId = cell.column.id;
+                  const tdClass =
+                    colId === 'assignedTo'
+                      ? stickyAssignTd(i)
+                      : colId === 'actions'
+                        ? stickyActionsTd(i)
+                        : compactTd;
+                  return (
+                    <td key={cell.id} className={tdClass}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  );
+                })}
               </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
-      <TablePagination
-        table={table}
-        totalLabel="leads"
-        totalCount={isServer ? serverPagination.total : undefined}
-        className="border-brand-500/15 bg-gradient-to-r from-brand-500/[0.03] to-violet-500/[0.03]"
-      />
+      {isServer ? (
+        <TablePagination
+          pageIndex={serverPagination.pageIndex}
+          pageSize={serverPagination.pageSize}
+          pageCount={serverPagination.pageCount}
+          total={serverPagination.total}
+          onPageChange={(pageIndex) =>
+            serverPagination.onPaginationChange((prev) => ({ ...prev, pageIndex }))
+          }
+          totalLabel="leads"
+          className="border-brand-500/15 bg-gradient-to-r from-brand-500/[0.03] to-violet-500/[0.03]"
+        />
+      ) : (
+        <TablePagination
+          table={table}
+          totalLabel="leads"
+          className="border-brand-500/15 bg-gradient-to-r from-brand-500/[0.03] to-violet-500/[0.03]"
+        />
+      )}
     </div>
   );
 }
