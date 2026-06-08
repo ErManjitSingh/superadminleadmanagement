@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MoreHorizontal, Eye, Pencil, UserCheck, CalendarPlus, RefreshCw, Trash2 } from 'lucide-react';
+import { Eye, Pencil, UserCheck, CalendarPlus, RefreshCw, Trash2 } from 'lucide-react';
 import LeadStatusBadge from './LeadStatusBadge';
 import { formatLeadId } from './constants';
 import {
@@ -20,6 +20,7 @@ import {
   CustomerCell,
   ExecutiveBadge,
   assignLeadBtnClass,
+  moreLeadBtnClass,
 } from '../sales-manager/LeadListBadges';
 import {
   DropdownMenuRoot,
@@ -197,7 +198,7 @@ export default function LeadDataTable({
                   onAssign(row.original);
                 }}
               >
-                Assign Lead
+                Assign
               </Button>
             );
           }
@@ -210,11 +211,11 @@ export default function LeadDataTable({
         cell: ({ row }) => {
           const lead = row.original;
           return (
-            <div onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuRoot>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" className="h-8 w-8 rounded-lg hover:bg-violet-500/10 hover:text-violet-600">
-                    <MoreHorizontal className="w-4 h-4" />
+                  <Button type="button" variant="ghost" className={moreLeadBtnClass}>
+                    More
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

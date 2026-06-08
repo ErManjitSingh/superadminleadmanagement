@@ -144,7 +144,10 @@ export function CustomerCell({ name }) {
 }
 
 export const assignLeadBtnClass =
-  'h-7 text-[11px] px-2.5 shadow-sm shadow-violet-600/20 whitespace-nowrap';
+  'h-6 text-[10px] px-1.5 py-0 leading-none shadow-sm shadow-violet-600/20 whitespace-nowrap rounded-md';
+
+export const moreLeadBtnClass =
+  'h-6 px-1.5 py-0 text-[10px] leading-none font-medium text-content-secondary hover:text-violet-600 hover:bg-violet-500/10 rounded-md border border-subtle';
 
 export const FILTER_THEMES = {
   all: {
