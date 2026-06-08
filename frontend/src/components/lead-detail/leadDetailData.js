@@ -34,6 +34,14 @@ export const ACTIVITY_CONFIG = {
   reactivation_progress: { label: 'Reactivation Progress', icon: RefreshCw, color: 'bg-sky-500/10 text-sky-700' },
   status_changed: { label: 'Status Changed', icon: RefreshCw, color: 'bg-indigo-500/10 text-indigo-600' },
   lead_converted: { label: 'Lead Converted', icon: Trophy, color: 'bg-emerald-500/10 text-emerald-700' },
+  lead_edited: { label: 'Lead Edited', icon: RefreshCw, color: 'bg-slate-500/10 text-slate-600' },
+  lead_deleted: { label: 'Lead Deleted', icon: RefreshCw, color: 'bg-rose-500/10 text-rose-600' },
+  lead_restored: { label: 'Lead Restored', icon: RefreshCw, color: 'bg-teal-500/10 text-teal-700' },
+  lead_lost: { label: 'Lead Lost', icon: RefreshCw, color: 'bg-rose-500/10 text-rose-600' },
+  quotation_created: { label: 'Quotation Created', icon: FileText, color: 'bg-orange-500/10 text-orange-600' },
+  quotation_approved: { label: 'Quotation Approved', icon: FileText, color: 'bg-emerald-500/10 text-emerald-700' },
+  followup_missed: { label: 'Follow-up Missed', icon: CalendarPlus, color: 'bg-rose-500/10 text-rose-600' },
+  sla_breached: { label: 'SLA Breached', icon: RefreshCw, color: 'bg-rose-500/10 text-rose-700' },
 };
 
 const FOLLOWUP_CATEGORY_LABELS = {

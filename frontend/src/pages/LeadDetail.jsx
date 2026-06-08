@@ -22,6 +22,7 @@ import {
   ReactivationActionsModal,
   getLeadDetailData,
 } from '../components/lead-detail';
+import { fetchLeadTimeline } from '../services/leadEnterpriseApi';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -32,6 +33,7 @@ export default function LeadDetail() {
   const canCreateFollowUp = canManageFollowUps(user);
   const canEditLead = can('leads', 'edit');
   const [lead, setLead] = useState(null);
+  const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [reactivationMode, setReactivationMode] = useState('');
@@ -40,8 +42,14 @@ export default function LeadDetail() {
 
   const loadLead = useCallback(({ silent = false } = {}) => {
     if (!silent) setLoading(true);
-    return API.get(`/leads/${id}`, { skipSuccessToast: true })
-      .then((res) => setLead(res.data))
+    return Promise.all([
+      API.get(`/leads/${id}`, { skipSuccessToast: true }),
+      fetchLeadTimeline(id).catch(() => ({ data: [] })),
+    ])
+      .then(([leadRes, timelineRes]) => {
+        setLead(leadRes.data);
+        setTimeline(timelineRes?.data || []);
+      })
       .finally(() => {
         if (!silent) setLoading(false);
       });
@@ -125,7 +133,7 @@ export default function LeadDetail() {
 
         {/* Center — Timeline, Notes, Follow-ups, Quotations */}
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline activities={detail.activities} />
+          <LeadActivityTimeline activities={timeline.length ? timeline : detail.activities} />
           <div ref={notesRef}>
             <LeadNotesSection notes={detail.notes} />
           </div>

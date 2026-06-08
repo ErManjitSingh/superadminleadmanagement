@@ -9,6 +9,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Eye, Pencil, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import LeadStatusBadge from './LeadStatusBadge';
+import LeadTemperatureBadge from './LeadTemperatureBadge';
+import LeadScoreBadge from './LeadScoreBadge';
 import { formatLeadId } from './constants';
 import {
   SourceBadge,
@@ -169,7 +171,13 @@ export default function LeadDataTable({
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ getValue }) => <LeadStatusBadge status={getValue()} pulse={getValue() === 'new'} size="sm" />,
+        cell: ({ row, getValue }) => (
+          <div className="flex flex-wrap items-center gap-1">
+            <LeadStatusBadge status={getValue()} pulse={getValue() === 'new'} size="sm" />
+            <LeadTemperatureBadge temperature={row.original.temperature} />
+            <LeadScoreBadge score={row.original.smartScore} />
+          </div>
+        ),
       },
       {
         accessorKey: 'lastFollowUp',

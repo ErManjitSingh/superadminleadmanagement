@@ -33,6 +33,9 @@ const {
   getAssigneesForUser,
 } = require('../services/leadAssignmentService');
 const { setReactivationStage } = require('../services/reactivationService');
+const { logLeadActivity } = require('../services/leadActivityService');
+const { logAudit, diffLeadChanges } = require('../services/leadAuditService');
+const { applyLeadMetrics } = require('../services/leadScoringService');
 const {
   getLeaderLeadScopeFilter,
   getExecutiveIdsForLeader,
@@ -134,7 +137,11 @@ const listLeads = asyncHandler(async (req, res) => {
 });
 
 const getLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+    isDeleted: { $ne: true },
+  })
     .populate(LEAD_POPULATE)
     .lean();
   if (!lead) throw new ApiError(404, 'Lead not found');
@@ -210,7 +217,25 @@ const createLead = asyncHandler(async (req, res) => {
     data.assignedTo = req.user._id;
   }
 
+  await applyLeadMetrics(data);
   const lead = await Lead.create(data);
+
+  await logLeadActivity({
+    leadId: lead._id,
+    branchId: lead.branchId,
+    type: 'lead_created',
+    description: `Lead created from ${data.sourceLabel || data.source || 'CRM'}`,
+    actor: req.user,
+    meta: { source: data.source },
+  });
+  await logAudit({
+    entityType: 'lead',
+    entityId: lead._id,
+    branchId: lead.branchId,
+    action: 'lead.created',
+    actor: req.user,
+    ip: getClientIp(req),
+  });
 
   const shouldAutoAssign =
     !data.assignedTo &&
@@ -354,6 +379,7 @@ const updateLead = asyncHandler(async (req, res) => {
   }
 
   const prevStatus = lead.status;
+  const before = lead.toObject();
   const data = normalizeLeadInput(req.body, { isUpdate: true });
   const nextStatus = data.status || lead.status;
   const effectivePayload = {
@@ -374,7 +400,45 @@ const updateLead = asyncHandler(async (req, res) => {
       setReactivationStage(lead, nextStage, req.user._id, `Status changed from ${prevStatus} to ${data.status}`);
     }
   }
+  await applyLeadMetrics(lead);
   await lead.save();
+
+  const changes = diffLeadChanges(before, lead.toObject());
+  if (changes.length) {
+    await logAudit({
+      entityType: 'lead',
+      entityId: lead._id,
+      branchId: lead.branchId,
+      action: data.status && data.status !== prevStatus ? 'lead.status_changed' : 'lead.updated',
+      actor: req.user,
+      changes,
+      ip: getClientIp(req),
+    });
+  }
+  if (data.status && data.status !== prevStatus) {
+    const typeMap = {
+      lost: 'lead_lost',
+      booked_from_another_company: 'lead_lost',
+      converted: 'lead_converted',
+      reactivated: 'lead_reactivated',
+    };
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: typeMap[data.status] || 'status_changed',
+      description: `Status changed from ${prevStatus} to ${data.status}`,
+      actor: req.user,
+      meta: { from: prevStatus, to: data.status },
+    });
+  } else if (changes.length) {
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: 'lead_edited',
+      description: 'Lead details updated',
+      actor: req.user,
+    });
+  }
 
   if (data.status && lead.reactivation?.isReactivated) {
     const nextStage = REACTIVATION_STATUS_TO_STAGE[data.status];
@@ -388,13 +452,37 @@ const updateLead = asyncHandler(async (req, res) => {
 });
 
 const deleteLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+    isDeleted: { $ne: true },
+  });
   if (!lead) throw new ApiError(404, 'Lead not found');
   if (LOST_LEAD_STATUSES.includes(lead.status)) {
     throw new ApiError(400, 'Lost leads cannot be deleted');
   }
-  await lead.deleteOne();
-  res.json({ message: 'Lead deleted' });
+  lead.isDeleted = true;
+  lead.deletedAt = new Date();
+  lead.deletedBy = req.user._id;
+  await lead.save();
+
+  await logLeadActivity({
+    leadId: lead._id,
+    branchId: lead.branchId,
+    type: 'lead_deleted',
+    description: `Lead moved to recycle bin by ${req.user.name}`,
+    actor: req.user,
+  });
+  await logAudit({
+    entityType: 'lead',
+    entityId: lead._id,
+    branchId: lead.branchId,
+    action: 'lead.deleted',
+    actor: req.user,
+    ip: getClientIp(req),
+  });
+
+  res.json({ message: 'Lead moved to recycle bin' });
 });
 
 const reactivateLead = asyncHandler(async (req, res) => {
@@ -544,8 +632,21 @@ const assignLeads = asyncHandler(async (req, res) => {
   }
 
   await Lead.updateMany(
-    { _id: { $in: ids }, ...(branchId ? { branchId } : {}) },
+    { _id: { $in: ids }, ...(branchId ? { branchId } : {}), isDeleted: { $ne: true } },
     patch
+  );
+
+  await Promise.all(
+    ids.map((id) =>
+      logLeadActivity({
+        leadId: id,
+        branchId: branchId || req.branchId,
+        type: 'lead_assigned',
+        description: `Assigned to ${assignee.name}`,
+        actor: req.user,
+        meta: { assigneeId: assignee._id, role: assigneeRole },
+      })
+    )
   );
 
   await logActivity({

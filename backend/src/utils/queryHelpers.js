@@ -61,6 +61,13 @@ function enrichLead(lead) {
 
   const sourceShort = getLeadSourceShortLabel(obj.source, obj.sourceLabel || obj.leadSource);
 
+  const temperatureEmoji = {
+    hot: '🔥',
+    warm: '🟡',
+    cold: '⚪',
+    vip: '💎',
+  };
+
   return {
     ...obj,
     isHot,
@@ -69,6 +76,7 @@ function enrichLead(lead) {
     isUnassigned: !obj.assignedTo,
     sourceShort,
     sourceLabel: sourceShort,
+    temperatureLabel: obj.temperature ? `${temperatureEmoji[obj.temperature] || ''} ${obj.temperature}`.trim() : null,
   };
 }
 

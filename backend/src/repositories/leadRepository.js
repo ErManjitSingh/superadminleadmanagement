@@ -23,7 +23,7 @@ function buildLeadListFilter(query = {}) {
     reactivatedTo,
   } = query;
 
-  const mongoFilter = { ...buildLeadSearchFilter(search) };
+  const mongoFilter = { ...buildLeadSearchFilter(search), isDeleted: { $ne: true } };
 
   if (status) mongoFilter.status = status;
   if (reactivatedOnly === 'true') mongoFilter['reactivation.isReactivated'] = true;

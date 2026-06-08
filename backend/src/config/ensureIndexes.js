@@ -6,6 +6,8 @@ const Quotation = require('../models/Quotation');
 const Booking = require('../models/Booking');
 const Attendance = require('../models/Attendance');
 const ActivityLog = require('../models/ActivityLog');
+const LeadActivity = require('../models/LeadActivity');
+const AuditLog = require('../models/AuditLog');
 
 async function ensureIndexes() {
   await Promise.all([
@@ -23,6 +25,12 @@ async function ensureIndexes() {
     Lead.collection.createIndex({ destination: 1 }, { background: true }),
     Lead.collection.createIndex({ createdAt: -1 }, { background: true }),
     Lead.collection.createIndex({ name: 'text', email: 'text', destination: 'text' }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, isDeleted: 1, createdAt: -1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, temperature: 1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, agingBucket: 1 }, { background: true }),
+    Lead.collection.createIndex({ alternatePhone: 1 }, { background: true, sparse: true }),
+    LeadActivity.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
+    AuditLog.collection.createIndex({ entityType: 1, entityId: 1, createdAt: -1 }, { background: true }),
 
     FollowUp.collection.createIndex({ scheduledAt: 1, status: 1 }, { background: true }),
     FollowUp.collection.createIndex({ branchId: 1, status: 1, scheduledAt: 1 }, { background: true }),

@@ -40,7 +40,7 @@ export default function LeadActivityTimeline({ activities }) {
                   <div className="flex-1 min-w-0 pb-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-semibold text-content-primary">{cfg.label}</p>
+                        <p className="text-sm font-semibold text-content-primary">{item.title || cfg.label}</p>
                         <p className="text-xs text-content-muted mt-0.5">
                           <span className="font-medium text-content-secondary">{item.user}</span>
                           {' · '}{date} at {time}

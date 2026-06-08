@@ -21,8 +21,25 @@ const { protect } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/requirePermission');
 const { authorize } = require('../middleware/rbac');
 const { validatePaginationQuery } = require('../validators/paginationValidator');
+const {
+  checkDuplicate,
+  getTimeline,
+  getAudit,
+  listRecycleBin,
+  restoreLead,
+  permanentDeleteLead,
+  getAgingAnalytics,
+} = require('../controllers/enterpriseLeadController');
 
 router.use(protect);
+
+router.get('/check-duplicate', checkDuplicate);
+router.get('/recycle-bin', listRecycleBin);
+router.get('/analytics/aging', getAgingAnalytics);
+router.get('/:id/timeline', getTimeline);
+router.get('/:id/audit', getAudit);
+router.post('/:id/restore', requirePermission('leads', 'edit'), restoreLead);
+router.delete('/:id/permanent', requirePermission('leads', 'delete'), permanentDeleteLead);
 
 router.post('/seed-demo', authorize('admin'), seedDemoLeads);
 router.post('/clear-all', authorize('admin'), clearAllLeads);

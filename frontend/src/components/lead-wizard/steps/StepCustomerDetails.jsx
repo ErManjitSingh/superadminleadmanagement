@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useWizardForm } from '../WizardFormContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, AlertTriangle, User, Phone, MapPin } from 'lucide-react';
-import API from '../../../api/axios';
-import { unwrapList } from '../../../utils/apiHelpers';
+import { Search, User, Phone, MapPin } from 'lucide-react';
+import { checkLeadDuplicate } from '../../../services/leadEnterpriseApi';
+import DuplicateLeadWarning from '../../leads/DuplicateLeadWarning';
+import { useAuth } from '../../../context/AuthContext';
 import WizardField, { WizardInput, WizardSelect } from '../WizardField';
 import { INDIAN_STATES } from '../constants';
 
@@ -12,39 +13,40 @@ function normalizePhone(p) {
 }
 
 export default function StepCustomerDetails({ isEdit, leadId }) {
+  const { user } = useAuth();
   const { register, watch, setValue, formState: { errors } } = useWizardForm();
   const phone = watch('phone');
+  const email = watch('email');
   const name = watch('name');
-  const [matches, setMatches] = useState([]);
   const [searching, setSearching] = useState(false);
   const [duplicate, setDuplicate] = useState(null);
+  const [forceCreate, setForceCreate] = useState(false);
+  const canCreateAnyway = ['admin', 'sales_manager'].includes(user?.role);
 
   useEffect(() => {
-    if (phone?.length >= 10) {
+    if (forceCreate) return;
+    const normalized = normalizePhone(phone);
+    if (normalized.length >= 10 || email?.includes('@')) {
       setSearching(true);
       const t = setTimeout(() => {
-        API.get('/leads', { params: { search: normalizePhone(phone), limit: 10, page: 1 } })
+        checkLeadDuplicate({ phone, email, excludeId: leadId })
           .then((res) => {
-            const list = unwrapList(res.data);
-            const found = list.filter((l) => l._id !== leadId);
-            setMatches(found);
-            const exact = found.find((l) => normalizePhone(l.phone) === normalizePhone(phone));
-            setDuplicate(exact || null);
+            const match = res.matches?.[0] || null;
+            setDuplicate(match);
           })
-          .catch(() => setMatches([]))
+          .catch(() => setDuplicate(null))
           .finally(() => setSearching(false));
       }, 400);
       return () => clearTimeout(t);
     }
-    setMatches([]);
     setDuplicate(null);
-  }, [phone, leadId]);
+  }, [phone, email, leadId, forceCreate]);
 
   const nameMatches = useMemo(() => {
-    if (!name || name.length < 2) return [];
+    if (!name || name.length < 2 || !duplicate) return [];
     const q = name.toLowerCase();
-    return matches.filter((m) => m.name.toLowerCase().includes(q));
-  }, [name, matches]);
+    return duplicate.name?.toLowerCase().includes(q) ? [duplicate] : [];
+  }, [name, duplicate]);
 
   const applyCustomer = (lead) => {
     setValue('name', lead.name);
@@ -67,20 +69,13 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
       </div>
 
       <AnimatePresence>
-        {duplicate && !isEdit && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10"
-          >
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">Possible duplicate lead</p>
-              <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-0.5">
-                {duplicate.name} ({duplicate.phone}) — {duplicate.destination} · {duplicate.status}
-              </p>
-            </div>
+        {duplicate && !isEdit && !forceCreate && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+            <DuplicateLeadWarning
+              match={duplicate}
+              canCreateAnyway={canCreateAnyway}
+              onCreateAnyway={() => setForceCreate(true)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

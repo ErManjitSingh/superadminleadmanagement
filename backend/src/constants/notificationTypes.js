@@ -13,6 +13,12 @@ const NOTIFICATION_TYPES = {
   BOOKING_CONFIRMED: 'booking_confirmed',
   PAYMENT_RECEIVED: 'payment_received',
   USER_MENTIONED: 'user_mentioned',
+  LEAD_DUPLICATE: 'lead_duplicate_detected',
+  LEAD_MERGED: 'lead_merged',
+  LEAD_DELETED: 'lead_deleted',
+  LEAD_RESTORED: 'lead_restored',
+  LEAD_SLA_BREACH: 'lead_sla_breach',
+  FOLLOWUP_ESCALATION: 'followup_escalation',
 };
 
 module.exports = { NOTIFICATION_TYPES };
