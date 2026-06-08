@@ -8,6 +8,8 @@ const Attendance = require('../models/Attendance');
 const ActivityLog = require('../models/ActivityLog');
 const LeadActivity = require('../models/LeadActivity');
 const AuditLog = require('../models/AuditLog');
+const CallNote = require('../models/CallNote');
+const LeadEscalation = require('../models/LeadEscalation');
 
 async function ensureIndexes() {
   await Promise.all([
@@ -31,6 +33,8 @@ async function ensureIndexes() {
     Lead.collection.createIndex({ alternatePhone: 1 }, { background: true, sparse: true }),
     LeadActivity.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
     AuditLog.collection.createIndex({ entityType: 1, entityId: 1, createdAt: -1 }, { background: true }),
+    CallNote.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
+    LeadEscalation.collection.createIndex({ followUpId: 1, level: 1 }, { unique: true, background: true }),
 
     FollowUp.collection.createIndex({ scheduledAt: 1, status: 1 }, { background: true }),
     FollowUp.collection.createIndex({ branchId: 1, status: 1, scheduledAt: 1 }, { background: true }),

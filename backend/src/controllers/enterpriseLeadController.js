@@ -1,4 +1,5 @@
 const Lead = require('../models/Lead');
+const CallNote = require('../models/CallNote');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
@@ -9,6 +10,7 @@ const { getEntityAuditLog } = require('../services/leadAuditService');
 const { logLeadActivity } = require('../services/leadActivityService');
 const { logAudit } = require('../services/leadAuditService');
 const { getClientIp } = require('../services/activityService');
+const { applyLeadMetrics } = require('../services/leadScoringService');
 
 const checkDuplicate = asyncHandler(async (req, res) => {
   const { phone, alternatePhone, email, excludeId } = req.query;
@@ -141,6 +143,156 @@ const getAgingAnalytics = asyncHandler(async (req, res) => {
   });
 });
 
+const listCallNotes = asyncHandler(async (req, res) => {
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+    isDeleted: { $ne: true },
+  }).select('_id');
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const { page, limit, skip } = parsePagination(req.query);
+  const filter = { leadId: lead._id };
+  const [rows, total] = await Promise.all([
+    CallNote.find(filter)
+      .populate('userId', 'name role')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    CallNote.countDocuments(filter),
+  ]);
+  res.json(paginatedResponse(rows, { page, limit, total }));
+});
+
+const addCallNote = asyncHandler(async (req, res) => {
+  const { outcome, notes, duration } = req.body;
+  if (!outcome || !notes?.trim()) throw new ApiError(400, 'Outcome and notes are required');
+
+  const lead = await Lead.findOne({
+    _id: req.params.id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+    isDeleted: { $ne: true },
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const callNote = await CallNote.create({
+    leadId: lead._id,
+    branchId: lead.branchId,
+    userId: req.user._id,
+    outcome,
+    notes: notes.trim(),
+    duration: Number(duration) || 0,
+  });
+
+  if (!lead.firstContactAt) {
+    lead.firstContactAt = new Date();
+  }
+  await applyLeadMetrics(lead);
+  await lead.save();
+
+  await logLeadActivity({
+    leadId: lead._id,
+    branchId: lead.branchId,
+    type: 'call_note_added',
+    description: `Call note: ${outcome.replace(/_/g, ' ')} — ${notes.trim().slice(0, 120)}`,
+    actor: req.user,
+    meta: { callNoteId: callNote._id, outcome },
+  });
+  await logAudit({
+    entityType: 'lead',
+    entityId: lead._id,
+    branchId: lead.branchId,
+    action: 'lead.call_note_added',
+    actor: req.user,
+    ip: getClientIp(req),
+    meta: { outcome },
+  });
+
+  const populated = await CallNote.findById(callNote._id).populate('userId', 'name role').lean();
+  res.status(201).json(populated);
+});
+
+const bulkUpdateStatus = asyncHandler(async (req, res) => {
+  const { leadIds, status } = req.body;
+  if (!Array.isArray(leadIds) || !leadIds.length) throw new ApiError(400, 'leadIds required');
+  if (!status) throw new ApiError(400, 'status required');
+
+  const filter = {
+    _id: { $in: leadIds },
+    isDeleted: { $ne: true },
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  };
+
+  const leads = await Lead.find(filter);
+  if (!leads.length) throw new ApiError(404, 'No matching leads found');
+
+  const results = [];
+  for (const lead of leads) {
+    const prev = lead.status;
+    lead.status = status;
+    await applyLeadMetrics(lead);
+    await lead.save();
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: 'status_changed',
+      description: `Status changed from ${prev} to ${status} (bulk)`,
+      actor: req.user,
+      meta: { from: prev, to: status },
+    });
+    results.push({ _id: lead._id, status: lead.status });
+  }
+
+  res.json({ updated: results.length, leads: results });
+});
+
+const bulkExportLeads = asyncHandler(async (req, res) => {
+  const { leadIds } = req.body;
+  if (!Array.isArray(leadIds) || !leadIds.length) throw new ApiError(400, 'leadIds required');
+
+  const filter = {
+    _id: { $in: leadIds },
+    isDeleted: { $ne: true },
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  };
+
+  const leads = await Lead.find(filter).populate(LEAD_POPULATE).lean();
+  const headers = [
+    'Lead ID', 'Name', 'Phone', 'Email', 'Destination', 'Status',
+    'Budget', 'Pax', 'Source', 'Assigned To', 'Smart Score', 'Temperature', 'Created',
+  ];
+
+  const escape = (v) => {
+    const s = v == null ? '' : String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const rows = leads.map((l) => {
+    const enriched = enrichLead(l);
+    return [
+      enriched.leadId || l._id,
+      l.name,
+      l.phone,
+      l.email,
+      l.destination,
+      l.status,
+      l.budget,
+      l.pax,
+      enriched.sourceLabel || l.source,
+      l.assignedTo?.name || '',
+      l.smartScore,
+      l.temperature,
+      l.createdAt ? new Date(l.createdAt).toISOString().slice(0, 10) : '',
+    ].map(escape).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="leads-export-${Date.now()}.csv"`);
+  res.send(csv);
+});
+
 module.exports = {
   checkDuplicate,
   getTimeline,
@@ -149,4 +301,8 @@ module.exports = {
   restoreLead,
   permanentDeleteLead,
   getAgingAnalytics,
+  listCallNotes,
+  addCallNote,
+  bulkUpdateStatus,
+  bulkExportLeads,
 };

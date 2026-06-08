@@ -10,6 +10,7 @@ export const Leads = lazy(() => import('../pages/Leads'));
 export const LeadDetail = lazy(() => import('../pages/LeadDetail'));
 export const LeadForm = lazy(() => import('../pages/LeadForm'));
 export const Followups = lazy(() => import('../pages/Followups'));
+export const Reminders = lazy(() => import('../pages/Reminders'));
 export const WhatsAppLeads = lazy(() => import('../pages/WhatsAppLeads'));
 export const Packages = lazy(() => import('../pages/Packages'));
 export const Quotations = lazy(() => import('../pages/Quotations'));

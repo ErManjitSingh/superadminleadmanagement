@@ -41,6 +41,8 @@ export const ACTIVITY_CONFIG = {
   quotation_created: { label: 'Quotation Created', icon: FileText, color: 'bg-orange-500/10 text-orange-600' },
   quotation_approved: { label: 'Quotation Approved', icon: FileText, color: 'bg-emerald-500/10 text-emerald-700' },
   followup_missed: { label: 'Follow-up Missed', icon: CalendarPlus, color: 'bg-rose-500/10 text-rose-600' },
+  call_note_added: { label: 'Call Note Added', icon: Phone, color: 'bg-emerald-500/10 text-emerald-600' },
+  escalation_created: { label: 'Escalation Created', icon: RefreshCw, color: 'bg-orange-500/10 text-orange-700' },
   sla_breached: { label: 'SLA Breached', icon: RefreshCw, color: 'bg-rose-500/10 text-rose-700' },
 };
 

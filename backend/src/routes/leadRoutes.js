@@ -29,6 +29,10 @@ const {
   restoreLead,
   permanentDeleteLead,
   getAgingAnalytics,
+  listCallNotes,
+  addCallNote,
+  bulkUpdateStatus,
+  bulkExportLeads,
 } = require('../controllers/enterpriseLeadController');
 
 router.use(protect);
@@ -36,8 +40,12 @@ router.use(protect);
 router.get('/check-duplicate', checkDuplicate);
 router.get('/recycle-bin', listRecycleBin);
 router.get('/analytics/aging', getAgingAnalytics);
+router.post('/bulk-status', requirePermission('leads', 'edit'), bulkUpdateStatus);
+router.post('/bulk-export', requirePermission('leads', 'view'), bulkExportLeads);
 router.get('/:id/timeline', getTimeline);
 router.get('/:id/audit', getAudit);
+router.get('/:id/call-notes', listCallNotes);
+router.post('/:id/call-notes', addCallNote);
 router.post('/:id/restore', requirePermission('leads', 'edit'), restoreLead);
 router.delete('/:id/permanent', requirePermission('leads', 'delete'), permanentDeleteLead);
 

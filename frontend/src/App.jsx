@@ -19,6 +19,7 @@ import {
   LeadDetail,
   LeadForm,
   Followups,
+  Reminders,
   WhatsAppLeads,
   Packages,
   Quotations,
@@ -218,6 +219,7 @@ function App() {
               <Route path="leads/:id/edit" element={<PermissionRoute module="leads" action="edit"><LeadForm /></PermissionRoute>} />
               <Route path="leads/:id" element={<PermissionRoute module="leads"><LeadDetail /></PermissionRoute>} />
               <Route path="followups" element={<PermissionRoute module="leads"><Followups /></PermissionRoute>} />
+              <Route path="reminders" element={<PermissionRoute module="leads"><Reminders /></PermissionRoute>} />
               <Route path="whatsapp" element={<PermissionRoute module="leads"><WhatsAppLeads /></PermissionRoute>} />
               <Route path="customers" element={<PermissionRoute module="customers"><ComingSoon title="Customers" description="Repeat customers and relationship management" /></PermissionRoute>} />
               <Route path="quotations/*" element={<PermissionRoute module="quotations"><Quotations /></PermissionRoute>} />

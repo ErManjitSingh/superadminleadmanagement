@@ -21,6 +21,12 @@ const actions = [
     className: 'bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-md shadow-emerald-600/20 h-11',
   },
   {
+    icon: Phone,
+    label: 'Log Call Note',
+    action: 'callnote',
+    className: 'text-emerald-700 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-400',
+  },
+  {
     icon: MessageCircle,
     label: 'WhatsApp Customer',
     link: 'whatsapp',
@@ -64,7 +70,7 @@ const actions = [
   },
 ];
 
-function ActionButton({ action, lead, onAddFollowUp, onAddNote, onAssign, onCreateQuote, onChangeStatus }) {
+function ActionButton({ action, lead, onAddFollowUp, onAddNote, onLogCallNote, onAssign, onCreateQuote, onChangeStatus }) {
   const Icon = action.icon;
   const baseClass = cn(
     'w-full rounded-xl justify-start gap-3 h-10 border',
@@ -108,6 +114,7 @@ function ActionButton({ action, lead, onAddFollowUp, onAddNote, onAssign, onCrea
       onClick={() => {
         if (action.action === 'followup') onAddFollowUp?.();
         if (action.action === 'note') onAddNote?.();
+        if (action.action === 'callnote') onLogCallNote?.();
         if (action.action === 'assign') onAssign?.();
         if (action.action === 'status') onChangeStatus?.();
         if (action.action === 'quote') onCreateQuote?.();
@@ -124,6 +131,7 @@ export default function LeadActionPanel({
   leadId,
   onAddFollowUp,
   onAddNote,
+  onLogCallNote,
   onAssign,
   onCreateQuote,
   onChangeStatus,
@@ -149,6 +157,7 @@ export default function LeadActionPanel({
                 lead={lead}
                 onAddFollowUp={onAddFollowUp}
                 onAddNote={onAddNote}
+                onLogCallNote={onLogCallNote}
                 onAssign={onAssign}
                 onCreateQuote={onCreateQuote}
                 onChangeStatus={onChangeStatus}

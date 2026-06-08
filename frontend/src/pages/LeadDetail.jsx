@@ -23,6 +23,7 @@ import {
   getLeadDetailData,
 } from '../components/lead-detail';
 import { fetchLeadTimeline } from '../services/leadEnterpriseApi';
+import CallNoteModal from '../components/leads/CallNoteModal';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -38,6 +39,7 @@ export default function LeadDetail() {
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [reactivationMode, setReactivationMode] = useState('');
   const [reactivationExecs, setReactivationExecs] = useState([]);
+  const [callNoteOpen, setCallNoteOpen] = useState(false);
   const notesRef = useRef(null);
 
   const loadLead = useCallback(({ silent = false } = {}) => {
@@ -186,6 +188,7 @@ export default function LeadDetail() {
             canEditLead={canEditLead}
             editHref={canEditLead ? `/leads/${id}/edit` : undefined}
             onAddNote={scrollToNotes}
+            onLogCallNote={() => setCallNoteOpen(true)}
             onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
           />
         </aside>
@@ -202,6 +205,13 @@ export default function LeadDetail() {
           allowedRoles={assignAllowedRoles(user?.role)}
         />
       )}
+
+      <CallNoteModal
+        open={callNoteOpen}
+        onClose={() => setCallNoteOpen(false)}
+        leadId={id}
+        onSaved={() => loadLead({ silent: true })}
+      />
 
       <ReactivationActionsModal
         open={!!reactivationMode}

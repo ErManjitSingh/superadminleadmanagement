@@ -42,3 +42,49 @@ export async function fetchLeadAgingAnalytics() {
   const { data } = await API.get('/leads/analytics/aging', { skipSuccessToast: true });
   return data;
 }
+
+export async function addCallNote(leadId, payload) {
+  const { data } = await API.post(`/leads/${leadId}/call-notes`, payload);
+  return data;
+}
+
+export async function fetchCallNotes(leadId, params = {}) {
+  const { data } = await API.get(`/leads/${leadId}/call-notes`, {
+    params,
+    skipSuccessToast: true,
+  });
+  return data;
+}
+
+export async function bulkUpdateLeadStatus(leadIds, status) {
+  const { data } = await API.post('/leads/bulk-status', { leadIds, status });
+  return data;
+}
+
+export async function bulkExportLeads(leadIds) {
+  const res = await API.post('/leads/bulk-export', { leadIds }, {
+    responseType: 'blob',
+    skipSuccessToast: true,
+  });
+  const blob = new Blob([res.data], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `leads-export-${Date.now()}.csv`;
+  a.click();
+  window.URL.revokeObjectURL(url);
+  return res.data;
+}
+
+export async function fetchReminderCounts() {
+  const { data } = await API.get('/reminders/counts', { skipSuccessToast: true });
+  return data;
+}
+
+export async function fetchReminders({ tab = 'today', page = 1, limit = 25 } = {}) {
+  const { data } = await API.get('/reminders', {
+    params: { tab, page, limit },
+    skipSuccessToast: true,
+  });
+  return data;
+}

@@ -19,9 +19,11 @@ export default function LeadBulkActionsBar({ count, onClear, onAssign, onDelete,
                 <UserCheck className="w-3.5 h-3.5" /> Bulk Assign
               </Button>
             )}
-            <Button variant="outline" size="sm" className="rounded-lg h-8 gap-1.5 text-xs" onClick={onStatusUpdate}>
-              <RefreshCw className="w-3.5 h-3.5" /> Update Status
-            </Button>
+            {onStatusUpdate && (
+              <Button variant="outline" size="sm" className="rounded-lg h-8 gap-1.5 text-xs" onClick={onStatusUpdate}>
+                <RefreshCw className="w-3.5 h-3.5" /> Update Status
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="rounded-lg h-8 gap-1.5 text-xs" onClick={onExport}>
               <Download className="w-3.5 h-3.5" /> Export
             </Button>

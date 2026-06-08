@@ -34,11 +34,13 @@ const branchRoutes = require('./branchRoutes');
 const destinationAssignmentRoutes = require('./destinationAssignmentRoutes');
 const skillAssignmentRoutes = require('./skillAssignmentRoutes');
 const assignmentConfigRoutes = require('./assignmentConfigRoutes');
+const reminderRoutes = require('./reminderRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/invites', inviteRoutes);
 router.use('/leads', leadRoutes);
 router.use('/followups', followUpRoutes);
+router.use('/reminders', reminderRoutes);
 router.use('/quotations', quotationRoutes);
 router.use('/packages', packageRoutes);
 router.use('/hotels', hotelRoutes);

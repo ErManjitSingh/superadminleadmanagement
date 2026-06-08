@@ -31,6 +31,8 @@ import { useLeadsQuery, useLeadsKanbanQuery } from '../features/leads/hooks/useL
 import { LEADS_PAGE_SIZE } from '../components/ui/TablePagination';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
+import BulkStatusModal from '../components/leads/BulkStatusModal';
+import { bulkUpdateLeadStatus, bulkExportLeads } from '../services/leadEnterpriseApi';
 
 export default function Leads() {
   const location = useLocation();
@@ -59,6 +61,7 @@ export default function Leads() {
   const [transferLead, setTransferLead] = useState(null);
   const [transferSubmitting, setTransferSubmitting] = useState(false);
   const [seedingDemo, setSeedingDemo] = useState(false);
+  const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
   const { confirm, dialogNode } = useConfirmDialog();
   const isNewLeadsPage = location.pathname === '/leads/new-leads';
 
@@ -172,6 +175,21 @@ export default function Leads() {
     }
   };
 
+  const handleBulkStatus = async (status) => {
+    const ids = Object.keys(rowSelection).filter((k) => rowSelection[k]);
+    await bulkUpdateLeadStatus(ids, status);
+    setRowSelection({});
+    setBulkStatusOpen(false);
+    invalidateLeads();
+  };
+
+  const handleBulkExport = async () => {
+    const ids = Object.keys(rowSelection).filter((k) => rowSelection[k]);
+    if (!ids.length) return;
+    await bulkExportLeads(ids);
+    toast.success(`Exported ${ids.length} leads`);
+  };
+
   const handleBulkDelete = async () => {
     const ids = Object.keys(rowSelection).filter((k) => rowSelection[k]);
     const ok = await confirm({
@@ -267,8 +285,8 @@ export default function Leads() {
         count={selectedCount}
         onClear={() => setRowSelection({})}
         onAssign={isAdmin ? () => openBulkAssign(selectedLeadIds) : undefined}
-        onStatusUpdate={() => toast.info('Bulk status update is coming soon')}
-        onExport={() => toast.info('Export has started...')}
+        onStatusUpdate={isManagerRole ? () => setBulkStatusOpen(true) : undefined}
+        onExport={handleBulkExport}
         onDelete={handleBulkDelete}
       />
 
@@ -339,6 +357,15 @@ export default function Leads() {
       )}
       {assignConfirmDialog}
       {dialogNode}
+
+      {isManagerRole && (
+        <BulkStatusModal
+          open={bulkStatusOpen}
+          onClose={() => setBulkStatusOpen(false)}
+          count={selectedCount}
+          onSubmit={handleBulkStatus}
+        />
+      )}
 
       {isAdmin && (
         <LeadBranchTransferModal

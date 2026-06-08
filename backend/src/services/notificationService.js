@@ -215,6 +215,30 @@ async function notifyFollowUpReminder(followUp, lead) {
   });
 }
 
+async function notifyFollowUpEscalation({ followUp, lead, level, minutesOverdue, notifyRoles = [] }) {
+  const branchId = followUp?.branchId || lead?.branchId || null;
+  const recipients = await getActiveUserIdsByRolesInBranch(notifyRoles, branchId);
+  const execId = followUp?.assignedTo?._id || followUp?.assignedTo;
+  if (execId) recipients.push(execId);
+
+  const levelLabel = { '15m': '15 min', '30m': '30 min', '1h': '1 hour' }[level] || level;
+
+  await notifyUsers(recipients, {
+    branchId,
+    type: T.FOLLOWUP_ESCALATION,
+    title: `Follow-up escalation (${levelLabel})`,
+    message: `${lead?.name || 'Lead'} follow-up overdue by ${minutesOverdue} min — executive: ${followUp?.assignedTo?.name || 'Unassigned'}`,
+    meta: {
+      followUpId: followUp?._id,
+      leadId: lead?._id || lead,
+      level,
+      minutesOverdue,
+      href: lead?._id ? `/leads/${lead._id}` : '/reminders',
+      persistent: true,
+    },
+  });
+}
+
 async function notifyFollowUpMissed(followUp, lead) {
   const userId = followUp.assignedTo?._id || followUp.assignedTo || lead?.assignedTo?._id || lead?.assignedTo;
 
@@ -373,6 +397,7 @@ module.exports = {
   notifyReactivationProgress,
   notifyFollowUpReminder,
   notifyFollowUpMissed,
+  notifyFollowUpEscalation,
   notifyQuotationCreated,
   notifyQuotationApproved,
   notifyQuotationRejected,

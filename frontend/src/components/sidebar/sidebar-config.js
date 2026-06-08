@@ -54,6 +54,7 @@ export const leadManagementItems = [
   { path: '/leads/unassigned', label: 'Unassigned Leads', icon: Inbox, badgeKey: 'leads.unassigned', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/assigned', label: 'Assigned Leads', icon: UserCheck, countKey: 'leads.assigned', permission: { module: 'leads', action: 'view' } },
   { path: '/followups', label: 'Follow Ups', icon: CalendarClock, badgeKey: 'followups.due', countKey: 'followups.total', permission: { module: 'leads', action: 'view' } },
+  { path: '/reminders', label: 'Reminder Center', icon: Bell, badgeKey: 'reminders.overdue', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/converted', label: 'Converted Leads', icon: Trophy, countKey: 'leads.converted', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/reactivated', label: 'Reactivated Leads', icon: RefreshCw, permission: { module: 'leads', action: 'view' } },

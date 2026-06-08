@@ -6,6 +6,7 @@ const {
   notifyFollowUpReminder,
   notifyFollowUpMissed,
 } = require('./notificationService');
+const { processFollowUpEscalations } = require('./escalationService');
 const { startOfDay } = require('../utils/queryHelpers');
 
 const REMINDER_WINDOW_MS = 15 * 60 * 1000;
@@ -75,6 +76,7 @@ function startNotificationScheduler() {
     try {
       await processFollowUpReminders();
       await processMissedFollowUps();
+      await processFollowUpEscalations();
     } catch (err) {
       console.error('[NotificationScheduler]', err.message);
     }
@@ -82,7 +84,7 @@ function startNotificationScheduler() {
 
   tick();
   const handle = setInterval(tick, TICK_MS);
-  console.log('[NotificationScheduler] Started (follow-up reminders & missed)');
+  console.log('[NotificationScheduler] Started (reminders, missed & escalations)');
   return () => clearInterval(handle);
 }
 
