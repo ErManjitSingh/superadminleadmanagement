@@ -10,6 +10,7 @@ const {
   listFollowUps,
   listExecutives,
   listQuotations,
+  createQuotation,
   approveQuotation,
   getEscalations,
   escalate,
@@ -32,6 +33,7 @@ router.post('/leads/:id/comment', addLeadComment);
 router.get('/followups', listFollowUps);
 router.get('/executives', listExecutives);
 router.get('/quotations/:segment?', listQuotations);
+router.post('/quotations', createQuotation);
 router.put('/quotations/:id', approveQuotation);
 router.get('/escalations', getEscalations);
 router.post('/escalations', escalate);

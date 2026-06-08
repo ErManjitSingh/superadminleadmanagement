@@ -32,6 +32,7 @@ export const TeamDetailPage = lazy(() => import('../components/sales-manager/Tea
 export const TeamMonitoringPage = lazy(() => import('../components/sales-manager/TeamMonitoringPage'));
 export const FollowUpMonitoringPage = lazy(() => import('../components/sales-manager/FollowUpMonitoringPage'));
 export const QuotationApprovalPage = lazy(() => import('../components/sales-manager/QuotationApprovalPage'));
+export const ManagerQuotationBuilder = lazy(() => import('../components/sales-manager/ManagerQuotationBuilder'));
 export const TeamPerformancePage = lazy(() => import('../components/sales-manager/TeamPerformancePage'));
 export const ManagerReportsPage = lazy(() => import('../components/sales-manager/ManagerReportsPage'));
 export const ManagerCalendarPage = lazy(() => import('../components/sales-manager/ManagerCalendarPage'));
@@ -58,6 +59,7 @@ export const LeaderFollowUpsPage = lazy(() => import('../components/team-leader/
 export const ExecutivePerformancePage = lazy(() => import('../components/team-leader/ExecutivePerformancePage'));
 export const LeadEscalationsPage = lazy(() => import('../components/team-leader/LeadEscalationsPage'));
 export const LeaderQuotationsPage = lazy(() => import('../components/team-leader/LeaderQuotationsPage'));
+export const LeaderQuotationBuilder = lazy(() => import('../components/team-leader/LeaderQuotationBuilder'));
 export const LeaderReportsPage = lazy(() => import('../components/team-leader/LeaderReportsPage'));
 export const LeaderCalendarPage = lazy(() => import('../components/team-leader/LeaderCalendarPage'));
 export const LeaderNotificationsPage = lazy(() => import('../components/team-leader/LeaderNotificationsPage'));

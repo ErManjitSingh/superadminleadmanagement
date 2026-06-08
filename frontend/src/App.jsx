@@ -40,6 +40,7 @@ import {
   TeamMonitoringPage,
   FollowUpMonitoringPage,
   QuotationApprovalPage,
+  ManagerQuotationBuilder,
   TeamPerformancePage,
   ManagerReportsPage,
   ManagerCalendarPage,
@@ -64,6 +65,7 @@ import {
   ExecutivePerformancePage,
   LeadEscalationsPage,
   LeaderQuotationsPage,
+  LeaderQuotationBuilder,
   LeaderReportsPage,
   LeaderCalendarPage,
   LeaderNotificationsPage,
@@ -115,6 +117,7 @@ function App() {
               <Route path="teams/:id" element={<TeamDetailPage />} />
               <Route path="follow-ups" element={<FollowUpMonitoringPage />} />
               <Route path="team" element={<TeamPerformancePage />} />
+              <Route path="quotations/new" element={<ManagerQuotationBuilder />} />
               <Route path="quotations/:status" element={<QuotationApprovalPage />} />
               <Route path="reports" element={<ManagerReportsPage />} />
               <Route path="reactivated-leads" element={<ReactivatedLeadsPage />} />
@@ -160,6 +163,7 @@ function App() {
               <Route path="follow-ups" element={<LeaderFollowUpsPage />} />
               <Route path="performance" element={<ExecutivePerformancePage />} />
               <Route path="escalations" element={<LeadEscalationsPage />} />
+              <Route path="quotations/new" element={<LeaderQuotationBuilder />} />
               <Route path="quotations/:status" element={<LeaderQuotationsPage />} />
               <Route path="reports" element={<LeaderReportsPage />} />
               <Route path="reactivated-leads" element={<ReactivatedLeadsPage />} />

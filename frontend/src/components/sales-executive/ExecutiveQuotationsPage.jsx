@@ -9,6 +9,7 @@ import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
+import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
 import {
   emptyQuotationFilters,
   countQuotationActiveFilters,
@@ -35,6 +36,7 @@ export default function ExecutiveQuotationsPage() {
   const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [loading, setLoading] = useState(true);
   const [flash, setFlash] = useState(location.state?.message || '');
+  const [selected, setSelected] = useState(null);
 
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
 
@@ -144,7 +146,7 @@ export default function ExecutiveQuotationsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-subtle bg-surface-elevated/50">
-                {['Quote #', 'Customer', 'Destination', 'Amount', 'Status', 'Team Leader', 'Actions'].map((h) => (
+                {['Quote #', 'Customer', 'Destination', 'Amount', 'Status', 'Created by', 'Actions'].map((h) => (
                   <th
                     key={h}
                     className="text-left px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted whitespace-nowrap"
@@ -157,13 +159,13 @@ export default function ExecutiveQuotationsPage() {
             <tbody className="divide-y divide-subtle">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-content-muted">
+                  <td colSpan={8} className="p-12 text-center text-content-muted">
                     Loading…
                   </td>
                 </tr>
               ) : quotes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-12 text-center text-content-muted">
+                  <td colSpan={8} className="p-12 text-center text-content-muted">
                     No quotations match your filters
                   </td>
                 </tr>
@@ -174,7 +176,8 @@ export default function ExecutiveQuotationsPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
-                    className="hover:bg-sky-500/[0.03]"
+                    className="hover:bg-sky-500/[0.03] cursor-pointer"
+                    onClick={() => setSelected(q)}
                   >
                     <td className="px-4 py-3.5 font-mono text-xs font-medium text-sky-600">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5 font-medium text-content-primary">{q.lead?.name}</td>
@@ -190,8 +193,8 @@ export default function ExecutiveQuotationsPage() {
                         {(q.status || 'draft').replace(/_/g, ' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-content-secondary">{q.teamLeader?.name || '—'}</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-xs text-content-secondary">{q.createdByExecutive?.name || q.createdBy?.name || '—'}</td>
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex flex-wrap gap-1">
                         {q.status === 'draft' && (
                           <Button size="sm" variant="outline" onClick={() => handleSubmit(q._id)}>
@@ -215,6 +218,23 @@ export default function ExecutiveQuotationsPage() {
           </table>
         </div>
       </div>
+
+      <QuotationDetailDrawer
+        quote={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        actions={
+          selected?.status === 'draft' ? (
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => { handleSubmit(selected._id); setSelected(null); }}>
+              Submit for Approval
+            </Button>
+          ) : selected?.status === 'approved' ? (
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => { handleSend(selected._id); setSelected(null); }}>
+              <Send className="w-3 h-3 mr-1" /> Send to Customer
+            </Button>
+          ) : null
+        }
+      />
     </div>
   );
 }

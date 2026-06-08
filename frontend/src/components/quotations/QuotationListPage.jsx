@@ -2,18 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Download, Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import API from '../../api/axios';
+import { Download, Eye, FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
-import AppDrawer from '../ui/AppDrawer';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
-import QuoteTimeline from './QuoteTimeline';
-import QuotePricingPanel from './QuotePricingPanel';
 import QuotePdfPreview from './QuotePdfPreview';
 import QuotationFiltersPanel from './QuotationFiltersPanel';
+import QuotationDetailDrawer from './QuotationDetailDrawer';
 import { QUOTE_STATUSES } from './constants';
 import { formatINR } from './quotationUtils';
 import {
@@ -99,14 +96,6 @@ export default function QuotationListPage() {
     setTimeout(() => { window.print(); }, 300);
   };
 
-  const updateStatus = async (id, status) => {
-    const timelineEntry = { type: status, date: new Date().toISOString(), user: 'You', notes: `Status updated to ${status}` };
-    const q = quotes.find((x) => x._id === id);
-    await API.put(`/quotations/${id}`, { status, timeline: [...(q?.timeline || []), timelineEntry] });
-    invalidate();
-    if (selected?._id === id) setSelected(null);
-  };
-
   const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
 
   return (
@@ -114,11 +103,8 @@ export default function QuotationListPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-content-primary">Quotations</h1>
-          <p className="text-sm text-content-muted">Create, track & convert travel quotes</p>
+          <p className="text-sm text-content-muted">View all quotes — creator, customer, package details & who it was sent to</p>
         </div>
-        <Link to="/quotations/new">
-          <Button className="rounded-xl gap-2" variant="sky"><Plus className="w-4 h-4" /> New Quotation</Button>
-        </Link>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -172,15 +158,12 @@ export default function QuotationListPage() {
                   <tr key={q._id} className="hover:bg-sky-500/[0.03] cursor-pointer group" onClick={() => setSelected(q)}>
                     <td className="px-4 py-3.5 font-mono text-sm font-medium text-sky-600">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5"><div className="flex items-center gap-2"><Avatar name={q.lead?.name} size="sm" className="!w-7 !h-7 !text-[10px]" /><span className="text-sm font-medium">{q.lead?.name}</span></div></td>
-                    <td className="px-4 py-3.5 text-sm text-content-secondary">{q.package?.name}</td>
+                    <td className="px-4 py-3.5 text-sm text-content-secondary">{q.package?.name || q.packageSnapshot?.name || '—'}</td>
                     <td className="px-4 py-3.5 text-sm font-semibold metric-tabular">{formatINR(q.pricing?.total)}</td>
                     <td className="px-4 py-3.5"><QuoteStatusBadge status={q.status} /></td>
                     <td className="px-4 py-3.5 text-xs text-content-muted">{new Date(q.createdAt).toLocaleDateString('en-IN')}</td>
                     <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                        <button type="button" onClick={() => { setSelected(q); setShowPdf(true); }} className="p-1.5 rounded-lg hover:bg-sky-500/10 text-sky-600" title="Preview PDF"><Eye className="w-3.5 h-3.5" /></button>
-                        {q.status === 'draft' && <button type="button" onClick={() => updateStatus(q._id, 'sent')} className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-emerald-600" title="Mark Sent"><Send className="w-3.5 h-3.5" /></button>}
-                      </div>
+                      <button type="button" onClick={() => { setSelected(q); setShowPdf(true); }} className="p-1.5 rounded-lg hover:bg-sky-500/10 text-sky-600 opacity-0 group-hover:opacity-100" title="Preview PDF"><Eye className="w-3.5 h-3.5" /></button>
                     </td>
                   </tr>
                 ))}
@@ -214,34 +197,13 @@ export default function QuotationListPage() {
         )}
       </div>
 
-      <AppDrawer
+      <QuotationDetailDrawer
+        quote={selected}
         open={!!selected && !showPdf}
         onClose={() => { setSelected(null); setShowPdf(false); }}
-        className="max-w-lg overflow-y-auto"
-      >
-        {selected && (
-          <>
-            <div className="p-5 border-b border-subtle bg-gradient-to-r from-sky-500/10 to-indigo-500/10">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-mono text-sky-600 font-bold">{selected.quoteNumber}</p>
-                  <h3 className="text-lg font-bold">{selected.lead?.name}</h3>
-                </div>
-                <QuoteStatusBadge status={selected.status} />
-              </div>
-            </div>
-            <div className="p-5 space-y-5">
-              <QuotePricingPanel pricing={selected.pricing} readOnly />
-              <QuoteTimeline timeline={selected.timeline} />
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={handlePrint} variant="sky" className="rounded-xl gap-2 flex-1"><Download className="w-4 h-4" /> Download PDF</Button>
-                {selected.status === 'sent' && <Button variant="outline" onClick={() => updateStatus(selected._id, 'approved')} className="rounded-xl flex-1 text-emerald-700 border-emerald-500/40 bg-emerald-500/10">Approve</Button>}
-                {selected.status === 'sent' && <Button variant="outline" onClick={() => updateStatus(selected._id, 'rejected')} className="rounded-xl flex-1 text-red-700 border-red-500/40 bg-red-500/10">Reject</Button>}
-              </div>
-            </div>
-          </>
-        )}
-      </AppDrawer>
+        readOnly
+        onDownloadPdf={handlePrint}
+      />
 
       {showPdf && selected && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[210] bg-white overflow-y-auto print:static print:inset-auto">

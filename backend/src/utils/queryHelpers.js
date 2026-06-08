@@ -40,6 +40,7 @@ const QUOTATION_POPULATE = [
     populate: [{ path: 'assignedTo', select: 'name email' }],
   },
   { path: 'package' },
+  { path: 'createdBy', select: 'name email role' },
   { path: 'createdByExecutive', select: 'name email' },
   { path: 'teamLeader', select: 'name email' },
   { path: 'approvedBy', select: 'name email' },

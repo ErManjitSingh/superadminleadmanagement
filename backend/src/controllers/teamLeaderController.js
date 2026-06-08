@@ -19,6 +19,7 @@ const {
   findScopedFollowUpsPaginated,
   findScopedQuotationsPaginated,
 } = require('../repositories/roleScopedRepository');
+const { persistQuotation } = require('../services/quotationCreateService');
 const { logActivity, getClientIp } = require('../services/activityService');
 const {
   notifyLeadAssigned,
@@ -33,6 +34,7 @@ const {
   buildLeadSearchFilter,
   buildFollowUpTabFilter,
   buildFollowUpCategoryFilter,
+  generateQuoteNumber,
   formatNotification,
 } = require('../utils/queryHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
@@ -252,6 +254,42 @@ const listQuotations = asyncHandler(async (req, res) => {
 
   const result = await findScopedQuotationsPaginated(filter, req.query, { branchId: req.branchId });
   res.json(result);
+});
+
+const createQuotation = asyncHandler(async (req, res) => {
+  const execIds = await getExecutiveIdsForLeader(req.user._id);
+  const lead = await Lead.findOne({
+    _id: req.body.leadId,
+    assignedTo: { $in: execIds },
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!lead) throw new ApiError(403, 'Lead not in your team');
+
+  const status = req.body.status === 'draft' ? 'draft' : 'approved';
+  const now = new Date();
+  const timeline = [
+    { type: 'created', date: now, user: req.user.name, notes: 'Quote created by Team Leader' },
+  ];
+  if (status === 'approved') {
+    timeline.push({
+      type: 'approved',
+      date: now,
+      user: req.user.name,
+      notes: 'Approved by Team Leader',
+    });
+  }
+
+  const populated = await persistQuotation({
+    req,
+    lead,
+    body: req.body,
+    status,
+    timeline,
+    createdByExecutiveId: lead.assignedTo,
+    teamLeaderId: req.user._id,
+    approvalNote: status === 'approved' ? 'Created and approved by Team Leader' : 'Saved quote draft',
+  });
+  res.status(201).json(populated);
 });
 
 const approveQuotation = asyncHandler(async (req, res) => {
@@ -552,6 +590,7 @@ module.exports = {
   listFollowUps,
   listExecutives,
   listQuotations,
+  createQuotation,
   approveQuotation,
   getEscalations,
   escalate,

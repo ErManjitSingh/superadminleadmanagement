@@ -48,6 +48,10 @@ const getQuotation = asyncHandler(async (req, res) => {
 });
 
 const createQuotation = asyncHandler(async (req, res) => {
+  if (req.user.role === 'admin') {
+    throw new ApiError(403, 'Admin can only view quotations');
+  }
+
   const lead = await Lead.findById(req.body.leadId || req.body.lead);
   if (!lead) throw new ApiError(404, 'Lead not found');
 
@@ -91,6 +95,10 @@ const createQuotation = asyncHandler(async (req, res) => {
 });
 
 const updateQuotation = asyncHandler(async (req, res) => {
+  if (req.user.role === 'admin') {
+    throw new ApiError(403, 'Admin can only view quotations');
+  }
+
   const quotation = await Quotation.findById(req.params.id);
   if (!quotation) throw new ApiError(404, 'Quotation not found');
 
@@ -111,6 +119,10 @@ const updateQuotation = asyncHandler(async (req, res) => {
 });
 
 const deleteQuotation = asyncHandler(async (req, res) => {
+  if (req.user.role === 'admin') {
+    throw new ApiError(403, 'Admin can only view quotations');
+  }
+
   const quotation = await Quotation.findById(req.params.id);
   if (!quotation) throw new ApiError(404, 'Quotation not found');
   await quotation.deleteOne();

@@ -8,6 +8,7 @@ const {
   listExecutives,
   listFollowUps,
   listQuotations,
+  createQuotation,
   updateQuotation,
   listNotifications,
   getReports,
@@ -38,6 +39,7 @@ router.post('/assign', assignLeads);
 router.get('/executives', listExecutives);
 router.get('/followups', listFollowUps);
 router.get('/quotations/:segment?', listQuotations);
+router.post('/quotations', createQuotation);
 router.put('/quotations/:id', updateQuotation);
 router.get('/notifications', listNotifications);
 router.get('/reports', getReports);

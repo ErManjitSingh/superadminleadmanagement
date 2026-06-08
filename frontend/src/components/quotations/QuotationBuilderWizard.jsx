@@ -41,8 +41,45 @@ const EXECUTIVE_CONFIG = {
   approvalNote: 'After Team Leader approves, you can send the quote to the customer.',
 };
 
-export default function QuotationBuilderWizard({ mode = 'admin' }) {
-  const config = mode === 'executive' ? EXECUTIVE_CONFIG : ADMIN_CONFIG;
+const TEAM_LEADER_CONFIG = {
+  leadsPath: '/team-leader/leads',
+  leadsParams: { filter: 'all', page: 1, limit: 500 },
+  savePath: '/team-leader/quotations',
+  backPath: '/team-leader/quotations/pending',
+  successPath: '/team-leader/quotations/approved',
+  title: 'Create Quotation',
+  subtitle: 'Create a quote for your team — approved immediately',
+  draftStatus: 'draft',
+  submitStatus: 'approved',
+  draftLabel: 'Save Draft',
+  submitLabel: 'Create & Approve',
+  approvalNote: 'Executive can send the approved quote to the customer.',
+};
+
+const MANAGER_CONFIG = {
+  leadsPath: '/sales-manager/leads',
+  leadsParams: { filter: 'all', page: 1, limit: 500 },
+  savePath: '/sales-manager/quotations',
+  backPath: '/sales-manager/quotations/pending',
+  successPath: '/sales-manager/quotations/approved',
+  title: 'Create Quotation',
+  subtitle: 'Create a quote for any team lead in your branch',
+  draftStatus: 'draft',
+  submitStatus: 'approved',
+  draftLabel: 'Save Draft',
+  submitLabel: 'Create & Approve',
+  approvalNote: 'Quote is approved on creation. Executive can send to customer.',
+};
+
+const CONFIG_BY_MODE = {
+  executive: EXECUTIVE_CONFIG,
+  team_leader: TEAM_LEADER_CONFIG,
+  sales_manager: MANAGER_CONFIG,
+  admin: ADMIN_CONFIG,
+};
+
+export default function QuotationBuilderWizard({ mode = 'executive' }) {
+  const config = CONFIG_BY_MODE[mode] || EXECUTIVE_CONFIG;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialLeadId = searchParams.get('leadId');
@@ -62,7 +99,7 @@ export default function QuotationBuilderWizard({ mode = 'admin' }) {
 
     const loadBuilderData = async () => {
       const requests = [
-        API.get(config.leadsPath, { params: { page: 1, limit: 500 }, skipErrorToast: true }),
+        API.get(config.leadsPath, { params: config.leadsParams || { page: 1, limit: 500 }, skipErrorToast: true }),
         API.get('/packages', { skipErrorToast: true }),
         API.get('/hotels', { skipErrorToast: true }),
         API.get('/cabs', { skipErrorToast: true }),

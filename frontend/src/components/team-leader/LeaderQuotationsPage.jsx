@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle2, XCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle2, XCircle, MessageSquare, Plus } from 'lucide-react';
 import API from '../../api/axios';
 import { unwrapList } from '../../utils/apiHelpers';
 import PageHeader from '../ui/PageHeader';
@@ -9,6 +9,7 @@ import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './leaderUtils';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
+import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
 import {
   emptyQuotationFilters,
   countQuotationActiveFilters,
@@ -31,6 +32,7 @@ export default function LeaderQuotationsPage() {
   const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
   const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
   const meta = META[status] || META.pending;
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
 
@@ -75,7 +77,16 @@ export default function LeaderQuotationsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={meta.title} description={meta.desc} breadcrumbs={['Team Leader', 'Quotations', meta.title]} />
+      <PageHeader
+        title={meta.title}
+        description={meta.desc}
+        breadcrumbs={['Team Leader', 'Quotations', meta.title]}
+        actions={(
+          <Link to="/team-leader/quotations/new">
+            <Button className="rounded-xl gap-2"><Plus className="w-4 h-4" /> Create Quotation</Button>
+          </Link>
+        )}
+      />
 
       <QuotationFiltersPanel
         filters={draftFilters}
@@ -127,7 +138,8 @@ export default function LeaderQuotationsPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.03 }}
-                    className="hover:bg-amber-500/[0.03]"
+                    className="hover:bg-amber-500/[0.03] cursor-pointer"
+                    onClick={() => setSelected(q)}
                   >
                     <td className="px-4 py-3.5 font-mono text-xs font-medium text-amber-600">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5 font-medium">{q.lead?.name}</td>
@@ -153,7 +165,7 @@ export default function LeaderQuotationsPage() {
                         {q.pricing?.profitMargin}%
                       </span>
                     </td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                       {status === 'pending' && q.status === 'pending_approval' && (
                         <div className="flex flex-wrap gap-1.5">
                           <Button size="sm" variant="emerald" className="h-8" onClick={() => handleAction(q._id, 'approve')}>
@@ -180,6 +192,24 @@ export default function LeaderQuotationsPage() {
           </table>
         </div>
       </div>
+
+      <QuotationDetailDrawer
+        quote={selected}
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        actions={
+          status === 'pending' && selected?.status === 'pending_approval' ? (
+            <>
+              <Button size="sm" variant="emerald" className="flex-1" onClick={() => { handleAction(selected._id, 'approve'); setSelected(null); }}>
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
+              </Button>
+              <Button size="sm" variant="outline" className="flex-1 text-rose-600" onClick={() => { handleAction(selected._id, 'reject'); setSelected(null); }}>
+                <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+              </Button>
+            </>
+          ) : null
+        }
+      />
     </div>
   );
 }

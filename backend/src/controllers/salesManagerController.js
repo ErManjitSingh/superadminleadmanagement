@@ -8,6 +8,7 @@ const Notification = require('../models/Notification');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { buildSalesManagerDashboard } = require('../services/dashboardService');
+const { persistQuotation } = require('../services/quotationCreateService');
 const { logActivity, getClientIp } = require('../services/activityService');
 const {
   notifyLeadAssigned,
@@ -233,6 +234,40 @@ const listQuotations = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const createQuotation = asyncHandler(async (req, res) => {
+  const lead = await Lead.findOne({
+    _id: req.body.leadId,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+
+  const status = req.body.status === 'draft' ? 'draft' : 'approved';
+  const now = new Date();
+  const timeline = [
+    { type: 'created', date: now, user: req.user.name, notes: 'Quote created by Sales Manager' },
+  ];
+  if (status === 'approved') {
+    timeline.push({
+      type: 'approved',
+      date: now,
+      user: req.user.name,
+      notes: 'Approved by Sales Manager',
+    });
+  }
+
+  const populated = await persistQuotation({
+    req,
+    lead,
+    body: req.body,
+    status,
+    timeline,
+    createdByExecutiveId: lead.assignedTo,
+    teamLeaderId: body.teamLeader,
+    approvalNote: status === 'approved' ? 'Created and approved by Sales Manager' : 'Saved quote draft',
+  });
+  res.status(201).json(populated);
+});
+
 const updateQuotation = asyncHandler(async (req, res) => {
   const quotation = await Quotation.findOne({
     _id: req.params.id,
@@ -400,6 +435,7 @@ module.exports = {
   listExecutives,
   listFollowUps,
   listQuotations,
+  createQuotation,
   updateQuotation,
   listNotifications,
   getReports,
