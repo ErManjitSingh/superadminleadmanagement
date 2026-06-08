@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import API from '../api/axios';
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../hooks/useDataRefresh';
+import { useDashboardQuery } from '../features/dashboard/hooks/useDashboardQuery';
+import { invalidateDashboard } from '../lib/queryInvalidation';
 import {
   DashboardHeader,
   DashboardHero,
@@ -18,27 +20,25 @@ import {
 import DashboardPanel from '../components/dashboard/DashboardPanel';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data: stats, isLoading, isFetching } = useDashboardQuery();
 
-  const loadStats = useCallback(() => {
-    setLoading(true);
-    API.get('/dashboard/stats', { skipSuccessToast: true })
-      .then((res) => setStats(res.data))
-      .finally(() => setLoading(false));
-  }, []);
+  const refreshDashboard = useCallback(() => {
+    invalidateDashboard(queryClient);
+  }, [queryClient]);
 
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+  useDataRefresh(['dashboard'], refreshDashboard);
 
-  useDataRefresh(['dashboard', 'leads', 'followups'], loadStats);
-
-  if (loading) return <DashboardSkeleton />;
+  if (isLoading && !stats) return <DashboardSkeleton />;
   if (!stats) return null;
 
   return (
     <div className="space-y-6 pb-6">
+      {isFetching && (
+        <div className="h-0.5 w-full bg-brand-500/30 rounded-full overflow-hidden">
+          <div className="h-full w-1/3 bg-brand-500 animate-pulse" />
+        </div>
+      )}
       <DashboardHeader />
       <DashboardHero stats={stats} />
 

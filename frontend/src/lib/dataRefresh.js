@@ -58,6 +58,8 @@ export function keysFromMutationUrl(url, _method) {
   if (leadPath || /\/sales-manager\/assign/.test(path) || /\/leads\/assign/.test(path)) {
     keys.add('leads');
     keys.add('dashboard');
+    const leadIdMatch = path.match(/\/leads\/([a-f0-9]{24})/);
+    if (leadIdMatch) keys.add(`lead:${leadIdMatch[1]}`);
   }
 
   if (/\/followup/.test(path)) {

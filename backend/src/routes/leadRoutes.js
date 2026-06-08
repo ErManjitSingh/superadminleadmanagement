@@ -40,11 +40,13 @@ const {
   getKpis,
   getSlaAnalytics,
   listAuditLog,
+  getKanbanBoardHandler,
 } = require('../controllers/enterpriseLeadController');
 
 router.use(protect);
 
 router.get('/check-duplicate', checkDuplicate);
+router.get('/kanban-board', getKanbanBoardHandler);
 router.get('/recycle-bin', listRecycleBin);
 router.get('/analytics/aging', getAgingAnalytics);
 router.get('/analytics/sources', getSourceAnalyticsHandler);

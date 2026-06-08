@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowRightLeft, UserCheck, Building2 } from 'lucide-react';
 import { fetchLeadTransferHistory } from '../../services/leadEnterpriseApi';
+import LazySection from '../ui/LazySection';
+import { DETAIL_STALE_MS, GC_TIME_MS } from '../../lib/queryConfig';
 
 const TYPE_LABELS = {
   assign: 'Assigned',
@@ -27,54 +29,53 @@ function formatEntry(row) {
   return `${from} → ${to}`;
 }
 
-export default function LeadTransferHistory({ leadId }) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+function TransferHistoryContent({ leadId }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['lead-transfer-history', leadId],
+    queryFn: () => fetchLeadTransferHistory(leadId),
+    staleTime: DETAIL_STALE_MS,
+    gcTime: GC_TIME_MS,
+  });
 
-  useEffect(() => {
-    if (!leadId) return;
-    setLoading(true);
-    fetchLeadTransferHistory(leadId)
-      .then((res) => setRows(res?.data || []))
-      .catch(() => setRows([]))
-      .finally(() => setLoading(false));
-  }, [leadId]);
+  const rows = data?.data || [];
+
+  if (isLoading) return <p className="text-sm text-content-muted py-2">Loading...</p>;
+  if (!rows.length) return <p className="text-sm text-content-muted py-2">No transfers recorded yet</p>;
 
   return (
-    <div className="rounded-2xl border border-subtle bg-surface/80 p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <ArrowRightLeft className="w-4 h-4 text-content-muted" />
-        <h3 className="text-sm font-semibold text-content-primary">Transfer History</h3>
-      </div>
+    <ul className="space-y-3 pt-3">
+      {rows.map((row) => {
+        const Icon = TYPE_ICONS[row.type] || ArrowRightLeft;
+        const when = row.createdAt
+          ? new Date(row.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+          : '';
+        return (
+          <li key={row._id} className="flex gap-3 text-sm">
+            <div className="p-1.5 rounded-lg bg-surface-elevated text-content-muted h-fit">
+              <Icon className="w-3.5 h-3.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-content-primary">{TYPE_LABELS[row.type] || row.type}</p>
+              <p className="text-content-secondary truncate">{formatEntry(row)}</p>
+              <p className="text-xs text-content-muted mt-0.5">
+                {row.actorName || row.actorId?.name || 'System'} · {when}
+              </p>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
-      {loading ? (
-        <p className="text-sm text-content-muted">Loading...</p>
-      ) : !rows.length ? (
-        <p className="text-sm text-content-muted">No transfers recorded yet</p>
-      ) : (
-        <ul className="space-y-3">
-          {rows.map((row) => {
-            const Icon = TYPE_ICONS[row.type] || ArrowRightLeft;
-            const when = row.createdAt
-              ? new Date(row.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-              : '';
-            return (
-              <li key={row._id} className="flex gap-3 text-sm">
-                <div className="p-1.5 rounded-lg bg-surface-elevated text-content-muted h-fit">
-                  <Icon className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-content-primary">{TYPE_LABELS[row.type] || row.type}</p>
-                  <p className="text-content-secondary truncate">{formatEntry(row)}</p>
-                  <p className="text-xs text-content-muted mt-0.5">
-                    {row.actorName || row.actorId?.name || 'System'} · {when}
-                  </p>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+export default function LeadTransferHistory({ leadId }) {
+  return (
+    <LazySection
+      title="Transfer History"
+      subtitle="Assignment and branch transfers"
+      icon={ArrowRightLeft}
+    >
+      <TransferHistoryContent leadId={leadId} />
+    </LazySection>
   );
 }

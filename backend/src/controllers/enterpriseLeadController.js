@@ -20,6 +20,7 @@ const {
 } = require('../services/leadAnalyticsService');
 const { getSlaDashboard } = require('../services/slaService');
 const { listBranchAuditLogs } = require('../services/leadAuditService');
+const { getKanbanBoard } = require('../services/kanbanBoardService');
 
 const checkDuplicate = asyncHandler(async (req, res) => {
   const { phone, alternatePhone, email, excludeId } = req.query;
@@ -356,6 +357,11 @@ const getSlaAnalytics = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
+const getKanbanBoardHandler = asyncHandler(async (req, res) => {
+  const result = await getKanbanBoard(req.query, { branchId: req.branchId });
+  res.json(result);
+});
+
 const listAuditLog = asyncHandler(async (req, res) => {
   if (!['admin', 'sales_manager'].includes(req.user.role)) {
     throw new ApiError(403, 'Audit log access restricted');
@@ -388,4 +394,5 @@ module.exports = {
   getKpis,
   getSlaAnalytics,
   listAuditLog,
+  getKanbanBoardHandler,
 };

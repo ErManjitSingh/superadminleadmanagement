@@ -9,7 +9,7 @@ function formatActivityDate(iso) {
   };
 }
 
-export default function LeadActivityTimeline({ activities }) {
+export default function LeadActivityTimeline({ activities, loading = false }) {
   const sorted = [...activities].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   return (
@@ -19,6 +19,10 @@ export default function LeadActivityTimeline({ activities }) {
         <p className="text-xs text-content-muted mt-0.5">HubSpot-style activity feed</p>
       </div>
       <div className="p-5">
+        {loading && (
+          <p className="text-sm text-content-muted text-center py-6">Loading timeline...</p>
+        )}
+        {!loading && (
         <div className="relative">
           <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-brand-500/30 via-subtle to-transparent" />
           <div className="space-y-1">
@@ -58,6 +62,7 @@ export default function LeadActivityTimeline({ activities }) {
             })}
           </div>
         </div>
+        )}
       </div>
     </div>
   );

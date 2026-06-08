@@ -34,6 +34,7 @@ import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
 import BulkStatusModal from '../components/leads/BulkStatusModal';
 import { bulkUpdateLeadStatus, bulkExportLeads } from '../services/leadEnterpriseApi';
 import { canDragLeadInKanban } from '../lib/kanbanPermissions';
+import { invalidateLeadLists } from '../lib/queryInvalidation';
 
 export default function Leads() {
   const location = useLocation();
@@ -89,7 +90,7 @@ export default function Leads() {
   });
 
   const invalidateLeads = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['leads'] });
+    invalidateLeadLists(queryClient);
   }, [queryClient]);
 
   useDataRefresh(['leads'], invalidateLeads);
@@ -107,7 +108,14 @@ export default function Leads() {
   const tableLeads = tableQuery.data?.data ?? [];
   const totalLeads = tableQuery.data?.pagination?.total ?? 0;
   const kanbanLeads = kanbanQuery.data?.data ?? [];
-  const loading = view === 'table' ? tableQuery.isLoading : kanbanQuery.isLoading;
+  const kanbanTotal = kanbanQuery.data?.totalLeads ?? kanbanLeads.length;
+  const kanbanColumnTotals = useMemo(() => {
+    const cols = kanbanQuery.data?.columns;
+    if (!cols?.length) return {};
+    return Object.fromEntries(cols.map((c) => [c.status, c.total]));
+  }, [kanbanQuery.data?.columns]);
+  const activeQuery = view === 'table' ? tableQuery : kanbanQuery;
+  const loading = activeQuery.isLoading && !activeQuery.data;
 
   const leadsByStatus = useMemo(
     () => groupLeadsByStatus(kanbanLeads, KANBAN_COLUMNS),
@@ -273,7 +281,7 @@ export default function Leads() {
     <div className="animate-fade-up">
       <LeadPageHeader
         title={config.title}
-        total={view === 'table' ? totalLeads : kanbanLeads.length}
+        total={view === 'table' ? totalLeads : kanbanTotal}
         view={view}
         onViewChange={setView}
         onSeedDemo={isAdmin && isNewLeadsPage ? handleSeedDemoLeads : undefined}
@@ -331,6 +339,7 @@ export default function Leads() {
           <LeadKanbanBoard
             columns={KANBAN_COLUMNS}
             leadsByStatus={leadsByStatus}
+            columnTotals={kanbanColumnTotals}
             onCardClick={setPreviewLead}
             canDragLead={canDragKanban}
           />

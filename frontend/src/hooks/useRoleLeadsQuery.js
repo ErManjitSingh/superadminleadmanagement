@@ -38,7 +38,8 @@ export function useRoleLeadsQuery({
         search: debouncedSearch,
       }),
     enabled,
-    staleTime: 30_000,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
     placeholderData: (prev) => prev,
   });
 }

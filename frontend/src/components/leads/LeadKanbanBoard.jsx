@@ -2,15 +2,17 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import LeadKanbanCard from './LeadKanbanCard';
 
-function KanbanColumn({ column, leads, onCardClick, canDragLead }) {
+function KanbanColumn({ column, leads, columnTotal, onCardClick, canDragLead }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.value });
+  const total = columnTotal ?? leads.length;
+  const truncated = total > leads.length;
 
   return (
     <div className="flex flex-col min-w-[280px] w-[280px] shrink-0">
       <div className="flex items-center justify-between mb-3 px-1">
         <h3 className="text-sm font-semibold text-content-primary">{column.label}</h3>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-surface-elevated text-content-muted metric-tabular">
-          {leads.length}
+        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-surface-elevated text-content-muted metric-tabular" title={truncated ? `Showing ${leads.length} of ${total}` : undefined}>
+          {truncated ? `${leads.length}/${total}` : total}
         </span>
       </div>
       <div
@@ -37,7 +39,7 @@ function KanbanColumn({ column, leads, onCardClick, canDragLead }) {
   );
 }
 
-export default function LeadKanbanBoard({ columns, leadsByStatus, onCardClick, canDragLead }) {
+export default function LeadKanbanBoard({ columns, leadsByStatus, columnTotals = {}, onCardClick, canDragLead }) {
   return (
     <div className="overflow-x-auto pb-4 -mx-1 px-1">
       <div className="flex gap-4 min-w-max">
@@ -46,6 +48,7 @@ export default function LeadKanbanBoard({ columns, leadsByStatus, onCardClick, c
             key={col.value}
             column={col}
             leads={leadsByStatus[col.value] || []}
+            columnTotal={columnTotals[col.value]}
             onCardClick={onCardClick}
             canDragLead={canDragLead}
           />

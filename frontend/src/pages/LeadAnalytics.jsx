@@ -1,30 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { BarChart3 } from 'lucide-react';
 import SourceAnalyticsPanel from '../components/dashboard/SourceAnalyticsPanel';
 import ExecutivePerformancePanel from '../components/dashboard/ExecutivePerformancePanel';
 import AgingChartPanel from '../components/dashboard/AgingChartPanel';
 import { fetchLeadKpis, fetchSourceAnalytics, fetchExecutivePerformance } from '../services/leadEnterpriseApi';
 import EnterpriseKpiStrip from '../components/dashboard/EnterpriseKpiStrip';
+import { ANALYTICS_STALE_MS, GC_TIME_MS } from '../lib/queryConfig';
 
 export default function LeadAnalytics() {
-  const [kpis, setKpis] = useState(null);
-  const [sources, setSources] = useState(null);
-  const [executives, setExecutives] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const kpisQuery = useQuery({
+    queryKey: ['lead-analytics', 'kpis'],
+    queryFn: fetchLeadKpis,
+    staleTime: ANALYTICS_STALE_MS,
+    gcTime: GC_TIME_MS,
+  });
+  const sourcesQuery = useQuery({
+    queryKey: ['lead-analytics', 'sources'],
+    queryFn: fetchSourceAnalytics,
+    staleTime: ANALYTICS_STALE_MS,
+    gcTime: GC_TIME_MS,
+  });
+  const execQuery = useQuery({
+    queryKey: ['lead-analytics', 'executives'],
+    queryFn: fetchExecutivePerformance,
+    staleTime: ANALYTICS_STALE_MS,
+    gcTime: GC_TIME_MS,
+  });
 
-  useEffect(() => {
-    Promise.all([
-      fetchLeadKpis(),
-      fetchSourceAnalytics(),
-      fetchExecutivePerformance(),
-    ])
-      .then(([k, s, e]) => {
-        setKpis(k);
-        setSources(s);
-        setExecutives(e);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const loading = kpisQuery.isLoading || sourcesQuery.isLoading || execQuery.isLoading;
 
   if (loading) {
     return (
@@ -46,14 +49,14 @@ export default function LeadAnalytics() {
         </div>
       </div>
 
-      <EnterpriseKpiStrip kpis={kpis} />
+      <EnterpriseKpiStrip kpis={kpisQuery.data} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SourceAnalyticsPanel data={sources} />
-        <AgingChartPanel aging={kpis?.aging || []} />
+        <SourceAnalyticsPanel data={sourcesQuery.data} />
+        <AgingChartPanel aging={kpisQuery.data?.aging || []} />
       </div>
 
-      <ExecutivePerformancePanel data={executives} />
+      <ExecutivePerformancePanel data={execQuery.data} />
     </div>
   );
 }

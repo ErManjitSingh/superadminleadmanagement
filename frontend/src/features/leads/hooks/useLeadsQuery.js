@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchLeads, fetchLeadsKanban } from '../../../services/leadsApi';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
+import { LIST_STALE_MS, GC_TIME_MS } from '../../../lib/queryConfig';
 
 export function useLeadsQuery({ filters, page, limit, sortBy, sortOrder, enabled = true }) {
   const debouncedSearch = useDebouncedValue(filters.search, 350);
@@ -14,7 +15,8 @@ export function useLeadsQuery({ filters, page, limit, sortBy, sortOrder, enabled
     queryKey: ['leads', { filters: queryFilters, page, limit, sortBy, sortOrder }],
     queryFn: () => fetchLeads({ page, limit, sortBy, sortOrder, filters: queryFilters }),
     enabled,
-    staleTime: 30_000,
+    staleTime: LIST_STALE_MS,
+    gcTime: GC_TIME_MS,
     placeholderData: (prev) => prev,
   });
 }
@@ -26,6 +28,8 @@ export function useLeadsKanbanQuery({ filters, enabled = true }) {
     queryKey: ['leads', 'kanban', { filters: { ...filters, search: debouncedSearch } }],
     queryFn: () => fetchLeadsKanban({ filters: { ...filters, search: debouncedSearch } }),
     enabled,
-    staleTime: 30_000,
+    staleTime: LIST_STALE_MS,
+    gcTime: GC_TIME_MS,
+    placeholderData: (prev) => prev,
   });
 }

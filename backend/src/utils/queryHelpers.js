@@ -24,6 +24,13 @@ const LEAD_POPULATE = [
   { path: 'reactivation.stageHistory.by', select: 'name email' },
 ];
 
+/** Lightweight populate for paginated list & kanban — skips nested stageHistory */
+const LEAD_LIST_POPULATE = [
+  { path: 'assignedTo', select: 'name email' },
+  { path: 'assignedTeamLeader', select: 'name email' },
+  { path: 'createdBy', select: 'name email' },
+];
+
 const FOLLOWUP_POPULATE = [
   {
     path: 'lead',
@@ -148,6 +155,7 @@ module.exports = {
   startOfDay,
   endOfDay,
   LEAD_POPULATE,
+  LEAD_LIST_POPULATE,
   FOLLOWUP_POPULATE,
   QUOTATION_POPULATE,
   enrichLead,

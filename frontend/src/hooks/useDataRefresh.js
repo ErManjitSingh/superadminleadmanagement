@@ -18,7 +18,15 @@ export function useDataRefresh(keys, onRefresh, enabled = true) {
 
     const handler = (event) => {
       const changed = event.detail?.keys;
-      if (matchesDataKeys(keysRef.current, changed)) {
+      const watch = keysRef.current;
+      const normalizedWatch = Array.isArray(watch) ? watch : [watch];
+      const matched = normalizedWatch.some((w) => {
+        if (typeof w === 'string' && w.startsWith('lead:')) {
+          return changed?.includes(w) || changed?.includes('leads');
+        }
+        return matchesDataKeys(w, changed);
+      });
+      if (matched) {
         onRefreshRef.current?.();
       }
     };

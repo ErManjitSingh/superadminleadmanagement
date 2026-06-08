@@ -15,11 +15,9 @@ export function useSidebarCounts(enabled = true) {
     if (!enabled) return undefined;
 
     load();
-    const interval = setInterval(load, 60_000);
     const onUnread = () => load();
     window.addEventListener('notifications:unread', onUnread);
     return () => {
-      clearInterval(interval);
       window.removeEventListener('notifications:unread', onUnread);
     };
   }, [enabled, load]);

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import API from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { canManageFollowUps } from '../lib/followupPermissions';
@@ -24,46 +25,33 @@ import {
   ReactivationActionsModal,
   getLeadDetailData,
 } from '../components/lead-detail';
-import { fetchLeadTimeline } from '../services/leadEnterpriseApi';
+import { useLeadQuery, useLeadTimelineQuery } from '../features/leads/hooks/useLeadDetailQuery';
+import { invalidateLeadDetail } from '../lib/queryInvalidation';
 import CallNoteModal from '../components/leads/CallNoteModal';
 import MergeLeadModal from '../components/leads/MergeLeadModal';
 
 export default function LeadDetail() {
   const { id } = useParams();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { can } = usePermissions();
   const isAdmin = user?.role === 'admin';
   const userCanAssignLeads = canAssignLeads(user?.role);
   const canCreateFollowUp = canManageFollowUps(user);
   const canEditLead = can('leads', 'edit');
-  const [lead, setLead] = useState(null);
-  const [timeline, setTimeline] = useState([]);
-  const [loading, setLoading] = useState(true);
+
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [reactivationMode, setReactivationMode] = useState('');
   const [reactivationExecs, setReactivationExecs] = useState([]);
   const [callNoteOpen, setCallNoteOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
+
+  const leadQuery = useLeadQuery(id);
+  const timelineQuery = useLeadTimelineQuery(id, { enabled: showTimeline && !!leadQuery.data });
   const notesRef = useRef(null);
 
-  const loadLead = useCallback(({ silent = false } = {}) => {
-    if (!silent) setLoading(true);
-    return Promise.all([
-      API.get(`/leads/${id}`, { skipSuccessToast: true }),
-      fetchLeadTimeline(id).catch(() => ({ data: [] })),
-    ])
-      .then(([leadRes, timelineRes]) => {
-        setLead(leadRes.data);
-        setTimeline(timelineRes?.data || []);
-      })
-      .finally(() => {
-        if (!silent) setLoading(false);
-      });
-  }, [id]);
-
-  useEffect(() => {
-    loadLead();
-  }, [loadLead]);
+  const refreshLead = () => invalidateLeadDetail(queryClient, id);
 
   useEffect(() => {
     if (!['admin', 'sales_manager', 'team_leader'].includes(user?.role)) return;
@@ -72,11 +60,14 @@ export default function LeadDetail() {
       .catch(() => setReactivationExecs([]));
   }, [user?.role]);
 
-  useDataRefresh(['leads'], loadLead);
+  useDataRefresh([`lead:${id}`, 'leads'], refreshLead);
 
   const { assignees, assigneesLoading, assignModal, openAssign, closeAssign, handleAssign } = useLeadAssign({
-    onAssigned: () => loadLead(),
+    onAssigned: refreshLead,
   });
+
+  const lead = leadQuery.data;
+  const loading = leadQuery.isLoading && !lead;
 
   if (loading) {
     return (
@@ -104,6 +95,7 @@ export default function LeadDetail() {
   }
 
   const detail = getLeadDetailData(lead);
+  const timeline = timelineQuery.data?.data || [];
 
   const scrollToNotes = () => {
     notesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -120,7 +112,7 @@ export default function LeadDetail() {
     const method = reactivationMode === 'stage' ? 'patch' : 'post';
     await API[method](endpoint, payload);
     setReactivationMode('');
-    await loadLead({ silent: true });
+    await refreshLead();
   };
 
   return (
@@ -132,14 +124,23 @@ export default function LeadDetail() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* Left — Customer Profile */}
         <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
           <LeadCustomerPanel lead={lead} valueScore={detail.valueScore} />
         </aside>
 
-        {/* Center — Timeline, Notes, Follow-ups, Quotations */}
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline activities={timeline.length ? timeline : detail.activities} />
+          {showTimeline ? (
+            <LeadActivityTimeline
+              activities={timeline.length ? timeline : detail.activities}
+              loading={timelineQuery.isLoading}
+            />
+          ) : (
+            <div className="rounded-2xl border border-subtle bg-surface/80 p-5">
+              <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setShowTimeline(true)}>
+                Load Activity Timeline
+              </Button>
+            </div>
+          )}
           <div ref={notesRef}>
             <LeadNotesSection notes={detail.notes} />
           </div>
@@ -147,14 +148,8 @@ export default function LeadDetail() {
             followUps={lead.followups || detail.followUps}
             lead={lead}
             canCreate={canCreateFollowUp}
-            onRefresh={loadLead}
-            onFollowUpAdded={(created) => {
-              setLead((prev) =>
-                prev
-                  ? { ...prev, followups: [created, ...(prev.followups || [])] }
-                  : prev
-              );
-            }}
+            onRefresh={refreshLead}
+            onFollowUpAdded={() => refreshLead()}
             modalOpen={followUpModalOpen}
             onModalOpenChange={setFollowUpModalOpen}
           />
@@ -163,7 +158,6 @@ export default function LeadDetail() {
           <LeadAuditPanel leadId={id} canView={isAdmin || user?.role === 'sales_manager'} />
         </main>
 
-        {/* Right — Quick Actions */}
         <aside className="xl:col-span-3 order-3">
           {['admin', 'sales_manager', 'team_leader'].includes(user?.role) && (
             <div className="mb-4 rounded-xl border border-subtle bg-surface/80 p-3 space-y-2">
@@ -223,14 +217,14 @@ export default function LeadDetail() {
         open={callNoteOpen}
         onClose={() => setCallNoteOpen(false)}
         leadId={id}
-        onSaved={() => loadLead({ silent: true })}
+        onSaved={refreshLead}
       />
 
       <MergeLeadModal
         open={mergeOpen}
         onClose={() => setMergeOpen(false)}
         targetLead={lead}
-        onMerged={() => loadLead({ silent: true })}
+        onMerged={refreshLead}
       />
 
       <ReactivationActionsModal

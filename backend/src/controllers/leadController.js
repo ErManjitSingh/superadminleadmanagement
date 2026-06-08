@@ -147,12 +147,19 @@ const getLead = asyncHandler(async (req, res) => {
     .lean();
   if (!lead) throw new ApiError(404, 'Lead not found');
 
+  const followUpLimit = Math.min(Number(req.query.followupsLimit) || 20, 50);
   const followups = await FollowUp.find({ lead: lead._id, ...(req.branchId ? { branchId: req.branchId } : {}) })
     .populate(FOLLOWUP_POPULATE)
     .sort({ scheduledAt: -1 })
+    .limit(followUpLimit)
     .lean();
 
-  res.json({ ...enrichLead(lead), followups });
+  const followUpTotal = await FollowUp.countDocuments({
+    lead: lead._id,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+
+  res.json({ ...enrichLead(lead), followups, followUpTotal });
 });
 
 const listLostLeads = asyncHandler(async (req, res) => {

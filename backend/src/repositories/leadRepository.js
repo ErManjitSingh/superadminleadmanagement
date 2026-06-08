@@ -1,5 +1,5 @@
 const Lead = require('../models/Lead');
-const { buildLeadSearchFilter, LEAD_POPULATE, enrichLead } = require('../utils/queryHelpers');
+const { buildLeadSearchFilter, LEAD_LIST_POPULATE, enrichLead } = require('../utils/queryHelpers');
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
 const { withBranch } = require('../utils/branchScope');
 
@@ -75,7 +75,13 @@ async function findLeadsPaginated(query = {}, { branchId } = {}) {
   const filter = withBranch(buildLeadListFilter(query), branchId);
 
   const [rows, total] = await Promise.all([
-    Lead.find(filter).populate(LEAD_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
+    Lead.find(filter)
+      .select('-notes')
+      .populate(LEAD_LIST_POPULATE)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Lead.countDocuments(filter),
   ]);
 
