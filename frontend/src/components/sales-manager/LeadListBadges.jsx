@@ -144,9 +144,12 @@ export function CustomerCell({ name }) {
 }
 
 export const assignLeadBtnClass =
-  'h-6 text-[10px] px-1.5 py-0 leading-none shadow-sm shadow-violet-600/20 whitespace-nowrap rounded-md';
+  'h-6 text-[10px] px-1.5 py-0 leading-none shadow-sm shadow-violet-600/20 whitespace-nowrap rounded-l-md rounded-r-none';
 
 export const moreLeadBtnClass =
+  'h-6 px-1.5 py-0 text-[10px] leading-none font-medium text-content-secondary hover:text-violet-600 hover:bg-violet-500/10 rounded-r-md rounded-l-none border border-subtle border-l-0';
+
+export const moreLeadBtnSoloClass =
   'h-6 px-1.5 py-0 text-[10px] leading-none font-medium text-content-secondary hover:text-violet-600 hover:bg-violet-500/10 rounded-md border border-subtle';
 
 export const FILTER_THEMES = {

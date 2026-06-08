@@ -21,6 +21,7 @@ import {
   ExecutiveBadge,
   assignLeadBtnClass,
   moreLeadBtnClass,
+  moreLeadBtnSoloClass,
 } from '../sales-manager/LeadListBadges';
 import {
   DropdownMenuRoot,
@@ -37,10 +38,8 @@ import {
   compactTable,
   compactTh,
   compactTd,
-  stickyAssignTh,
-  stickyActionsTh,
-  stickyAssignTd,
-  stickyActionsTd,
+  stickyRowActionsTh,
+  stickyRowActionsTd,
 } from '../ui/compactTable';
 
 function formatDate(d) {
@@ -176,45 +175,44 @@ export default function LeadDataTable({
         ),
       },
       {
+        id: 'assignedTo',
+        accessorKey: 'assignedTo',
+        header: 'Assigned To',
+        cell: ({ getValue }) => (
+          <ExecutiveBadge name={getValue()?.name} unassigned={!getValue()?.name} />
+        ),
+      },
+      {
         accessorKey: 'createdAt',
         header: 'Created',
         cell: ({ getValue }) => <span className="text-xs text-content-muted whitespace-nowrap">{formatDate(getValue())}</span>,
       },
       {
-        id: 'assignedTo',
-        accessorKey: 'assignedTo',
-        header: 'Assigned To',
-        cell: ({ getValue, row }) => {
-          const assigned = getValue();
-          if (!assigned?.name && onAssign) {
-            return (
-              <Button
-                type="button"
-                size="sm"
-                variant="gradient"
-                className={assignLeadBtnClass}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAssign(row.original);
-                }}
-              >
-                Assign
-              </Button>
-            );
-          }
-          return <ExecutiveBadge name={assigned?.name} unassigned={!assigned?.name} />;
-        },
-      },
-      {
-        id: 'actions',
+        id: 'rowActions',
         header: '',
         cell: ({ row }) => {
           const lead = row.original;
+          const showAssign = !lead.assignedTo?.name && onAssign;
           return (
-            <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+            <div className="inline-flex items-stretch justify-end gap-0" onClick={(e) => e.stopPropagation()}>
+              {showAssign && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="gradient"
+                  className={assignLeadBtnClass}
+                  onClick={() => onAssign(lead)}
+                >
+                  Assign
+                </Button>
+              )}
               <DropdownMenuRoot>
                 <DropdownMenuTrigger asChild>
-                  <Button type="button" variant="ghost" className={moreLeadBtnClass}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className={showAssign ? moreLeadBtnClass : moreLeadBtnSoloClass}
+                  >
                     More
                   </Button>
                 </DropdownMenuTrigger>
@@ -288,14 +286,14 @@ export default function LeadDataTable({
                 {hg.headers.map((header) => {
                   const colId = header.column.id;
                   const thClass = cn(
-                    colId === 'assignedTo' ? stickyAssignTh : colId === 'actions' ? stickyActionsTh : compactTh,
-                    'cursor-pointer select-none hover:text-brand-600 transition-colors'
+                    colId === 'rowActions' ? stickyRowActionsTh : compactTh,
+                    colId !== 'rowActions' && 'cursor-pointer select-none hover:text-brand-600 transition-colors'
                   );
                   return (
                     <th
                       key={header.id}
                       className={thClass}
-                      onClick={header.column.getToggleSortingHandler()}
+                      onClick={colId !== 'rowActions' ? header.column.getToggleSortingHandler() : undefined}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
@@ -312,16 +310,11 @@ export default function LeadDataTable({
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.015 }}
                 onClick={() => onRowClick(row.original)}
-                className={`group border-b border-subtle/50 last:border-0 cursor-pointer transition-all hover:bg-gradient-to-r hover:from-brand-500/[0.06] hover:to-violet-500/[0.04] ${i % 2 === 1 ? 'bg-white dark:bg-slate-800/70' : 'bg-transparent'}`}
+                className={`group relative border-b border-subtle/50 last:border-0 cursor-pointer transition-all hover:z-20 hover:bg-gradient-to-r hover:from-brand-500/[0.06] hover:to-violet-500/[0.04] ${i % 2 === 1 ? 'bg-white dark:bg-slate-800/70' : 'bg-surface'}`}
               >
                 {row.getVisibleCells().map((cell) => {
                   const colId = cell.column.id;
-                  const tdClass =
-                    colId === 'assignedTo'
-                      ? stickyAssignTd(i)
-                      : colId === 'actions'
-                        ? stickyActionsTd(i)
-                        : compactTd;
+                  const tdClass = colId === 'rowActions' ? stickyRowActionsTd(i) : compactTd;
                   return (
                     <td key={cell.id} className={tdClass}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

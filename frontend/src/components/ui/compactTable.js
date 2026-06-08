@@ -5,21 +5,10 @@ export const compactTd = 'px-2 py-2 align-middle text-sm';
 export const compactTdWrap = 'px-2 py-2 align-middle text-sm max-w-[140px] truncate';
 export const compactPagination = 'px-3 py-2';
 
-/** Sticky right columns for wide horizontally-scrolling tables */
-const stickyAssignBase = 'sticky right-12 z-30 min-w-[88px] max-w-[88px] px-1 py-1 bg-surface-elevated shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.12)]';
-const stickyActionsBase = 'sticky right-0 z-30 w-12 min-w-[48px] max-w-[48px] px-0.5 py-1 bg-surface-elevated shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.12)]';
+/** Single sticky actions column (Assign + More grouped on the right) */
+export const stickyRowActionsTh = `${compactTh} sticky right-0 z-30 px-1 py-1 text-right bg-surface-elevated shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.12)]`;
 
-export const stickyAssignTh = `${compactTh} ${stickyAssignBase}`;
-export const stickyActionsTh = `${compactTh} ${stickyActionsBase}`;
-
-export function stickyAssignTd(rowIndex) {
-  return `px-1 py-1 align-middle text-sm sticky right-12 z-20 min-w-[88px] max-w-[88px] shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)] ${
-    rowIndex % 2 === 1 ? 'bg-white dark:bg-slate-800/70' : 'bg-surface'
-  } group-hover:bg-brand-500/[0.06]`;
-}
-
-export function stickyActionsTd(rowIndex) {
-  return `px-0.5 py-1 align-middle text-sm sticky right-0 z-20 w-12 min-w-[48px] max-w-[48px] shadow-[-6px_0_10px_-6px_rgba(15,23,42,0.08)] ${
-    rowIndex % 2 === 1 ? 'bg-white dark:bg-slate-800/70' : 'bg-surface'
-  } group-hover:bg-brand-500/[0.06]`;
+export function stickyRowActionsTd(rowIndex) {
+  const bg = rowIndex % 2 === 1 ? 'bg-white dark:bg-slate-800' : 'bg-surface';
+  return `px-1 py-1 align-middle text-sm text-right sticky right-0 z-[1] group-hover:z-20 min-w-[96px] ${bg} group-hover:bg-brand-500/[0.06] shadow-[-4px_0_8px_-4px_rgba(15,23,42,0.1)]`;
 }
