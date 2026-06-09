@@ -24,7 +24,7 @@ function GalleryImage({ src, alt, className, style }) {
       style={style}
       loading="eager"
       decoding="sync"
-      crossOrigin="anonymous"
+      crossOrigin={src.startsWith('data:') ? undefined : 'anonymous'}
       referrerPolicy="no-referrer"
       onError={() => setFailed(true)}
     />
@@ -42,8 +42,10 @@ export default function DestinationGallery({ quote, destination, compact = false
       (img) =>
         new Promise((resolve) => {
           const el = new Image();
-          el.crossOrigin = 'anonymous';
-          el.referrerPolicy = 'no-referrer';
+          if (!img.url.startsWith('data:')) {
+            el.crossOrigin = 'anonymous';
+            el.referrerPolicy = 'no-referrer';
+          }
           el.onload = () => resolve(true);
           el.onerror = () => resolve(false);
           el.src = img.url;

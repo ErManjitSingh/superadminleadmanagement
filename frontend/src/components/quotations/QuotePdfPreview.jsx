@@ -156,6 +156,27 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       {hotels.length > 0 && (
         <>
           <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Hotel Details</div>
+          {hotels.some((h) => h.thumbnailUrl || h.images?.length) && (
+            <div className="quote-ht-hotel-gallery">
+              {hotels.flatMap((h) => {
+                const photos = (h.images?.length ? h.images : h.thumbnailUrl ? [h.thumbnailUrl] : []).slice(0, 4);
+                return photos.map((url, index) => (
+                  <figure key={`${h.name}-${index}`} className="quote-ht-hotel-photo">
+                    <img
+                      src={url}
+                      alt={h.name}
+                      className="quote-ht-hotel-img"
+                      crossOrigin={url.startsWith('data:') ? undefined : 'anonymous'}
+                    />
+                    <figcaption>
+                      {h.name}
+                      {h.roomType ? ` · ${h.roomType}` : ''}
+                    </figcaption>
+                  </figure>
+                ));
+              })}
+            </div>
+          )}
           <table className="quote-ht-table">
             <thead>
               <tr>
@@ -184,6 +205,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                     )}
                     {h.roomType && <div>Room Type: {h.roomType}</div>}
                     {h.meals && <div>Meals: {h.meals}</div>}
+                    {h.nights && <div>Nights: {h.nights}</div>}
+                    {h.price > 0 && <div>Rate: {formatINR(h.price)}/night</div>}
                   </td>
                 </tr>
               ))}

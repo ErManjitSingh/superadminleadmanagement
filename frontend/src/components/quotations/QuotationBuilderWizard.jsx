@@ -11,6 +11,7 @@ import QuotePdfPreview from './QuotePdfPreview';
 import UnoHotelSelector, { parsePackageNights } from './UnoHotelSelector';
 import { WIZARD_STEPS } from './constants';
 import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR, matchesResourceDestination } from './quotationUtils';
+import { buildSelectedHotelsSnapshot } from './quotePdfHelpers';
 import { unwrapList } from '../../utils/apiHelpers';
 import { cn } from '../../lib/utils';
 
@@ -261,22 +262,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         packageId: state.packageId,
         status,
         pricing: state.pricing,
-        selectedHotels: unoHotelSelection
-          ? [{
-              _id: unoHotelSelection.hotel?.id,
-              name: unoHotelSelection.hotel?.name,
-              location: unoHotelSelection.hotel?.location,
-              city: unoHotelSelection.hotel?.city,
-              thumbnailUrl: unoHotelSelection.hotel?.thumbnailUrl,
-              images: unoHotelSelection.hotel?.images,
-              room: unoHotelSelection.room,
-              mealPlan: unoHotelSelection.mealPlan,
-              nights: unoHotelSelection.nights,
-              price: unoHotelSelection.perNight,
-              total: unoHotelSelection.totalCost,
-              externalSource: 'uno_hotels',
-            }]
-          : [],
+        selectedHotels: buildSelectedHotelsSnapshot(unoHotelSelection),
         selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
         selectedFlights: flights.filter((f) => state.selectedFlightIds.includes(f._id)),
         selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
@@ -312,6 +298,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     lead: selectedLead,
     package: { ...activePkg, itinerary: customItinerary },
     pricing: state.pricing,
+    selectedHotels: buildSelectedHotelsSnapshot(unoHotelSelection),
   } : null;
 
   return (

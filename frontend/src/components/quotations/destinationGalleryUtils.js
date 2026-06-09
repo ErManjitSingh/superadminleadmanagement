@@ -1,3 +1,5 @@
+import { collectHotelImageUrls } from './quotePdfHelpers';
+
 /**
  * Verified destination gallery URLs (Unsplash — auto=format avoids 404s).
  * Each entry: { url, label }
@@ -58,12 +60,21 @@ export function mergeQuotePackageData(quote) {
 }
 
 export function resolveDestinationImages(quote) {
-  const pkg = mergeQuotePackageData(quote);
-
   const normalize = (list) => list.slice(0, 4).map((img, i) => ({
     url: typeof img === 'string' ? img : img.url,
     label: typeof img === 'string' ? `View ${i + 1}` : (img.label || img.caption || `View ${i + 1}`),
   })).filter((img) => img.url);
+
+  const fromHotels = (quote.selectedHotels || []).flatMap((hotel) => {
+    const label = hotel.name || hotel.city || 'Hotel';
+    return collectHotelImageUrls(hotel).map((url, index) => ({
+      url,
+      label: index === 0 ? label : `${label} — Photo ${index + 1}`,
+    }));
+  });
+  if (fromHotels.length) return normalize(fromHotels);
+
+  const pkg = mergeQuotePackageData(quote);
 
   if (pkg.destinationImages?.length) {
     return normalize(pkg.destinationImages);

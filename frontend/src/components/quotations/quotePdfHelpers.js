@@ -71,19 +71,62 @@ export function perPersonAmount(pricing, travelers = 2) {
   return Math.round(total / pax);
 }
 
+export function buildSelectedHotelsSnapshot(unoHotelSelection) {
+  if (!unoHotelSelection?.hotel) return [];
+  const { hotel, room, mealPlan, nights, perNight, totalCost } = unoHotelSelection;
+  return [{
+    _id: hotel.id,
+    name: hotel.name,
+    location: hotel.location,
+    city: hotel.city,
+    thumbnailUrl: hotel.thumbnailUrl,
+    images: hotel.images,
+    room,
+    mealPlan,
+    nights,
+    price: perNight,
+    total: totalCost,
+    externalSource: hotel.externalSource || 'uno_hotels',
+  }];
+}
+
+export function collectHotelImageUrls(hotel = {}) {
+  const urls = [];
+  const add = (url) => {
+    if (typeof url === 'string' && url.trim() && !urls.includes(url.trim())) {
+      urls.push(url.trim());
+    }
+  };
+  add(hotel.thumbnailUrl);
+  (hotel.images || []).forEach(add);
+  (hotel.room?.images || []).forEach(add);
+  return urls;
+}
+
 export function resolveQuoteHotels(quote) {
   const pkg = resolveQuotePackage(quote);
   if (pkg.hotels?.length) return pkg.hotels;
 
-  const fromSelected = (quote.selectedHotels || []).map((h) => ({
-    city: h.location || h.city || '—',
-    name: h.name || 'Hotel',
-    checkIn: h.checkIn,
-    checkOut: h.checkOut,
-    roomType: h.roomType || 'Deluxe',
-    meals: h.mealPlan || h.meals || 'Breakfast & Dinner',
-    similarHotel: h.similarHotel || '',
-  }));
+  const fromSelected = (quote.selectedHotels || []).map((h) => {
+    const images = collectHotelImageUrls(h);
+    return {
+      city: h.city || h.location?.split(',')[0]?.trim() || h.location || '—',
+      name: h.name || 'Hotel',
+      checkIn: h.checkIn,
+      checkOut: h.checkOut,
+      roomType: h.room?.name || h.roomType || 'Deluxe',
+      meals:
+        h.mealPlan?.label
+        || (typeof h.mealPlan === 'string' ? h.mealPlan : null)
+        || h.meals
+        || 'Breakfast & Dinner',
+      similarHotel: h.similarHotel || '',
+      thumbnailUrl: images[0] || '',
+      images,
+      nights: h.nights,
+      price: h.price ?? h.total,
+    };
+  });
   if (fromSelected.length) return fromSelected;
 
   const seen = new Set();
