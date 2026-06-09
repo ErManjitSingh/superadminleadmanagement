@@ -101,8 +101,6 @@ export function useLeadWizard({ initialValues, draftKey = DRAFT_STORAGE_KEY, isE
     if (currentStep === 2) {
       const budgetValue = values.budgetRange === 'custom' ? Number(values.customBudget) : Number(values.budget);
       if (!(budgetValue > 0)) nextErrors.budget = { message: 'Budget is required' };
-      if (!values.firstFollowUpDate) nextErrors.firstFollowUpDate = { message: 'First follow-up date is required' };
-      if (!values.firstFollowUpTime) nextErrors.firstFollowUpTime = { message: 'First follow-up time is required' };
     }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;

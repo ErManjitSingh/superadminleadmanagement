@@ -67,8 +67,6 @@ export const defaultWizardValues = {
   budgetRange: '',
   customBudget: '',
   budget: '',
-  firstFollowUpDate: '',
-  firstFollowUpTime: '',
   leadSource: 'website',
   priority: 'medium',
   branchId: '',

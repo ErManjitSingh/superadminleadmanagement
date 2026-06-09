@@ -44,6 +44,18 @@ async function getExecutiveLeadIds(userId, branchId = null) {
   return leads.map((l) => l._id);
 }
 
+async function resolveExecutiveQuotationStatus(leadId, requestedStatus, excludeQuotationId = null) {
+  if (requestedStatus === 'draft') return 'draft';
+
+  const filter = {
+    lead: leadId,
+    status: { $ne: 'draft' },
+    ...(excludeQuotationId ? { _id: { $ne: excludeQuotationId } } : {}),
+  };
+  const priorCount = await Quotation.countDocuments(filter);
+  return priorCount === 0 ? 'approved' : 'pending_approval';
+}
+
 function buildExecutiveLeadFilter(filter) {
   if (filter === 'new') return { status: 'new' };
   if (filter === 'contacted') return { status: 'contacted' };
@@ -241,7 +253,8 @@ const createQuotation = asyncHandler(async (req, res) => {
   if (!lead) throw new ApiError(403, 'Lead not assigned to you');
 
   const teamLeader = await getTeamLeaderForExecutive(req.user._id);
-  const status = req.body.status === 'draft' ? 'draft' : 'pending_approval';
+  const requestedStatus = req.body.status === 'draft' ? 'draft' : 'pending_approval';
+  const status = await resolveExecutiveQuotationStatus(lead._id, requestedStatus);
   const now = new Date();
 
   const timeline = [
@@ -253,7 +266,14 @@ const createQuotation = asyncHandler(async (req, res) => {
     },
   ];
 
-  if (status === 'pending_approval' && teamLeader) {
+  if (status === 'approved') {
+    timeline.push({
+      type: 'approved',
+      date: now,
+      user: req.user.name,
+      notes: 'First quotation — auto-approved',
+    });
+  } else if (status === 'pending_approval' && teamLeader) {
     timeline.push({
       type: 'pending_approval',
       date: now,
@@ -280,7 +300,7 @@ const createQuotation = asyncHandler(async (req, res) => {
     createdBy: req.user._id,
   });
 
-  if (status === 'pending_approval' && lead.status === 'new') {
+  if ((status === 'pending_approval' || status === 'approved') && lead.status === 'new') {
     lead.status = 'quotation_sent';
     await lead.save();
   }
@@ -289,7 +309,12 @@ const createQuotation = asyncHandler(async (req, res) => {
     type: 'quotation_created',
     user: req.user.name,
     userId: req.user._id,
-    action: status === 'pending_approval' ? 'Submitted quote for approval' : 'Saved quote draft',
+    action:
+      status === 'pending_approval'
+        ? 'Submitted quote for approval'
+        : status === 'approved'
+          ? 'Created and auto-approved first quotation'
+          : 'Saved quote draft',
     target: quotation.quoteNumber,
     ip: getClientIp(req),
     branchId: req.branchId || lead.branchId || req.user.branchId || null,
@@ -331,15 +356,25 @@ const updateQuotation = asyncHandler(async (req, res) => {
     });
   } else if (action === 'submit') {
     const teamLeader = quotation.teamLeader || (await getTeamLeaderForExecutive(req.user._id));
-    quotation.status = 'pending_approval';
-    quotation.timeline.push({
-      type: 'pending_approval',
-      date: now,
-      user: req.user.name,
-      notes: teamLeader
-        ? `Submitted to ${teamLeader.name || 'Team Leader'} for approval`
-        : 'Submitted for approval',
-    });
+    const status = await resolveExecutiveQuotationStatus(quotation.lead, 'pending_approval', quotation._id);
+    quotation.status = status;
+    if (status === 'approved') {
+      quotation.timeline.push({
+        type: 'approved',
+        date: now,
+        user: req.user.name,
+        notes: 'First quotation — auto-approved',
+      });
+    } else {
+      quotation.timeline.push({
+        type: 'pending_approval',
+        date: now,
+        user: req.user.name,
+        notes: teamLeader
+          ? `Submitted to ${teamLeader.name || 'Team Leader'} for approval`
+          : 'Submitted for approval',
+      });
+    }
   } else if (action === 'edit') {
     Object.assign(quotation, data || {});
     quotation.status = 'draft';

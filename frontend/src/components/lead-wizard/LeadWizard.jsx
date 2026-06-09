@@ -42,11 +42,6 @@ export default function LeadWizard() {
       setSaving(false);
       return;
     }
-    if (!values.firstFollowUpDate || !values.firstFollowUpTime) {
-      setError('First follow-up date and time are required before creating lead');
-      setSaving(false);
-      return;
-    }
     const payload = wizardValuesToPayload(values);
 
     try {

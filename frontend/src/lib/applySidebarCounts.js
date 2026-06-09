@@ -3,19 +3,27 @@ function getByPath(obj, path) {
   return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
 }
 
+function toCount(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+  return undefined;
+}
+
 function applyToItem(item, counts) {
   if (!item) return item;
   const next = { ...item };
 
   if (item.countKey) {
-    const value = getByPath(counts, item.countKey);
-    if (typeof value === 'number') next.count = value;
+    const value = toCount(getByPath(counts, item.countKey));
+    if (value !== undefined) next.count = value;
     else delete next.count;
   }
 
   if (item.badgeKey) {
-    const value = getByPath(counts, item.badgeKey);
-    if (typeof value === 'number') next.badge = value;
+    const value = toCount(getByPath(counts, item.badgeKey));
+    if (value !== undefined) next.badge = value;
     else delete next.badge;
   }
 

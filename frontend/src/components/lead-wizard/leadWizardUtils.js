@@ -47,10 +47,6 @@ export function leadToWizardValues(lead) {
     budget: lead.budget || '',
     budgetRange: lead.budgetRange || inferBudgetRange(lead.budget || 0),
     customBudget: lead.budgetRange === 'custom' ? String(lead.budget || '') : '',
-    firstFollowUpDate: lead.nextFollowUp ? String(lead.nextFollowUp).split('T')[0] : '',
-    firstFollowUpTime: lead.nextFollowUp
-      ? new Date(lead.nextFollowUp).toTimeString().slice(0, 5)
-      : '',
   };
 }
 
@@ -62,11 +58,6 @@ export function wizardValuesToPayload(values) {
     values.budgetRange === 'custom'
       ? Number(values.customBudget) || 0
       : Number(values.budget) || 0;
-  const firstFollowUp =
-    values.firstFollowUpDate && values.firstFollowUpTime
-      ? new Date(`${values.firstFollowUpDate}T${values.firstFollowUpTime}:00`).toISOString()
-      : undefined;
-
   return {
     name: values.name,
     phone: values.phone,
@@ -90,8 +81,6 @@ export function wizardValuesToPayload(values) {
     budgetRange: values.budgetRange || inferBudgetRange(numericBudget),
     hotelCategory: values.hotelCategory || undefined,
     specialRequirements: values.requirements || undefined,
-    nextFollowUp: firstFollowUp,
-    followUpRemarks: values.requirements || undefined,
     status: 'new',
     ...(values.branchId ? { branchId: values.branchId } : {}),
   };

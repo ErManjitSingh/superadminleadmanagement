@@ -11,10 +11,10 @@ export function useSidebarCounts(enabled = true) {
   const { user } = useAuth();
   const { selectedBranchId } = useSelector((s) => s.branch);
   const queryClient = useQueryClient();
-  const userId = user?._id;
+  const userId = user?._id || user?.id;
 
   const query = useQuery({
-    queryKey: ['nav-counts', userId, user?.role, selectedBranchId || 'all'],
+    queryKey: ['nav-counts', String(userId || ''), user?.role, selectedBranchId || 'all'],
     queryFn: async () => {
       const { data } = await API.get('/nav-counts', {
         skipSuccessToast: true,

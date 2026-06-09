@@ -33,12 +33,12 @@ const EXECUTIVE_CONFIG = {
   backPath: '/sales-executive/quotations',
   successPath: '/sales-executive/quotations',
   title: 'Create Quotation',
-  subtitle: 'Quote is saved under your name and sent to Team Leader for approval',
+  subtitle: 'First quote is auto-approved; revised quotes go to Team Leader for approval',
   draftStatus: 'draft',
   submitStatus: 'pending_approval',
   draftLabel: 'Save Draft',
-  submitLabel: 'Submit for Approval',
-  approvalNote: 'After Team Leader approves, you can send the quote to the customer.',
+  submitLabel: 'Submit Quotation',
+  approvalNote: 'The first quotation for a lead is approved automatically. From the second quote onward, Team Leader approval is required before sending to the customer.',
 };
 
 const TEAM_LEADER_CONFIG = {
@@ -198,12 +198,15 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         mode === 'executive'
           ? config.successPath
           : `${config.successPath}?view=${res.data._id}`;
+      const savedStatus = res.data?.status;
       navigate(successUrl, {
         state: {
           message:
-            status === 'pending_approval'
-              ? 'Quotation submitted to Team Leader for approval.'
-              : 'Quotation saved as draft.',
+            savedStatus === 'approved'
+              ? 'First quotation created and approved. You can send it to the customer.'
+              : savedStatus === 'pending_approval'
+                ? 'Quotation submitted to Team Leader for approval.'
+                : 'Quotation saved as draft.',
         },
       });
     } catch (err) {

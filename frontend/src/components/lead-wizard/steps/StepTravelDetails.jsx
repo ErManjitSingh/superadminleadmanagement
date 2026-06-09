@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useWizardForm } from '../WizardFormContext';
 import { motion } from 'framer-motion';
-import { Search, Calendar, Clock, IndianRupee } from 'lucide-react';
+import { Search, Calendar, IndianRupee } from 'lucide-react';
 import WizardField, { WizardInput } from '../WizardField';
 import { DESTINATIONS, LEAD_TYPES } from '../constants';
 import API from '../../../api/axios';
@@ -192,21 +192,6 @@ export default function StepTravelDetails() {
             className="input-premium min-h-[88px]"
             placeholder="Any special requirement..."
           />
-        </WizardField>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <WizardField label="First Follow-up Date">
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />
-            <WizardInput {...register('firstFollowUpDate')} type="date" className="pl-10" />
-          </div>
-        </WizardField>
-        <WizardField label="First Follow-up Time">
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />
-            <WizardInput {...register('firstFollowUpTime')} type="time" className="pl-10" />
-          </div>
         </WizardField>
       </div>
     </motion.div>

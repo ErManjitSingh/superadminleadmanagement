@@ -119,16 +119,9 @@ async function assertLeadReactivationAccess(req, lead) {
   }
 }
 
-function hasFirstFollowUp(payload = {}) {
-  return Boolean(payload.nextFollowUp);
-}
-
 function ensureLeadQualifiedForPipeline(payload = {}) {
   if ((Number(payload.budget) || 0) <= 0) {
     throw new ApiError(400, 'Budget is required before moving lead into working pipeline');
-  }
-  if (!hasFirstFollowUp(payload)) {
-    throw new ApiError(400, 'First follow-up date and time are required before moving lead into working pipeline');
   }
 }
 
@@ -201,10 +194,6 @@ const createLead = asyncHandler(async (req, res) => {
   if ((Number(data.budget) || 0) <= 0) {
     throw new ApiError(400, 'Budget is required');
   }
-  if (!hasFirstFollowUp(data)) {
-    throw new ApiError(400, 'First follow-up date and time are required');
-  }
-
   const typeDetection = detectLeadType({ ...req.body, ...data });
   data.leadType = typeDetection.leadType;
   data.leadTypeSource = typeDetection.leadTypeSource;
