@@ -8,7 +8,7 @@ function cacheKey(role, scope = 'global') {
 }
 
 function navCountsKey(role, userId, branchId) {
-  return `nav:${role}:${userId}:${branchId || 'all'}`;
+  return `nav:${role}:${String(userId)}:${branchId || 'all'}`;
 }
 
 async function getOrSet(key, factory, ttlMs = DEFAULT_TTL_MS) {

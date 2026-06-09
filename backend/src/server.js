@@ -15,6 +15,9 @@ const { purgeOldActivityLogs } = require('./services/activityService');
 
 const app = express();
 
+// Behind Nginx — required for rate-limit + correct client IP
+app.set('trust proxy', 1);
+
 applySecurityMiddleware(app);
 
 app.use(

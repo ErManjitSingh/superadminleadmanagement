@@ -4,7 +4,7 @@ const { getOrSet, navCountsKey, NAV_COUNTS_TTL_MS } = require('../services/dashb
 
 const getNavCounts = asyncHandler(async (req, res) => {
   const role = req.user?.role || 'admin';
-  const key = navCountsKey(role, req.user._id, req.branchId);
+  const key = navCountsKey(role, String(req.user._id), req.branchId);
 
   const counts = await getOrSet(
     key,
