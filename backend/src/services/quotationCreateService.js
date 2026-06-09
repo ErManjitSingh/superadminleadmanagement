@@ -3,6 +3,7 @@ const ApiError = require('../utils/apiError');
 const { generateQuoteNumber, QUOTATION_POPULATE } = require('../utils/queryHelpers');
 const { logActivity, getClientIp } = require('./activityService');
 const { notifyQuotationCreated } = require('./notificationService');
+const { resolvePackageReference } = require('../utils/packageRef');
 
 async function persistQuotation({
   req,
@@ -17,7 +18,7 @@ async function persistQuotation({
   const quotation = await Quotation.create({
     quoteNumber: body.quoteNumber || generateQuoteNumber(),
     lead: lead._id,
-    package: body.packageId || body.package,
+    package: resolvePackageReference(body.packageId),
     packageSnapshot: body.package,
     status,
     pricing: body.pricing,

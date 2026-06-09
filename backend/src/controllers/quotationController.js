@@ -1,6 +1,7 @@
 const Quotation = require('../models/Quotation');
 const Lead = require('../models/Lead');
 const Package = require('../models/Package');
+const { resolvePackageReference } = require('../utils/packageRef');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { notifyQuotationCreated } = require('../services/notificationService');
@@ -69,7 +70,7 @@ const createQuotation = asyncHandler(async (req, res) => {
     quoteNumber: req.body.quoteNumber || generateQuoteNumber(),
     branchId: req.branchId || lead.branchId,
     lead: lead._id,
-    package: req.body.packageId || req.body.package,
+    package: resolvePackageReference(req.body.packageId),
     packageSnapshot: pkg || req.body.package,
     status: req.body.status || 'draft',
     pricing: computedPayload.pricing,

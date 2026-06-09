@@ -23,6 +23,7 @@ const {
   generateQuoteNumber,
 } = require('../utils/queryHelpers');
 const { createFollowUpForLead, updateFollowUpRecord } = require('../services/followUpService');
+const { resolvePackageReference } = require('../utils/packageRef');
 const { getExecutiveFollowUpSummary, getMissedFollowUpsPreview } = require('../services/followUpSummaryService');
 const { ROLE_LABELS } = require('../config/roles');
 const { getOrSet, cacheKey } = require('../services/dashboardCacheService');
@@ -285,7 +286,7 @@ const createQuotation = asyncHandler(async (req, res) => {
   const quotation = await Quotation.create({
     quoteNumber: req.body.quoteNumber || generateQuoteNumber(),
     lead: lead._id,
-    package: req.body.packageId || req.body.package,
+    package: resolvePackageReference(req.body.packageId),
     packageSnapshot: req.body.package,
     status,
     pricing: req.body.pricing,

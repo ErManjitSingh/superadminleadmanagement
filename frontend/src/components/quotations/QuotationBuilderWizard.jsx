@@ -92,6 +92,8 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const [activities, setActivities] = useState([]);
   const [state, setState] = useState({ ...defaultWizardState });
   const [customItinerary, setCustomItinerary] = useState([]);
+  const [selectedPkgDetail, setSelectedPkgDetail] = useState(null);
+  const [loadingPackageDetail, setLoadingPackageDetail] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     const loadBuilderData = async () => {
       const requests = [
         API.get(config.leadsPath, { params: config.leadsParams || { page: 1, limit: 500 }, skipErrorToast: true }),
-        API.get('/packages', { skipErrorToast: true }),
+        API.get('/uno-packages', { params: { limit: 50 }, skipErrorToast: true }),
         API.get('/hotels', { skipErrorToast: true }),
         API.get('/cabs', { skipErrorToast: true }),
         API.get('/flights', { skipErrorToast: true }),
@@ -144,20 +146,35 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
 
   const selectedLead = leads.find((l) => l._id === state.leadId);
   const selectedPkg = packages.find((p) => p._id === state.packageId);
+  const activePkg = selectedPkgDetail || selectedPkg;
+
+  const selectPackage = async (pkg) => {
+    setState((s) => ({ ...s, packageId: pkg._id }));
+    setCustomItinerary([]);
+    setSelectedPkgDetail(null);
+    setLoadingPackageDetail(true);
+    try {
+      const res = await API.get(`/uno-packages/${pkg._id}`, { skipErrorToast: true });
+      setSelectedPkgDetail(res.data);
+    } catch {
+      setSelectedPkgDetail(pkg);
+    } finally {
+      setLoadingPackageDetail(false);
+    }
+  };
 
   useEffect(() => {
-    if (selectedPkg && customItinerary.length === 0) {
-      setCustomItinerary(selectedPkg.itinerary?.map((d) => ({ ...d })) || []);
-      setState((s) => ({
-        ...s,
-        pricing: {
-          ...s.pricing,
-          baseCost: selectedPkg.startingPrice || 0,
-          ...calculatePricing({ ...s.pricing, baseCost: selectedPkg.startingPrice || 0 }),
-        },
-      }));
-    }
-  }, [selectedPkg, customItinerary.length]);
+    if (!activePkg) return;
+    setCustomItinerary(activePkg.itinerary?.map((d) => ({ ...d })) || []);
+    setState((s) => ({
+      ...s,
+      pricing: {
+        ...s.pricing,
+        baseCost: activePkg.startingPrice || 0,
+        ...calculatePricing({ ...s.pricing, baseCost: activePkg.startingPrice || 0 }),
+      },
+    }));
+  }, [activePkg?._id]);
 
   const toggleId = (key, id) => {
     setState((s) => {
@@ -190,7 +207,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
         selectedFlights: flights.filter((f) => state.selectedFlightIds.includes(f._id)),
         selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
-        package: { ...selectedPkg, itinerary: customItinerary },
+        package: { ...activePkg, itinerary: customItinerary },
         customizations: state.customizations,
       };
       const res = await API.post(config.savePath, payload);
@@ -216,11 +233,11 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     }
   };
 
-  const draftQuote = selectedLead && selectedPkg ? {
+  const draftQuote = selectedLead && activePkg ? {
     quoteNumber: 'PREVIEW',
     createdAt: new Date().toISOString(),
     lead: selectedLead,
-    package: { ...selectedPkg, itinerary: customItinerary },
+    package: { ...activePkg, itinerary: customItinerary },
     pricing: state.pricing,
   } : null;
 
@@ -272,21 +289,27 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
             {step === 2 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-bold">Select Package</h2>
+                <p className="text-xs text-content-muted">Packages loaded from Uno Hotels Package Control</p>
                 <div className="grid sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
-                  {packages.map((p) => (
-                    <button key={p._id} type="button" onClick={() => { setState({ ...state, packageId: p._id }); setCustomItinerary([]); }} className={cn('p-4 rounded-xl border text-left', state.packageId === p._id ? 'border-amber-500/50 bg-amber-500/10 ring-2 ring-amber-500/20' : 'border-subtle hover:bg-surface-elevated')}>
+                  {packages.length === 0 ? (
+                    <p className="text-sm text-content-muted col-span-full py-8 text-center">No published packages found.</p>
+                  ) : packages.map((p) => (
+                    <button key={p._id} type="button" onClick={() => selectPackage(p)} className={cn('p-4 rounded-xl border text-left', state.packageId === p._id ? 'border-amber-500/50 bg-amber-500/10 ring-2 ring-amber-500/20' : 'border-subtle hover:bg-surface-elevated')}>
                       <p className="font-bold">{p.name}</p>
-                      <p className="text-xs text-content-muted mt-1">{p.destination} · {p.duration}D · from {formatINR(p.startingPrice)}</p>
+                      <p className="text-xs text-content-muted mt-1">{p.destination} · {p.durationLabel || `${p.duration}D`} · from {formatINR(p.startingPrice)}</p>
                     </button>
                   ))}
                 </div>
+                {loadingPackageDetail && (
+                  <p className="text-xs text-amber-700">Loading package itinerary...</p>
+                )}
               </div>
             )}
-            {step === 3 && selectedPkg && (
+            {step === 3 && activePkg && (
               <div className="space-y-4">
                 <h2 className="text-lg font-bold">Customize Package</h2>
                 <textarea value={state.customizations} onChange={(e) => setState({ ...state, customizations: e.target.value })} rows={3} placeholder="Special requests, inclusions, exclusions..." className="input-premium w-full rounded-xl resize-none" />
-                <ItineraryBuilder itinerary={customItinerary} onChange={setCustomItinerary} destination={selectedPkg.destination} />
+                <ItineraryBuilder itinerary={customItinerary} onChange={setCustomItinerary} destination={activePkg.destination} />
               </div>
             )}
             {step === 4 && (
@@ -345,7 +368,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         <div className="flex justify-between mt-8 pt-6 border-t border-subtle">
           <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={step === 1} onClick={() => setStep((s) => s - 1)}><ArrowLeft className="w-4 h-4" /> Back</Button>
           {step < 8 ? (
-            <Button type="button" variant="sky" className="rounded-xl gap-2" onClick={() => setStep((s) => s + 1)} disabled={(step === 1 && !state.leadId) || (step === 2 && !state.packageId)}>Continue <ArrowRight className="w-4 h-4" /></Button>
+            <Button type="button" variant="sky" className="rounded-xl gap-2" onClick={() => setStep((s) => s + 1)} disabled={(step === 1 && !state.leadId) || (step === 2 && (!state.packageId || loadingPackageDetail))}>Continue <ArrowRight className="w-4 h-4" /></Button>
           ) : (
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={saving} onClick={() => handleSave('draft')}><Save className="w-4 h-4" /> {config.draftLabel}</Button>
