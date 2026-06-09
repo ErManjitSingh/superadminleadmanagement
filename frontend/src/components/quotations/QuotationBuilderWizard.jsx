@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
 import ItineraryBuilder from '../packages/ItineraryBuilder';
 import QuotePricingPanel from './QuotePricingPanel';
+import QuotePdfPreview from './QuotePdfPreview';
 import UnoHotelSelector, { parsePackageNights } from './UnoHotelSelector';
 import { WIZARD_STEPS } from './constants';
 import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR, matchesResourceDestination } from './quotationUtils';
