@@ -21,14 +21,17 @@ function unwrapListPayload(json) {
   return [];
 }
 
-function sanitizeImageUrl(url) {
+function sanitizeImageUrl(url, { allowDataImages = false } = {}) {
   if (!url || typeof url !== 'string') return '';
-  if (url.startsWith('data:')) return '';
+  if (url.startsWith('data:')) {
+    if (allowDataImages && /^data:image\//i.test(url)) return url;
+    return '';
+  }
   return url;
 }
 
-function sanitizeImages(images = []) {
-  return (Array.isArray(images) ? images : []).map(sanitizeImageUrl).filter(Boolean);
+function sanitizeImages(images = [], options = {}) {
+  return (Array.isArray(images) ? images : []).map((url) => sanitizeImageUrl(url, options)).filter(Boolean);
 }
 
 async function getAdminToken() {

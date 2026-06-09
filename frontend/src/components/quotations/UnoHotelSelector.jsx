@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
-import { ArrowLeft, BedDouble, Building2, Loader2, UtensilsCrossed } from 'lucide-react';
+import {
+  ArrowLeft,
+  BedDouble,
+  Building2,
+  Check,
+  ChevronRight,
+  ImageOff,
+  Loader2,
+  MapPin,
+  Star,
+  Users,
+  UtensilsCrossed,
+  Wifi,
+} from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import { formatINR } from './quotationUtils';
@@ -11,15 +24,300 @@ const SUB_STEPS = [
   { key: 'meal', label: 'Meal Plan', icon: UtensilsCrossed },
 ];
 
-function ImageCard({ src, alt, className }) {
-  if (!src) {
+const AMENITY_ICONS = {
+  wifi: Wifi,
+};
+
+function pickImageUrl(...candidates) {
+  for (const src of candidates) {
+    if (typeof src === 'string' && src.trim()) return src.trim();
+  }
+  return '';
+}
+
+function ImageCard({ src, alt, className, fallbackIcon: FallbackIcon = ImageOff }) {
+  const [failed, setFailed] = useState(false);
+  const url = pickImageUrl(src);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [url]);
+
+  if (!url || failed) {
     return (
-      <div className={cn('bg-surface-elevated flex items-center justify-center text-content-muted text-xs', className)}>
-        No image
+      <div
+        className={cn(
+          'bg-gradient-to-br from-surface-elevated to-surface-muted flex flex-col items-center justify-center text-content-muted gap-1',
+          className
+        )}
+      >
+        <FallbackIcon className="w-6 h-6 opacity-40" />
+        <span className="text-[10px] font-medium opacity-60">No photo</span>
       </div>
     );
   }
-  return <img src={src} alt={alt} className={cn('object-cover', className)} loading="lazy" />;
+
+  return (
+    <img
+      src={url}
+      alt={alt}
+      className={cn('object-cover bg-surface-elevated', className)}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function StarRating({ rating = 0, category }) {
+  const stars = Math.min(5, Math.max(0, Math.round(Number(rating) || 0)));
+  if (!stars && !category) return null;
+  return (
+    <div className="flex items-center gap-1.5">
+      {stars > 0 && (
+        <div className="flex items-center gap-0.5">
+          {Array.from({ length: stars }).map((_, i) => (
+            <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+          ))}
+        </div>
+      )}
+      {category && (
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-700/90 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
+          {category}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SubStepBar({ subStep, value }) {
+  return (
+    <div className="flex items-center gap-1 p-1 rounded-2xl bg-surface-elevated/80 border border-subtle">
+      {SUB_STEPS.map(({ key, label, icon: Icon }, index) => {
+        const active = subStep === key;
+        const done =
+          (key === 'hotel' && value?.hotel) ||
+          (key === 'room' && value?.room) ||
+          (key === 'meal' && value?.mealPlan);
+        return (
+          <div key={key} className="flex items-center flex-1 min-w-0">
+            <div
+              className={cn(
+                'flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-[11px] font-semibold flex-1 min-w-0 transition-all',
+                active && 'bg-amber-500 text-white shadow-sm shadow-amber-500/25',
+                !active && done && 'text-emerald-700 bg-emerald-500/10',
+                !active && !done && 'text-content-muted'
+              )}
+            >
+              {done && !active ? (
+                <Check className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <span className="truncate hidden sm:inline">{label}</span>
+            </div>
+            {index < SUB_STEPS.length - 1 && (
+              <ChevronRight className="w-3.5 h-3.5 text-content-muted/40 shrink-0 mx-0.5" />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function HotelCard({ hotel, selected, disabled, onSelect }) {
+  const thumb = pickImageUrl(hotel.thumbnailUrl, hotel.images?.[0]);
+  const amenityPreview = (hotel.amenities || []).slice(0, 3);
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onSelect(hotel)}
+      className={cn(
+        'group relative rounded-2xl border text-left overflow-hidden transition-all duration-200',
+        'hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-0.5',
+        selected
+          ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-md shadow-amber-500/10'
+          : 'border-subtle hover:border-amber-400/40'
+      )}
+    >
+      <div className="relative h-40 overflow-hidden">
+        <ImageCard
+          src={thumb}
+          alt={hotel.name}
+          className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+          fallbackIcon={Building2}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
+          <StarRating rating={hotel.starCategory || hotel.rating} category={hotel.category} />
+          <p className="font-bold text-sm mt-1 line-clamp-2 leading-snug">{hotel.name}</p>
+        </div>
+        {hotel.startingPrice > 0 && (
+          <div className="absolute top-2 right-2 px-2 py-1 rounded-lg bg-white/95 text-amber-800 text-xs font-bold shadow-sm">
+            from {formatINR(hotel.startingPrice)}
+          </div>
+        )}
+      </div>
+      <div className="p-3 space-y-2 bg-surface-base">
+        <div className="flex items-center gap-1 text-xs text-content-muted">
+          <MapPin className="w-3 h-3 shrink-0 text-amber-600" />
+          <span className="truncate">{hotel.location || hotel.city}</span>
+        </div>
+        {amenityPreview.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {amenityPreview.map((item) => (
+              <span
+                key={item}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-surface-elevated text-content-muted capitalize"
+              >
+                {item.replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
+        )}
+        {hotel.reviewCount > 0 && (
+          <p className="text-[10px] text-content-muted">{hotel.reviewCount} reviews</p>
+        )}
+      </div>
+    </button>
+  );
+}
+
+function RoomCard({ room, hotel, selected, onSelect }) {
+  const images = room.images?.length ? room.images : hotel?.images?.length ? hotel.images : [];
+  const [imageIndex, setImageIndex] = useState(0);
+  const currentImage = images[imageIndex] || pickImageUrl(hotel?.thumbnailUrl);
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [room.id]);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(room)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(room);
+        }
+      }}
+      className={cn(
+        'w-full rounded-2xl border text-left overflow-hidden transition-all duration-200 cursor-pointer',
+        'hover:shadow-md hover:border-amber-400/40',
+        selected
+          ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/25 shadow-md'
+          : 'border-subtle bg-surface-base'
+      )}
+    >
+      <div className="flex flex-col sm:flex-row">
+        <div className="relative sm:w-44 md:w-52 shrink-0">
+          <ImageCard
+            src={currentImage}
+            alt={room.name}
+            className="w-full h-36 sm:h-full sm:min-h-[140px]"
+            fallbackIcon={BedDouble}
+          />
+          {images.length > 1 && (
+            <>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                {images.slice(0, 5).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setImageIndex(i);
+                    }}
+                    className={cn(
+                      'w-1.5 h-1.5 rounded-full transition-all',
+                      i === imageIndex ? 'bg-white scale-125' : 'bg-white/50 hover:bg-white/80'
+                    )}
+                    aria-label={`Show image ${i + 1}`}
+                  />
+                ))}
+              </div>
+              <span className="absolute top-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-black/50 text-white">
+                {images.length} photos
+              </span>
+            </>
+          )}
+        </div>
+        <div className="flex-1 p-4 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-bold text-base">{room.name}</p>
+            {selected && (
+              <span className="shrink-0 flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                <Check className="w-3 h-3" /> Selected
+              </span>
+            )}
+          </div>
+          {room.description && (
+            <p className="text-xs text-content-muted mt-1.5 line-clamp-2 leading-relaxed">{room.description}</p>
+          )}
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {room.bedType && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-surface-elevated text-content-secondary">
+                <BedDouble className="w-3 h-3" /> {room.bedType}
+              </span>
+            )}
+            {room.maxOccupancy && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-lg bg-surface-elevated text-content-secondary">
+                <Users className="w-3 h-3" /> Max {room.maxOccupancy}
+              </span>
+            )}
+            {room.sizeSqft && (
+              <span className="text-[10px] font-medium px-2 py-1 rounded-lg bg-surface-elevated text-content-secondary">
+                {room.sizeSqft} sq ft
+              </span>
+            )}
+          </div>
+          {(room.amenities || []).length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {room.amenities.slice(0, 4).map((item) => {
+                const Icon = AMENITY_ICONS[item.toLowerCase()] || null;
+                return (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1 text-[10px] text-content-muted capitalize"
+                  >
+                    {Icon && <Icon className="w-3 h-3" />}
+                    {item.replace(/_/g, ' ')}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-base font-bold text-amber-700 mt-3">
+            {formatINR(room.pricePerNight)}
+            <span className="text-xs font-normal text-content-muted"> / night</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SelectedHotelBanner({ hotel }) {
+  if (!hotel) return null;
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-gradient-to-r from-amber-500/10 to-transparent">
+      <ImageCard
+        src={pickImageUrl(hotel.thumbnailUrl, hotel.images?.[0])}
+        alt={hotel.name}
+        className="w-14 h-14 rounded-lg shrink-0"
+        fallbackIcon={Building2}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-amber-800/80 uppercase tracking-wide">Selected hotel</p>
+        <p className="font-semibold truncate">{hotel.name}</p>
+        <p className="text-xs text-content-muted truncate">{hotel.location}</p>
+      </div>
+    </div>
+  );
 }
 
 export default function UnoHotelSelector({ destination, value, onChange, nights = 1 }) {
@@ -89,39 +387,15 @@ export default function UnoHotelSelector({ destination, value, onChange, nights 
   const rooms = activeHotel?.rooms || [];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        {SUB_STEPS.map(({ key, label, icon: Icon }, index) => {
-          const active = subStep === key;
-          const done =
-            (key === 'hotel' && value?.hotel) ||
-            (key === 'room' && value?.room) ||
-            (key === 'meal' && value?.mealPlan);
-          return (
-            <div key={key} className="flex items-center gap-2 flex-1">
-              <div
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium flex-1',
-                  active && 'border-amber-500/50 bg-amber-500/10 text-amber-800',
-                  !active && done && 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700',
-                  !active && !done && 'border-subtle text-content-muted'
-                )}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                {label}
-              </div>
-              {index < SUB_STEPS.length - 1 && <div className="w-3 h-px bg-subtle shrink-0" />}
-            </div>
-          );
-        })}
-      </div>
+    <div className="space-y-5">
+      <SubStepBar subStep={subStep} value={value} />
 
       {subStep !== 'hotel' && (
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="rounded-lg gap-1.5"
+          className="rounded-xl gap-1.5"
           onClick={() => setSubStep(subStep === 'meal' ? 'room' : 'hotel')}
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -130,84 +404,76 @@ export default function UnoHotelSelector({ destination, value, onChange, nights 
       )}
 
       {subStep === 'hotel' && (
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-lg font-bold">Select Hotel</h2>
-            <p className="text-xs text-content-muted">Hotels matching lead destination{destination ? `: ${destination}` : ''}</p>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-subtle bg-gradient-to-br from-amber-500/5 to-transparent p-4">
+            <h2 className="text-xl font-bold tracking-tight">Select Hotel</h2>
+            <p className="text-sm text-content-muted mt-1">
+              {destination
+                ? `Showing hotels in ${destination} — pick one to view rooms & meal plans`
+                : 'Choose a hotel for this quotation'}
+            </p>
           </div>
+
           {loadingHotels ? (
-            <div className="flex items-center justify-center py-12 text-content-muted gap-2">
-              <Loader2 className="w-5 h-5 animate-spin" /> Loading hotels...
+            <div className="flex flex-col items-center justify-center py-16 text-content-muted gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+              <p className="text-sm">Finding hotels...</p>
             </div>
           ) : hotels.length === 0 ? (
-            <p className="text-sm text-content-muted py-8 text-center">No hotels found for this destination.</p>
+            <div className="text-center py-16 rounded-2xl border border-dashed border-subtle">
+              <Building2 className="w-10 h-10 mx-auto text-content-muted/40 mb-3" />
+              <p className="text-sm font-medium">No hotels found</p>
+              <p className="text-xs text-content-muted mt-1">Try a different destination or check Uno Hotels catalog.</p>
+            </div>
           ) : (
-            <div className="grid sm:grid-cols-2 gap-3 max-h-[420px] overflow-y-auto">
+            <div className="grid sm:grid-cols-2 gap-4 max-h-[480px] overflow-y-auto pr-1">
               {hotels.map((hotel) => (
-                <button
+                <HotelCard
                   key={hotel.id}
-                  type="button"
+                  hotel={hotel}
+                  selected={value?.hotel?.id === hotel.id}
                   disabled={loadingDetail}
-                  onClick={() => selectHotel(hotel)}
-                  className={cn(
-                    'rounded-xl border text-left overflow-hidden transition-all',
-                    value?.hotel?.id === hotel.id
-                      ? 'border-amber-500/50 ring-2 ring-amber-500/20'
-                      : 'border-subtle hover:border-amber-500/30'
-                  )}
-                >
-                  <ImageCard src={hotel.thumbnailUrl || hotel.images?.[0]} alt={hotel.name} className="w-full h-32" />
-                  <div className="p-3">
-                    <p className="font-semibold text-sm">{hotel.name}</p>
-                    <p className="text-xs text-content-muted mt-0.5">{hotel.location} · {hotel.category}</p>
-                    <p className="text-sm font-bold text-amber-700 mt-2">from {formatINR(hotel.startingPrice)}/night</p>
-                  </div>
-                </button>
+                  onSelect={selectHotel}
+                />
               ))}
             </div>
           )}
+
           {loadingDetail && (
-            <p className="text-xs text-amber-700 flex items-center gap-1.5">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading rooms...
-            </p>
+            <div className="flex items-center justify-center gap-2 py-3 text-sm text-amber-700 bg-amber-500/10 rounded-xl">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading rooms & photos...
+            </div>
           )}
         </div>
       )}
 
       {subStep === 'room' && activeHotel && (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          <SelectedHotelBanner hotel={activeHotel} />
           <div>
-            <h2 className="text-lg font-bold">Select Room</h2>
-            <p className="text-xs text-content-muted">{activeHotel.name} · {activeHotel.location}</p>
+            <h2 className="text-xl font-bold tracking-tight">Select Room</h2>
+            <p className="text-sm text-content-muted mt-1">
+              {rooms.length} room type{rooms.length !== 1 ? 's' : ''} available · {nights} night{nights !== 1 ? 's' : ''}
+            </p>
           </div>
+
           {rooms.length === 0 ? (
-            <p className="text-sm text-content-muted py-8 text-center">No rooms available for this hotel.</p>
+            <div className="text-center py-16 rounded-2xl border border-dashed border-subtle">
+              <BedDouble className="w-10 h-10 mx-auto text-content-muted/40 mb-3" />
+              <p className="text-sm font-medium">No rooms available</p>
+              <p className="text-xs text-content-muted mt-1">This hotel has no bookable rooms right now.</p>
+            </div>
           ) : (
-            <div className="space-y-3 max-h-[420px] overflow-y-auto">
+            <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
               {rooms.map((room) => (
-                <button
+                <RoomCard
                   key={room.id}
-                  type="button"
-                  onClick={() => selectRoom(room)}
-                  className={cn(
-                    'w-full rounded-xl border text-left overflow-hidden flex gap-3 p-3',
-                    value?.room?.id === room.id
-                      ? 'border-amber-500/50 bg-amber-500/10 ring-2 ring-amber-500/20'
-                      : 'border-subtle hover:bg-surface-elevated'
-                  )}
-                >
-                  <ImageCard src={room.images?.[0]} alt={room.name} className="w-28 h-24 rounded-lg shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold">{room.name}</p>
-                    <p className="text-xs text-content-muted mt-1 line-clamp-2">{room.description}</p>
-                    <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-content-muted">
-                      {room.bedType && <span className="px-2 py-0.5 rounded-full bg-surface-elevated">{room.bedType}</span>}
-                      {room.maxOccupancy && <span className="px-2 py-0.5 rounded-full bg-surface-elevated">Max {room.maxOccupancy}</span>}
-                      {room.sizeSqft && <span className="px-2 py-0.5 rounded-full bg-surface-elevated">{room.sizeSqft} sqft</span>}
-                    </div>
-                    <p className="text-sm font-bold text-amber-700 mt-2">{formatINR(room.pricePerNight)}/night</p>
-                  </div>
-                </button>
+                  room={room}
+                  hotel={activeHotel}
+                  selected={value?.room?.id === room.id}
+                  onSelect={selectRoom}
+                />
               ))}
             </div>
           )}
@@ -215,37 +481,53 @@ export default function UnoHotelSelector({ destination, value, onChange, nights 
       )}
 
       {subStep === 'meal' && value?.room && (
-        <div className="space-y-3">
-          <div>
-            <h2 className="text-lg font-bold">Select Meal Plan</h2>
-            <p className="text-xs text-content-muted">
-              {activeHotel?.name} · {value.room.name}
-            </p>
+        <div className="space-y-4">
+          <SelectedHotelBanner hotel={activeHotel} />
+          <div className="rounded-xl border border-subtle p-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-content-muted">Room</p>
+              <p className="font-semibold">{value.room.name}</p>
+            </div>
+            <p className="text-sm font-bold text-amber-700">{formatINR(value.room.pricePerNight)}/night</p>
           </div>
+
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">Select Meal Plan</h2>
+            <p className="text-sm text-content-muted mt-1">Choose inclusions for {nights} night{nights !== 1 ? 's' : ''}</p>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-3">
-            {(value.room.mealPlanOptions || []).map((plan) => (
-              <button
-                key={plan.key}
-                type="button"
-                onClick={() => selectMealPlan(plan)}
-                className={cn(
-                  'p-4 rounded-xl border text-left',
-                  value?.mealPlan?.key === plan.key
-                    ? 'border-emerald-500/50 bg-emerald-500/10 ring-2 ring-emerald-500/20'
-                    : 'border-subtle hover:bg-surface-elevated'
-                )}
-              >
-                <p className="font-semibold text-sm">{plan.label}</p>
-                <p className="text-xs text-content-muted mt-1">
-                  {plan.price > 0 ? `+ ${formatINR(plan.price)}/person/night` : 'Included with room only'}
-                </p>
-                {value?.mealPlan?.key === plan.key && (
-                  <p className="text-xs font-medium text-emerald-700 mt-2">
-                    Total: {formatINR(value.totalCost)} for {nights} night(s)
+            {(value.room.mealPlanOptions || []).map((plan) => {
+              const selected = value?.mealPlan?.key === plan.key;
+              const perNight = Number(value.room.pricePerNight || 0) + Number(plan.price || 0);
+              const total = perNight * Math.max(1, nights);
+              return (
+                <button
+                  key={plan.key}
+                  type="button"
+                  onClick={() => selectMealPlan(plan)}
+                  className={cn(
+                    'p-4 rounded-2xl border text-left transition-all duration-200',
+                    selected
+                      ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/25 shadow-md'
+                      : 'border-subtle hover:border-emerald-400/40 hover:bg-surface-elevated/50'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold">{plan.label}</p>
+                    {selected && <Check className="w-4 h-4 text-emerald-600 shrink-0" />}
+                  </div>
+                  <p className="text-xs text-content-muted mt-1.5">
+                    {plan.price > 0 ? `+ ${formatINR(plan.price)} / person / night` : 'Room only — no meals included'}
                   </p>
-                )}
-              </button>
-            ))}
+                  {selected && (
+                    <p className="text-sm font-bold text-emerald-700 mt-3 pt-3 border-t border-emerald-500/20">
+                      Total: {formatINR(total)} for {nights} night{nights !== 1 ? 's' : ''}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

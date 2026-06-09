@@ -61,7 +61,7 @@ function mapRoom(room = {}) {
     bedType: room.bed_type,
     sizeSqft: room.size_sqft,
     amenities: room.amenities || [],
-    images: sanitizeImages(room.images),
+    images: sanitizeImages(room.images, { allowDataImages: true }),
     pricePerNight: Number(room.price_per_night || 0),
     available: room.available !== false,
     availableCount: room.available_count,
