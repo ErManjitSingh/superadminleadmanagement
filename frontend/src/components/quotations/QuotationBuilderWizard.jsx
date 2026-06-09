@@ -7,7 +7,7 @@ import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
 import ItineraryBuilder from '../packages/ItineraryBuilder';
 import QuotePricingPanel from './QuotePricingPanel';
-import QuotePdfPreview from './QuotePdfPreview';
+import UnoHotelSelector, { parsePackageNights } from './UnoHotelSelector';
 import { WIZARD_STEPS } from './constants';
 import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR } from './quotationUtils';
 import { unwrapList } from '../../utils/apiHelpers';
@@ -86,13 +86,13 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const [step, setStep] = useState(1);
   const [leads, setLeads] = useState([]);
   const [packages, setPackages] = useState([]);
-  const [hotels, setHotels] = useState([]);
   const [cabs, setCabs] = useState([]);
   const [flights, setFlights] = useState([]);
   const [activities, setActivities] = useState([]);
   const [state, setState] = useState({ ...defaultWizardState });
   const [customItinerary, setCustomItinerary] = useState([]);
   const [selectedPkgDetail, setSelectedPkgDetail] = useState(null);
+  const [unoHotelSelection, setUnoHotelSelection] = useState(null);
   const [loadingPackageDetail, setLoadingPackageDetail] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -103,7 +103,6 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
       const requests = [
         API.get(config.leadsPath, { params: config.leadsParams || { page: 1, limit: 500 }, skipErrorToast: true }),
         API.get('/uno-packages', { params: { limit: 50 }, skipErrorToast: true }),
-        API.get('/hotels', { skipErrorToast: true }),
         API.get('/cabs', { skipErrorToast: true }),
         API.get('/flights', { skipErrorToast: true }),
         API.get('/activities', { skipErrorToast: true }),
@@ -116,17 +115,15 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
 
       setLeads(unwrapList(pick(0)));
       setPackages(unwrapList(pick(1)));
-      setHotels(unwrapList(pick(2)));
-      setCabs(unwrapList(pick(3)));
-      setFlights(unwrapList(pick(4)));
-      setActivities(unwrapList(pick(5)));
+      setCabs(unwrapList(pick(2)));
+      setFlights(unwrapList(pick(3)));
+      setActivities(unwrapList(pick(4)));
     };
 
     loadBuilderData().catch(() => {
       if (!cancelled) {
         setLeads([]);
         setPackages([]);
-        setHotels([]);
         setCabs([]);
         setFlights([]);
         setActivities([]);
@@ -194,14 +191,17 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     });
   };
 
+  const packageNights = parsePackageNights(activePkg);
+  const hotelDestination = activePkg?.destination || selectedLead?.destination || '';
+
   useEffect(() => {
-    const hotelCost = hotels.filter((h) => state.selectedHotelIds.includes(h._id)).reduce((s, h) => s + (h.price || 0), 0);
+    const hotelCost = unoHotelSelection?.totalCost || 0;
     const cabCost = cabs.filter((c) => state.selectedCabIds.includes(c._id)).reduce((s, c) => s + (c.cost || 0), 0);
     const flightCost = flights.filter((f) => state.selectedFlightIds.includes(f._id)).reduce((s, f) => s + (f.cost || 0), 0);
     const activityCost = activities.filter((a) => state.selectedActivityIds.includes(a._id)).reduce((s, a) => s + (a.price || 0), 0);
     const calc = calculatePricing({ ...state.pricing, hotelCost, cabCost, flightCost, activityCost });
     setState((s) => ({ ...s, pricing: { ...s.pricing, hotelCost, cabCost, flightCost, activityCost, total: calc.total, profitMargin: calc.profitMargin } }));
-  }, [state.selectedHotelIds, state.selectedCabIds, state.selectedFlightIds, state.selectedActivityIds, hotels, cabs, flights, activities, state.pricing.baseCost, state.pricing.taxes, state.pricing.markup, state.pricing.discount]);
+  }, [state.selectedCabIds, state.selectedFlightIds, state.selectedActivityIds, cabs, flights, activities, state.pricing.baseCost, state.pricing.taxes, state.pricing.markup, state.pricing.discount, unoHotelSelection?.totalCost]);
 
   const handleSave = async (saveAs) => {
     if (!state.leadId || !state.packageId) return;
@@ -214,7 +214,22 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         packageId: state.packageId,
         status,
         pricing: state.pricing,
-        selectedHotels: hotels.filter((h) => state.selectedHotelIds.includes(h._id)),
+        selectedHotels: unoHotelSelection
+          ? [{
+              _id: unoHotelSelection.hotel?.id,
+              name: unoHotelSelection.hotel?.name,
+              location: unoHotelSelection.hotel?.location,
+              city: unoHotelSelection.hotel?.city,
+              thumbnailUrl: unoHotelSelection.hotel?.thumbnailUrl,
+              images: unoHotelSelection.hotel?.images,
+              room: unoHotelSelection.room,
+              mealPlan: unoHotelSelection.mealPlan,
+              nights: unoHotelSelection.nights,
+              price: unoHotelSelection.perNight,
+              total: unoHotelSelection.totalCost,
+              externalSource: 'uno_hotels',
+            }]
+          : [],
         selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
         selectedFlights: flights.filter((f) => state.selectedFlightIds.includes(f._id)),
         selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
@@ -324,15 +339,12 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
               </div>
             )}
             {step === 4 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-bold">Add Hotels</h2>
-                {hotels.map((h) => (
-                  <button key={h._id} type="button" onClick={() => toggleId('selectedHotelIds', h._id)} className={cn('w-full flex justify-between p-4 rounded-xl border text-left', state.selectedHotelIds.includes(h._id) ? 'border-amber-500/50 bg-amber-500/10' : 'border-subtle')}>
-                    <div><p className="font-semibold">{h.name}</p><p className="text-xs text-content-muted">{h.category} · {h.location}</p></div>
-                    <span className="font-bold">{formatINR(h.price)}/night</span>
-                  </button>
-                ))}
-              </div>
+              <UnoHotelSelector
+                destination={hotelDestination}
+                value={unoHotelSelection}
+                onChange={setUnoHotelSelection}
+                nights={packageNights}
+              />
             )}
             {step === 5 && (
               <div className="space-y-4">
@@ -379,7 +391,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         <div className="flex justify-between mt-8 pt-6 border-t border-subtle">
           <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={step === 1} onClick={() => setStep((s) => s - 1)}><ArrowLeft className="w-4 h-4" /> Back</Button>
           {step < 8 ? (
-            <Button type="button" variant="sky" className="rounded-xl gap-2" onClick={() => setStep((s) => s + 1)} disabled={(step === 1 && !state.leadId) || (step === 2 && (!state.packageId || loadingPackageDetail))}>Continue <ArrowRight className="w-4 h-4" /></Button>
+            <Button type="button" variant="sky" className="rounded-xl gap-2" onClick={() => setStep((s) => s + 1)} disabled={(step === 1 && !state.leadId) || (step === 2 && (!state.packageId || loadingPackageDetail)) || (step === 4 && !unoHotelSelection?.mealPlan)}>Continue <ArrowRight className="w-4 h-4" /></Button>
           ) : (
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={saving} onClick={() => handleSave('draft')}><Save className="w-4 h-4" /> {config.draftLabel}</Button>

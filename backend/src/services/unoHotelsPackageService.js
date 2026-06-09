@@ -1,26 +1,14 @@
 const ApiError = require('../utils/apiError');
-
-const BASE_URL = (process.env.UNO_HOTELS_API_BASE_URL || 'https://unohotels-backend.onrender.com').replace(/\/$/, '');
-
-let cachedAdminToken = null;
-let tokenExpiresAt = 0;
-
-function unwrapPayload(json) {
-  if (!json || typeof json !== 'object') return json;
-  if (json.data && typeof json.data === 'object' && !Array.isArray(json.data)) return json.data;
-  return json;
-}
+const {
+  unwrapPayload,
+  sanitizeImageUrl,
+  unoFetch,
+} = require('./unoHotelsApiClient');
 
 function parseDurationDays(pkg = {}) {
   if (pkg.duration_days > 0) return pkg.duration_days;
   const match = String(pkg.duration_label || '').match(/(\d+)\s*D/i);
   return match ? Number(match[1]) : 1;
-}
-
-function sanitizeImageUrl(url) {
-  if (!url || typeof url !== 'string') return '';
-  if (url.startsWith('data:')) return '';
-  return url;
 }
 
 function mapItineraryDays(days = []) {
@@ -96,60 +84,6 @@ function mapUnoPackage(pkg, { includeItinerary = false } = {}) {
   return mapped;
 }
 
-async function getAdminToken() {
-  if (process.env.UNO_HOTELS_ADMIN_TOKEN) return process.env.UNO_HOTELS_ADMIN_TOKEN;
-
-  const email = process.env.UNO_HOTELS_ADMIN_EMAIL;
-  const password = process.env.UNO_HOTELS_ADMIN_PASSWORD;
-  if (!email || !password) return null;
-
-  if (cachedAdminToken && Date.now() < tokenExpiresAt) return cachedAdminToken;
-
-  const res = await fetch(`${BASE_URL}/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new ApiError(502, json.message || 'Failed to authenticate with Uno Hotels API');
-  }
-
-  const payload = unwrapPayload(json);
-  const token = payload?.tokens?.access_token;
-  if (!token) throw new ApiError(502, 'Uno Hotels API login did not return an access token');
-
-  cachedAdminToken = token;
-  tokenExpiresAt = Date.now() + Math.max(60, Number(payload.tokens.expires_in || 3600) - 60) * 1000;
-  return token;
-}
-
-async function unoFetch(path, { query = {}, admin = false } = {}) {
-  const url = new URL(`${BASE_URL}${path}`);
-  Object.entries(query).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      url.searchParams.set(key, String(value));
-    }
-  });
-
-  const headers = { Accept: 'application/json' };
-  if (admin) {
-    const token = await getAdminToken();
-    if (!token) throw new ApiError(503, 'Uno Hotels admin credentials are not configured');
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const res = await fetch(url, { headers });
-  const json = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new ApiError(res.status >= 500 ? 502 : res.status, json.message || 'Uno Hotels API request failed');
-  }
-
-  return unwrapPayload(json);
-}
-
 async function listUnoPackages(query = {}) {
   const limit = Math.min(Number(query.limit) || 50, 100);
   const search = query.search || '';
@@ -171,14 +105,15 @@ async function listUnoPackages(query = {}) {
         destination_id: query.destination_id || undefined,
       },
     });
+    const unwrapped = unwrapPayload(payload);
 
-    const items = (payload.items || []).map((pkg) => mapUnoPackage(pkg));
+    const items = (unwrapped.items || []).map((pkg) => mapUnoPackage(pkg));
     return {
       items,
-      total: payload.total ?? items.length,
-      page: payload.page ?? page,
-      limit: payload.limit ?? limit,
-      totalPages: payload.total_pages ?? 1,
+      total: unwrapped.total ?? items.length,
+      page: unwrapped.page ?? page,
+      limit: unwrapped.limit ?? limit,
+      totalPages: unwrapped.total_pages ?? 1,
       source: 'uno_hotels_admin',
     };
   }
@@ -193,14 +128,15 @@ async function listUnoPackages(query = {}) {
       destination_id: query.destination_id || undefined,
     },
   });
+  const unwrapped = unwrapPayload(payload);
 
-  const items = (payload.items || []).map((pkg) => mapUnoPackage(pkg));
+  const items = (unwrapped.items || []).map((pkg) => mapUnoPackage(pkg));
   return {
     items,
-    total: payload.total ?? items.length,
-    page: payload.page ?? page,
-    limit: payload.limit ?? limit,
-    totalPages: payload.total_pages ?? 1,
+    total: unwrapped.total ?? items.length,
+    page: unwrapped.page ?? page,
+    limit: unwrapped.limit ?? limit,
+    totalPages: unwrapped.total_pages ?? 1,
     source: 'uno_hotels_public',
   };
 }
@@ -213,7 +149,7 @@ async function getUnoPackageById(packageId) {
 
   if (useAdmin) {
     const payload = await unoFetch(`/admin/v1/packages/${packageId}`, { admin: true });
-    return mapUnoPackage(payload, { includeItinerary: true });
+    return mapUnoPackage(unwrapPayload(payload), { includeItinerary: true });
   }
 
   const list = await listUnoPackages({ limit: 50, page: 1 });
@@ -223,7 +159,7 @@ async function getUnoPackageById(packageId) {
   if (summary.slug) {
     try {
       const detail = await unoFetch(`/v1/packages/${summary.slug}`);
-      return mapUnoPackage(detail, { includeItinerary: true });
+      return mapUnoPackage(unwrapPayload(detail), { includeItinerary: true });
     } catch {
       /* fall back to summary */
     }

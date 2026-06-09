@@ -30,7 +30,7 @@ export const WIZARD_STEPS = [
   { id: 1, title: 'Select Lead', key: 'lead' },
   { id: 2, title: 'Select Package', key: 'package' },
   { id: 3, title: 'Customize', key: 'customize' },
-  { id: 4, title: 'Hotels', key: 'hotels' },
+  { id: 4, title: 'Hotel & Meals', key: 'hotels' },
   { id: 5, title: 'Transport', key: 'transport' },
   { id: 6, title: 'Activities', key: 'activities' },
   { id: 7, title: 'Pricing', key: 'pricing' },
