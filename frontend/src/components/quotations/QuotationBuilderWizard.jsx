@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Save, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
@@ -15,6 +15,7 @@ import { cn } from '../../lib/utils';
 
 const ADMIN_CONFIG = {
   leadsPath: '/leads',
+  leadViewPath: (id) => `/leads/${id}`,
   savePath: '/quotations',
   backPath: '/quotations',
   successPath: '/quotations',
@@ -29,6 +30,7 @@ const ADMIN_CONFIG = {
 
 const EXECUTIVE_CONFIG = {
   leadsPath: '/sales-executive/leads/all',
+  leadViewPath: (id) => `/sales-executive/leads/${id}/view`,
   savePath: '/sales-executive/quotations',
   backPath: '/sales-executive/quotations',
   successPath: '/sales-executive/quotations',
@@ -43,6 +45,7 @@ const EXECUTIVE_CONFIG = {
 
 const TEAM_LEADER_CONFIG = {
   leadsPath: '/team-leader/leads',
+  leadViewPath: (id) => `/team-leader/leads/${id}/view`,
   leadsParams: { filter: 'all', page: 1, limit: 500 },
   savePath: '/team-leader/quotations',
   backPath: '/team-leader/quotations/pending',
@@ -58,6 +61,7 @@ const TEAM_LEADER_CONFIG = {
 
 const MANAGER_CONFIG = {
   leadsPath: '/sales-manager/leads',
+  leadViewPath: (id) => `/sales-manager/leads/${id}/view`,
   leadsParams: { filter: 'all', page: 1, limit: 500 },
   savePath: '/sales-manager/quotations',
   backPath: '/sales-manager/quotations/pending',
@@ -94,6 +98,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const [selectedPkgDetail, setSelectedPkgDetail] = useState(null);
   const [unoHotelSelection, setUnoHotelSelection] = useState(null);
   const [loadingPackageDetail, setLoadingPackageDetail] = useState(false);
+  const [loadingPackages, setLoadingPackages] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -102,7 +107,6 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     const loadBuilderData = async () => {
       const requests = [
         API.get(config.leadsPath, { params: config.leadsParams || { page: 1, limit: 500 }, skipErrorToast: true }),
-        API.get('/uno-packages', { params: { limit: 50 }, skipErrorToast: true }),
         API.get('/cabs', { skipErrorToast: true }),
         API.get('/flights', { skipErrorToast: true }),
         API.get('/activities', { skipErrorToast: true }),
@@ -114,16 +118,14 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
       const pick = (index) => (results[index].status === 'fulfilled' ? results[index].value.data : []);
 
       setLeads(unwrapList(pick(0)));
-      setPackages(unwrapList(pick(1)));
-      setCabs(unwrapList(pick(2)));
-      setFlights(unwrapList(pick(3)));
-      setActivities(unwrapList(pick(4)));
+      setCabs(unwrapList(pick(1)));
+      setFlights(unwrapList(pick(2)));
+      setActivities(unwrapList(pick(3)));
     };
 
     loadBuilderData().catch(() => {
       if (!cancelled) {
         setLeads([]);
-        setPackages([]);
         setCabs([]);
         setFlights([]);
         setActivities([]);
@@ -144,6 +146,43 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const selectedLead = leads.find((l) => l._id === state.leadId);
   const selectedPkg = packages.find((p) => p._id === state.packageId);
   const activePkg = selectedPkgDetail || selectedPkg;
+  const packageNights = parsePackageNights(activePkg);
+  const hotelDestination = activePkg?.destination || selectedLead?.destination || '';
+
+  useEffect(() => {
+    const destination = selectedLead?.destination;
+    if (!destination) {
+      setPackages([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLoadingPackages(true);
+    API.get('/uno-packages', {
+      params: { limit: 50, destination },
+      skipErrorToast: true,
+    })
+      .then((res) => {
+        if (!cancelled) setPackages(unwrapList(res.data));
+      })
+      .catch(() => {
+        if (!cancelled) setPackages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingPackages(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedLead?.destination]);
+
+  const selectLead = (lead) => {
+    setState({ ...defaultWizardState, leadId: lead._id });
+    setSelectedPkgDetail(null);
+    setCustomItinerary([]);
+    setUnoHotelSelection(null);
+  };
 
   const buildFallbackItinerary = (detail) => {
     const days = Math.max(1, Number(detail.duration) || 1);
@@ -190,9 +229,6 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
       return { ...s, [key]: arr };
     });
   };
-
-  const packageNights = parsePackageNights(activePkg);
-  const hotelDestination = activePkg?.destination || selectedLead?.destination || '';
 
   useEffect(() => {
     const hotelCost = unoHotelSelection?.totalCost || 0;
@@ -301,12 +337,43 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
           <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
             {step === 1 && (
               <div className="space-y-3">
-                <h2 className="text-lg font-bold">Select Lead</h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-bold">Select Lead</h2>
+                  {state.leadId && config.leadViewPath && (
+                    <Link
+                      to={config.leadViewPath(state.leadId)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-sky-600 hover:text-sky-700 hover:underline"
+                    >
+                      View Lead <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
+                {selectedLead && (
+                  <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-sm">
+                    <p className="font-semibold text-content-primary">{selectedLead.name}</p>
+                    <p className="text-xs text-content-muted mt-0.5">{selectedLead.destination} · {formatINR(selectedLead.budget)}</p>
+                  </div>
+                )}
                 <div className="grid gap-2 max-h-[400px] overflow-y-auto">
                   {leads.map((l) => (
-                    <button key={l._id} type="button" onClick={() => setState({ ...state, leadId: l._id })} className={cn('flex items-center gap-3 p-4 rounded-xl border text-left transition-all', state.leadId === l._id ? 'border-sky-500/50 bg-sky-500/10 ring-2 ring-sky-500/20' : 'border-subtle hover:bg-surface-elevated')}>
+                    <button
+                      key={l._id}
+                      type="button"
+                      onClick={() => selectLead(l)}
+                      className={cn(
+                        'flex items-center gap-3 p-4 rounded-xl border text-left transition-all',
+                        state.leadId === l._id
+                          ? 'border-sky-500/50 bg-sky-500/10 ring-2 ring-sky-500/20'
+                          : 'border-subtle hover:bg-surface-elevated'
+                      )}
+                    >
                       <Avatar name={l.name} size="sm" />
-                      <div><p className="font-semibold">{l.name}</p><p className="text-xs text-content-muted">{l.destination} · {formatINR(l.budget)}</p></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold">{l.name}</p>
+                        <p className="text-xs text-content-muted">{l.destination} · {formatINR(l.budget)}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -315,10 +382,15 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
             {step === 2 && (
               <div className="space-y-3">
                 <h2 className="text-lg font-bold">Select Package</h2>
-                <p className="text-xs text-content-muted">Packages loaded from Uno Hotels Package Control</p>
+                <p className="text-xs text-content-muted">
+                  Packages for <span className="font-medium text-content-primary">{selectedLead?.destination || 'selected lead'}</span> from Uno Hotels
+                </p>
+                {loadingPackages ? (
+                  <p className="text-sm text-content-muted py-8 text-center">Loading packages...</p>
+                ) : (
                 <div className="grid sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto">
                   {packages.length === 0 ? (
-                    <p className="text-sm text-content-muted col-span-full py-8 text-center">No published packages found.</p>
+                    <p className="text-sm text-content-muted col-span-full py-8 text-center">No packages found for this destination.</p>
                   ) : packages.map((p) => (
                     <button key={p._id} type="button" onClick={() => selectPackage(p)} className={cn('p-4 rounded-xl border text-left', state.packageId === p._id ? 'border-amber-500/50 bg-amber-500/10 ring-2 ring-amber-500/20' : 'border-subtle hover:bg-surface-elevated')}>
                       <p className="font-bold">{p.name}</p>
@@ -326,6 +398,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
                     </button>
                   ))}
                 </div>
+                )}
                 {loadingPackageDetail && (
                   <p className="text-xs text-amber-700">Loading package itinerary...</p>
                 )}

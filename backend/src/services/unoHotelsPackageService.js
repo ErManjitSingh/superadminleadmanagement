@@ -4,6 +4,7 @@ const {
   sanitizeImageUrl,
   unoFetch,
 } = require('./unoHotelsApiClient');
+const { inferCityFromDestination } = require('./unoHotelsHotelService');
 
 function parseDurationDays(pkg = {}) {
   if (pkg.duration_days > 0) return pkg.duration_days;
@@ -86,7 +87,7 @@ function mapUnoPackage(pkg, { includeItinerary = false } = {}) {
 
 async function listUnoPackages(query = {}) {
   const limit = Math.min(Number(query.limit) || 50, 100);
-  const search = query.search || '';
+  const search = query.search || inferCityFromDestination(query.destination) || '';
   const useAdmin = Boolean(
     process.env.UNO_HOTELS_ADMIN_TOKEN ||
       (process.env.UNO_HOTELS_ADMIN_EMAIL && process.env.UNO_HOTELS_ADMIN_PASSWORD)
@@ -131,13 +132,24 @@ async function listUnoPackages(query = {}) {
   const unwrapped = unwrapPayload(payload);
 
   const items = (unwrapped.items || []).map((pkg) => mapUnoPackage(pkg));
+  const destinationTerm = inferCityFromDestination(query.destination);
+  const filtered = destinationTerm
+    ? items.filter((pkg) => {
+        const dest = String(pkg.destination || '').toLowerCase();
+        const term = destinationTerm.toLowerCase();
+        const name = String(pkg.name || '').toLowerCase();
+        return dest.includes(term) || name.includes(term) || term.includes(dest.split(',')[0].trim());
+      })
+    : items;
+
   return {
-    items,
-    total: unwrapped.total ?? items.length,
+    items: filtered,
+    total: filtered.length,
     page: unwrapped.page ?? page,
     limit: unwrapped.limit ?? limit,
     totalPages: unwrapped.total_pages ?? 1,
     source: 'uno_hotels_public',
+    destination: destinationTerm || null,
   };
 }
 
