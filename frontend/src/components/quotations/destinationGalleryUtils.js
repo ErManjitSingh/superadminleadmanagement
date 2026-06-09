@@ -1,5 +1,3 @@
-import { mergeQuotePackageData } from './quotePdfHelpers';
-
 /**
  * Verified destination gallery URLs (Unsplash — auto=format avoids 404s).
  * Each entry: { url, label }
