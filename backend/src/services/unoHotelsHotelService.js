@@ -1,18 +1,15 @@
 const ApiError = require('../utils/apiError');
 const {
+  inferCityFromDestination,
+  matchesDestination,
+} = require('../utils/destinationMatch');
+const {
   unwrapPayload,
   unwrapListPayload,
   sanitizeImageUrl,
   sanitizeImages,
   unoFetch,
 } = require('./unoHotelsApiClient');
-
-function inferCityFromDestination(destination = '') {
-  const text = String(destination || '').trim();
-  if (!text) return '';
-  const firstPart = text.split(',')[0]?.trim() || text;
-  return firstPart.replace(/\s+(India|Himachal Pradesh|Uttarakhand)$/i, '').trim() || firstPart;
-}
 
 function buildMealPlanOptions(mealPlans = {}) {
   const breakfast = Number(mealPlans.breakfast) || 0;
@@ -73,35 +70,68 @@ function mapRoom(room = {}) {
   };
 }
 
+function filterHotelsByDestination(hotels, destination) {
+  if (!destination) return hotels;
+  return hotels.filter((hotel) => matchesDestination(hotel, destination));
+}
+
+async function fetchHotelRows(query = {}) {
+  const raw = await unoFetch('/v1/hotels/search', { query });
+  return unwrapListPayload(raw).map(mapHotelSummary);
+}
+
 async function listUnoHotels(query = {}) {
   const page = Math.max(1, Number(query.page) || 1);
   const limit = Math.min(Number(query.limit) || 24, 100);
-  const city = query.city || inferCityFromDestination(query.destination);
+  const destination = query.destination || '';
+  const city = query.city || inferCityFromDestination(destination);
 
-  const searchQuery = {
-    page,
-    limit,
-    sort: query.sort || 'popular',
-    ...(city ? { city } : {}),
-    ...(query.star_category ? { star_category: query.star_category } : {}),
-  };
-
-  let raw;
-  try {
-    raw = await unoFetch('/v1/hotels/search', { query: searchQuery });
-  } catch {
-    raw = await unoFetch('/v1/hotels/featured', { query: { limit } });
+  let rows = [];
+  if (city) {
+    try {
+      rows = await fetchHotelRows({
+        page,
+        limit,
+        sort: query.sort || 'popular',
+        city,
+        ...(query.star_category ? { star_category: query.star_category } : {}),
+      });
+    } catch {
+      rows = [];
+    }
   }
 
-  const rows = unwrapListPayload(raw).map(mapHotelSummary);
-  const meta = unwrapPayload(raw);
+  rows = filterHotelsByDestination(rows, destination);
+
+  if (rows.length === 0 && destination) {
+    try {
+      const broadRows = await fetchHotelRows({
+        page: 1,
+        limit: Math.max(limit, 50),
+        sort: 'popular',
+      });
+      rows = filterHotelsByDestination(broadRows, destination);
+    } catch {
+      rows = [];
+    }
+  }
+
+  if (rows.length === 0) {
+    try {
+      const featuredRaw = await unoFetch('/v1/hotels/featured', { query: { limit: Math.max(limit, 50) } });
+      rows = filterHotelsByDestination(unwrapListPayload(featuredRaw).map(mapHotelSummary), destination);
+    } catch {
+      rows = [];
+    }
+  }
 
   return {
-    items: rows,
-    total: meta.total ?? meta.count ?? rows.length,
-    page: meta.page ?? page,
-    limit: meta.limit ?? limit,
+    items: rows.slice(0, limit),
+    total: rows.length,
+    page,
+    limit,
     city: city || null,
+    destination: destination || null,
     source: 'uno_hotels',
   };
 }
@@ -130,7 +160,6 @@ module.exports = {
   listUnoHotels,
   getUnoHotelDetail,
   buildMealPlanOptions,
-  inferCityFromDestination,
   mapHotelSummary,
   mapRoom,
 };

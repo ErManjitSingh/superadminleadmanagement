@@ -1,10 +1,10 @@
 const ApiError = require('../utils/apiError');
+const { inferCityFromDestination, matchesDestination } = require('../utils/destinationMatch');
 const {
   unwrapPayload,
   sanitizeImageUrl,
   unoFetch,
 } = require('./unoHotelsApiClient');
-const { inferCityFromDestination } = require('./unoHotelsHotelService');
 
 function parseDurationDays(pkg = {}) {
   if (pkg.duration_days > 0) return pkg.duration_days;
@@ -107,15 +107,19 @@ async function listUnoPackages(query = {}) {
       },
     });
     const unwrapped = unwrapPayload(payload);
-
     const items = (unwrapped.items || []).map((pkg) => mapUnoPackage(pkg));
+    const filtered = query.destination
+      ? items.filter((pkg) => matchesDestination(pkg, query.destination))
+      : items;
+
     return {
-      items,
-      total: unwrapped.total ?? items.length,
+      items: filtered,
+      total: filtered.length,
       page: unwrapped.page ?? page,
       limit: unwrapped.limit ?? limit,
       totalPages: unwrapped.total_pages ?? 1,
       source: 'uno_hotels_admin',
+      destination: query.destination || null,
     };
   }
 
@@ -132,14 +136,8 @@ async function listUnoPackages(query = {}) {
   const unwrapped = unwrapPayload(payload);
 
   const items = (unwrapped.items || []).map((pkg) => mapUnoPackage(pkg));
-  const destinationTerm = inferCityFromDestination(query.destination);
-  const filtered = destinationTerm
-    ? items.filter((pkg) => {
-        const dest = String(pkg.destination || '').toLowerCase();
-        const term = destinationTerm.toLowerCase();
-        const name = String(pkg.name || '').toLowerCase();
-        return dest.includes(term) || name.includes(term) || term.includes(dest.split(',')[0].trim());
-      })
+  const filtered = query.destination
+    ? items.filter((pkg) => matchesDestination(pkg, query.destination))
     : items;
 
   return {
@@ -149,7 +147,7 @@ async function listUnoPackages(query = {}) {
     limit: unwrapped.limit ?? limit,
     totalPages: unwrapped.total_pages ?? 1,
     source: 'uno_hotels_public',
-    destination: destinationTerm || null,
+    destination: query.destination || null,
   };
 }
 

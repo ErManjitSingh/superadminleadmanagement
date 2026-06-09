@@ -133,7 +133,7 @@ export default function UnoHotelSelector({ destination, value, onChange, nights 
         <div className="space-y-3">
           <div>
             <h2 className="text-lg font-bold">Select Hotel</h2>
-            <p className="text-xs text-content-muted">Hotels from Uno Hotels catalog{destination ? ` · ${destination}` : ''}</p>
+            <p className="text-xs text-content-muted">Hotels matching lead destination{destination ? `: ${destination}` : ''}</p>
           </div>
           {loadingHotels ? (
             <div className="flex items-center justify-center py-12 text-content-muted gap-2">

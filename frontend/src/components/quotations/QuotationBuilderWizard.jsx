@@ -147,7 +147,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const selectedPkg = packages.find((p) => p._id === state.packageId);
   const activePkg = selectedPkgDetail || selectedPkg;
   const packageNights = parsePackageNights(activePkg);
-  const hotelDestination = activePkg?.destination || selectedLead?.destination || '';
+  const hotelDestination = selectedLead?.destination || activePkg?.destination || '';
 
   useEffect(() => {
     const destination = selectedLead?.destination;
