@@ -71,23 +71,30 @@ export function perPersonAmount(pricing, travelers = 2) {
   return Math.round(total / pax);
 }
 
-export function buildSelectedHotelsSnapshot(unoHotelSelection) {
-  if (!unoHotelSelection?.hotel) return [];
-  const { hotel, room, mealPlan, nights, perNight, totalCost } = unoHotelSelection;
-  return [{
-    _id: hotel.id,
-    name: hotel.name,
-    location: hotel.location,
-    city: hotel.city,
-    thumbnailUrl: hotel.thumbnailUrl,
-    images: hotel.images,
-    room,
-    mealPlan,
-    nights,
-    price: perNight,
-    total: totalCost,
-    externalSource: hotel.externalSource || 'uno_hotels',
-  }];
+export function buildSelectedHotelsSnapshot(dayWiseHotels) {
+  const list = Array.isArray(dayWiseHotels)
+    ? dayWiseHotels
+    : dayWiseHotels?.hotel
+      ? [{ day: 1, ...dayWiseHotels }]
+      : [];
+
+  return list
+    .filter((entry) => entry?.hotel)
+    .map((entry) => ({
+      day: entry.day,
+      _id: entry.hotel.id,
+      name: entry.hotel.name,
+      location: entry.hotel.location,
+      city: entry.hotel.city,
+      thumbnailUrl: entry.hotel.thumbnailUrl,
+      images: entry.hotel.images,
+      room: entry.room,
+      mealPlan: entry.mealPlan,
+      nights: entry.nights || 1,
+      price: entry.perNight,
+      total: entry.totalCost ?? entry.perNight,
+      externalSource: entry.hotel.externalSource || 'uno_hotels',
+    }));
 }
 
 export function collectHotelImageUrls(hotel = {}) {
@@ -103,10 +110,29 @@ export function collectHotelImageUrls(hotel = {}) {
   return urls;
 }
 
-function mapSelectedHotelRecord(h) {
-  const images = collectHotelImageUrls(h);
+export function collectHotelOnlyImages(hotel = {}) {
+  const urls = [];
+  const add = (url) => {
+    if (typeof url === 'string' && url.trim() && !urls.includes(url.trim())) {
+      urls.push(url.trim());
+    }
+  };
+  add(hotel.thumbnailUrl);
+  (hotel.images || []).forEach(add);
+  return urls;
+}
+
+export function collectRoomImages(hotel = {}) {
+  return (hotel.room?.images || []).filter((url) => typeof url === 'string' && url.trim());
+}
+
+function mapSelectedHotelRecord(h, lead, pkg) {
+  const hotelImages = collectHotelOnlyImages(h);
+  const roomImages = collectRoomImages(h);
   return {
-    city: h.city || h.location?.split(',')[0]?.trim() || h.location || '—',
+    day: h.day,
+    date: h.day ? getDayDate(lead.travelDate, h.day) : null,
+    city: h.city || h.location?.split(',')[0]?.trim() || h.location || pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
     name: h.name || 'Hotel',
     roomType: h.room?.name || h.roomType || 'Deluxe',
     meals:
@@ -115,25 +141,59 @@ function mapSelectedHotelRecord(h) {
       || h.meals
       || 'Breakfast & Dinner',
     similarHotel: h.similarHotel || '',
-    thumbnailUrl: images[0] || '',
-    images,
-    nights: h.nights,
+    thumbnailUrl: hotelImages[0] || '',
+    hotelImages,
+    roomImages,
+    roomImage: roomImages[0] || '',
+    images: collectHotelImageUrls(h),
+    nights: h.nights || 1,
     price: h.price ?? h.total,
   };
 }
 
+export function resolveDayHotelMap(quote) {
+  const lead = resolveQuoteLead(quote);
+  const pkg = resolveQuotePackage(quote);
+  const map = new Map();
+  resolveQuoteHotels(quote).forEach((row) => {
+    if (row.day) map.set(row.day, row);
+  });
+  if (map.size === 0) {
+    resolveQuoteHotels(quote).forEach((row, index) => {
+      map.set(row.day || index + 1, row);
+    });
+  }
+  return { map, lead, pkg };
+}
+
+export function resolveDayHotelForItinerary(quote, dayNum) {
+  const { map } = resolveDayHotelMap(quote);
+  return map.get(dayNum) || null;
+}
+
 export function resolveQuoteHotels(quote) {
   const pkg = resolveQuotePackage(quote);
+  const lead = resolveQuoteLead(quote);
+
   if (pkg.hotels?.length) {
     return pkg.hotels.map((h, index) => ({
       day: h.day || index + 1,
-      date: h.date || h.checkIn || null,
+      date: h.date || h.checkIn || getDayDate(lead.travelDate, h.day || index + 1),
+      hotelImages: h.hotelImages || collectHotelOnlyImages(h),
+      roomImages: h.roomImages || collectRoomImages(h),
+      roomImage: h.roomImage || collectRoomImages(h)[0] || '',
       ...h,
     }));
   }
 
-  const lead = resolveQuoteLead(quote);
-  const selectedRecords = (quote.selectedHotels || []).map(mapSelectedHotelRecord);
+  const dayKeyed = (quote.selectedHotels || []).filter((h) => h.day && h.name);
+  if (dayKeyed.length) {
+    return dayKeyed
+      .map((h) => mapSelectedHotelRecord(h, lead, pkg))
+      .sort((a, b) => a.day - b.day);
+  }
+
+  const selectedRecords = (quote.selectedHotels || []).map((h) => mapSelectedHotelRecord(h, lead, pkg));
   const defaultHotel = selectedRecords[0];
   const itinerary = pkg.itinerary || [];
   const totalDays = Math.max(itinerary.length, Number(pkg.duration) || 1);
@@ -169,7 +229,10 @@ export function resolveQuoteHotels(quote) {
         roomType: enrich?.roomType || 'Deluxe',
         meals: day.meals || enrich?.meals || 'Breakfast & Dinner',
         similarHotel: enrich?.similarHotel || '',
-        thumbnailUrl: enrich?.thumbnailUrl || '',
+        thumbnailUrl: enrich?.thumbnailUrl || enrich?.hotelImages?.[0] || '',
+        hotelImages: enrich?.hotelImages || [],
+        roomImages: enrich?.roomImages || [],
+        roomImage: enrich?.roomImage || enrich?.roomImages?.[0] || '',
         images: enrich?.images || [],
         checkIn: dayDate,
         checkOut: getDayDate(lead.travelDate, dayNum + 1),
@@ -191,7 +254,10 @@ export function resolveQuoteHotels(quote) {
         meals: defaultHotel.meals,
         similarHotel: defaultHotel.similarHotel,
         thumbnailUrl: defaultHotel.thumbnailUrl,
-        images: defaultHotel.images,
+        hotelImages: defaultHotel.hotelImages || [],
+        roomImages: defaultHotel.roomImages || [],
+        roomImage: defaultHotel.roomImage || '',
+        images: defaultHotel.images || [],
         checkIn: dayDate,
         checkOut: getDayDate(lead.travelDate, night + 1),
         nights: 1,

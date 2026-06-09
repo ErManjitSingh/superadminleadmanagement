@@ -11,6 +11,7 @@ import {
   getDayDate,
   resolveQuoteHotels,
   resolveQuoteVehicles,
+  resolveDayHotelForItinerary,
   resolveTripPlanner,
   resolvePolicies,
   resolveBankAccounts,
@@ -28,6 +29,50 @@ function PolicyBlock({ title, items }) {
           <li key={item}>{item}</li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function PdfImage({ src, alt, className }) {
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      crossOrigin={src.startsWith('data:') ? undefined : 'anonymous'}
+    />
+  );
+}
+
+function DayHotelStay({ dayHotel }) {
+  if (!dayHotel?.name) return null;
+  const hotelPhoto = dayHotel.hotelImages?.[0] || dayHotel.thumbnailUrl;
+  const roomPhoto = dayHotel.roomImage || dayHotel.roomImages?.[0];
+
+  return (
+    <div className="quote-ht-day-hotel">
+      <div className="quote-ht-day-hotel-title">Accommodation</div>
+      <div className="quote-ht-day-hotel-grid">
+        {hotelPhoto && (
+          <figure className="quote-ht-day-hotel-figure">
+            <PdfImage src={hotelPhoto} alt={dayHotel.name} className="quote-ht-day-hotel-img" />
+            <figcaption>Hotel — {dayHotel.name}</figcaption>
+          </figure>
+        )}
+        {roomPhoto && (
+          <figure className="quote-ht-day-hotel-figure">
+            <PdfImage src={roomPhoto} alt={dayHotel.roomType} className="quote-ht-day-hotel-img" />
+            <figcaption>Room — {dayHotel.roomType}</figcaption>
+          </figure>
+        )}
+      </div>
+      <div className="quote-ht-day-hotel-meta">
+        <strong>{dayHotel.name}</strong>
+        {dayHotel.roomType && <span> · {dayHotel.roomType}</span>}
+        {dayHotel.meals && <span> · {dayHotel.meals}</span>}
+        {dayHotel.city && <span> · {dayHotel.city}</span>}
+      </div>
     </div>
   );
 }
@@ -160,46 +205,39 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             <thead>
               <tr>
                 <th style={{ width: '8%' }}>Day</th>
-                <th style={{ width: '14%' }}>Date</th>
-                <th style={{ width: '14%' }}>City</th>
-                <th style={{ width: '36%' }}>Hotel</th>
-                <th style={{ width: '14%' }}>Room</th>
+                <th style={{ width: '12%' }}>Date</th>
+                <th style={{ width: '12%' }}>City</th>
+                <th style={{ width: '14%' }}>Hotel Photo</th>
+                <th style={{ width: '22%' }}>Hotel</th>
+                <th style={{ width: '14%' }}>Room Photo</th>
+                <th style={{ width: '10%' }}>Room</th>
                 <th>Meals</th>
               </tr>
             </thead>
             <tbody>
               {hotels.map((h) => {
-                const photos = (h.images?.length ? h.images : h.thumbnailUrl ? [h.thumbnailUrl] : []).slice(0, 3);
+                const hotelPhoto = h.hotelImages?.[0] || h.thumbnailUrl;
+                const roomPhoto = h.roomImage || h.roomImages?.[0];
                 return (
                   <tr key={`${h.day}-${h.name}-${h.date || ''}`}>
                     <td><strong>Day {h.day}</strong></td>
                     <td>{h.date ? formatQuoteDateShort(h.date) : (h.checkIn ? formatQuoteDateShort(h.checkIn) : '—')}</td>
                     <td><strong>{h.city}</strong></td>
                     <td>
-                      <div className="quote-ht-hotel-cell">
-                        {photos.length > 0 && (
-                          <div className="quote-ht-hotel-row-gallery">
-                            {photos.map((url, index) => (
-                              <img
-                                key={`${h.day}-${index}`}
-                                src={url}
-                                alt={h.name}
-                                className="quote-ht-hotel-thumb"
-                                crossOrigin={url.startsWith('data:') ? undefined : 'anonymous'}
-                              />
-                            ))}
-                          </div>
-                        )}
-                        <div className="quote-ht-hotel-cell-text">
-                          <div style={{ fontWeight: 600 }}>{h.name}</div>
-                          {h.similarHotel && (
-                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Similar Hotel: {h.similarHotel}</div>
-                          )}
-                          {h.price > 0 && (
-                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{formatINR(h.price)}/night</div>
-                          )}
-                        </div>
-                      </div>
+                      {hotelPhoto ? (
+                        <PdfImage src={hotelPhoto} alt={h.name} className="quote-ht-hotel-thumb" />
+                      ) : '—'}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{h.name}</div>
+                      {h.price > 0 && (
+                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{formatINR(h.price)}/night</div>
+                      )}
+                    </td>
+                    <td>
+                      {roomPhoto ? (
+                        <PdfImage src={roomPhoto} alt={h.roomType} className="quote-ht-hotel-thumb" />
+                      ) : '—'}
                     </td>
                     <td>{h.roomType || '—'}</td>
                     <td>{h.meals || '—'}</td>
@@ -241,6 +279,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <>
           {pkg.itinerary.map((day) => {
             const dayDate = getDayDate(lead.travelDate, day.day);
+            const dayHotel = resolveDayHotelForItinerary(quote, day.day);
             return (
               <div key={day.id} className="quote-ht-day-card">
                 <div className="quote-ht-day-head">
@@ -259,9 +298,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                         <span className="lbl">Meals</span> {day.meals}
                       </span>
                     )}
-                    {day.hotel && (
+                    {(dayHotel?.name || day.hotel) && (
                       <span className="quote-ht-meta-pill">
-                        <span className="lbl">Hotel</span> {day.hotel}
+                        <span className="lbl">Hotel</span> {dayHotel?.name || day.hotel}
                       </span>
                     )}
                     {(day.transport || pkg.cabCategory) && (
@@ -273,6 +312,18 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                 </div>
                 {day.description && (
                   <div className="quote-ht-day-body">{day.description}</div>
+                )}
+                {(dayHotel || day.hotel) && (
+                  <DayHotelStay
+                    dayHotel={
+                      dayHotel || {
+                        name: day.hotel,
+                        roomType: '',
+                        meals: day.meals,
+                        city: pkg.destination?.split(/[,·]/)[0]?.trim(),
+                      }
+                    }
+                  />
                 )}
                 {(day.sightseeing || day.activities || day.activityNotes) && (
                   <div className="quote-ht-day-extra">

@@ -1,0 +1,141 @@
+import { useMemo, useState } from 'react';
+import { BedDouble, Check, Copy } from 'lucide-react';
+import { Button } from '../ui/button';
+import UnoHotelSelector from './UnoHotelSelector';
+import { formatINR } from './quotationUtils';
+import { cn } from '../../lib/utils';
+
+export function sumDayWiseHotelCost(selections = []) {
+  return selections.reduce((sum, item) => sum + Number(item.totalCost || item.perNight || 0), 0);
+}
+
+export function isDayWiseHotelsComplete(selections = [], nights = 1) {
+  const required = Math.max(1, Number(nights) || 1);
+  if (selections.length < required) return false;
+  return Array.from({ length: required }, (_, index) => index + 1).every((day) => {
+    const entry = selections.find((item) => item.day === day);
+    return Boolean(entry?.hotel && entry?.room && entry?.mealPlan);
+  });
+}
+
+export default function DayWiseHotelSelector({ destination, nights = 1, value = [], onChange }) {
+  const stayNights = Math.max(1, Number(nights) || 1);
+  const dayNumbers = useMemo(
+    () => Array.from({ length: stayNights }, (_, index) => index + 1),
+    [stayNights]
+  );
+  const [activeDay, setActiveDay] = useState(1);
+
+  const getDaySelection = (day) => value.find((item) => item.day === day) || null;
+
+  const updateDaySelection = (day, selection) => {
+    if (!selection) {
+      onChange(value.filter((item) => item.day !== day));
+      return;
+    }
+    const perNight = Number(selection.perNight || 0);
+    const next = value.filter((item) => item.day !== day);
+    next.push({
+      day,
+      hotel: selection.hotel,
+      room: selection.room,
+      mealPlan: selection.mealPlan,
+      perNight,
+      totalCost: selection.mealPlan ? perNight : 0,
+      nights: 1,
+    });
+    onChange(next.sort((a, b) => a.day - b.day));
+  };
+
+  const applyToAllNights = () => {
+    const source = getDaySelection(activeDay);
+    if (!source?.mealPlan) return;
+    onChange(
+      dayNumbers.map((day) => ({
+        day,
+        hotel: source.hotel,
+        room: source.room,
+        mealPlan: source.mealPlan,
+        perNight: source.perNight,
+        totalCost: source.perNight,
+        nights: 1,
+      }))
+    );
+  };
+
+  const activeSelection = getDaySelection(activeDay);
+  const completedCount = dayNumbers.filter((day) => getDaySelection(day)?.mealPlan).length;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-subtle bg-gradient-to-br from-amber-500/5 to-transparent p-4">
+        <h2 className="text-xl font-bold tracking-tight">Select Hotels — Day Wise</h2>
+        <p className="text-sm text-content-muted mt-1">
+          Choose hotel, room & meal plan for each night ({completedCount}/{stayNights} done)
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {dayNumbers.map((day) => {
+          const sel = getDaySelection(day);
+          const done = Boolean(sel?.mealPlan);
+          const active = activeDay === day;
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setActiveDay(day)}
+              className={cn(
+                'min-w-[120px] rounded-xl border px-3 py-2 text-left transition-all',
+                active && 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/25',
+                !active && done && 'border-emerald-500/40 bg-emerald-500/5',
+                !active && !done && 'border-subtle hover:border-amber-400/40'
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold uppercase tracking-wide">Night {day}</span>
+                {done ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <BedDouble className="w-3.5 h-3.5 text-content-muted" />}
+              </div>
+              <p className="text-[11px] text-content-muted mt-1 truncate">
+                {sel?.hotel?.name || 'Select hotel'}
+              </p>
+              {sel?.room?.name && (
+                <p className="text-[10px] text-amber-700 truncate mt-0.5">{sel.room.name}</p>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeSelection?.mealPlan && stayNights > 1 && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="rounded-xl gap-1.5"
+          onClick={applyToAllNights}
+        >
+          <Copy className="w-3.5 h-3.5" />
+          Use Night {activeDay} hotel for all nights
+        </Button>
+      )}
+
+      {activeSelection?.mealPlan && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-800 flex items-center justify-between gap-3">
+          <span>
+            Night {activeDay}: {activeSelection.hotel?.name} · {activeSelection.room?.name}
+          </span>
+          <span className="font-semibold shrink-0">{formatINR(activeSelection.perNight)}/night</span>
+        </div>
+      )}
+
+      <UnoHotelSelector
+        key={`night-${activeDay}`}
+        destination={destination}
+        nights={1}
+        value={activeSelection}
+        onChange={(selection) => updateDaySelection(activeDay, selection)}
+      />
+    </div>
+  );
+}

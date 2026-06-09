@@ -8,7 +8,8 @@ import Avatar from '../ui/Avatar';
 import ItineraryBuilder from '../packages/ItineraryBuilder';
 import QuotePricingPanel from './QuotePricingPanel';
 import QuotePdfPreview from './QuotePdfPreview';
-import UnoHotelSelector, { parsePackageNights } from './UnoHotelSelector';
+import DayWiseHotelSelector, { isDayWiseHotelsComplete, sumDayWiseHotelCost } from './DayWiseHotelSelector';
+import { parsePackageNights } from './UnoHotelSelector';
 import { WIZARD_STEPS } from './constants';
 import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR, matchesResourceDestination } from './quotationUtils';
 import { buildSelectedHotelsSnapshot } from './quotePdfHelpers';
@@ -98,7 +99,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const [state, setState] = useState({ ...defaultWizardState });
   const [customItinerary, setCustomItinerary] = useState([]);
   const [selectedPkgDetail, setSelectedPkgDetail] = useState(null);
-  const [unoHotelSelection, setUnoHotelSelection] = useState(null);
+  const [dayWiseHotels, setDayWiseHotels] = useState([]);
   const [loadingPackageDetail, setLoadingPackageDetail] = useState(false);
   const [loadingPackages, setLoadingPackages] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -159,22 +160,19 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     setStep(7);
   };
 
-  const handleUnoHotelChange = (selection) => {
-    setUnoHotelSelection(selection);
-    if (!selection?.hotel?.name || customItinerary.length === 0) return;
-
-    const hotelName = selection.hotel.name;
-    const mealLabel = selection.mealPlan?.label || '';
-    const stayNights = selection.nights || Math.max(1, customItinerary.length - 1);
+  const handleDayWiseHotelChange = (selections) => {
+    setDayWiseHotels(selections);
+    if (!selections.length || customItinerary.length === 0) return;
 
     setCustomItinerary((days) =>
       days.map((day, index) => {
         const dayNum = day.day || index + 1;
-        if (dayNum > stayNights) return day;
+        const sel = selections.find((item) => item.day === dayNum);
+        if (!sel?.hotel) return day;
         return {
           ...day,
-          hotel: hotelName,
-          meals: mealLabel || day.meals,
+          hotel: sel.hotel.name,
+          meals: sel.mealPlan?.label || day.meals,
         };
       })
     );
@@ -212,7 +210,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     setState({ ...defaultWizardState, leadId: lead._id });
     setSelectedPkgDetail(null);
     setCustomItinerary([]);
-    setUnoHotelSelection(null);
+    setDayWiseHotels([]);
   };
 
   const buildFallbackItinerary = (detail) => {
@@ -243,6 +241,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     setState((s) => ({ ...s, packageId: pkg._id }));
     setCustomItinerary([]);
     setSelectedPkgDetail(null);
+    setDayWiseHotels([]);
     setLoadingPackageDetail(true);
     try {
       const res = await API.get(`/uno-packages/${pkg._id}`, { skipErrorToast: true });
@@ -264,13 +263,13 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   };
 
   useEffect(() => {
-    const hotelCost = unoHotelSelection?.totalCost || 0;
+    const hotelCost = sumDayWiseHotelCost(dayWiseHotels);
     const cabCost = cabs.filter((c) => state.selectedCabIds.includes(c._id)).reduce((s, c) => s + (c.cost || 0), 0);
     const flightCost = flights.filter((f) => state.selectedFlightIds.includes(f._id)).reduce((s, f) => s + (f.cost || 0), 0);
     const activityCost = activities.filter((a) => state.selectedActivityIds.includes(a._id)).reduce((s, a) => s + (a.price || 0), 0);
     const calc = calculatePricing({ ...state.pricing, hotelCost, cabCost, flightCost, activityCost });
     setState((s) => ({ ...s, pricing: { ...s.pricing, hotelCost, cabCost, flightCost, activityCost, total: calc.total, profitMargin: calc.profitMargin } }));
-  }, [state.selectedCabIds, state.selectedFlightIds, state.selectedActivityIds, cabs, flights, activities, state.pricing.baseCost, state.pricing.taxes, state.pricing.markup, state.pricing.discount, unoHotelSelection?.totalCost]);
+  }, [state.selectedCabIds, state.selectedFlightIds, state.selectedActivityIds, cabs, flights, activities, state.pricing.baseCost, state.pricing.taxes, state.pricing.markup, state.pricing.discount, dayWiseHotels]);
 
   const handleSave = async (saveAs) => {
     if (!state.leadId || !state.packageId) return;
@@ -283,7 +282,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         packageId: state.packageId,
         status,
         pricing: state.pricing,
-        selectedHotels: buildSelectedHotelsSnapshot(unoHotelSelection),
+        selectedHotels: buildSelectedHotelsSnapshot(dayWiseHotels),
         selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
         selectedFlights: flights.filter((f) => state.selectedFlightIds.includes(f._id)),
         selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
@@ -319,7 +318,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     lead: selectedLead,
     package: { ...activePkg, itinerary: customItinerary },
     pricing: state.pricing,
-    selectedHotels: buildSelectedHotelsSnapshot(unoHotelSelection),
+    selectedHotels: buildSelectedHotelsSnapshot(dayWiseHotels),
   } : null;
 
   return (
@@ -431,10 +430,10 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
               </div>
             )}
             {step === 4 && (
-              <UnoHotelSelector
+              <DayWiseHotelSelector
                 destination={hotelDestination}
-                value={unoHotelSelection}
-                onChange={handleUnoHotelChange}
+                value={dayWiseHotels}
+                onChange={handleDayWiseHotelChange}
                 nights={packageNights}
               />
             )}
@@ -557,7 +556,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         <div className="flex justify-between mt-8 pt-6 border-t border-subtle">
           <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={step === 1} onClick={() => setStep((s) => s - 1)}><ArrowLeft className="w-4 h-4" /> Back</Button>
           {step < 8 ? (
-            <Button type="button" variant="sky" className="rounded-xl gap-2" onClick={() => setStep((s) => s + 1)} disabled={(step === 1 && !state.leadId) || (step === 2 && (!state.packageId || loadingPackageDetail)) || (step === 4 && !unoHotelSelection?.mealPlan)}>Continue <ArrowRight className="w-4 h-4" /></Button>
+            <Button type="button" variant="sky" className="rounded-xl gap-2" onClick={() => setStep((s) => s + 1)} disabled={(step === 1 && !state.leadId) || (step === 2 && (!state.packageId || loadingPackageDetail)) || (step === 4 && !isDayWiseHotelsComplete(dayWiseHotels, packageNights))}>Continue <ArrowRight className="w-4 h-4" /></Button>
           ) : (
             <div className="flex gap-2">
               <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={saving} onClick={() => handleSave('draft')}><Save className="w-4 h-4" /> {config.draftLabel}</Button>
