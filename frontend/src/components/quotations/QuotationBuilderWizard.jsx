@@ -9,7 +9,7 @@ import ItineraryBuilder from '../packages/ItineraryBuilder';
 import QuotePricingPanel from './QuotePricingPanel';
 import QuotePdfPreview from './QuotePdfPreview';
 import { WIZARD_STEPS } from './constants';
-import { calculatePricing, defaultWizardState, formatINR } from './quotationUtils';
+import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR } from './quotationUtils';
 import { unwrapList } from '../../utils/apiHelpers';
 import { cn } from '../../lib/utils';
 
@@ -148,6 +148,30 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const selectedPkg = packages.find((p) => p._id === state.packageId);
   const activePkg = selectedPkgDetail || selectedPkg;
 
+  const buildFallbackItinerary = (detail) => {
+    const days = Math.max(1, Number(detail.duration) || 1);
+    const destination = detail.destination || 'Destination';
+    return Array.from({ length: days }, (_, index) =>
+      defaultItineraryDay(index + 1, destination)
+    );
+  };
+
+  const applyPackageDetail = (detail) => {
+    const itinerary =
+      detail.itinerary?.length > 0 ? detail.itinerary : buildFallbackItinerary(detail);
+    const normalized = { ...detail, itinerary };
+    setSelectedPkgDetail(normalized);
+    setCustomItinerary(itinerary.map((d) => ({ ...d })));
+    setState((s) => ({
+      ...s,
+      pricing: {
+        ...s.pricing,
+        baseCost: normalized.startingPrice || 0,
+        ...calculatePricing({ ...s.pricing, baseCost: normalized.startingPrice || 0 }),
+      },
+    }));
+  };
+
   const selectPackage = async (pkg) => {
     setState((s) => ({ ...s, packageId: pkg._id }));
     setCustomItinerary([]);
@@ -155,26 +179,13 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     setLoadingPackageDetail(true);
     try {
       const res = await API.get(`/uno-packages/${pkg._id}`, { skipErrorToast: true });
-      setSelectedPkgDetail(res.data);
+      applyPackageDetail(res.data);
     } catch {
-      setSelectedPkgDetail(pkg);
+      applyPackageDetail(pkg);
     } finally {
       setLoadingPackageDetail(false);
     }
   };
-
-  useEffect(() => {
-    if (!activePkg) return;
-    setCustomItinerary(activePkg.itinerary?.map((d) => ({ ...d })) || []);
-    setState((s) => ({
-      ...s,
-      pricing: {
-        ...s.pricing,
-        baseCost: activePkg.startingPrice || 0,
-        ...calculatePricing({ ...s.pricing, baseCost: activePkg.startingPrice || 0 }),
-      },
-    }));
-  }, [activePkg?._id]);
 
   const toggleId = (key, id) => {
     setState((s) => {

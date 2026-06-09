@@ -20,12 +20,12 @@ function SortableDay({ day, onChange, onRemove, canRemove }) {
         <span className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/10 text-amber-800 dark:text-amber-300 text-xs font-bold">
           Day {day.day}
         </span>
-        <input value={day.title} onChange={(e) => update('title', e.target.value)} placeholder="Day title" className="input-premium flex-1 h-9 rounded-lg text-sm font-medium" />
+        <input value={day.title || ''} onChange={(e) => update('title', e.target.value)} placeholder="Day title" className="input-premium flex-1 h-9 rounded-lg text-sm font-medium" />
         {canRemove && (
           <button type="button" onClick={onRemove} className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-500"><Trash2 className="w-4 h-4" /></button>
         )}
       </div>
-      <textarea value={day.description} onChange={(e) => update('description', e.target.value)} placeholder="Description" rows={2} className="input-premium w-full rounded-lg text-sm resize-none mb-3" />
+      <textarea value={day.description || ''} onChange={(e) => update('description', e.target.value)} placeholder="Description" rows={2} className="input-premium w-full rounded-lg text-sm resize-none mb-3" />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { key: 'hotel', label: 'Hotel' },
@@ -35,7 +35,7 @@ function SortableDay({ day, onChange, onRemove, canRemove }) {
         ].map(({ key, label }) => (
           <div key={key}>
             <label className="text-[10px] uppercase text-content-muted font-semibold">{label}</label>
-            <input value={day[key]} onChange={(e) => update(key, e.target.value)} className="input-premium w-full h-9 rounded-lg text-xs mt-0.5" />
+            <input value={day[key] || ''} onChange={(e) => update(key, e.target.value)} className="input-premium w-full h-9 rounded-lg text-xs mt-0.5" />
           </div>
         ))}
       </div>
