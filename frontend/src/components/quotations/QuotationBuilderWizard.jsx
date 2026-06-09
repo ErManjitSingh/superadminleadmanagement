@@ -159,6 +159,27 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     setStep(7);
   };
 
+  const handleUnoHotelChange = (selection) => {
+    setUnoHotelSelection(selection);
+    if (!selection?.hotel?.name || customItinerary.length === 0) return;
+
+    const hotelName = selection.hotel.name;
+    const mealLabel = selection.mealPlan?.label || '';
+    const stayNights = selection.nights || Math.max(1, customItinerary.length - 1);
+
+    setCustomItinerary((days) =>
+      days.map((day, index) => {
+        const dayNum = day.day || index + 1;
+        if (dayNum > stayNights) return day;
+        return {
+          ...day,
+          hotel: hotelName,
+          meals: mealLabel || day.meals,
+        };
+      })
+    );
+  };
+
   useEffect(() => {
     const destination = selectedLead?.destination;
     if (!destination) {
@@ -413,7 +434,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
               <UnoHotelSelector
                 destination={hotelDestination}
                 value={unoHotelSelection}
-                onChange={setUnoHotelSelection}
+                onChange={handleUnoHotelChange}
                 nights={packageNights}
               />
             )}

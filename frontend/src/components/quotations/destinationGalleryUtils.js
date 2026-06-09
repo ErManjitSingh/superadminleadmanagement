@@ -1,4 +1,4 @@
-import { collectHotelImageUrls } from './quotePdfHelpers';
+import { mergeQuotePackageData } from './quotePdfHelpers';
 
 /**
  * Verified destination gallery URLs (Unsplash — auto=format avoids 404s).
@@ -64,15 +64,6 @@ export function resolveDestinationImages(quote) {
     url: typeof img === 'string' ? img : img.url,
     label: typeof img === 'string' ? `View ${i + 1}` : (img.label || img.caption || `View ${i + 1}`),
   })).filter((img) => img.url);
-
-  const fromHotels = (quote.selectedHotels || []).flatMap((hotel) => {
-    const label = hotel.name || hotel.city || 'Hotel';
-    return collectHotelImageUrls(hotel).map((url, index) => ({
-      url,
-      label: index === 0 ? label : `${label} — Photo ${index + 1}`,
-    }));
-  });
-  if (fromHotels.length) return normalize(fromHotels);
 
   const pkg = mergeQuotePackageData(quote);
 

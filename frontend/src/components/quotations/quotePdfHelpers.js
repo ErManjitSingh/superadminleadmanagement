@@ -103,43 +103,120 @@ export function collectHotelImageUrls(hotel = {}) {
   return urls;
 }
 
+function mapSelectedHotelRecord(h) {
+  const images = collectHotelImageUrls(h);
+  return {
+    city: h.city || h.location?.split(',')[0]?.trim() || h.location || '—',
+    name: h.name || 'Hotel',
+    roomType: h.room?.name || h.roomType || 'Deluxe',
+    meals:
+      h.mealPlan?.label
+      || (typeof h.mealPlan === 'string' ? h.mealPlan : null)
+      || h.meals
+      || 'Breakfast & Dinner',
+    similarHotel: h.similarHotel || '',
+    thumbnailUrl: images[0] || '',
+    images,
+    nights: h.nights,
+    price: h.price ?? h.total,
+  };
+}
+
 export function resolveQuoteHotels(quote) {
   const pkg = resolveQuotePackage(quote);
-  if (pkg.hotels?.length) return pkg.hotels;
+  if (pkg.hotels?.length) {
+    return pkg.hotels.map((h, index) => ({
+      day: h.day || index + 1,
+      date: h.date || h.checkIn || null,
+      ...h,
+    }));
+  }
 
-  const fromSelected = (quote.selectedHotels || []).map((h) => {
-    const images = collectHotelImageUrls(h);
-    return {
-      city: h.city || h.location?.split(',')[0]?.trim() || h.location || '—',
-      name: h.name || 'Hotel',
-      checkIn: h.checkIn,
-      checkOut: h.checkOut,
-      roomType: h.room?.name || h.roomType || 'Deluxe',
-      meals:
-        h.mealPlan?.label
-        || (typeof h.mealPlan === 'string' ? h.mealPlan : null)
-        || h.meals
-        || 'Breakfast & Dinner',
-      similarHotel: h.similarHotel || '',
-      thumbnailUrl: images[0] || '',
-      images,
-      nights: h.nights,
-      price: h.price ?? h.total,
-    };
+  const lead = resolveQuoteLead(quote);
+  const selectedRecords = (quote.selectedHotels || []).map(mapSelectedHotelRecord);
+  const defaultHotel = selectedRecords[0];
+  const itinerary = pkg.itinerary || [];
+  const totalDays = Math.max(itinerary.length, Number(pkg.duration) || 1);
+  const defaultNights = defaultHotel?.nights || Math.max(1, totalDays - 1);
+
+  const hotelByName = new Map();
+  selectedRecords.forEach((record) => {
+    if (record.name) hotelByName.set(record.name.toLowerCase(), record);
   });
-  if (fromSelected.length) return fromSelected;
+
+  const rows = [];
+
+  if (itinerary.length) {
+    itinerary.forEach((day, index) => {
+      const dayNum = day.day || index + 1;
+      const isLastDay = dayNum >= totalDays;
+      let hotelName = String(day.hotel || day.accommodation || '').trim();
+      const isOvernightDay = dayNum <= defaultNights || (dayNum < totalDays && !isLastDay);
+
+      if (!hotelName && defaultHotel && isOvernightDay) {
+        hotelName = defaultHotel.name;
+      }
+      if (!hotelName) return;
+
+      const enrich = hotelByName.get(hotelName.toLowerCase()) || defaultHotel;
+      const dayDate = getDayDate(lead.travelDate, dayNum);
+
+      rows.push({
+        day: dayNum,
+        date: dayDate,
+        city: enrich?.city || pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
+        name: hotelName,
+        roomType: enrich?.roomType || 'Deluxe',
+        meals: day.meals || enrich?.meals || 'Breakfast & Dinner',
+        similarHotel: enrich?.similarHotel || '',
+        thumbnailUrl: enrich?.thumbnailUrl || '',
+        images: enrich?.images || [],
+        checkIn: dayDate,
+        checkOut: getDayDate(lead.travelDate, dayNum + 1),
+        nights: 1,
+        price: enrich?.price,
+      });
+    });
+  }
+
+  if (!rows.length && defaultHotel) {
+    for (let night = 1; night <= defaultNights; night += 1) {
+      const dayDate = getDayDate(lead.travelDate, night);
+      rows.push({
+        day: night,
+        date: dayDate,
+        city: defaultHotel.city,
+        name: defaultHotel.name,
+        roomType: defaultHotel.roomType,
+        meals: defaultHotel.meals,
+        similarHotel: defaultHotel.similarHotel,
+        thumbnailUrl: defaultHotel.thumbnailUrl,
+        images: defaultHotel.images,
+        checkIn: dayDate,
+        checkOut: getDayDate(lead.travelDate, night + 1),
+        nights: 1,
+        price: defaultHotel.price,
+      });
+    }
+  }
+
+  if (rows.length) return rows;
 
   const seen = new Set();
   const fromItinerary = [];
-  for (const day of pkg.itinerary) {
+  for (const day of itinerary) {
     if (!day.hotel || seen.has(day.hotel)) continue;
     seen.add(day.hotel);
     fromItinerary.push({
+      day: day.day,
+      date: getDayDate(lead.travelDate, day.day),
       city: pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
       name: day.hotel,
       roomType: 'Deluxe',
       meals: day.meals || 'Breakfast & Dinner',
       similarHotel: '',
+      thumbnailUrl: '',
+      images: [],
     });
   }
   return fromItinerary;

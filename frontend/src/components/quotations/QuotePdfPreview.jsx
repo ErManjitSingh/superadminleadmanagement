@@ -152,64 +152,60 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </tbody>
       </table>
 
-      {/* Hotels */}
+      {/* Day-wise hotels — photos stay in this section only (not header gallery) */}
       {hotels.length > 0 && (
         <>
-          <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Hotel Details</div>
-          {hotels.some((h) => h.thumbnailUrl || h.images?.length) && (
-            <div className="quote-ht-hotel-gallery">
-              {hotels.flatMap((h) => {
-                const photos = (h.images?.length ? h.images : h.thumbnailUrl ? [h.thumbnailUrl] : []).slice(0, 4);
-                return photos.map((url, index) => (
-                  <figure key={`${h.name}-${index}`} className="quote-ht-hotel-photo">
-                    <img
-                      src={url}
-                      alt={h.name}
-                      className="quote-ht-hotel-img"
-                      crossOrigin={url.startsWith('data:') ? undefined : 'anonymous'}
-                    />
-                    <figcaption>
-                      {h.name}
-                      {h.roomType ? ` · ${h.roomType}` : ''}
-                    </figcaption>
-                  </figure>
-                ));
-              })}
-            </div>
-          )}
+          <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Day-wise Hotel Details</div>
           <table className="quote-ht-table">
             <thead>
               <tr>
-                <th style={{ width: '18%' }}>City</th>
-                <th style={{ width: '32%' }}>Hotel</th>
-                <th>Details</th>
+                <th style={{ width: '8%' }}>Day</th>
+                <th style={{ width: '14%' }}>Date</th>
+                <th style={{ width: '14%' }}>City</th>
+                <th style={{ width: '36%' }}>Hotel</th>
+                <th style={{ width: '14%' }}>Room</th>
+                <th>Meals</th>
               </tr>
             </thead>
             <tbody>
-              {hotels.map((h) => (
-                <tr key={`${h.city}-${h.name}`}>
-                  <td><strong>{h.city}</strong></td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{h.name}</div>
-                    {h.similarHotel && (
-                      <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Similar Hotel: {h.similarHotel}</div>
-                    )}
-                  </td>
-                  <td>
-                    {(h.checkIn || h.checkOut) && (
-                      <div>
-                        {h.checkIn && formatQuoteDateShort(h.checkIn)}
-                        {h.checkIn && h.checkOut && ' — '}
-                        {h.checkOut && formatQuoteDateShort(h.checkOut)}
+              {hotels.map((h) => {
+                const photos = (h.images?.length ? h.images : h.thumbnailUrl ? [h.thumbnailUrl] : []).slice(0, 3);
+                return (
+                  <tr key={`${h.day}-${h.name}-${h.date || ''}`}>
+                    <td><strong>Day {h.day}</strong></td>
+                    <td>{h.date ? formatQuoteDateShort(h.date) : (h.checkIn ? formatQuoteDateShort(h.checkIn) : '—')}</td>
+                    <td><strong>{h.city}</strong></td>
+                    <td>
+                      <div className="quote-ht-hotel-cell">
+                        {photos.length > 0 && (
+                          <div className="quote-ht-hotel-row-gallery">
+                            {photos.map((url, index) => (
+                              <img
+                                key={`${h.day}-${index}`}
+                                src={url}
+                                alt={h.name}
+                                className="quote-ht-hotel-thumb"
+                                crossOrigin={url.startsWith('data:') ? undefined : 'anonymous'}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        <div className="quote-ht-hotel-cell-text">
+                          <div style={{ fontWeight: 600 }}>{h.name}</div>
+                          {h.similarHotel && (
+                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Similar Hotel: {h.similarHotel}</div>
+                          )}
+                          {h.price > 0 && (
+                            <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{formatINR(h.price)}/night</div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    {h.roomType && <div>Room Type: {h.roomType}</div>}
-                    {h.meals && <div>Meals: {h.meals}</div>}
-                    {h.nights && <div>Nights: {h.nights}</div>}
-                    {h.price > 0 && <div>Rate: {formatINR(h.price)}/night</div>}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>{h.roomType || '—'}</td>
+                    <td>{h.meals || '—'}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </>
@@ -261,6 +257,11 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                     {day.meals && (
                       <span className="quote-ht-meta-pill">
                         <span className="lbl">Meals</span> {day.meals}
+                      </span>
+                    )}
+                    {day.hotel && (
+                      <span className="quote-ht-meta-pill">
+                        <span className="lbl">Hotel</span> {day.hotel}
                       </span>
                     )}
                     {(day.transport || pkg.cabCategory) && (
