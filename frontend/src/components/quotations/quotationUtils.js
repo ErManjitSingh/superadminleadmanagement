@@ -57,5 +57,35 @@ export const defaultWizardState = {
   selectedCabIds: [],
   selectedFlightIds: [],
   selectedActivityIds: [],
+  activitiesSkipped: false,
   pricing: { ...defaultPricing },
 };
+
+export function matchesResourceDestination(resource = {}, destination = '') {
+  const text = String(destination || '').trim();
+  if (!text) return true;
+
+  const resourceDestination = String(resource.destination || '').trim();
+  if (!resourceDestination) return true;
+
+  const normalize = (value) =>
+    String(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const terms = text
+    .split(/[,|/]/)
+    .map((part) => normalize(part.replace(/\s+india$/i, '')))
+    .filter((part) => part.length >= 3);
+
+  const haystack = normalize(resourceDestination);
+  if (!haystack) return false;
+
+  return terms.some((term) => {
+    if (haystack.includes(term) || term.includes(haystack)) return true;
+    const cityToken = term.split(' ')[0];
+    return cityToken.length >= 3 && haystack.includes(cityToken);
+  });
+}

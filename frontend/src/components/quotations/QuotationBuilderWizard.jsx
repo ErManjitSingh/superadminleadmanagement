@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink, SkipForward, Sparkles } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
@@ -9,7 +9,7 @@ import ItineraryBuilder from '../packages/ItineraryBuilder';
 import QuotePricingPanel from './QuotePricingPanel';
 import UnoHotelSelector, { parsePackageNights } from './UnoHotelSelector';
 import { WIZARD_STEPS } from './constants';
-import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR } from './quotationUtils';
+import { calculatePricing, defaultItineraryDay, defaultWizardState, formatINR, matchesResourceDestination } from './quotationUtils';
 import { unwrapList } from '../../utils/apiHelpers';
 import { cn } from '../../lib/utils';
 
@@ -148,6 +148,14 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const activePkg = selectedPkgDetail || selectedPkg;
   const packageNights = parsePackageNights(activePkg);
   const hotelDestination = selectedLead?.destination || activePkg?.destination || '';
+  const availableActivities = activities.filter((activity) =>
+    matchesResourceDestination(activity, hotelDestination)
+  );
+
+  const skipActivities = () => {
+    setState((s) => ({ ...s, selectedActivityIds: [], activitiesSkipped: true }));
+    setStep(7);
+  };
 
   useEffect(() => {
     const destination = selectedLead?.destination;
@@ -226,7 +234,9 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const toggleId = (key, id) => {
     setState((s) => {
       const arr = s[key].includes(id) ? s[key].filter((x) => x !== id) : [...s[key], id];
-      return { ...s, [key]: arr };
+      const next = { ...s, [key]: arr };
+      if (key === 'selectedActivityIds') next.activitiesSkipped = false;
+      return next;
     });
   };
 
@@ -439,14 +449,88 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
               </div>
             )}
             {step === 6 && (
-              <div className="space-y-3">
-                <h2 className="text-lg font-bold">Add Activities</h2>
-                {activities.map((a) => (
-                  <button key={a._id} type="button" onClick={() => toggleId('selectedActivityIds', a._id)} className={cn('w-full flex justify-between p-3 rounded-xl border text-left', state.selectedActivityIds.includes(a._id) ? 'border-indigo-500/50 bg-indigo-500/10' : 'border-subtle')}>
-                    <span className="text-sm">{a.name} {a.destination ? `· ${a.destination}` : ''}</span>
-                    <span className="font-bold text-sm">{formatINR(a.price)}</span>
-                  </button>
-                ))}
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold">Add Activities</h2>
+                    <p className="text-sm text-content-muted mt-1">
+                      {hotelDestination
+                        ? `Optional extras for ${hotelDestination} — skip if none needed`
+                        : 'Optional — skip if no activities apply to this quote'}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl gap-1.5 shrink-0 self-start"
+                    onClick={skipActivities}
+                  >
+                    <SkipForward className="w-3.5 h-3.5" />
+                    Skip activities
+                  </Button>
+                </div>
+
+                {state.activitiesSkipped && state.selectedActivityIds.length === 0 && (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800">
+                    Activities skipped for this quotation.
+                  </div>
+                )}
+
+                {availableActivities.length === 0 ? (
+                  <div className="text-center py-14 rounded-2xl border border-dashed border-subtle bg-surface-elevated/30">
+                    <Sparkles className="w-10 h-10 mx-auto text-content-muted/40 mb-3" />
+                    <p className="text-sm font-medium">No activities for this destination</p>
+                    <p className="text-xs text-content-muted mt-1 max-w-sm mx-auto">
+                      {hotelDestination
+                        ? `Nothing is listed for ${hotelDestination} right now. You can skip and continue.`
+                        : 'No activities available. Skip this step to continue.'}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="sky"
+                      className="rounded-xl gap-2 mt-5"
+                      onClick={skipActivities}
+                    >
+                      <SkipForward className="w-4 h-4" />
+                      Skip & Continue
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 max-h-[360px] overflow-y-auto">
+                      {availableActivities.map((a) => (
+                        <button
+                          key={a._id}
+                          type="button"
+                          onClick={() => toggleId('selectedActivityIds', a._id)}
+                          className={cn(
+                            'w-full flex justify-between p-3 rounded-xl border text-left transition-colors',
+                            state.selectedActivityIds.includes(a._id)
+                              ? 'border-indigo-500/50 bg-indigo-500/10 ring-2 ring-indigo-500/20'
+                              : 'border-subtle hover:bg-surface-elevated'
+                          )}
+                        >
+                          <span className="text-sm">
+                            {a.name}
+                            {a.destination ? ` · ${a.destination}` : ''}
+                            {a.duration ? ` · ${a.duration}` : ''}
+                          </span>
+                          <span className="font-bold text-sm shrink-0 ml-3">{formatINR(a.price)}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-subtle">
+                      <button
+                        type="button"
+                        onClick={skipActivities}
+                        className="text-sm text-content-muted hover:text-content-primary underline-offset-2 hover:underline"
+                      >
+                        Continue without adding activities
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
             {step === 7 && <div><h2 className="text-lg font-bold mb-4">Pricing</h2><QuotePricingPanel pricing={state.pricing} onChange={(p) => setState({ ...state, pricing: p })} /></div>}
