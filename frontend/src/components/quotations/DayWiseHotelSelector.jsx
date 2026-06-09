@@ -67,44 +67,47 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
   const completedCount = dayNumbers.filter((day) => getDaySelection(day)?.mealPlan).length;
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-subtle bg-gradient-to-br from-amber-500/5 to-transparent p-4">
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-subtle bg-gradient-to-br from-amber-500/5 to-transparent p-5">
         <h2 className="text-xl font-bold tracking-tight">Select Hotels — Day Wise</h2>
-        <p className="text-sm text-content-muted mt-1">
+        <p className="text-sm text-content-muted mt-2">
           Choose hotel, room & meal plan for each night ({completedCount}/{stayNights} done)
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {dayNumbers.map((day) => {
-          const sel = getDaySelection(day);
-          const done = Boolean(sel?.mealPlan);
-          const active = activeDay === day;
-          return (
-            <button
-              key={day}
-              type="button"
-              onClick={() => setActiveDay(day)}
-              className={cn(
-                'min-w-[120px] rounded-xl border px-3 py-2 text-left transition-all',
-                active && 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/25',
-                !active && done && 'border-emerald-500/40 bg-emerald-500/5',
-                !active && !done && 'border-subtle hover:border-amber-400/40'
-              )}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide">Night {day}</span>
-                {done ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <BedDouble className="w-3.5 h-3.5 text-content-muted" />}
-              </div>
-              <p className="text-[11px] text-content-muted mt-1 truncate">
-                {sel?.hotel?.name || 'Select hotel'}
-              </p>
-              {sel?.room?.name && (
-                <p className="text-[10px] text-amber-700 truncate mt-0.5">{sel.room.name}</p>
-              )}
-            </button>
-          );
-        })}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-content-muted px-0.5">Select night</p>
+        <div className="flex flex-wrap gap-3">
+          {dayNumbers.map((day) => {
+            const sel = getDaySelection(day);
+            const done = Boolean(sel?.mealPlan);
+            const active = activeDay === day;
+            return (
+              <button
+                key={day}
+                type="button"
+                onClick={() => setActiveDay(day)}
+                className={cn(
+                  'min-w-[132px] rounded-xl border px-4 py-3 text-left transition-all',
+                  active && 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/25 shadow-sm',
+                  !active && done && 'border-emerald-500/40 bg-emerald-500/5',
+                  !active && !done && 'border-subtle hover:border-amber-400/40 hover:bg-surface-elevated/50'
+                )}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold uppercase tracking-wide">Night {day}</span>
+                  {done ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <BedDouble className="w-3.5 h-3.5 text-content-muted" />}
+                </div>
+                <p className="text-[11px] text-content-muted mt-2 truncate">
+                  {sel?.hotel?.name || 'Select hotel'}
+                </p>
+                {sel?.room?.name && (
+                  <p className="text-[10px] text-amber-700 truncate mt-1">{sel.room.name}</p>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {activeSelection?.mealPlan && stayNights > 1 && (
@@ -121,7 +124,7 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
       )}
 
       {activeSelection?.mealPlan && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-800 flex items-center justify-between gap-3">
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 flex items-center justify-between gap-4">
           <span>
             Night {activeDay}: {activeSelection.hotel?.name} · {activeSelection.room?.name}
           </span>
@@ -129,13 +132,18 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
         </div>
       )}
 
-      <UnoHotelSelector
-        key={`night-${activeDay}`}
-        destination={destination}
-        nights={1}
-        value={activeSelection}
-        onChange={(selection) => updateDaySelection(activeDay, selection)}
-      />
+      <div className="rounded-2xl border border-subtle bg-surface-base p-4 sm:p-5 space-y-4">
+        <p className="text-sm font-semibold text-content-primary">
+          Night {activeDay} — Hotel, room & meals
+        </p>
+        <UnoHotelSelector
+          key={`night-${activeDay}`}
+          destination={destination}
+          nights={1}
+          value={activeSelection}
+          onChange={(selection) => updateDaySelection(activeDay, selection)}
+        />
+      </div>
     </div>
   );
 }

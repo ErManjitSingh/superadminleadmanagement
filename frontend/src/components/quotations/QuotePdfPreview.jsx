@@ -197,55 +197,47 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </tbody>
       </table>
 
-      {/* Day-wise hotels — photos stay in this section only (not header gallery) */}
+      {/* Day-wise hotels — card layout with spacing between each night */}
       {hotels.length > 0 && (
         <>
-          <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Day-wise Hotel Details</div>
-          <table className="quote-ht-table">
-            <thead>
-              <tr>
-                <th style={{ width: '8%' }}>Day</th>
-                <th style={{ width: '12%' }}>Date</th>
-                <th style={{ width: '12%' }}>City</th>
-                <th style={{ width: '14%' }}>Hotel Photo</th>
-                <th style={{ width: '22%' }}>Hotel</th>
-                <th style={{ width: '14%' }}>Room Photo</th>
-                <th style={{ width: '10%' }}>Room</th>
-                <th>Meals</th>
-              </tr>
-            </thead>
-            <tbody>
-              {hotels.map((h) => {
-                const hotelPhoto = h.hotelImages?.[0] || h.thumbnailUrl;
-                const roomPhoto = h.roomImage || h.roomImages?.[0];
-                return (
-                  <tr key={`${h.day}-${h.name}-${h.date || ''}`}>
-                    <td><strong>Day {h.day}</strong></td>
-                    <td>{h.date ? formatQuoteDateShort(h.date) : (h.checkIn ? formatQuoteDateShort(h.checkIn) : '—')}</td>
-                    <td><strong>{h.city}</strong></td>
-                    <td>
+          <div className="quote-ht-section-title quote-ht-section-title-spaced">Day-wise Hotel Details</div>
+          <div className="quote-ht-hotel-days">
+            {hotels.map((h) => {
+              const hotelPhoto = h.hotelImages?.[0] || h.thumbnailUrl;
+              const roomPhoto = h.roomImage || h.roomImages?.[0];
+              return (
+                <article key={`${h.day}-${h.name}-${h.date || ''}`} className="quote-ht-hotel-day-card">
+                  <div className="quote-ht-hotel-day-head">
+                    <span className="quote-ht-hotel-day-badge">Day {h.day}</span>
+                    <span>{h.date ? formatQuoteDateShort(h.date) : (h.checkIn ? formatQuoteDateShort(h.checkIn) : '—')}</span>
+                    <span>{h.city}</span>
+                  </div>
+                  <div className="quote-ht-hotel-day-body">
+                    <div className="quote-ht-hotel-day-photos">
                       {hotelPhoto ? (
-                        <PdfImage src={hotelPhoto} alt={h.name} className="quote-ht-hotel-thumb" />
-                      ) : '—'}
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 600 }}>{h.name}</div>
-                      {h.price > 0 && (
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{formatINR(h.price)}/night</div>
-                      )}
-                    </td>
-                    <td>
+                        <figure className="quote-ht-hotel-day-photo">
+                          <PdfImage src={hotelPhoto} alt={h.name} className="quote-ht-hotel-day-img" />
+                          <figcaption>Hotel</figcaption>
+                        </figure>
+                      ) : null}
                       {roomPhoto ? (
-                        <PdfImage src={roomPhoto} alt={h.roomType} className="quote-ht-hotel-thumb" />
-                      ) : '—'}
-                    </td>
-                    <td>{h.roomType || '—'}</td>
-                    <td>{h.meals || '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        <figure className="quote-ht-hotel-day-photo">
+                          <PdfImage src={roomPhoto} alt={h.roomType} className="quote-ht-hotel-day-img" />
+                          <figcaption>Room</figcaption>
+                        </figure>
+                      ) : null}
+                    </div>
+                    <div className="quote-ht-hotel-day-info">
+                      <h4>{h.name}</h4>
+                      {h.roomType && <p><strong>Room:</strong> {h.roomType}</p>}
+                      {h.meals && <p><strong>Meals:</strong> {h.meals}</p>}
+                      {h.price > 0 && <p className="quote-ht-hotel-day-price">{formatINR(h.price)}/night</p>}
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         </>
       )}
 
