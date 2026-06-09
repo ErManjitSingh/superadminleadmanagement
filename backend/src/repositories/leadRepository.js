@@ -1,6 +1,13 @@
 const Lead = require('../models/Lead');
 const { buildLeadSearchFilter, LEAD_LIST_POPULATE, enrichLead } = require('../utils/queryHelpers');
-const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
+const {
+  parsePagination,
+  parseSort,
+  paginatedResponse,
+  encodeCursor,
+  buildCursorFilter,
+  DEEP_PAGE_THRESHOLD,
+} = require('../utils/pagination');
 const { withBranch } = require('../utils/branchScope');
 
 function buildLeadListFilter(query = {}) {
@@ -72,20 +79,45 @@ function buildLeadListFilter(query = {}) {
 async function findLeadsPaginated(query = {}, { branchId } = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
+  const sortField = Object.keys(sort)[0] || 'createdAt';
+  const sortDir = sort[sortField] ?? -1;
   const filter = withBranch(buildLeadListFilter(query), branchId);
 
-  const [rows, total] = await Promise.all([
-    Lead.find(filter)
-      .select('-notes')
-      .populate(LEAD_LIST_POPULATE)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Lead.countDocuments(filter),
-  ]);
+  const useCursor = Boolean(query.cursor);
+  const listFilter = useCursor
+    ? buildCursorFilter(filter, query.cursor, sortField, sortDir)
+    : filter;
 
-  return paginatedResponse(rows.map(enrichLead), { page, limit, total });
+  const fetchLimit = useCursor ? limit + 1 : limit;
+
+  let rows = await Lead.find(listFilter)
+    .select('-notes')
+    .populate(LEAD_LIST_POPULATE)
+    .sort(sort)
+    .skip(useCursor ? 0 : skip)
+    .limit(fetchLimit)
+    .lean();
+
+  let nextCursor = null;
+  if (useCursor && rows.length > limit) {
+    rows = rows.slice(0, limit);
+    nextCursor = encodeCursor(rows[rows.length - 1], sortField);
+  } else if (!useCursor && page === DEEP_PAGE_THRESHOLD && rows.length > 0) {
+    nextCursor = encodeCursor(rows[rows.length - 1], sortField);
+  }
+
+  let total = null;
+  if (!useCursor && page <= DEEP_PAGE_THRESHOLD) {
+    total = await Lead.countDocuments(filter);
+  }
+
+  return paginatedResponse(rows.map(enrichLead), {
+    page,
+    limit,
+    total,
+    nextCursor,
+    hasMore: Boolean(nextCursor),
+  });
 }
 
 async function countLeads(query = {}, { branchId } = {}) {

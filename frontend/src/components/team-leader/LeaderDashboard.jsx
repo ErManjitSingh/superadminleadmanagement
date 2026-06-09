@@ -1,36 +1,42 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Crown, Users } from 'lucide-react';
 import API from '../../api/axios';
+import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQuery';
+import { invalidateDashboard } from '../../lib/queryInvalidation';
+import { DASHBOARD_STALE_MS, GC_TIME_MS } from '../../lib/queryConfig';
 import PageHeader from '../ui/PageHeader';
 import LeaderKpiCards from './dashboard/LeaderKpiCards';
 import LeaderCharts from './dashboard/LeaderCharts';
 import MyTeamPanel from './MyTeamPanel';
 
 export default function LeaderDashboard() {
-  const [data, setData] = useState(null);
-  const [myTeam, setMyTeam] = useState({ team: null, members: [], message: null });
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const dashboardQuery = useDashboardQuery('/team-leader/dashboard');
+  const teamQuery = useQuery({
+    queryKey: ['team-leader', 'my-team'],
+    queryFn: async () => {
+      const { data } = await API.get('/team-leader/my-team', { skipSuccessToast: true });
+      return data || { team: null, members: [], message: null };
+    },
+    staleTime: DASHBOARD_STALE_MS,
+    gcTime: GC_TIME_MS,
+    placeholderData: (prev) => prev,
+  });
 
-  const load = useCallback(() => {
-    setLoading(true);
-    Promise.all([
-      API.get('/team-leader/dashboard', { skipSuccessToast: true }),
-      API.get('/team-leader/my-team', { skipSuccessToast: true }),
-    ])
-      .then(([dash, team]) => {
-        setData(dash.data);
-        setMyTeam(team.data || { team: null, members: [], message: null });
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const refresh = useCallback(() => {
+    invalidateDashboard(queryClient);
+    queryClient.invalidateQueries({ queryKey: ['team-leader', 'my-team'] });
+  }, [queryClient]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useDataRefresh(['dashboard', 'teams'], refresh);
 
-  useDataRefresh(['dashboard', 'leads', 'followups', 'quotations'], load);
+  const loading = (dashboardQuery.isLoading && !dashboardQuery.data) || (teamQuery.isLoading && !teamQuery.data);
+  const fetching = dashboardQuery.isFetching || teamQuery.isFetching;
+  const data = dashboardQuery.data;
+  const myTeam = teamQuery.data || { team: null, members: [], message: null };
 
   if (loading) {
     return (
@@ -42,6 +48,11 @@ export default function LeaderDashboard() {
 
   return (
     <div className="space-y-6 pb-8">
+      {fetching && (
+        <div className="h-0.5 w-full bg-amber-500/30 rounded-full overflow-hidden">
+          <div className="h-full w-1/3 bg-amber-500 animate-pulse" />
+        </div>
+      )}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <PageHeader
           title="Team Command Center"

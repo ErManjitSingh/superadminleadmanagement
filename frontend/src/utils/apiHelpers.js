@@ -7,16 +7,24 @@ export function unwrapList(payload) {
 
 export function unwrapPagination(payload) {
   if (Array.isArray(payload)) {
-    return { data: payload, pagination: { page: 1, limit: payload.length, total: payload.length, totalPages: 1 } };
+    return {
+      data: payload,
+      pagination: { page: 1, limit: payload.length, total: payload.length, totalPages: 1 },
+      nextCursor: null,
+      hasMore: false,
+    };
   }
   return {
     data: payload?.data ?? [],
     pagination: payload?.pagination ?? { page: 1, limit: 25, total: 0, totalPages: 0 },
+    nextCursor: payload?.nextCursor ?? null,
+    hasMore: payload?.hasMore ?? false,
   };
 }
 
-export function buildListParams({ page = 1, limit = 25, sortBy, sortOrder, filters = {} } = {}) {
+export function buildListParams({ page = 1, limit = 25, sortBy, sortOrder, cursor, filters = {} } = {}) {
   const params = { page, limit, ...filters };
+  if (cursor) params.cursor = cursor;
   if (sortBy) params.sortBy = sortBy;
   if (sortOrder) params.sortOrder = sortOrder;
   return Object.fromEntries(

@@ -1,4 +1,8 @@
-/** Fired after any successful API mutation (and via Socket.IO for other clients). */
+import { invalidateFromMutationKeys, normalizeKeys } from './mutationCacheSync';
+
+export { normalizeKeys };
+
+/** Fired after same-tab API mutations for legacy useDataRefresh listeners. */
 export const DATA_CHANGED_EVENT = 'crm:data-changed';
 
 let pendingKeys = new Set();
@@ -15,16 +19,11 @@ export function emitDataChanged(keys) {
     const merged = [...pendingKeys];
     pendingKeys = new Set();
     emitTimer = null;
+    invalidateFromMutationKeys(merged);
     window.dispatchEvent(
       new CustomEvent(DATA_CHANGED_EVENT, { detail: { keys: merged } })
     );
   }, 80);
-}
-
-export function normalizeKeys(keys) {
-  if (!keys) return [];
-  const list = Array.isArray(keys) ? keys : [keys];
-  return [...new Set(list.filter(Boolean))];
 }
 
 export function shouldEmitDataRefresh(config) {
@@ -120,10 +119,6 @@ export function keysFromMutationUrl(url, _method) {
   if (/\/attendance/.test(path)) {
     keys.add('attendance');
     keys.add('dashboard');
-  }
-
-  if (keys.size <= 1 && keys.has('nav-counts')) {
-    keys.add('*');
   }
 
   return [...keys];

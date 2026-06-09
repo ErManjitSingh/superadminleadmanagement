@@ -57,23 +57,39 @@ const getLeadDetail = asyncHandler(async (req, res) => {
     .lean();
   if (!lead) throw new ApiError(404, 'Lead not found');
 
-  const [followups, quotations, notesList] = await Promise.all([
-    FollowUp.find({ lead: lead._id, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
+  const branchFilter = req.branchId ? { branchId: req.branchId } : {};
+  const leadFilter = { lead: lead._id, ...branchFilter };
+
+  const [followups, quotations, notesList, followupTotal, quotationTotal, notesTotal] = await Promise.all([
+    FollowUp.find(leadFilter)
       .populate(FOLLOWUP_POPULATE)
       .sort({ scheduledAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
       .lean(),
-    Quotation.find({ lead: lead._id, ...(req.branchId ? { branchId: req.branchId } : {}) })
+    Quotation.find(leadFilter)
       .populate(QUOTATION_POPULATE)
       .sort({ createdAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
       .lean(),
-    LeadNote.find({ lead: lead._id }).populate('user', 'name email').sort({ createdAt: -1 }).lean(),
+    LeadNote.find({ lead: lead._id })
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
+      .lean(),
+    FollowUp.countDocuments(leadFilter),
+    Quotation.countDocuments(leadFilter),
+    LeadNote.countDocuments({ lead: lead._id }),
   ]);
 
   res.json({
     ...enrichLead(lead),
     followups,
+    followupTotal,
     quotations,
+    quotationTotal,
     notesList,
+    notesTotal,
   });
 });
 

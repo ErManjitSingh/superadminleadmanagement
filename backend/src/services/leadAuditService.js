@@ -1,4 +1,5 @@
 const AuditLog = require('../models/AuditLog');
+const { clampLimit, DETAIL_MAX_LIMIT } = require('../utils/pagination');
 
 async function logAudit({
   entityType,
@@ -41,23 +42,25 @@ function diffLeadChanges(before = {}, after = {}, fields = []) {
 }
 
 async function getEntityAuditLog(entityType, entityId, { page = 1, limit = 50 } = {}) {
-  const skip = (Math.max(1, page) - 1) * limit;
+  const lim = clampLimit(limit, { defaultLimit: 20, maxLimit: DETAIL_MAX_LIMIT });
+  const skip = (Math.max(1, page) - 1) * lim;
   const filter = { entityType, entityId };
   const [data, total] = await Promise.all([
-    AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(lim).lean(),
     AuditLog.countDocuments(filter),
   ]);
-  return { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 0 } };
+  return { data, pagination: { page, limit: lim, total, totalPages: Math.ceil(total / lim) || 0 } };
 }
 
 async function listBranchAuditLogs(branchId, { page = 1, limit = 50, action, entityType = 'lead' } = {}) {
-  const skip = (Math.max(1, page) - 1) * limit;
+  const lim = clampLimit(limit, { defaultLimit: 30, maxLimit: DETAIL_MAX_LIMIT });
+  const skip = (Math.max(1, page) - 1) * lim;
   const filter = { entityType, ...(branchId ? { branchId } : {}), ...(action ? { action } : {}) };
   const [data, total] = await Promise.all([
-    AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(lim).lean(),
     AuditLog.countDocuments(filter),
   ]);
-  return { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) || 0 } };
+  return { data, pagination: { page, limit: lim, total, totalPages: Math.ceil(total / lim) || 0 } };
 }
 
 module.exports = { logAudit, diffLeadChanges, getEntityAuditLog, listBranchAuditLogs };

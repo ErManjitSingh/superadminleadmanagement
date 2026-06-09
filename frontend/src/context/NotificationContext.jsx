@@ -18,8 +18,6 @@ import {
   markAllNotificationsRead,
 } from '../api/notificationApi';
 import NotificationDrawer from '../components/notifications/NotificationDrawer';
-import { emitDataChanged } from '../lib/dataRefresh';
-
 const NotificationContext = createContext(null);
 
 function getSocketUrl() {
@@ -134,14 +132,9 @@ export function NotificationProvider({ children }) {
         setNotifications(history);
       }
     });
-    socket.on('data:changed', (payload) => {
-      const keys = payload?.keys;
-      if (keys?.length) emitDataChanged(keys);
-    });
 
     return () => {
       socket.off('notification:new', handleIncoming);
-      socket.off('data:changed');
       socket.disconnect();
       socketRef.current = null;
       setConnected(false);

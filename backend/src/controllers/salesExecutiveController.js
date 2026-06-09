@@ -85,25 +85,33 @@ const getLeadDetail = asyncHandler(async (req, res) => {
     .lean();
   if (!lead) throw new ApiError(404, 'Lead not found');
 
+  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
   const leadIds = [lead._id];
-  const [followups, quotations] = await Promise.all([
-    FollowUp.find({
-      lead: lead._id,
-      $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
-    })
+  const followupFilter = {
+    lead: lead._id,
+    $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
+  };
+  const quotationFilter = {
+    lead: lead._id,
+    $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
+  };
+
+  const [followups, quotations, followupTotal, quotationTotal] = await Promise.all([
+    FollowUp.find(followupFilter)
       .populate(FOLLOWUP_POPULATE)
       .sort({ scheduledAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
       .lean(),
-    Quotation.find({
-      lead: lead._id,
-      $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
-    })
+    Quotation.find(quotationFilter)
       .populate(QUOTATION_POPULATE)
       .sort({ createdAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
       .lean(),
+    FollowUp.countDocuments(followupFilter),
+    Quotation.countDocuments(quotationFilter),
   ]);
 
-  res.json({ ...enrichLead(lead), followups, quotations });
+  res.json({ ...enrichLead(lead), followups, followupTotal, quotations, quotationTotal });
 });
 
 /** Executives may only update pipeline status — not edit lead details. */

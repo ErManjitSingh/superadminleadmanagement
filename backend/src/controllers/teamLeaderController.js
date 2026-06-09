@@ -94,23 +94,37 @@ const getLeadDetail = asyncHandler(async (req, res) => {
 
   if (!lead) throw new ApiError(404, 'Lead not found');
 
+  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
+  const branchFilter = req.branchId ? { branchId: req.branchId } : {};
+  const leadFilter = { lead: lead._id, ...branchFilter };
+
   const execIds = await getExecutiveIdsForLeader(req.user._id);
-  const [followups, quotations] = await Promise.all([
-    FollowUp.find({ lead: lead._id, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const [followups, quotations, followupTotal, quotationTotal] = await Promise.all([
+    FollowUp.find(leadFilter)
       .populate(FOLLOWUP_POPULATE)
       .sort({ scheduledAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
       .lean(),
-    Quotation.find({ lead: lead._id, ...(req.branchId ? { branchId: req.branchId } : {}) })
+    Quotation.find(leadFilter)
       .populate(QUOTATION_POPULATE)
       .sort({ createdAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
       .lean(),
+    FollowUp.countDocuments(leadFilter),
+    Quotation.countDocuments(leadFilter),
   ]);
 
   const squadQuotes = quotations.filter((q) =>
     execIds.some((id) => q.lead?.assignedTo?.toString?.() === id.toString())
   );
 
-  res.json({ ...enrichLead(lead), followups, quotations: squadQuotes });
+  res.json({
+    ...enrichLead(lead),
+    followups,
+    followupTotal,
+    quotations: squadQuotes,
+    quotationTotal,
+  });
 });
 
 /** Team leaders: reassign within squad only — no editing lead fields. */

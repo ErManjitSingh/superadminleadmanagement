@@ -7,33 +7,22 @@ import { usePermissions } from '../hooks/usePermissions';
 import AdminAssignLeadModal from '../components/leads/AdminAssignLeadModal';
 import LeadBranchTransferModal from '../components/leads/LeadBranchTransferModal';
 import { useLeadAssign } from '../hooks/useLeadAssign';
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  closestCorners,
-} from '@dnd-kit/core';
 import API from '../api/axios';
 import { toast } from '../context/ToastContext';
-import { normalizeLeadStatus } from '../utils/leadUtils';
 import LeadPageHeader from '../components/leads/LeadPageHeader';
 import LeadFilterBar from '../components/leads/LeadFilterBar';
 import LeadBulkActionsBar from '../components/leads/LeadBulkActionsBar';
 import LeadDataTable from '../components/leads/LeadDataTable';
-import LeadKanbanBoard from '../components/leads/LeadKanbanBoard';
 import LeadPreviewDrawer from '../components/leads/LeadPreviewDrawer';
-import { KANBAN_COLUMNS, pageConfig, emptyFilters } from '../components/leads/constants';
-import { groupLeadsByStatus, countActiveFilters } from '../components/leads/leadFilters';
+import { pageConfig, emptyFilters } from '../components/leads/constants';
+import { countActiveFilters } from '../components/leads/leadFilters';
 import { useDataRefresh } from '../hooks/useDataRefresh';
-import { useLeadsQuery, useLeadsKanbanQuery } from '../features/leads/hooks/useLeadsQuery';
+import { useLeadsQuery } from '../features/leads/hooks/useLeadsQuery';
 import { LEADS_PAGE_SIZE } from '../components/ui/TablePagination';
 import { useConfirmDialog } from '../hooks/useConfirmDialog';
 import { assignAllowedRoles, canAssignLeads } from '../lib/canAssignLeads';
 import BulkStatusModal from '../components/leads/BulkStatusModal';
 import { bulkUpdateLeadStatus, bulkExportLeads } from '../services/leadEnterpriseApi';
-import { canDragLeadInKanban } from '../lib/kanbanPermissions';
 import { invalidateLeadLists } from '../lib/queryInvalidation';
 
 export default function Leads() {
@@ -53,21 +42,19 @@ export default function Leads() {
     : { view: true, edit: isManagerRole, assign: isManagerRole, transferBranch: isManagerRole, delete: isManagerRole };
   const config = pageConfig[location.pathname] || pageConfig['/leads'];
 
-  const [view, setView] = useState('table');
   const [filters, setFilters] = useState({ ...emptyFilters, status: config.status || '' });
   const [appliedFilters, setAppliedFilters] = useState({ ...emptyFilters, status: config.status || '' });
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: LEADS_PAGE_SIZE });
   const [rowSelection, setRowSelection] = useState({});
   const [previewLead, setPreviewLead] = useState(null);
-  const [activeDragLead, setActiveDragLead] = useState(null);
   const [transferLead, setTransferLead] = useState(null);
   const [transferSubmitting, setTransferSubmitting] = useState(false);
   const [seedingDemo, setSeedingDemo] = useState(false);
   const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
+  const [pageCursors, setPageCursors] = useState({});
   const { confirm, dialogNode } = useConfirmDialog();
   const isNewLeadsPage = location.pathname === '/leads/new-leads';
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const DEEP_PAGE_INDEX = 9;
 
   const apiFilters = useMemo(() => {
     const base = { ...appliedFilters };
@@ -77,16 +64,13 @@ export default function Leads() {
     return base;
   }, [appliedFilters, config.status, config.assignee]);
 
+  const activeCursor = pagination.pageIndex > DEEP_PAGE_INDEX ? pageCursors[pagination.pageIndex] : null;
+
   const tableQuery = useLeadsQuery({
     filters: apiFilters,
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
-    enabled: view === 'table',
-  });
-
-  const kanbanQuery = useLeadsKanbanQuery({
-    filters: apiFilters,
-    enabled: view === 'kanban',
+    cursor: activeCursor,
   });
 
   const invalidateLeads = useCallback(() => {
@@ -99,28 +83,27 @@ export default function Leads() {
     setFilters((f) => ({ ...f, status: config.status || '' }));
     setAppliedFilters((f) => ({ ...f, status: config.status || '' }));
     setPagination((p) => ({ ...p, pageIndex: 0 }));
+    setPageCursors({});
   }, [config.status, config.assignee, location.pathname]);
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
+    setPageCursors({});
   }, [appliedFilters]);
 
-  const tableLeads = tableQuery.data?.data ?? [];
-  const totalLeads = tableQuery.data?.pagination?.total ?? 0;
-  const kanbanLeads = kanbanQuery.data?.data ?? [];
-  const kanbanTotal = kanbanQuery.data?.totalLeads ?? kanbanLeads.length;
-  const kanbanColumnTotals = useMemo(() => {
-    const cols = kanbanQuery.data?.columns;
-    if (!cols?.length) return {};
-    return Object.fromEntries(cols.map((c) => [c.status, c.total]));
-  }, [kanbanQuery.data?.columns]);
-  const activeQuery = view === 'table' ? tableQuery : kanbanQuery;
-  const loading = activeQuery.isLoading && !activeQuery.data;
+  useEffect(() => {
+    if (tableQuery.data?.nextCursor) {
+      setPageCursors((prev) => ({
+        ...prev,
+        [pagination.pageIndex + 1]: tableQuery.data.nextCursor,
+      }));
+    }
+  }, [tableQuery.data?.nextCursor, pagination.pageIndex]);
 
-  const leadsByStatus = useMemo(
-    () => groupLeadsByStatus(kanbanLeads, KANBAN_COLUMNS),
-    [kanbanLeads]
-  );
+  const tableLeads = tableQuery.data?.data ?? [];
+  const totalLeads = tableQuery.data?.pagination?.total;
+  const hasMoreLeads = tableQuery.data?.hasMore ?? false;
+  const loading = tableQuery.isLoading && !tableQuery.data;
 
   const selectedCount = Object.keys(rowSelection).filter((k) => rowSelection[k]).length;
 
@@ -214,47 +197,12 @@ export default function Leads() {
     invalidateLeads();
   };
 
-  const handleDragStart = (event) => {
-    const lead = kanbanLeads.find((l) => l._id === event.active.id);
-    setActiveDragLead(lead);
-  };
-
-  const canDragKanban = useCallback(
-    (lead) => canDragLeadInKanban(lead, user),
-    [user]
-  );
-
-  const handleDragEnd = (event) => {
-    setActiveDragLead(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    const leadId = active.id;
-    const validStatuses = KANBAN_COLUMNS.map((c) => c.value);
-    let newStatus = over.id;
-
-    if (!validStatuses.includes(newStatus)) {
-      const overLead = kanbanLeads.find((l) => l._id === over.id);
-      if (overLead) newStatus = normalizeLeadStatus(overLead.status);
-      else return;
-    }
-
-    const lead = kanbanLeads.find((l) => l._id === leadId);
-    if (!lead || !canDragKanban(lead)) return;
-    if (normalizeLeadStatus(lead.status) === newStatus) return;
-
-    queryClient.setQueryData(['leads', 'kanban', { filters: apiFilters }], (old) => {
-      if (!old?.data) return old;
-      return {
-        ...old,
-        data: old.data.map((l) => (l._id === leadId ? { ...l, status: newStatus } : l)),
-      };
-    });
-
-    API.put(`/leads/${leadId}`, { status: newStatus }).catch(() => invalidateLeads());
-  };
-
-  const pageCount = Math.max(1, Math.ceil(totalLeads / pagination.pageSize) || 1);
+  const pageCount =
+    totalLeads != null
+      ? Math.max(1, Math.ceil(totalLeads / pagination.pageSize) || 1)
+      : hasMoreLeads
+        ? pagination.pageIndex + 2
+        : pagination.pageIndex + 1;
 
   const handleSeedDemoLeads = async () => {
     const ok = await confirm({
@@ -281,9 +229,7 @@ export default function Leads() {
     <div className="animate-fade-up">
       <LeadPageHeader
         title={config.title}
-        total={view === 'table' ? totalLeads : kanbanTotal}
-        view={view}
-        onViewChange={setView}
+        total={totalLeads ?? undefined}
         onSeedDemo={isAdmin && isNewLeadsPage ? handleSeedDemoLeads : undefined}
         seedingDemo={seedingDemo}
       />
@@ -309,7 +255,7 @@ export default function Leads() {
         <div className="rounded-2xl border border-subtle bg-surface p-16 text-center text-content-muted">
           Loading leads...
         </div>
-      ) : view === 'table' ? (
+      ) : (
         <LeadDataTable
           leads={tableLeads}
           rowSelection={rowSelection}
@@ -326,32 +272,10 @@ export default function Leads() {
             pageSize: pagination.pageSize,
             pageCount,
             total: totalLeads,
+            hasMore: hasMoreLeads,
             onPaginationChange: setPagination,
           }}
         />
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <LeadKanbanBoard
-            columns={KANBAN_COLUMNS}
-            leadsByStatus={leadsByStatus}
-            columnTotals={kanbanColumnTotals}
-            onCardClick={setPreviewLead}
-            canDragLead={canDragKanban}
-          />
-          <DragOverlay>
-            {activeDragLead ? (
-              <div className="rounded-xl border border-brand-500/30 bg-surface p-3.5 shadow-xl w-[260px] rotate-1 opacity-95">
-                <p className="text-sm font-semibold text-content-primary">{activeDragLead.name}</p>
-                <p className="text-xs text-content-muted mt-1">{activeDragLead.destination}</p>
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
       )}
 
       <LeadPreviewDrawer

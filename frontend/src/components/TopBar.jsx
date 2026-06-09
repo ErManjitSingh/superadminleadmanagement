@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Bell, Sun, Moon, Menu, LogOut, User, LogIn, ChevronDown, RefreshCw } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +18,7 @@ import {
   setAvailableBranches,
   setSelectedBranch,
 } from '../store/slices/branchSlice';
-import { emitDataChanged } from '../lib/dataRefresh';
+import { invalidateDashboard, invalidateLeadLists, invalidateNavCounts } from '../lib/queryInvalidation';
 
 function getInitials(name) {
   return (
@@ -74,6 +75,7 @@ function IconButton({ children, className, accent, ...props }) {
 }
 
 export default function TopBar({ onMenuClick }) {
+  const queryClient = useQueryClient();
   const dispatch = useDispatch();
   const { toggleTheme, isDark } = useTheme();
   const { user, logout } = useAuth();
@@ -174,8 +176,16 @@ export default function TopBar({ onMenuClick }) {
 
   const handleLeadsRefresh = () => {
     setIsLeadsRefreshing(true);
-    emitDataChanged(['leads', 'followups', 'dashboard', 'quotations', 'nav-counts', 'reports']);
-    window.setTimeout(() => setIsLeadsRefreshing(false), 900);
+    Promise.all([
+      invalidateLeadLists(queryClient),
+      invalidateDashboard(queryClient),
+      invalidateNavCounts(queryClient),
+      queryClient.invalidateQueries({ queryKey: ['quotations'] }),
+      queryClient.invalidateQueries({ queryKey: ['followups'] }),
+      queryClient.invalidateQueries({ queryKey: ['reports'] }),
+    ]).finally(() => {
+      window.setTimeout(() => setIsLeadsRefreshing(false), 900);
+    });
   };
 
   return (

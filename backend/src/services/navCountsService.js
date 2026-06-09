@@ -46,17 +46,42 @@ async function unreadNotifications(userId, branchId = null) {
   return Notification.countDocuments(withBranch({ user: userId, read: false }, branchId));
 }
 
-async function buildAdminNavCounts(userId, { branchId } = {}) {
-  const { startOfToday, endOfToday } = todayRange();
+function facetCount(facet, key) {
+  return facet?.[key]?.[0]?.n ?? 0;
+}
 
+/** Single aggregation for lead sidebar counts — replaces 7 separate countDocuments */
+async function aggregateAdminLeadCounts(branchId) {
+  const match = withBranch({ isDeleted: { $ne: true } }, branchId);
+  const [row] = await Lead.aggregate([
+    { $match: match },
+    {
+      $facet: {
+        all: [{ $count: 'n' }],
+        new: [{ $match: { status: 'new' } }, { $count: 'n' }],
+        unassigned: [{ $match: { assignedTo: null } }, { $count: 'n' }],
+        assigned: [{ $match: { assignedTo: { $ne: null } } }, { $count: 'n' }],
+        converted: [{ $match: { status: 'converted' } }, { $count: 'n' }],
+        lost: [{ $match: { status: { $in: ['lost', 'booked_from_another_company'] } } }, { $count: 'n' }],
+        whatsapp: [{ $match: { source: 'whatsapp' } }, { $count: 'n' }],
+      },
+    },
+  ]);
+
+  return {
+    all: facetCount(row, 'all'),
+    new: facetCount(row, 'new'),
+    unassigned: facetCount(row, 'unassigned'),
+    assigned: facetCount(row, 'assigned'),
+    converted: facetCount(row, 'converted'),
+    lost: facetCount(row, 'lost'),
+    whatsapp: facetCount(row, 'whatsapp'),
+  };
+}
+
+async function buildAdminNavCounts(userId, { branchId } = {}) {
   const [
-    leadsAll,
-    leadsNew,
-    leadsUnassigned,
-    leadsAssigned,
-    leadsConverted,
-    leadsLost,
-    leadsWhatsapp,
+    leads,
     followUpsTotal,
     followUpsDue,
     customers,
@@ -66,13 +91,7 @@ async function buildAdminNavCounts(userId, { branchId } = {}) {
     notificationsUnread,
     calendarToday,
   ] = await Promise.all([
-    Lead.countDocuments(withBranch({}, branchId)),
-    Lead.countDocuments(withBranch({ status: 'new' }, branchId)),
-    Lead.countDocuments(withBranch({ assignedTo: null }, branchId)),
-    Lead.countDocuments(withBranch({ assignedTo: { $ne: null } }, branchId)),
-    Lead.countDocuments(withBranch({ status: 'converted' }, branchId)),
-    Lead.countDocuments(withBranch({ status: { $in: ['lost', 'booked_from_another_company'] } }, branchId)),
-    Lead.countDocuments(withBranch({ source: 'whatsapp' }, branchId)),
+    aggregateAdminLeadCounts(branchId),
     FollowUp.countDocuments(withBranch({ status: 'pending' }, branchId)),
     countFollowUpsDue({}, branchId),
     Lead.countDocuments({
@@ -86,15 +105,7 @@ async function buildAdminNavCounts(userId, { branchId } = {}) {
   ]);
 
   return {
-    leads: {
-      all: leadsAll,
-      new: leadsNew,
-      unassigned: leadsUnassigned,
-      assigned: leadsAssigned,
-      converted: leadsConverted,
-      lost: leadsLost,
-      whatsapp: leadsWhatsapp,
-    },
+    leads,
     followups: { total: followUpsTotal, due: followUpsDue },
     customers,
     quotations: { total: quotationsTotal, pending: quotationsPending },

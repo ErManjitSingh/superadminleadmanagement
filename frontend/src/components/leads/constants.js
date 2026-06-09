@@ -1,17 +1,15 @@
 export const LEAD_STATUSES = [
-  { value: 'new', label: 'New Lead', kanban: true },
-  { value: 'contacted', label: 'Contacted', kanban: true },
-  { value: 'working_progress', label: 'Working Progress', kanban: true },
-  { value: 'follow_up', label: 'Follow Up', kanban: true },
-  { value: 'quotation_sent', label: 'Quotation Sent', kanban: true },
-  { value: 'negotiation', label: 'Negotiation', kanban: true },
-  { value: 'reactivated', label: 'Reactivated', kanban: true },
-  { value: 'converted', label: 'Converted', kanban: true },
-  { value: 'lost', label: 'Lost', kanban: false },
-  { value: 'booked_from_another_company', label: 'Booked From Another Company', kanban: false },
+  { value: 'new', label: 'New Lead' },
+  { value: 'contacted', label: 'Contacted' },
+  { value: 'working_progress', label: 'Working Progress' },
+  { value: 'follow_up', label: 'Follow Up' },
+  { value: 'quotation_sent', label: 'Quotation Sent' },
+  { value: 'negotiation', label: 'Negotiation' },
+  { value: 'reactivated', label: 'Reactivated' },
+  { value: 'converted', label: 'Converted' },
+  { value: 'lost', label: 'Lost' },
+  { value: 'booked_from_another_company', label: 'Booked From Another Company' },
 ];
-
-export const KANBAN_COLUMNS = LEAD_STATUSES.filter((s) => s.kanban);
 
 /** Stored source keys — display uses short labels via getLeadSourceShortLabel */
 export const LEAD_SOURCES = [

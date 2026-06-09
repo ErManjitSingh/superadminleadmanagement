@@ -24,7 +24,7 @@ const LEAD_POPULATE = [
   { path: 'reactivation.stageHistory.by', select: 'name email' },
 ];
 
-/** Lightweight populate for paginated list & kanban — skips nested stageHistory */
+/** Lightweight populate for paginated list — skips nested stageHistory */
 const LEAD_LIST_POPULATE = [
   { path: 'assignedTo', select: 'name email' },
   { path: 'assignedTeamLeader', select: 'name email' },

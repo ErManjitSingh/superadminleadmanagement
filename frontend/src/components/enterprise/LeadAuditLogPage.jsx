@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Shield, ChevronRight } from 'lucide-react';
-import { fetchGlobalAuditLog } from '../../services/leadEnterpriseApi';
+import { useGlobalAuditQuery } from '../../features/leads/hooks/useGlobalAuditQuery';
 import { Button } from '../ui/button';
+import TablePagination from '../ui/TablePagination';
 import { compactTable, compactTh, compactTd } from '../ui/compactTable';
 
 const ACTION_LABELS = {
@@ -16,28 +18,70 @@ const ACTION_LABELS = {
   'lead.call_note_added': 'Call Note',
 };
 
+function AuditRow({ row }) {
+  const changes = (row.changes || []).slice(0, 2);
+  const changeText = changes.length
+    ? changes.map((c) => `${c.field}: ${c.oldValue ?? '—'} → ${c.newValue ?? '—'}`).join('; ')
+    : row.meta?.outcome || '—';
+
+  return (
+    <tr className="hover:bg-brand-500/[0.03]">
+      <td className={`${compactTd} whitespace-nowrap text-content-secondary`}>
+        {row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
+      </td>
+      <td className={compactTd}>
+        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-700">
+          {ACTION_LABELS[row.action] || row.action}
+        </span>
+      </td>
+      <td className={compactTd}>{row.actorName || 'System'}</td>
+      <td className={`${compactTd} max-w-[280px] truncate text-content-muted text-xs`} title={changeText}>
+        {changeText}
+      </td>
+      <td className={compactTd}>
+        {row.entityId && (
+          <Link to={`/leads/${row.entityId}`}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+              Lead <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 export default function LeadAuditLogPage() {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [pageIndex, setPageIndex] = useState(0);
   const [actionFilter, setActionFilter] = useState('');
+  const pageSize = 30;
+  const scrollRef = useRef(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetchGlobalAuditLog({ page, limit: 30, action: actionFilter || undefined });
-      setRows(res?.data || []);
-      setTotal(res?.pagination?.total || 0);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, actionFilter]);
+  const { data, isLoading } = useGlobalAuditQuery({
+    page: pageIndex + 1,
+    limit: pageSize,
+    action: actionFilter,
+  });
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(1); }, [actionFilter]);
+  useEffect(() => {
+    setPageIndex(0);
+  }, [actionFilter]);
 
-  const pageCount = Math.max(1, Math.ceil(total / 30));
+  const rows = data?.data ?? [];
+  const total = data?.pagination?.total ?? 0;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const loading = isLoading && !data;
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 48,
+    overscan: 8,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -67,9 +111,9 @@ export default function LeadAuditLogPage() {
         <div className="rounded-2xl border border-subtle bg-surface p-12 text-center text-content-muted">No audit entries</div>
       ) : (
         <div className="rounded-2xl border border-subtle bg-surface shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div ref={scrollRef} className="overflow-auto max-h-[min(70vh,640px)]">
             <table className={compactTable}>
-              <thead>
+              <thead className="sticky top-0 z-10">
                 <tr className="border-b border-subtle bg-surface-elevated/50">
                   {['When', 'Action', 'Actor', 'Changes', ''].map((h) => (
                     <th key={h || 'a'} className={compactTh}>{h}</th>
@@ -77,49 +121,30 @@ export default function LeadAuditLogPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-subtle">
-                {rows.map((row) => {
-                  const changes = (row.changes || []).slice(0, 2);
-                  const changeText = changes.length
-                    ? changes.map((c) => `${c.field}: ${c.oldValue ?? '—'} → ${c.newValue ?? '—'}`).join('; ')
-                    : row.meta?.outcome || '—';
-                  return (
-                    <tr key={row._id} className="hover:bg-brand-500/[0.03]">
-                      <td className={`${compactTd} whitespace-nowrap text-content-secondary`}>
-                        {row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                      </td>
-                      <td className={compactTd}>
-                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-brand-500/10 text-brand-700">
-                          {ACTION_LABELS[row.action] || row.action}
-                        </span>
-                      </td>
-                      <td className={compactTd}>{row.actorName || 'System'}</td>
-                      <td className={`${compactTd} max-w-[280px] truncate text-content-muted text-xs`} title={changeText}>
-                        {changeText}
-                      </td>
-                      <td className={compactTd}>
-                        {row.entityId && (
-                          <Link to={`/leads/${row.entityId}`}>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
-                              Lead <ChevronRight className="w-3.5 h-3.5" />
-                            </Button>
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paddingTop > 0 && (
+                  <tr aria-hidden>
+                    <td colSpan={5} style={{ height: paddingTop, padding: 0, border: 0 }} />
+                  </tr>
+                )}
+                {virtualRows.map((virtualRow) => (
+                  <AuditRow key={rows[virtualRow.index]._id} row={rows[virtualRow.index]} />
+                ))}
+                {paddingBottom > 0 && (
+                  <tr aria-hidden>
+                    <td colSpan={5} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-          {pageCount > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-subtle text-sm">
-              <span className="text-content-muted">Page {page} of {pageCount}</span>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
-                <Button variant="outline" size="sm" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>Next</Button>
-              </div>
-            </div>
-          )}
+          <TablePagination
+            pageIndex={pageIndex}
+            pageSize={pageSize}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={setPageIndex}
+            totalLabel="entries"
+          />
         </div>
       )}
     </div>

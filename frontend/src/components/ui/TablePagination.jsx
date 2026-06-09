@@ -12,15 +12,25 @@ export default function TablePagination({
   onPageSizeChange,
   totalLabel = 'items',
   totalCount,
+  hasMore = false,
   className = '',
 }) {
   const usingTable = !!table;
   const resolvedPageIndex = usingTable ? table.getState().pagination.pageIndex : (pageIndex || 0);
   const resolvedPageSize = usingTable ? table.getState().pagination.pageSize : (pageSize || DEFAULT_PAGE_SIZE);
-  const resolvedTotal = usingTable ? (totalCount ?? table.getFilteredRowModel().rows.length) : (total ?? totalCount ?? 0);
-  const resolvedPageCount = usingTable ? table.getPageCount() : Math.max(pageCount || 1, 1);
-  const from = resolvedTotal === 0 ? 0 : resolvedPageIndex * resolvedPageSize + 1;
-  const to = Math.min((resolvedPageIndex + 1) * resolvedPageSize, resolvedTotal);
+  const unknownTotal = !usingTable && (total == null || total === undefined);
+  const resolvedTotal = usingTable
+    ? (totalCount ?? table.getFilteredRowModel().rows.length)
+    : (unknownTotal ? null : (total ?? totalCount ?? 0));
+  const resolvedPageCount = usingTable
+    ? table.getPageCount()
+    : unknownTotal
+      ? (hasMore ? resolvedPageIndex + 2 : resolvedPageIndex + 1)
+      : Math.max(pageCount || 1, 1);
+  const from = resolvedPageIndex * resolvedPageSize + 1;
+  const to = resolvedTotal != null
+    ? Math.min((resolvedPageIndex + 1) * resolvedPageSize, resolvedTotal)
+    : from + resolvedPageSize - 1;
 
   const handlePrev = () => {
     if (usingTable) return table.previousPage();
@@ -33,13 +43,23 @@ export default function TablePagination({
   };
 
   const canPrevious = usingTable ? table.getCanPreviousPage() : resolvedPageIndex > 0;
-  const canNext = usingTable ? table.getCanNextPage() : resolvedPageIndex < resolvedPageCount - 1;
+  const canNext = usingTable
+    ? table.getCanNextPage()
+    : unknownTotal
+      ? hasMore
+      : resolvedPageIndex < resolvedPageCount - 1;
 
   return (
     <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${compactPagination} border-t border-subtle bg-surface-elevated/30 ${className}`}>
       <p className="text-sm text-content-muted">
-        Showing <span className="font-semibold text-content-primary">{from}–{to}</span> of{' '}
-        <span className="font-semibold text-content-primary">{resolvedTotal}</span> {totalLabel}
+        Showing <span className="font-semibold text-content-primary">{from}–{to}</span>
+        {resolvedTotal != null ? (
+          <>
+            {' '}of <span className="font-semibold text-content-primary">{resolvedTotal}</span> {totalLabel}
+          </>
+        ) : (
+          <> {totalLabel}</>
+        )}
       </p>
       <div className="flex items-center gap-2">
         {!usingTable && typeof onPageSizeChange === 'function' && (
@@ -63,7 +83,8 @@ export default function TablePagination({
           Previous
         </Button>
         <span className="text-sm font-medium text-content-secondary px-2 tabular-nums">
-          Page {resolvedPageIndex + 1} of {resolvedPageCount}
+          Page {resolvedPageIndex + 1}
+          {resolvedTotal != null ? ` of ${resolvedPageCount}` : hasMore ? '+' : ''}
         </span>
         <Button
           variant="secondary"

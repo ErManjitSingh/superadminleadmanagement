@@ -1,30 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Sparkles, Plane } from 'lucide-react';
-import API from '../../api/axios';
+import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQuery';
+import { invalidateDashboard } from '../../lib/queryInvalidation';
 import PageHeader from '../ui/PageHeader';
 import ExecutiveKpiCards from './dashboard/ExecutiveKpiCards';
 import ExecutiveDashboardPanels from './dashboard/ExecutiveDashboardPanels';
 
 export default function ExecutiveDashboard() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { data, isLoading, isFetching } = useDashboardQuery('/sales-executive/dashboard');
 
-  const load = useCallback(() => {
-    setLoading(true);
-    API.get('/sales-executive/dashboard', { skipSuccessToast: true })
-      .then((r) => setData(r.data))
-      .finally(() => setLoading(false));
-  }, []);
+  const refresh = useCallback(() => {
+    invalidateDashboard(queryClient);
+  }, [queryClient]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useDataRefresh(['dashboard'], refresh);
 
-  useDataRefresh(['dashboard', 'leads', 'followups', 'quotations'], load);
-
-  if (loading) {
+  if (isLoading && !data) {
     return (
       <div className="flex justify-center py-32">
         <div className="w-9 h-9 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
@@ -34,6 +29,11 @@ export default function ExecutiveDashboard() {
 
   return (
     <div className="space-y-6 pb-8">
+      {isFetching && (
+        <div className="h-0.5 w-full bg-sky-500/30 rounded-full overflow-hidden">
+          <div className="h-full w-1/3 bg-sky-500 animate-pulse" />
+        </div>
+      )}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <PageHeader
           title="Sales Workspace"

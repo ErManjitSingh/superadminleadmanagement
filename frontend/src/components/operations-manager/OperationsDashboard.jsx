@@ -1,22 +1,14 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
-import API from '../../api/axios';
+import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQuery';
 import PageHeader from '../ui/PageHeader';
 import OperationsKpiCards from './dashboard/OperationsKpiCards';
 import OperationsDashboardPanels from './dashboard/OperationsDashboardPanels';
 
 export default function OperationsDashboard() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isFetching } = useDashboardQuery('/operations-manager/dashboard');
 
-  useEffect(() => {
-    API.get('/operations-manager/dashboard')
-      .then((r) => setData(r.data))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
+  if (isLoading && !data) {
     return (
       <div className="flex justify-center py-32">
         <div className="w-9 h-9 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
@@ -26,6 +18,11 @@ export default function OperationsDashboard() {
 
   return (
     <div className="space-y-6 pb-8">
+      {isFetching && (
+        <div className="h-0.5 w-full bg-teal-500/30 rounded-full overflow-hidden">
+          <div className="h-full w-1/3 bg-teal-500 animate-pulse" />
+        </div>
+      )}
       <PageHeader
         title="Operations Command Center"
         description="Confirmed bookings, vendor fulfillment & trip execution"

@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Provider } from 'react-redux';
 import store from '../store';
 import { LIST_STALE_MS, GC_TIME_MS } from '../lib/queryConfig';
+import { registerQueryClient } from '../lib/mutationCacheSync';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +18,10 @@ const queryClient = new QueryClient({
 });
 
 export default function AppProviders({ children }) {
+  useEffect(() => {
+    registerQueryClient(queryClient);
+  }, []);
+
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

@@ -1,5 +1,3 @@
-const { getIO } = require('../config/socket');
-
 function resolveDataKeys(req) {
   const method = req.method.toUpperCase();
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return null;
@@ -79,10 +77,4 @@ function resolveDataKeys(req) {
   return [...keys];
 }
 
-function emitDataChanged(keys) {
-  const io = getIO();
-  if (!io || !keys?.length) return;
-  io.emit('data:changed', { keys, at: Date.now() });
-}
-
-module.exports = { resolveDataKeys, emitDataChanged };
+module.exports = { resolveDataKeys };

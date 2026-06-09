@@ -43,6 +43,10 @@ git checkout -B main origin/main
 git reset --hard origin/main
 git clean -fd
 
+echo "==> Redis (optional cache)..."
+systemctl enable redis-server 2>/dev/null || true
+systemctl start redis-server 2>/dev/null || true
+
 echo "==> Backend install..."
 cd ${APP_ROOT}/backend
 npm install --omit=dev

@@ -5,11 +5,15 @@ export function invalidateLeadLists(queryClient) {
     predicate: (q) => {
       const key = q.queryKey[0];
       if (key !== 'leads') return false;
-      if (q.queryKey[1] === 'kanban') return true;
       if (typeof q.queryKey[1] === 'object') return true;
+      if (typeof q.queryKey[1] === 'string' && q.queryKey[1].includes('/leads')) return true;
       return false;
     },
   });
+}
+
+export function invalidateNavCounts(queryClient) {
+  return queryClient.invalidateQueries({ queryKey: ['nav-counts'] });
 }
 
 export function invalidateLeadDetail(queryClient, leadId) {

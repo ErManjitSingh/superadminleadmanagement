@@ -62,14 +62,3 @@ export function applyLeadFilters(leads, filters, routeStatus = '') {
 export function countActiveFilters(filters) {
   return Object.entries(filters).filter(([k, v]) => v !== '' && k !== 'search').length;
 }
-
-export function groupLeadsByStatus(leads, columns) {
-  const groups = {};
-  columns.forEach((c) => { groups[c.value] = []; });
-  leads.forEach((lead) => {
-    const status = normalizeLeadStatus(lead.status);
-    if (groups[status]) groups[status].push(lead);
-    else if (groups.new) groups.new.push(lead);
-  });
-  return groups;
-}

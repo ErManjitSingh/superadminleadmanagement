@@ -1,4 +1,6 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
+import RouteFallback from './ui/RouteFallback';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { SidebarProvider, useSidebar } from '../context/SidebarContext';
@@ -48,7 +50,9 @@ function LayoutShell() {
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
             <MissedFollowUpAlert />
-            <Outlet />
+            <Suspense fallback={<RouteFallback />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
         <MobileNav />

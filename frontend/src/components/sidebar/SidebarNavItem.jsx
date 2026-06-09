@@ -5,6 +5,7 @@ import { useSidebarTheme } from './SidebarThemeContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
+import { prefetchRoute } from '../../lib/routePrefetch';
 
 export default function SidebarNavItem({ item, isActive, nested = false }) {
   const { collapsed, setMobileOpen } = useSidebar();
@@ -14,6 +15,8 @@ export default function SidebarNavItem({ item, isActive, nested = false }) {
   const linkContent = (
     <Link
       to={item.path}
+      onMouseEnter={() => prefetchRoute(item.path)}
+      onFocus={() => prefetchRoute(item.path)}
       onClick={() => setMobileOpen(false)}
       className={cn(
         'group relative flex items-center gap-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',

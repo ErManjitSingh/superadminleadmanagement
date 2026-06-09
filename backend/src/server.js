@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { port, corsOrigins } = require('./config/env');
 const { connectDB, getDbStatus } = require('./config/db');
+const { connectRedis } = require('./config/redis');
 const { ensureIndexes } = require('./config/ensureIndexes');
 const apiRoutes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
@@ -51,6 +52,7 @@ app.use(errorHandler);
 
 async function start() {
   await connectDB();
+  await connectRedis();
   await ensureIndexes();
   await purgeOldActivityLogs();
 

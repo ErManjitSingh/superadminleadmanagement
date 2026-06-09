@@ -6,7 +6,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Eye, Pencil, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import LeadStatusBadge from './LeadStatusBadge';
 import LeadTemperatureBadge from './LeadTemperatureBadge';
@@ -78,6 +79,7 @@ export default function LeadDataTable({
   const actions = { ...defaultMenuActions, ...menuActions };
   const isServer = Boolean(serverPagination);
   const [clientPagination, setClientPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
+  const scrollRef = useRef(null);
 
   const pagination = isServer
     ? { pageIndex: serverPagination.pageIndex, pageSize: serverPagination.pageSize }
@@ -303,6 +305,18 @@ export default function LeadDataTable({
     enableRowSelection: true,
   });
 
+  const tableRows = table.getRowModel().rows;
+  const rowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 52,
+    overscan: 6,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
+
   if (leads.length === 0) {
     return (
       <div className="rounded-2xl border border-brand-500/20 bg-gradient-to-br from-brand-500/5 to-violet-500/5 p-16 text-center backdrop-blur-xl">
@@ -314,9 +328,9 @@ export default function LeadDataTable({
 
   return (
     <div className="rounded-2xl border border-brand-500/20 bg-surface/90 backdrop-blur-xl shadow-lg shadow-brand-500/5 overflow-hidden">
-      <div className="overflow-x-auto">
+      <div ref={scrollRef} className="overflow-auto max-h-[min(70vh,640px)]">
         <table className={`${compactTable} min-w-[1040px]`}>
-          <thead>
+          <thead className="sticky top-0 z-10">
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-brand-500/15 bg-gradient-to-r from-brand-600/10 via-violet-600/8 to-indigo-600/10">
                 {hg.headers.map((header) => {
@@ -339,30 +353,42 @@ export default function LeadDataTable({
             ))}
           </thead>
           <tbody className="isolate">
-            {table.getRowModel().rows.map((row, i) => {
+            {paddingTop > 0 && (
+              <tr aria-hidden>
+                <td colSpan={columns.length} style={{ height: paddingTop, padding: 0, border: 0 }} />
+              </tr>
+            )}
+            {virtualRows.map((virtualRow) => {
+              const row = tableRows[virtualRow.index];
+              const i = virtualRow.index;
               const even = i % 2 === 0;
               const rowBg = even ? 'bg-surface' : 'bg-white dark:bg-slate-800';
               const rowHover = even
                 ? 'hover:bg-slate-50 dark:hover:bg-slate-800'
                 : 'hover:bg-slate-100 dark:hover:bg-slate-700';
               return (
-              <tr
-                key={row.id}
-                onClick={() => onRowClick(row.original)}
-                className={`group relative z-0 hover:z-[5] border-b border-subtle/50 last:border-0 cursor-pointer transition-colors ${rowBg} ${rowHover}`}
-              >
-                {row.getVisibleCells().map((cell) => {
-                  const colId = cell.column.id;
-                  const tdClass = colId === 'rowActions' ? stickyRowActionsTd(i) : compactTd;
-                  return (
-                    <td key={cell.id} className={tdClass}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
+                <tr
+                  key={row.id}
+                  onClick={() => onRowClick(row.original)}
+                  className={`group relative z-0 hover:z-[5] border-b border-subtle/50 last:border-0 cursor-pointer transition-colors ${rowBg} ${rowHover}`}
+                >
+                  {row.getVisibleCells().map((cell) => {
+                    const colId = cell.column.id;
+                    const tdClass = colId === 'rowActions' ? stickyRowActionsTd(i) : compactTd;
+                    return (
+                      <td key={cell.id} className={tdClass}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
             })}
+            {paddingBottom > 0 && (
+              <tr aria-hidden>
+                <td colSpan={columns.length} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -372,6 +398,7 @@ export default function LeadDataTable({
           pageSize={serverPagination.pageSize}
           pageCount={serverPagination.pageCount}
           total={serverPagination.total}
+          hasMore={serverPagination.hasMore}
           onPageChange={(pageIndex) =>
             serverPagination.onPaginationChange((prev) => ({ ...prev, pageIndex }))
           }

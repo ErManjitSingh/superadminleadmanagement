@@ -2,5 +2,6 @@
 export const LIST_STALE_MS = 60_000;
 export const DETAIL_STALE_MS = 45_000;
 export const DASHBOARD_STALE_MS = 90_000;
+export const NAV_COUNTS_STALE_MS = 30_000;
 export const ANALYTICS_STALE_MS = 120_000;
 export const GC_TIME_MS = 5 * 60_000;

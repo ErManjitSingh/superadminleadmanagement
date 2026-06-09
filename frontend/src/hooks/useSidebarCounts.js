@@ -1,28 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import API from '../api/axios';
-import { useDataRefresh } from './useDataRefresh';
+import { NAV_COUNTS_STALE_MS, GC_TIME_MS } from '../lib/queryConfig';
 
 export function useSidebarCounts(enabled = true) {
-  const [counts, setCounts] = useState(null);
-
-  const load = useCallback(() => {
-    API.get('/nav-counts', { skipSuccessToast: true })
-      .then((res) => setCounts(res.data))
-      .catch(() => setCounts(null));
-  }, []);
+  const query = useQuery({
+    queryKey: ['nav-counts'],
+    queryFn: async () => {
+      const { data } = await API.get('/nav-counts', { skipSuccessToast: true });
+      return data;
+    },
+    enabled,
+    staleTime: NAV_COUNTS_STALE_MS,
+    gcTime: GC_TIME_MS,
+    placeholderData: (prev) => prev,
+  });
 
   useEffect(() => {
     if (!enabled) return undefined;
-
-    load();
-    const onUnread = () => load();
+    const onUnread = () => query.refetch();
     window.addEventListener('notifications:unread', onUnread);
-    return () => {
-      window.removeEventListener('notifications:unread', onUnread);
-    };
-  }, [enabled, load]);
+    return () => window.removeEventListener('notifications:unread', onUnread);
+  }, [enabled, query]);
 
-  useDataRefresh(['nav-counts', '*'], load, enabled);
-
-  return counts;
+  return query.data ?? null;
 }
