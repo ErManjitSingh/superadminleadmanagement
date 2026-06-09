@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink, SkipForward, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink, SkipForward, Sparkles, Map, CheckCircle2, CircleOff } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
 import ItineraryBuilder from '../packages/ItineraryBuilder';
+import InclusionExclusionEditor, { cleanInclusionExclusionLines } from './InclusionExclusionEditor';
 import QuotePricingPanel from './QuotePricingPanel';
 import QuotePdfPreview from './QuotePdfPreview';
 import DayWiseHotelSelector, { isDayWiseHotelsComplete, sumDayWiseHotelCost } from './DayWiseHotelSelector';
@@ -98,6 +99,9 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const [activities, setActivities] = useState([]);
   const [state, setState] = useState({ ...defaultWizardState });
   const [customItinerary, setCustomItinerary] = useState([]);
+  const [customInclusions, setCustomInclusions] = useState([]);
+  const [customExclusions, setCustomExclusions] = useState([]);
+  const [customizeTab, setCustomizeTab] = useState('itinerary');
   const [selectedPkgDetail, setSelectedPkgDetail] = useState(null);
   const [dayWiseHotels, setDayWiseHotels] = useState([]);
   const [loadingPackageDetail, setLoadingPackageDetail] = useState(false);
@@ -206,10 +210,20 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     };
   }, [selectedLead?.destination]);
 
+  const buildPackageSnapshot = (pkg) => ({
+    ...pkg,
+    itinerary: customItinerary,
+    inclusions: cleanInclusionExclusionLines(customInclusions),
+    exclusions: cleanInclusionExclusionLines(customExclusions),
+  });
+
   const selectLead = (lead) => {
     setState({ ...defaultWizardState, leadId: lead._id });
     setSelectedPkgDetail(null);
     setCustomItinerary([]);
+    setCustomInclusions([]);
+    setCustomExclusions([]);
+    setCustomizeTab('itinerary');
     setDayWiseHotels([]);
   };
 
@@ -227,6 +241,9 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     const normalized = { ...detail, itinerary };
     setSelectedPkgDetail(normalized);
     setCustomItinerary(itinerary.map((d) => ({ ...d })));
+    setCustomInclusions(normalized.inclusions?.length ? [...normalized.inclusions] : ['']);
+    setCustomExclusions(normalized.exclusions?.length ? [...normalized.exclusions] : ['']);
+    setCustomizeTab('itinerary');
     setState((s) => ({
       ...s,
       pricing: {
@@ -240,6 +257,9 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const selectPackage = async (pkg) => {
     setState((s) => ({ ...s, packageId: pkg._id }));
     setCustomItinerary([]);
+    setCustomInclusions([]);
+    setCustomExclusions([]);
+    setCustomizeTab('itinerary');
     setSelectedPkgDetail(null);
     setDayWiseHotels([]);
     setLoadingPackageDetail(true);
@@ -286,7 +306,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
         selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
         selectedFlights: flights.filter((f) => state.selectedFlightIds.includes(f._id)),
         selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
-        package: { ...activePkg, itinerary: customItinerary },
+        package: buildPackageSnapshot(activePkg),
         customizations: state.customizations,
       };
       const res = await API.post(config.savePath, payload);
@@ -316,7 +336,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     quoteNumber: 'PREVIEW',
     createdAt: new Date().toISOString(),
     lead: selectedLead,
-    package: { ...activePkg, itinerary: customItinerary },
+    package: buildPackageSnapshot(activePkg),
     pricing: state.pricing,
     selectedHotels: buildSelectedHotelsSnapshot(dayWiseHotels),
   } : null;
@@ -423,10 +443,86 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
               </div>
             )}
             {step === 3 && activePkg && (
-              <div className="space-y-4">
-                <h2 className="text-lg font-bold">Customize Package</h2>
-                <textarea value={state.customizations} onChange={(e) => setState({ ...state, customizations: e.target.value })} rows={3} placeholder="Special requests, inclusions, exclusions..." className="input-premium w-full rounded-xl resize-none" />
-                <ItineraryBuilder itinerary={customItinerary} onChange={setCustomItinerary} destination={activePkg.destination} />
+              <div className="space-y-5">
+                <div>
+                  <h2 className="text-lg font-bold">Customize Package</h2>
+                  <p className="text-sm text-content-muted mt-1">Edit itinerary, inclusions & exclusions for this quote</p>
+                </div>
+
+                <div className="flex gap-1 p-1 rounded-2xl bg-surface-elevated/80 border border-subtle overflow-x-auto">
+                  {[
+                    { key: 'itinerary', label: 'Itinerary', icon: Map },
+                    { key: 'inclusions', label: 'Inclusions', icon: CheckCircle2 },
+                    { key: 'exclusions', label: 'Exclusions', icon: CircleOff },
+                  ].map(({ key, label, icon: Icon }) => {
+                    const active = customizeTab === key;
+                    const count = key === 'itinerary'
+                      ? customItinerary.length
+                      : cleanInclusionExclusionLines(key === 'inclusions' ? customInclusions : customExclusions).length;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setCustomizeTab(key)}
+                        className={cn(
+                          'flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap min-w-[120px] flex-1 transition-all',
+                          active && key === 'itinerary' && 'bg-sky-600 text-white shadow-sm',
+                          active && key === 'inclusions' && 'bg-emerald-500 text-white shadow-sm',
+                          active && key === 'exclusions' && 'bg-rose-500 text-white shadow-sm',
+                          !active && 'text-content-muted hover:bg-surface-base'
+                        )}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {label}
+                        {count > 0 && (
+                          <span className={cn(
+                            'text-[10px] px-1.5 py-0.5 rounded-full font-bold',
+                            active ? 'bg-white/20 text-white' : 'bg-surface-elevated text-content-muted'
+                          )}>
+                            {count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {customizeTab === 'itinerary' && (
+                  <div className="space-y-4">
+                    <textarea
+                      value={state.customizations}
+                      onChange={(e) => setState({ ...state, customizations: e.target.value })}
+                      rows={3}
+                      placeholder="Special requests or notes for this quotation..."
+                      className="input-premium w-full rounded-xl resize-none"
+                    />
+                    <ItineraryBuilder itinerary={customItinerary} onChange={setCustomItinerary} destination={activePkg.destination} />
+                  </div>
+                )}
+
+                {customizeTab === 'inclusions' && (
+                  <div className="rounded-2xl border border-subtle bg-surface-base p-4 sm:p-5">
+                    <InclusionExclusionEditor
+                      mode="inclusions"
+                      inclusions={customInclusions}
+                      exclusions={customExclusions}
+                      onChangeInclusions={setCustomInclusions}
+                      onChangeExclusions={setCustomExclusions}
+                    />
+                  </div>
+                )}
+
+                {customizeTab === 'exclusions' && (
+                  <div className="rounded-2xl border border-subtle bg-surface-base p-4 sm:p-5">
+                    <InclusionExclusionEditor
+                      mode="exclusions"
+                      inclusions={customInclusions}
+                      exclusions={customExclusions}
+                      onChangeInclusions={setCustomInclusions}
+                      onChangeExclusions={setCustomExclusions}
+                    />
+                  </div>
+                )}
               </div>
             )}
             {step === 4 && (
