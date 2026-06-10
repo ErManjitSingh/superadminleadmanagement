@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Users,
+  List,
   Sparkles,
   Phone,
   CalendarClock,
@@ -23,6 +24,7 @@ export const salesExecutiveNavItems = [
     icon: Users,
     children: [
       { path: '/sales-executive/leads/new', label: 'New Leads', icon: Sparkles, badgeKey: 'leads.new' },
+      { path: '/sales-executive/leads/all', label: 'All Leads', icon: List, countKey: 'leads.all' },
       { path: '/sales-executive/leads/contacted', label: 'Contacted Leads', icon: Phone, countKey: 'leads.contacted' },
       { path: '/sales-executive/leads/follow-up', label: 'Follow-up Leads', icon: CalendarClock, countKey: 'leads.followUp' },
       { path: '/sales-executive/leads/hot', label: 'Hot Leads', icon: Flame, badgeKey: 'leads.hot' },

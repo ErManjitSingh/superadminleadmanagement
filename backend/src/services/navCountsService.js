@@ -174,6 +174,7 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
   const leadIds = await Lead.find(base).distinct('_id');
 
   const [
+    leadsAll,
     leadsNew,
     leadsContacted,
     leadsFollowUp,
@@ -186,6 +187,7 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
     customers,
     notificationsUnread,
   ] = await Promise.all([
+    Lead.countDocuments(base),
     Lead.countDocuments({ ...base, status: 'new' }),
     Lead.countDocuments({ ...base, status: 'contacted' }),
     Lead.countDocuments({ ...base, status: { $in: ['follow_up', 'negotiation'] } }),
@@ -212,6 +214,7 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
 
   return {
     leads: {
+      all: leadsAll,
       new: leadsNew,
       contacted: leadsContacted,
       followUp: leadsFollowUp,

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { Search, Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, TrendingUp, RefreshCw, Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useReactTable,
@@ -29,8 +29,18 @@ import { compactTable, compactTh, compactTd } from '../ui/compactTable';
 import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import AddFollowUpModal from '../followups/AddFollowUpModal';
 import { createExecutiveFollowUp, buildFollowUpPayload } from '../followups/followupApi';
+import { LEAD_STATUSES, DESTINATIONS } from '../leads/constants';
 
-const ICONS = { Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, RefreshCw };
+const ICONS = { Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, RefreshCw, Users };
+
+const PRIORITY_OPTIONS = [
+  { value: '', label: 'All priorities' },
+  { value: 'hot', label: 'Hot leads' },
+  { value: 'high', label: 'High priority' },
+  { value: 'urgent', label: 'Urgent' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+];
 
 const STATUSES = [
   'new',
@@ -51,6 +61,9 @@ export default function MyLeadsPage() {
   const { filter = 'new' } = useParams();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 350);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [destinationFilter, setDestinationFilter] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('');
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const [modal, setModal] = useState(null);
   const [modalText, setModalText] = useState('');
@@ -61,10 +74,15 @@ export default function MyLeadsPage() {
   const theme = EXEC_FILTER_THEMES[filter] || EXEC_FILTER_THEMES.new;
   const Icon = ICONS[meta.icon] || Sparkles;
 
+  const isAllView = filter === 'all';
+
   const { data, isLoading } = useRoleLeadsQuery({
     endpoint: '/sales-executive/leads',
     filter,
     search: debouncedSearch,
+    status: isAllView ? statusFilter : '',
+    destination: isAllView ? destinationFilter : '',
+    priority: isAllView ? priorityFilter : '',
     page: pagination.pageIndex + 1,
     limit: pagination.pageSize,
   });
@@ -77,7 +95,15 @@ export default function MyLeadsPage() {
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
-  }, [filter, debouncedSearch]);
+  }, [filter, debouncedSearch, statusFilter, destinationFilter, priorityFilter]);
+
+  useEffect(() => {
+    if (!isAllView) {
+      setStatusFilter('');
+      setDestinationFilter('');
+      setPriorityFilter('');
+    }
+  }, [isAllView]);
 
   useDataRefresh(['leads'], fetchLeads);
 
@@ -206,14 +232,63 @@ export default function MyLeadsPage() {
         </div>
       </motion.div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-500" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, destination, phone…"
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
-        />
+      <div className={`flex flex-col gap-3 ${isAllView ? '' : 'max-w-md'}`}>
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-500" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, destination, phone…"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+          />
+        </div>
+        {isAllView && (
+          <div className="flex flex-wrap gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="h-10 px-3 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+            >
+              <option value="">All statuses</option>
+              {LEAD_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <select
+              value={destinationFilter}
+              onChange={(e) => setDestinationFilter(e.target.value)}
+              className="h-10 px-3 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+            >
+              <option value="">All destinations</option>
+              {DESTINATIONS.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="h-10 px-3 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+            >
+              {PRIORITY_OPTIONS.map((p) => (
+                <option key={p.value || 'all'} value={p.value}>{p.label}</option>
+              ))}
+            </select>
+            {(statusFilter || destinationFilter || priorityFilter) && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10 rounded-xl"
+                onClick={() => {
+                  setStatusFilter('');
+                  setDestinationFilter('');
+                  setPriorityFilter('');
+                }}
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">

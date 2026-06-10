@@ -97,6 +97,13 @@ async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
     filter.status = { $nin: ['converted', 'lost', 'booked_from_another_company'] };
   }
 
+  if (filterKey === 'all' || !filterKey) {
+    if (query.status) filter.status = query.status;
+    if (query.destination) filter.destination = query.destination;
+    if (query.priority === 'hot') filter.isHot = true;
+    else if (query.priority) filter.priority = query.priority;
+  }
+
   const [rows, total] = await Promise.all([
     Lead.find(filter).populate(LEAD_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
     Lead.countDocuments(filter),
