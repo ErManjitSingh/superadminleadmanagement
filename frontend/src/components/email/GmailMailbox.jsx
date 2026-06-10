@@ -112,7 +112,6 @@ export default function GmailMailbox() {
     return () => {
       cancelled = true;
     };
-    // Sync inbox once when opening Email Activity
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -163,33 +162,33 @@ export default function GmailMailbox() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#f6f8fc] text-[#202124] overflow-hidden rounded-xl border border-[#dadce0] shadow-sm">
-      {/* Gmail top bar */}
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2 bg-[#f6f8fc] border-b border-[#dadce0]/80">
+    <div className="h-full flex flex-col bg-[#f6f8fc] text-[#202124] text-[13px] leading-tight overflow-hidden rounded-lg border border-[#dadce0]">
+      {/* Top bar */}
+      <div className="shrink-0 flex items-center gap-1.5 px-2 py-1 bg-[#f6f8fc] border-b border-[#dadce0]/80">
         <button
           type="button"
-          className="lg:hidden p-2 rounded-full hover:bg-[#e8eaed]"
+          className="lg:hidden p-1 rounded-full hover:bg-[#e8eaed]"
           onClick={() => setMobileSidebar((v) => !v)}
         >
-          <Menu className="w-5 h-5 text-[#5f6368]" />
+          <Menu className="w-4 h-4 text-[#5f6368]" />
         </button>
-        <div className="flex items-center gap-2 min-w-[140px]">
-          <Mail className="w-7 h-7 text-[#ea4335]" />
-          <span className="text-[22px] text-[#5f6368] font-normal tracking-tight hidden sm:inline">Gmail</span>
+        <div className="flex items-center gap-1.5 min-w-[90px]">
+          <Mail className="w-5 h-5 text-[#ea4335]" />
+          <span className="text-[15px] text-[#5f6368] font-normal hidden sm:inline">Mail</span>
         </div>
-        <div className="flex-1 max-w-3xl mx-auto">
-          <div className="flex items-center bg-[#eaf1fb] hover:bg-[#e8f0fe] focus-within:bg-white focus-within:shadow-md rounded-full px-4 h-12 transition-all border border-transparent focus-within:border-[#dadce0]">
-            <Search className="w-5 h-5 text-[#5f6368] shrink-0" />
+        <div className="flex-1 max-w-2xl mx-auto">
+          <div className="flex items-center bg-[#eaf1fb] hover:bg-[#e8f0fe] focus-within:bg-white focus-within:shadow-sm rounded-full px-3 h-8 transition-all border border-transparent focus-within:border-[#dadce0]">
+            <Search className="w-3.5 h-3.5 text-[#5f6368] shrink-0" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && setQuery(search.trim())}
               placeholder="Search mail"
-              className="flex-1 bg-transparent border-0 outline-none text-sm px-3 text-[#202124] placeholder:text-[#5f6368]"
+              className="flex-1 bg-transparent border-0 outline-none text-[12px] px-2 text-[#202124] placeholder:text-[#5f6368]"
             />
             {search && (
-              <button type="button" onClick={() => { setSearch(''); setQuery(''); }} className="p-1 rounded-full hover:bg-[#dadce0]/50">
-                <X className="w-4 h-4 text-[#5f6368]" />
+              <button type="button" onClick={() => { setSearch(''); setQuery(''); }} className="p-0.5 rounded-full hover:bg-[#dadce0]/50">
+                <X className="w-3 h-3 text-[#5f6368]" />
               </button>
             )}
           </div>
@@ -198,32 +197,32 @@ export default function GmailMailbox() {
           type="button"
           onClick={handleSync}
           disabled={syncing}
-          className="p-2.5 rounded-full hover:bg-[#e8eaed] text-[#5f6368]"
+          className="p-1.5 rounded-full hover:bg-[#e8eaed] text-[#5f6368]"
           title="Sync inbox"
         >
-          <RefreshCw className={`w-5 h-5 ${syncing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       <div className="flex flex-1 min-h-0 relative">
-        {/* Gmail left sidebar */}
+        {/* Sidebar */}
         <aside
           className={`${
             mobileSidebar ? 'translate-x-0' : '-translate-x-full'
-          } lg:translate-x-0 absolute lg:relative z-20 lg:z-auto w-[256px] shrink-0 h-full bg-[#f6f8fc] border-r border-[#dadce0]/60 flex flex-col transition-transform duration-200`}
+          } lg:translate-x-0 absolute lg:relative z-20 lg:z-auto w-[188px] shrink-0 h-full bg-[#f6f8fc] border-r border-[#dadce0]/60 flex flex-col transition-transform duration-200`}
         >
-          <div className="p-3 pt-4">
+          <div className="px-2 py-2">
             <button
               type="button"
               onClick={() => setComposeOpen(true)}
-              className="flex items-center gap-3 w-auto px-6 py-4 rounded-2xl bg-[#c2e7ff] hover:shadow-md text-[#001d35] font-medium text-sm transition-shadow"
+              className="flex items-center gap-2 w-full px-4 py-2 rounded-2xl bg-[#c2e7ff] hover:shadow-sm text-[#001d35] font-medium text-[12px] transition-shadow"
             >
-              <PenSquare className="w-5 h-5" />
+              <PenSquare className="w-4 h-4" />
               Compose
             </button>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-2 space-y-0.5">
+          <nav className="flex-1 overflow-y-auto px-1">
             {FOLDERS.map(({ id, label, icon: Icon }) => {
               const active = folder === id;
               const count = folderCount(id);
@@ -236,16 +235,16 @@ export default function GmailMailbox() {
                     setSelectedId(null);
                     setMobileSidebar(false);
                   }}
-                  className={`w-full flex items-center gap-4 px-3 py-1.5 rounded-r-full text-sm font-medium transition-colors ${
+                  className={`w-full flex items-center gap-2.5 pl-3 pr-2 py-1 rounded-r-full text-[12px] transition-colors ${
                     active
                       ? 'bg-[#d3e3fd] text-[#001d35] font-semibold'
                       : 'text-[#202124] hover:bg-[#e8eaed]'
                   }`}
                 >
-                  <Icon className={`w-5 h-5 shrink-0 ${active ? 'text-[#001d35]' : 'text-[#5f6368]'}`} />
-                  <span className="flex-1 text-left">{label}</span>
+                  <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#001d35]' : 'text-[#5f6368]'}`} />
+                  <span className="flex-1 text-left truncate">{label}</span>
                   {count > 0 && (
-                    <span className={`text-xs tabular-nums ${active ? 'text-[#001d35]' : 'text-[#5f6368]'}`}>
+                    <span className={`text-[10px] tabular-nums ${active ? 'text-[#001d35]' : 'text-[#5f6368]'}`}>
                       {count}
                     </span>
                   )}
@@ -254,9 +253,9 @@ export default function GmailMailbox() {
             })}
           </nav>
 
-          <div className="p-4 border-t border-[#dadce0]/60">
-            <p className="text-xs font-semibold text-[#5f6368] uppercase tracking-wide mb-1">Labels</p>
-            <p className="text-xs text-[#5f6368] truncate">{data.mailbox}</p>
+          <div className="px-2 py-2 border-t border-[#dadce0]/60">
+            <p className="text-[10px] font-semibold text-[#5f6368] uppercase tracking-wide">Account</p>
+            <p className="text-[11px] text-[#5f6368] truncate mt-0.5">{data.mailbox}</p>
           </div>
         </aside>
 
@@ -269,28 +268,28 @@ export default function GmailMailbox() {
           />
         )}
 
-        {/* Mail list + reading pane */}
+        {/* List + reading pane */}
         <div className="flex flex-1 min-w-0 min-h-0 bg-white">
           {/* Message list */}
           <div
             className={`${
               selected ? 'hidden md:flex' : 'flex'
-            } flex-col w-full md:w-[380px] lg:w-[420px] shrink-0 border-r border-[#dadce0]/80 min-h-0`}
+            } flex-col w-full md:w-[280px] lg:w-[300px] shrink-0 border-r border-[#dadce0]/80 min-h-0`}
           >
-            <div className="shrink-0 flex items-center justify-between px-4 py-2 border-b border-[#dadce0]/60 text-xs text-[#5f6368]">
+            <div className="shrink-0 flex items-center justify-between px-2 py-1 border-b border-[#dadce0]/60 text-[11px] text-[#5f6368]">
               <span>{loading ? 'Loading…' : `${items.length} messages`}</span>
-              <div className="flex items-center gap-1">
-                <button type="button" className="p-1.5 rounded hover:bg-[#f1f3f4]"><ChevronLeft className="w-4 h-4" /></button>
-                <button type="button" className="p-1.5 rounded hover:bg-[#f1f3f4]"><ChevronRight className="w-4 h-4" /></button>
+              <div className="flex items-center">
+                <button type="button" className="p-1 rounded hover:bg-[#f1f3f4]"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                <button type="button" className="p-1 rounded hover:bg-[#f1f3f4]"><ChevronRight className="w-3.5 h-3.5" /></button>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto">
               {!loading && items.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full text-center p-8 text-[#5f6368]">
-                  <Inbox className="w-16 h-16 mb-4 opacity-30" />
-                  <p className="text-lg">No messages</p>
-                  <p className="text-sm mt-1">Your {folder} is empty</p>
+                <div className="flex flex-col items-center justify-center h-full text-center p-4 text-[#5f6368]">
+                  <Inbox className="w-10 h-10 mb-2 opacity-30" />
+                  <p className="text-[13px]">No messages</p>
+                  <p className="text-[11px] mt-0.5">Your {folder} is empty</p>
                 </div>
               )}
 
@@ -308,40 +307,40 @@ export default function GmailMailbox() {
                     tabIndex={0}
                     onClick={() => setSelectedId(msg.id)}
                     onKeyDown={(e) => e.key === 'Enter' && setSelectedId(msg.id)}
-                    className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f1f3f4] transition-colors cursor-pointer ${
-                      isSelected ? 'bg-[#c2dbff]' : unread ? 'bg-[#f2f6fc] hover:shadow-sm' : 'hover:shadow-sm hover:z-[1] hover:bg-[#f5f5f5]'
+                    className={`w-full text-left flex items-center gap-2 px-2 py-1.5 border-b border-[#f1f3f4] cursor-pointer ${
+                      isSelected ? 'bg-[#c2dbff]' : unread ? 'bg-[#f2f6fc]' : 'hover:bg-[#f5f5f5]'
                     }`}
                   >
                     <div
-                      className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-semibold mt-0.5"
+                      className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-white text-[10px] font-semibold"
                       style={{ backgroundColor: avatarColor(senderEmail) }}
                     >
                       {initials(sender, senderEmail)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-baseline gap-2">
-                        <span className={`truncate text-sm ${unread ? 'font-bold text-[#202124]' : 'font-normal text-[#202124]'}`}>
+                      <div className="flex items-center gap-1">
+                        <span className={`truncate text-[12px] ${unread ? 'font-bold' : 'font-medium'}`}>
                           {sender}
                         </span>
-                        <span className="ml-auto shrink-0 text-[11px] text-[#5f6368] tabular-nums">
+                        <span className="ml-auto shrink-0 text-[10px] text-[#5f6368] tabular-nums">
                           {formatGmailDate(msg.date)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className={`truncate text-sm ${unread ? 'font-semibold text-[#202124]' : 'text-[#202124]'}`}>
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className={`truncate text-[11px] ${unread ? 'font-semibold text-[#202124]' : 'text-[#5f6368]'}`}>
                           {msg.subject}
                         </span>
-                        {msg.hasAttachment && <Paperclip className="w-3.5 h-3.5 text-[#5f6368] shrink-0" />}
+                        {msg.hasAttachment && <Paperclip className="w-3 h-3 text-[#5f6368] shrink-0" />}
+                        <span className="truncate text-[11px] text-[#5f6368] hidden xl:inline"> — {msg.snippet}</span>
                       </div>
-                      <p className="text-xs text-[#5f6368] truncate mt-0.5">{msg.snippet}</p>
                     </div>
                     <button
                       type="button"
                       onClick={(e) => toggleStar(msg.id, e)}
-                      className="shrink-0 p-1 mt-1"
+                      className="shrink-0 p-0.5"
                     >
                       <Star
-                        className={`w-4 h-4 ${isStarred ? 'fill-[#f4b400] text-[#f4b400]' : 'text-[#dadce0] hover:text-[#5f6368]'}`}
+                        className={`w-3.5 h-3.5 ${isStarred ? 'fill-[#f4b400] text-[#f4b400]' : 'text-[#dadce0] hover:text-[#5f6368]'}`}
                       />
                     </button>
                   </div>
@@ -354,112 +353,110 @@ export default function GmailMailbox() {
           <div className={`${selected ? 'flex' : 'hidden md:flex'} flex-col flex-1 min-w-0 min-h-0`}>
             {!selected && (
               <div className="flex-1 flex flex-col items-center justify-center text-[#5f6368] bg-[#fafafa]">
-                <Mail className="w-24 h-24 mb-4 opacity-20" />
-                <p className="text-xl font-normal">Select an item to read</p>
-                <p className="text-sm mt-2">Nothing selected</p>
+                <Mail className="w-12 h-12 mb-2 opacity-20" />
+                <p className="text-[13px]">Select an item to read</p>
               </div>
             )}
 
             {selected && (
               <>
-                <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-[#dadce0]/60 bg-white md:hidden">
-                  <button type="button" onClick={() => setSelectedId(null)} className="p-2 rounded-full hover:bg-[#f1f3f4]">
-                    <ChevronLeft className="w-5 h-5" />
+                <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-[#dadce0]/60 bg-white md:hidden">
+                  <button type="button" onClick={() => setSelectedId(null)} className="p-1 rounded-full hover:bg-[#f1f3f4]">
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
-                  <span className="text-sm font-medium truncate">{selected.subject}</span>
+                  <span className="text-[12px] font-medium truncate">{selected.subject}</span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                  <h1 className="text-2xl md:text-[22px] font-normal text-[#202124] leading-tight mb-6">
-                    {selected.subject}
-                  </h1>
+                <div className="flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h1 className="text-[15px] font-normal text-[#202124] leading-snug flex-1 min-w-0">
+                      {selected.subject}
+                    </h1>
+                    <button type="button" onClick={(e) => toggleStar(selected.id, e)} className="p-1 shrink-0">
+                      <Star className={`w-4 h-4 ${starred.has(selected.id) ? 'fill-[#f4b400] text-[#f4b400]' : 'text-[#dadce0]'}`} />
+                    </button>
+                  </div>
 
-                  <div className="flex items-start gap-4 mb-8">
+                  <div className="flex items-start gap-2 mb-3 pb-2 border-b border-[#f1f3f4]">
                     <div
-                      className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center text-white text-sm font-semibold"
+                      className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[10px] font-semibold"
                       style={{ backgroundColor: avatarColor(selected.from?.email) }}
                     >
                       {initials(selected.from?.name, selected.from?.email)}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="font-semibold text-sm text-[#202124]">
+                    <div className="min-w-0 flex-1 text-[11px] leading-snug">
+                      <div className="flex flex-wrap items-baseline gap-x-1.5">
+                        <span className="font-semibold text-[#202124]">
                           {selected.type === 'inbound' ? selected.from?.name : 'UNO Trips Sales'}
                         </span>
-                        <span className="text-xs text-[#5f6368]">
+                        <span className="text-[#5f6368] truncate">
                           &lt;{selected.type === 'inbound' ? selected.from?.email : selected.from?.email}&gt;
                         </span>
                       </div>
-                      <div className="text-xs text-[#5f6368] mt-1">
+                      <div className="text-[#5f6368]">
                         to {selected.type === 'inbound' ? 'me' : (selected.to || []).join(', ')}
-                      </div>
-                      <div className="text-xs text-[#5f6368] mt-2">
+                        {' · '}
                         {new Date(selected.date).toLocaleString('en-IN', {
-                          weekday: 'short',
                           month: 'short',
                           day: 'numeric',
-                          year: 'numeric',
                           hour: 'numeric',
                           minute: '2-digit',
                         })}
                       </div>
                     </div>
-                    <button type="button" onClick={(e) => toggleStar(selected.id, e)} className="p-2">
-                      <Star className={`w-5 h-5 ${starred.has(selected.id) ? 'fill-[#f4b400] text-[#f4b400]' : 'text-[#dadce0]'}`} />
-                    </button>
                   </div>
 
-                  <div className="prose prose-sm max-w-none text-[#202124] leading-relaxed">
+                  <div className="text-[12px] text-[#202124] leading-relaxed">
                     {bodyLoading && (
-                      <p className="text-sm text-[#5f6368]">Loading message…</p>
+                      <p className="text-[11px] text-[#5f6368]">Loading message…</p>
                     )}
 
                     {!bodyLoading && messageBody?.bodyHtml && (
                       <iframe
                         title="Email body"
                         srcDoc={messageBody.bodyHtml}
-                        className="w-full min-h-[320px] border border-[#dadce0]/60 rounded-lg bg-white"
+                        className="w-full min-h-[240px] border border-[#dadce0]/60 rounded bg-white"
                         sandbox=""
                       />
                     )}
 
                     {!bodyLoading && !messageBody?.bodyHtml && (messageBody?.bodyText || selected.snippet) && (
-                      <div className="whitespace-pre-wrap">{messageBody?.bodyText || selected.snippet}</div>
+                      <div className="whitespace-pre-wrap text-[12px]">{messageBody?.bodyText || selected.snippet}</div>
                     )}
 
                     {!bodyLoading && !messageBody?.bodyHtml && !messageBody?.bodyText && !selected.snippet && (
-                      <p className="text-[#5f6368]">No message content available.</p>
+                      <p className="text-[11px] text-[#5f6368]">No message content available.</p>
                     )}
                   </div>
 
                   {selected.type === 'sent' && !messageBody?.bodyText && (
-                    <p className="mt-6 text-xs text-[#5f6368] italic">
-                      Full message body is not stored. Only metadata is kept for compliance.
+                    <p className="mt-2 text-[10px] text-[#5f6368] italic">
+                      Full message body is not stored for older sent emails.
                     </p>
                   )}
 
-                  <div className="mt-8 flex flex-wrap gap-3 pt-6 border-t border-[#dadce0]/60">
+                  <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-[#f1f3f4]">
                     {selected.leadId && (
                       <Link
                         to={`${leadPathPrefix}/${selected.leadId}${leadPathPrefix.includes('executive') || leadPathPrefix.includes('manager') || leadPathPrefix.includes('leader') ? '/view' : ''}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#dadce0] text-sm text-[#1a73e8] hover:bg-[#f6f8fc] font-medium"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-[#dadce0] text-[11px] text-[#1a73e8] hover:bg-[#f6f8fc] font-medium"
                       >
-                        <ExternalLink className="w-4 h-4" />
-                        Open lead · {selected.leadName}
+                        <ExternalLink className="w-3 h-3" />
+                        {selected.leadName}
                       </Link>
                     )}
                     {selected.leadDestination && (
-                      <span className="inline-flex items-center px-4 py-2 rounded-full bg-[#f1f3f4] text-sm text-[#5f6368]">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#f1f3f4] text-[11px] text-[#5f6368]">
                         {selected.leadDestination}
                       </span>
                     )}
                     {selected.status === 'failed' && (
-                      <span className="inline-flex items-center px-4 py-2 rounded-full bg-[#fce8e6] text-sm text-[#d93025]">
-                        Delivery failed
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#fce8e6] text-[11px] text-[#d93025]">
+                        Failed
                       </span>
                     )}
                     {selected.category && selected.category !== 'reply' && (
-                      <span className="inline-flex items-center px-4 py-2 rounded-full bg-[#e8f0fe] text-sm text-[#1a73e8] capitalize">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-[#e8f0fe] text-[11px] text-[#1a73e8] capitalize">
                         {String(selected.category).replace(/_/g, ' ')}
                       </span>
                     )}

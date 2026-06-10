@@ -103,41 +103,41 @@ export default function GmailComposeLeadPicker({ open, onClose, onSent }) {
   return (
     <>
       <AppModal open={open && !composerOpen} onClose={handleClose} size="lg" className="p-0 overflow-hidden">
-        <div className="px-6 py-5 border-b border-[#dadce0] bg-[#f6f8fc]">
-          <div className="flex items-start justify-between gap-3">
+        <div className="px-4 py-3 border-b border-[#dadce0] bg-[#f6f8fc]">
+          <div className="flex items-start justify-between gap-2">
             <div>
-              <h3 className="text-lg font-medium text-[#202124]">New message</h3>
-              <p className="text-sm text-[#5f6368] mt-1">Search a lead by name, email, or phone</p>
+              <h3 className="text-[14px] font-medium text-[#202124]">New message</h3>
+              <p className="text-[11px] text-[#5f6368] mt-0.5">Search lead by name, email, or phone</p>
             </div>
-            <button type="button" onClick={handleClose} className="p-2 rounded-full hover:bg-[#e8eaed]">
-              <X className="w-5 h-5 text-[#5f6368]" />
+            <button type="button" onClick={handleClose} className="p-1 rounded-full hover:bg-[#e8eaed]">
+              <X className="w-4 h-4 text-[#5f6368]" />
             </button>
           </div>
-          <div className="mt-4 flex items-center bg-white rounded-full px-4 h-11 border border-[#dadce0] shadow-sm">
-            <Search className="w-5 h-5 text-[#5f6368] shrink-0" />
+          <div className="mt-2 flex items-center bg-white rounded-full px-3 h-8 border border-[#dadce0]">
+            <Search className="w-3.5 h-3.5 text-[#5f6368] shrink-0" />
             <input
               autoFocus
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search leads…"
-              className="flex-1 bg-transparent border-0 outline-none text-sm px-3 text-[#202124] placeholder:text-[#5f6368]"
+              className="flex-1 bg-transparent border-0 outline-none text-[12px] px-2 text-[#202124] placeholder:text-[#5f6368]"
             />
           </div>
         </div>
 
-        <div className="max-h-[360px] overflow-y-auto bg-white">
+        <div className="max-h-[280px] overflow-y-auto bg-white">
           {search.trim().length < 2 && (
-            <div className="p-8 text-center text-[#5f6368] text-sm">
+            <div className="p-4 text-center text-[#5f6368] text-[12px]">
               Type at least 2 characters to find a lead with email
             </div>
           )}
 
           {search.trim().length >= 2 && loading && (
-            <div className="p-8 text-center text-[#5f6368] text-sm">Searching…</div>
+            <div className="p-4 text-center text-[#5f6368] text-[12px]">Searching…</div>
           )}
 
           {search.trim().length >= 2 && !loading && leads.length === 0 && (
-            <div className="p-8 text-center text-[#5f6368] text-sm">
+            <div className="p-4 text-center text-[#5f6368] text-[12px]">
               No leads with email found. Add email on the lead first.
             </div>
           )}
@@ -147,21 +147,21 @@ export default function GmailComposeLeadPicker({ open, onClose, onSent }) {
               key={lead._id}
               type="button"
               onClick={() => handlePick(lead)}
-              className="w-full text-left px-6 py-4 border-b border-[#f1f3f4] hover:bg-[#f6f8fc] transition-colors"
+              className="w-full text-left px-4 py-2 border-b border-[#f1f3f4] hover:bg-[#f6f8fc] transition-colors"
             >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#d3e3fd] text-[#001d35] flex items-center justify-center shrink-0">
-                  <User className="w-5 h-5" />
+              <div className="flex items-start gap-2">
+                <div className="w-7 h-7 rounded-full bg-[#d3e3fd] text-[#001d35] flex items-center justify-center shrink-0">
+                  <User className="w-3.5 h-3.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-[#202124] truncate">{lead.name || 'Lead'}</p>
-                  <p className="text-sm text-[#5f6368] flex items-center gap-1.5 mt-0.5 truncate">
-                    <Mail className="w-3.5 h-3.5 shrink-0" />
+                  <p className="font-medium text-[12px] text-[#202124] truncate">{lead.name || 'Lead'}</p>
+                  <p className="text-[11px] text-[#5f6368] flex items-center gap-1 truncate">
+                    <Mail className="w-3 h-3 shrink-0" />
                     {lead.email}
                   </p>
                   {lead.destination && (
-                    <p className="text-xs text-[#5f6368] flex items-center gap-1.5 mt-1 truncate">
-                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    <p className="text-[10px] text-[#5f6368] flex items-center gap-1 truncate">
+                      <MapPin className="w-3 h-3 shrink-0" />
                       {lead.destination}
                     </p>
                   )}

@@ -2,7 +2,7 @@ import GmailMailbox from '../components/email/GmailMailbox';
 
 export default function EmailActivityPage() {
   return (
-    <div className="-m-4 sm:-m-6 lg:-m-8 h-[calc(100dvh-4.25rem)] min-h-[560px] overflow-hidden">
+    <div className="-m-3 sm:-m-4 lg:-m-5 h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden">
       <GmailMailbox />
     </div>
   );
