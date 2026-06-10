@@ -143,6 +143,8 @@ const leadSchema = new mongoose.Schema(
 leadSchema.index({ createdAt: -1 });
 leadSchema.index({ status: 1, createdAt: -1 });
 leadSchema.index({ assignedTo: 1, status: 1 });
+leadSchema.index({ branchId: 1, assignedTo: 1, status: 1 });
+leadSchema.index({ branchId: 1, assignedTo: 1, isHot: 1, status: 1 });
 leadSchema.index({ branchId: 1, 'reactivation.isReactivated': 1, 'reactivation.stage': 1, updatedAt: -1 });
 
 leadSchema.pre('save', async function generateLeadId(next) {

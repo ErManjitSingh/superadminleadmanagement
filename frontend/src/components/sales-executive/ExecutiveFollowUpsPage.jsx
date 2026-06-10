@@ -35,19 +35,23 @@ export default function ExecutiveFollowUpsPage() {
     setLoading(true);
     const params = { tab };
     if (category) params.category = category;
-    Promise.all([
-      API.get('/sales-executive/followups', { params }),
-      API.get('/sales-executive/leads', { params: { filter: 'all' } }),
-    ])
-      .then(([fu, ld]) => {
-        setFollowups(unwrapList(fu.data));
-        setLeads(unwrapList(ld.data));
-      })
+    API.get('/sales-executive/followups', { params })
+      .then((fu) => setFollowups(unwrapList(fu.data)))
       .finally(() => setLoading(false));
   };
 
+  const fetchLeadsForModal = () => {
+    API.get('/sales-executive/leads', {
+      params: { filter: 'all', limit: 100 },
+      skipSuccessToast: true,
+    }).then((ld) => setLeads(unwrapList(ld.data)));
+  };
+
   useEffect(() => { fetchFollowups(); }, [tab, category]);
-  useDataRefresh(['followups', 'leads'], fetchFollowups);
+  useEffect(() => {
+    if (addOpen) fetchLeadsForModal();
+  }, [addOpen]);
+  useDataRefresh(['followups'], fetchFollowups);
 
   const handleAdd = async (data) => {
     await createExecutiveFollowUp(buildFollowUpPayload(data));
@@ -107,11 +111,11 @@ export default function ExecutiveFollowUpsPage() {
           <div className="p-12 text-center text-content-muted">Loading…</div>
         ) : followups.length === 0 ? (
           <div className="p-12 text-center text-content-muted">No follow-ups in this category</div>
-        ) : followups.map((raw, i) => {
+        ) : followups.map((raw) => {
           const f = enrichFollowUp(raw);
           const lead = f.lead || {};
           return (
-            <motion.div key={f._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="p-5 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-sky-500/[0.02]">
+            <div key={f._id} className="p-5 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-sky-500/[0.02]">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <p className="font-semibold text-content-primary">{lead.name}</p>
@@ -133,7 +137,7 @@ export default function ExecutiveFollowUpsPage() {
                   Add Remarks
                 </Button>
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>

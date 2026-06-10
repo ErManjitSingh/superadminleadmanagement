@@ -169,60 +169,74 @@ async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
   };
 }
 
-async function buildExecutiveNavCounts(userId, { branchId } = {}) {
-  const base = withBranch({ assignedTo: userId }, branchId);
-  const leadIds = await Lead.find(base).distinct('_id');
-
-  const [
-    leadsAll,
-    leadsNew,
-    leadsContacted,
-    leadsFollowUp,
-    leadsHot,
-    leadsConverted,
-    leadsLost,
-    leadsReactivated,
-    followUpsDue,
-    quotationsTotal,
-    customers,
-    notificationsUnread,
-  ] = await Promise.all([
-    Lead.countDocuments(base),
-    Lead.countDocuments({ ...base, status: 'new' }),
-    Lead.countDocuments({ ...base, status: 'contacted' }),
-    Lead.countDocuments({ ...base, status: { $in: ['follow_up', 'negotiation'] } }),
-    countHotLeads(base, branchId),
-    Lead.countDocuments({ ...base, status: 'converted' }),
-    Lead.countDocuments({ ...base, status: { $in: ['lost', 'booked_from_another_company'] } }),
-    Lead.countDocuments({
-      ...base,
-      'reactivation.isReactivated': true,
-      status: 'reactivated',
-    }),
-    countFollowUpsDue({ assignedTo: userId }, branchId),
-    leadIds.length
-      ? Quotation.countDocuments({
-          $or: [{ createdByExecutive: userId }, { lead: { $in: leadIds } }],
-        })
-      : 0,
-    Lead.countDocuments({
-      ...base,
-      $or: [{ status: 'converted' }, { isRepeatCustomer: true }],
-    }),
-    unreadNotifications(userId, branchId),
+/** Single aggregation for executive lead sidebar counts — replaces 8+ countDocuments */
+async function aggregateExecutiveLeadCounts(userId, branchId) {
+  const match = withBranch({ assignedTo: userId, isDeleted: { $ne: true } }, branchId);
+  const [row] = await Lead.aggregate([
+    { $match: match },
+    {
+      $facet: {
+        all: [{ $count: 'n' }],
+        new: [{ $match: { status: 'new' } }, { $count: 'n' }],
+        contacted: [{ $match: { status: 'contacted' } }, { $count: 'n' }],
+        followUp: [{ $match: { status: { $in: ['follow_up', 'negotiation'] } } }, { $count: 'n' }],
+        hot: [
+          {
+            $match: {
+              isHot: true,
+              status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
+            },
+          },
+          { $count: 'n' },
+        ],
+        converted: [{ $match: { status: 'converted' } }, { $count: 'n' }],
+        lost: [{ $match: { status: { $in: ['lost', 'booked_from_another_company'] } } }, { $count: 'n' }],
+        reactivated: [
+          { $match: { 'reactivation.isReactivated': true, status: 'reactivated' } },
+          { $count: 'n' },
+        ],
+        customers: [
+          { $match: { $or: [{ status: 'converted' }, { isRepeatCustomer: true }] } },
+          { $count: 'n' },
+        ],
+        leadIds: [{ $project: { _id: 1 } }],
+      },
+    },
   ]);
 
   return {
     leads: {
-      all: leadsAll,
-      new: leadsNew,
-      contacted: leadsContacted,
-      followUp: leadsFollowUp,
-      hot: leadsHot,
-      converted: leadsConverted,
-      lost: leadsLost,
-      reactivated: leadsReactivated,
+      all: facetCount(row, 'all'),
+      new: facetCount(row, 'new'),
+      contacted: facetCount(row, 'contacted'),
+      followUp: facetCount(row, 'followUp'),
+      hot: facetCount(row, 'hot'),
+      converted: facetCount(row, 'converted'),
+      lost: facetCount(row, 'lost'),
+      reactivated: facetCount(row, 'reactivated'),
     },
+    customers: facetCount(row, 'customers'),
+    leadIds: (row?.leadIds || []).map((l) => l._id),
+  };
+}
+
+async function buildExecutiveNavCounts(userId, { branchId } = {}) {
+  const [aggregated, followUpsDue, notificationsUnread] = await Promise.all([
+    aggregateExecutiveLeadCounts(userId, branchId),
+    countFollowUpsDue({ assignedTo: userId }, branchId),
+    unreadNotifications(userId, branchId),
+  ]);
+
+  const { leads, customers, leadIds } = aggregated;
+  const quotationsTotal = leadIds.length
+    ? await Quotation.countDocuments({
+        ...(branchId ? { branchId } : {}),
+        $or: [{ createdByExecutive: userId }, { lead: { $in: leadIds } }],
+      })
+    : 0;
+
+  return {
+    leads,
     followups: { due: followUpsDue },
     quotations: { total: quotationsTotal },
     customers,

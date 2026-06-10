@@ -1,10 +1,16 @@
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Clock, Flame } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, Tooltip } from 'recharts';
+import { ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { formatCurrency, STATUS_STYLES, formatFollowUpDate } from '../executiveUtils';
 import PriorityBadge from '../../sales-manager/PriorityBadge';
-import TargetTracker from './TargetTracker';
+
+const ExecutiveConversionChart = lazy(() => import('./ExecutiveConversionChart'));
+const TargetTracker = lazy(() => import('./TargetTracker'));
+
+function ChartSkeleton() {
+  return <div className="h-44 rounded-xl bg-surface-elevated/60 animate-pulse" />;
+}
 
 function Panel({ title, link, children, delay = 0 }) {
   return (
@@ -85,24 +91,15 @@ export default function ExecutiveDashboardPanels({ data }) {
         </Panel>
 
         <Panel title="Conversion Progress" delay={0.35}>
-          <div className="h-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data.conversionProgress} layout="vertical" margin={{ left: 0, right: 8 }}>
-                <XAxis type="number" hide />
-                <YAxis type="category" dataKey="stage" width={72} tick={{ fontSize: 11 }} stroke="currentColor" className="text-content-muted" />
-                <Tooltip />
-                <Bar dataKey="count" radius={[0, 6, 6, 0]} barSize={18}>
-                  {data.conversionProgress?.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} fillOpacity={0.9} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <Suspense fallback={<ChartSkeleton />}>
+            <ExecutiveConversionChart data={data.conversionProgress} />
+          </Suspense>
         </Panel>
       </div>
 
-      <TargetTracker target={data.target} />
+      <Suspense fallback={<ChartSkeleton />}>
+        <TargetTracker target={data.target} />
+      </Suspense>
     </div>
   );
 }

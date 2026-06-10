@@ -79,6 +79,7 @@ export default function MyLeadsPage() {
     endpoint: '/sales-executive/leads',
     filter,
     search: debouncedSearch,
+    skipDebounce: true,
     status: isAllView ? statusFilter : '',
     destination: isAllView ? destinationFilter : '',
     priority: isAllView ? priorityFilter : '',
@@ -300,12 +301,9 @@ export default function MyLeadsPage() {
                 <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">Loading…</td></tr>
               ) : leads.length === 0 ? (
                 <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">No leads in this view</td></tr>
-              ) : table.getRowModel().rows.map((row, i) => (
-                <motion.tr
+              ) : table.getRowModel().rows.map((row) => (
+                <tr
                   key={row.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.02 }}
                   className="hover:bg-sky-500/[0.03]"
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -313,7 +311,7 @@ export default function MyLeadsPage() {
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>

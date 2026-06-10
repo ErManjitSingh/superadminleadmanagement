@@ -31,13 +31,15 @@ export function useRoleLeadsQuery({
   page = 1,
   limit = 25,
   enabled = true,
+  skipDebounce = false,
 }) {
   const debouncedSearch = useDebouncedValue(search, 350);
+  const resolvedSearch = skipDebounce ? search : debouncedSearch;
 
   return useQuery({
     queryKey: ['leads', endpoint, {
       filter,
-      search: debouncedSearch,
+      search: resolvedSearch,
       status,
       destination,
       priority,
@@ -49,7 +51,7 @@ export function useRoleLeadsQuery({
         page,
         limit,
         filter,
-        search: debouncedSearch,
+        search: resolvedSearch,
         status,
         destination,
         priority,

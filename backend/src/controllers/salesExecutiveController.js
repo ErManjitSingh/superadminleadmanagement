@@ -480,7 +480,12 @@ const listNotifications = asyncHandler(async (req, res) => {
 });
 
 const getProfile = asyncHandler(async (req, res) => {
-  const dashboard = await buildExecutiveDashboard(req.user._id, { branchId: req.branchId });
+  const dashboard = await getOrSetFresh(
+    req,
+    cacheKey('sales_executive', `${req.user._id}:${req.branchId || 'all'}`),
+    () => buildExecutiveDashboard(req.user._id, { branchId: req.branchId }),
+    60 * 1000
+  );
   const activity = await ActivityLog.find({
     userId: req.user._id,
     ...(req.branchId ? { branchId: req.branchId } : {}),

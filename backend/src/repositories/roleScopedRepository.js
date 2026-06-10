@@ -3,6 +3,7 @@ const FollowUp = require('../models/FollowUp');
 const Quotation = require('../models/Quotation');
 const {
   LEAD_POPULATE,
+  LEAD_LIST_POPULATE,
   FOLLOWUP_POPULATE,
   QUOTATION_POPULATE,
   enrichLead,
@@ -105,7 +106,13 @@ async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
   }
 
   const [rows, total] = await Promise.all([
-    Lead.find(filter).populate(LEAD_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
+    Lead.find(filter)
+      .select('-notes')
+      .populate(LEAD_LIST_POPULATE)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Lead.countDocuments(filter),
   ]);
 
