@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   XOctagon,
   XCircle,
+  Mail,
 } from 'lucide-react';
 
 export const teamLeaderNavItems = [
@@ -29,6 +30,7 @@ export const teamLeaderNavItems = [
       { path: '/team-leader/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw, countKey: 'leads.reactivated' },
     ],
   },
+  { path: '/team-leader/email-activity', label: 'Email Activity', icon: Mail },
   { path: '/team-leader/follow-ups', label: 'Team Follow-ups', icon: CalendarClock, badgeKey: 'followups.due' },
   { path: '/team-leader/performance', label: 'Executive Performance', icon: Trophy },
   { path: '/team-leader/escalations', label: 'Lead Escalations', icon: AlertTriangle, badgeKey: 'escalations' },

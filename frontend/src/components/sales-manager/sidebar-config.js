@@ -20,6 +20,7 @@ import {
   User,
   MapPin,
   Award,
+  Mail,
 } from 'lucide-react';
 
 export const salesManagerNavItems = [
@@ -37,6 +38,7 @@ export const salesManagerNavItems = [
       { path: '/sales-manager/reactivated-leads', label: 'Reactivated Leads', icon: RefreshCw, countKey: 'leads.reactivated' },
     ],
   },
+  { path: '/sales-manager/email-activity', label: 'Email Activity', icon: Mail },
   { path: '/sales-manager/assignment', label: 'Lead Assignment', icon: UserPlus, badgeKey: 'assignment' },
   { path: '/sales-manager/destination-assignment', label: 'Destination Assignment', icon: MapPin },
   { path: '/sales-manager/skill-assignment', label: 'Skill Assignment', icon: Award },
