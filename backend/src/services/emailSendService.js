@@ -1,6 +1,7 @@
 const Lead = require('../models/Lead');
 const EmailTemplate = require('../models/EmailTemplate');
 const EmailLog = require('../models/EmailLog');
+const EmailReply = require('../models/EmailReply');
 const ApiError = require('../utils/apiError');
 const { isEmailConfigured, normalizeRecipients } = require('./emailService');
 const { enqueueEmailJob } = require('./emailQueueService');
@@ -147,17 +148,25 @@ async function queueLeadEmail({ req, leadId, payload }) {
 }
 
 async function getLeadEmailHistory(leadId, { branchId, limit = 30 } = {}) {
-  const rows = await EmailLog.find({
-    leadId,
-    ...(branchId ? { branchId } : {}),
-  })
-    .sort({ createdAt: -1 })
-    .limit(Math.min(limit, 50))
-    .select('to cc bcc subject status sentByName sentAt createdAt category errorMessage attachmentNames')
-    .lean();
+  const cap = Math.min(limit, 50);
+  const filter = { leadId, ...(branchId ? { branchId } : {}) };
 
-  return rows.map((row) => ({
+  const [sentRows, replyRows] = await Promise.all([
+    EmailLog.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(cap)
+      .select('to cc bcc subject status sentByName sentAt createdAt category errorMessage attachmentNames')
+      .lean(),
+    EmailReply.find(filter)
+      .sort({ receivedAt: -1 })
+      .limit(cap)
+      .select('fromEmail fromName subject snippet receivedAt emailLogId')
+      .lean(),
+  ]);
+
+  const sent = sentRows.map((row) => ({
     _id: row._id,
+    direction: 'outbound',
     to: row.to,
     cc: row.cc,
     bcc: row.bcc,
@@ -168,7 +177,35 @@ async function getLeadEmailHistory(leadId, { branchId, limit = 30 } = {}) {
     category: row.category,
     errorMessage: row.errorMessage,
     attachments: row.attachmentNames,
+    replies: replyRows
+      .filter((r) => String(r.emailLogId) === String(row._id))
+      .map((r) => ({
+        _id: r._id,
+        fromEmail: r.fromEmail,
+        fromName: r.fromName,
+        subject: r.subject,
+        snippet: r.snippet,
+        receivedAt: r.receivedAt,
+      })),
   }));
+
+  const orphanReplies = replyRows
+    .filter((r) => !r.emailLogId || !sentRows.some((s) => String(s._id) === String(r.emailLogId)))
+    .map((r) => ({
+      _id: r._id,
+      direction: 'inbound',
+      fromEmail: r.fromEmail,
+      fromName: r.fromName,
+      subject: r.subject,
+      snippet: r.snippet,
+      status: 'received',
+      sentAt: r.receivedAt,
+      sentBy: r.fromName || r.fromEmail,
+    }));
+
+  return [...sent, ...orphanReplies].sort(
+    (a, b) => new Date(b.sentAt) - new Date(a.sentAt)
+  );
 }
 
 module.exports = { queueLeadEmail, getLeadEmailHistory, assertCanAccessLead };

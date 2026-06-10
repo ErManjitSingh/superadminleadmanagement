@@ -3,6 +3,7 @@ const ApiError = require('../utils/apiError');
 const { queueLeadEmail, getLeadEmailHistory } = require('../services/emailSendService');
 const { getEmailDashboardStats } = require('../services/emailStatsService');
 const { isEmailConfigured } = require('../services/emailService');
+const { pollInboxOnce, isInboxConfigured } = require('../services/emailInboxService');
 
 const sendLeadEmail = asyncHandler(async (req, res) => {
   if (!req.permissions?.email?.send) {
@@ -41,4 +42,15 @@ const getEmailStats = asyncHandler(async (req, res) => {
   res.json({ ...stats, configured: isEmailConfigured() });
 });
 
-module.exports = { sendLeadEmail, listLeadEmailHistory, getEmailStats };
+const syncEmailReplies = asyncHandler(async (req, res) => {
+  if (!req.permissions?.email?.send) {
+    throw new ApiError(403, 'You do not have permission to sync email replies');
+  }
+  if (!isInboxConfigured()) {
+    throw new ApiError(503, 'Email inbox is not configured for reply tracking');
+  }
+  await pollInboxOnce();
+  res.json({ ok: true, message: 'Inbox synced' });
+});
+
+module.exports = { sendLeadEmail, listLeadEmailHistory, getEmailStats, syncEmailReplies };

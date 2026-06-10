@@ -8,16 +8,26 @@ import API from '../../api/axios';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import PageHeader from '../ui/PageHeader';
 import { formatCurrency } from './managerUtils';
+import SetMonthlyTargetModal from '../sales-targets/SetMonthlyTargetModal';
+import { fetchSalesTargets } from '../../services/salesTargetsApi';
 const columnHelper = createColumnHelper();
 
 export default function TeamPerformancePage() {
   const [executives, setExecutives] = useState([]);
+  const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [targetUser, setTargetUser] = useState(null);
 
   const fetchExecutives = () => {
     setLoading(true);
-    API.get('/sales-manager/executives', { skipSuccessToast: true })
-      .then((r) => setExecutives(r.data))
+    Promise.all([
+      API.get('/sales-manager/executives', { skipSuccessToast: true }),
+      fetchSalesTargets(),
+    ])
+      .then(([execRes, targets]) => {
+        setExecutives(execRes.data);
+        setLeaders((targets || []).filter((t) => t.role === 'team_leader'));
+      })
       .finally(() => setLoading(false));
   };
 
@@ -39,14 +49,44 @@ export default function TeamPerformancePage() {
     columnHelper.accessor('quotationsSent', { header: 'Quotations' }),
     columnHelper.accessor('conversions', { header: 'Conversions' }),
     columnHelper.accessor('revenue', { header: 'Revenue', cell: (i) => <span className="font-bold tabular-nums">{formatCurrency(i.getValue())}</span> }),
+    columnHelper.accessor('monthlyTarget', { header: 'Target', cell: (i) => <span className="tabular-nums">{formatCurrency(i.getValue())}</span> }),
+    columnHelper.accessor('targetProgress', { header: 'Target %', cell: (i) => <span className="text-sky-700 font-semibold">{i.getValue() ?? 0}%</span> }),
     columnHelper.accessor('conversionRate', { header: 'CR %', cell: (i) => <span className="text-emerald-600 font-semibold">{i.getValue()}%</span> }),
+    columnHelper.display({
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button type="button" onClick={() => setTargetUser(row.original)} className="text-xs font-semibold text-sky-700 hover:underline">
+          Set target
+        </button>
+      ),
+    }),
   ], []);
 
   const table = useReactTable({ data: executives, columns, getCoreRowModel: getCoreRowModel() });
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Team Performance" description="Detailed executive metrics and ranking system" breadcrumbs={['Sales Manager', 'Team Performance']} />
+      <PageHeader title="Team Performance" description="Executive metrics, monthly targets, and rankings" breadcrumbs={['Sales Manager', 'Team Performance']} />
+
+      {!loading && leaders.length > 0 && (
+        <div className="rounded-2xl border border-subtle bg-surface/80 p-4">
+          <p className="text-xs font-bold uppercase tracking-wider text-content-muted mb-3">Team leader monthly targets</p>
+          <div className="flex flex-wrap gap-2">
+            {leaders.map((tl) => (
+              <button
+                key={tl.userId}
+                type="button"
+                onClick={() => setTargetUser(tl)}
+                className="px-3 py-2 rounded-xl border border-subtle bg-surface-elevated/50 text-sm hover:border-sky-400/40"
+              >
+                <span className="font-semibold">{tl.name}</span>
+                <span className="text-content-muted ml-2">{formatCurrency(tl.revenueTarget)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {!loading && executives.length === 0 ? (
@@ -126,6 +166,13 @@ export default function TeamPerformancePage() {
           </div>
         )}
       </div>
+
+      <SetMonthlyTargetModal
+        open={!!targetUser}
+        user={targetUser}
+        onClose={() => setTargetUser(null)}
+        onSaved={fetchExecutives}
+      />
     </div>
   );
 }

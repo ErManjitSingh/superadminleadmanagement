@@ -13,6 +13,7 @@ const {
 const { getExecutiveIdsForLeader } = require('./teamScopeService');
 const { getEnterpriseKpis, getSourceAnalytics, getExecutivePerformance } = require('./leadAnalyticsService');
 const { getEmailDashboardStats } = require('./emailStatsService');
+const { getMonthlyTarget, buildTargetProgress } = require('./salesTargetService');
 const { withBranch } = require('../utils/branchScope');
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -322,6 +323,8 @@ async function buildExecutiveDashboard(userId, options = {}) {
   const enrichedRecent = recentLeadsRaw.map(enrichLead);
   const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
   const totalAssigned = Object.values(statusCounts).reduce((s, n) => s + n, 0);
+  const monthlyTarget = await getMonthlyTarget(execId);
+  const targetStats = buildTargetProgress(monthlyRevenue, monthlyTarget);
 
   return {
     emailStats,
@@ -368,13 +371,11 @@ async function buildExecutiveDashboard(userId, options = {}) {
       { stage: 'Converted', count: convertedCount, color: '#10B981' },
     ],
     target: {
-      monthlyTarget: 1500000,
-      revenueAchieved: monthlyRevenue,
+      ...targetStats,
       leadsConverted: convertedCount,
       conversionRate: totalAssigned
         ? Math.round((convertedCount / totalAssigned) * 1000) / 10
         : 0,
-      progress: Math.min(100, Math.round((monthlyRevenue / 1500000) * 100)),
       weeklyRevenue: [],
     },
   };
@@ -523,7 +524,7 @@ async function buildTeamLeaderDashboard(leaderId, options = {}) {
   const conversionRate = teamLeads.length
     ? Math.round((converted.length / teamLeads.length) * 1000) / 10
     : 0;
-  const monthlyTarget = 3500000;
+  const monthlyTarget = await getMonthlyTarget(leaderId);
 
   const squadQuotes = teamQuotes.filter((q) =>
     execIds.some((id) => q.lead?.assignedTo?.toString?.() === id.toString())

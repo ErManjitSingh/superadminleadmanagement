@@ -17,7 +17,7 @@ async function processEmailQueue() {
   while (queue.length > 0) {
     const job = queue.shift();
     try {
-      await sendMailMessage({
+      const info = await sendMailMessage({
         to: job.to,
         cc: job.cc,
         bcc: job.bcc,
@@ -25,12 +25,16 @@ async function processEmailQueue() {
         html: job.html,
         text: job.text,
         attachments: job.attachments,
+        headers: {
+          'X-CRM-Email-Log-Id': String(job.logId),
+        },
       });
 
       await EmailLog.findByIdAndUpdate(job.logId, {
         status: 'sent',
         sentAt: new Date(),
         errorMessage: '',
+        messageId: info.messageId || '',
       });
 
       if (job.leadId && job.actor) {

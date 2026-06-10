@@ -164,7 +164,12 @@ export default function EmailComposerModal({
   );
 
   return (
-    <AppModal open={open} onClose={() => !submitting && onClose()} size="4xl" className="p-0 overflow-hidden">
+    <AppModal
+      open={open}
+      onClose={() => !submitting && onClose()}
+      size="4xl"
+      className="p-0 !overflow-hidden flex flex-col max-h-[min(calc(100vh-1.5rem),900px)]"
+    >
       {/* Header */}
       <div
         className="relative overflow-hidden border-b border-white/10"
@@ -230,9 +235,9 @@ export default function EmailComposerModal({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[520px] max-h-[78vh]">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 overflow-hidden">
         {/* Form */}
-        <div className="p-5 space-y-4 overflow-y-auto border-b lg:border-b-0 lg:border-r border-subtle bg-gradient-to-b from-surface to-surface-elevated/30">
+        <div className="p-5 space-y-4 overflow-y-auto overscroll-contain border-b lg:border-b-0 lg:border-r border-subtle bg-gradient-to-b from-surface to-surface-elevated/30 min-h-0 max-h-[min(55vh,480px)] lg:max-h-none">
           {/* Template quick pick */}
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-content-muted mb-2 flex items-center gap-1.5">
@@ -335,7 +340,7 @@ export default function EmailComposerModal({
         </div>
 
         {/* Live preview */}
-        <div className={`flex flex-col bg-slate-100/80 dark:bg-slate-900/40 ${showPreview ? 'flex' : 'hidden lg:flex'}`}>
+        <div className={`flex flex-col min-h-0 bg-slate-100/80 dark:bg-slate-900/40 max-h-[min(55vh,480px)] lg:max-h-none ${showPreview ? 'flex' : 'hidden lg:flex'}`}>
           <div className="px-5 py-3 border-b border-subtle/80 flex items-center justify-between bg-white/60 dark:bg-surface/60 backdrop-blur-sm">
             <div className="flex items-center gap-2">
               <Eye className="w-4 h-4 text-sky-600" />
@@ -378,7 +383,7 @@ export default function EmailComposerModal({
       </div>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-subtle flex flex-wrap items-center justify-between gap-3 bg-surface-elevated/60 backdrop-blur-sm">
+      <div className="shrink-0 px-5 py-4 border-t border-subtle flex flex-wrap items-center justify-between gap-3 bg-surface-elevated/60 backdrop-blur-sm">
         <p className="text-[11px] text-content-muted max-w-sm">
           Sent asynchronously · Message body not stored · Branded HTML wrapper applied automatically
         </p>

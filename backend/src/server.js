@@ -12,6 +12,7 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 const { initializeSocket } = require('./socket');
 const { startNotificationScheduler } = require('./services/notificationScheduler');
 const { purgeOldActivityLogs } = require('./services/activityService');
+const { startEmailInboxPoller } = require('./services/emailInboxService');
 
 const app = express();
 
@@ -62,6 +63,7 @@ async function start() {
   const httpServer = http.createServer(app);
   initializeSocket(httpServer);
   startNotificationScheduler();
+  startEmailInboxPoller();
 
   httpServer.listen(port, () => {
     console.log(`[API] Running on http://127.0.0.1:${port}`);

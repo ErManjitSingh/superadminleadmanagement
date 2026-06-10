@@ -11,6 +11,7 @@ const {
   getTeamForLeader,
   getLeaderLeadScopeFilter,
 } = require('../services/teamScopeService');
+const { getMonthlyTarget, buildTargetProgress } = require('../services/salesTargetService');
 const { buildTeamLeaderDashboard } = require('../services/dashboardService');
 const { sumConvertedPackageRevenue } = require('../utils/convertedPackageRevenue');
 const { getOrSetFresh, cacheKey } = require('../services/dashboardCacheService');
@@ -201,10 +202,10 @@ const listExecutives = asyncHandler(async (req, res) => {
     return;
   }
 
-  const execIds = team.members.map((m) => m._id);
+  const execMembers = team.members.filter((m) => m.role === 'sales_executive');
   const performance = await Promise.all(
-    execIds.map(async (exId) => {
-      const ex = team.members.find((m) => m._id.toString() === exId.toString());
+    execMembers.map(async (ex) => {
+      const exId = ex._id;
       const [assignedLeads, followUpsDone, quotationsSent, conversions, revenue, contacted] = await Promise.all([
         Lead.countDocuments({ assignedTo: exId, ...(req.branchId ? { branchId: req.branchId } : {}) }),
         FollowUp.countDocuments({
@@ -226,6 +227,8 @@ const listExecutives = asyncHandler(async (req, res) => {
         }),
       ]);
 
+      const targetStats = buildTargetProgress(revenue, await getMonthlyTarget(exId));
+
       return {
         _id: ex._id,
         name: ex.name,
@@ -237,6 +240,8 @@ const listExecutives = asyncHandler(async (req, res) => {
         revenue,
         conversionRate: assignedLeads ? Math.round((conversions / assignedLeads) * 1000) / 10 : 0,
         contacted,
+        monthlyTarget: targetStats.monthlyTarget,
+        targetProgress: targetStats.progress,
       };
     })
   );

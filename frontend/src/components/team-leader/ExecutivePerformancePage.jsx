@@ -7,12 +7,14 @@ import {
 import API from '../../api/axios';
 import PageHeader from '../ui/PageHeader';
 import { formatCurrency } from './leaderUtils';
+import SetMonthlyTargetModal from '../sales-targets/SetMonthlyTargetModal';
 
 const columnHelper = createColumnHelper();
 
 export default function ExecutivePerformancePage() {
   const [executives, setExecutives] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [targetUser, setTargetUser] = useState(null);
 
   useEffect(() => {
     API.get('/team-leader/executives').then((r) => setExecutives(r.data)).finally(() => setLoading(false));
@@ -33,14 +35,25 @@ export default function ExecutivePerformancePage() {
     columnHelper.accessor('quotationsSent', { header: 'Quotations Sent' }),
     columnHelper.accessor('conversions', { header: 'Converted' }),
     columnHelper.accessor('revenue', { header: 'Revenue', cell: (i) => <span className="font-bold tabular-nums">{formatCurrency(i.getValue())}</span> }),
+    columnHelper.accessor('monthlyTarget', { header: 'Target', cell: (i) => <span className="tabular-nums">{formatCurrency(i.getValue())}</span> }),
+    columnHelper.accessor('targetProgress', { header: 'Target %', cell: (i) => <span className="text-sky-700 font-semibold">{i.getValue() ?? 0}%</span> }),
     columnHelper.accessor('conversionRate', { header: 'CR %', cell: (i) => <span className="text-emerald-600 font-semibold">{i.getValue()}%</span> }),
+    columnHelper.display({
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => (
+        <button type="button" onClick={() => setTargetUser(row.original)} className="text-xs font-semibold text-amber-700 hover:underline">
+          Set target
+        </button>
+      ),
+    }),
   ], []);
 
   const table = useReactTable({ data: executives, columns, getCoreRowModel: getCoreRowModel() });
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Executive Performance" description="Squad leaderboard — assigned leads, conversions, and revenue" breadcrumbs={['Team Leader', 'Executive Performance']} />
+      <PageHeader title="Executive Performance" description="Set monthly targets and track squad revenue" breadcrumbs={['Team Leader', 'Executive Performance']} />
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {executives.slice(0, 3).map((ex, i) => (
@@ -91,6 +104,13 @@ export default function ExecutivePerformancePage() {
           </div>
         )}
       </div>
+
+      <SetMonthlyTargetModal
+        open={!!targetUser}
+        user={targetUser}
+        onClose={() => setTargetUser(null)}
+        onSaved={() => API.get('/team-leader/executives').then((r) => setExecutives(r.data))}
+      />
     </div>
   );
 }

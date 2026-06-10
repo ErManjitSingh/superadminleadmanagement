@@ -59,6 +59,7 @@ async function sendMailMessage({
   text,
   attachments = [],
   replyTo,
+  headers = {},
 }) {
   const mailOptions = {
     from: `"${DEFAULT_FROM_NAME}" <${DEFAULT_FROM}>`,
@@ -70,6 +71,7 @@ async function sendMailMessage({
     text: text || undefined,
     attachments: normalizeAttachments(attachments),
     replyTo: replyTo || DEFAULT_FROM,
+    headers: { ...headers },
   };
 
   if (!mailOptions.to.length) {

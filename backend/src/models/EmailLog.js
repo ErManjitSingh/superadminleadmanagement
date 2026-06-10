@@ -30,6 +30,7 @@ const emailLogSchema = new mongoose.Schema(
     errorMessage: { type: String, trim: true },
     attachmentNames: [{ type: String, trim: true }],
     templateId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmailTemplate' },
+    messageId: { type: String, trim: true, index: true },
   },
   { timestamps: true }
 );

@@ -15,6 +15,7 @@ const {
   notifyQuotationApproved,
   notifyQuotationRejected,
 } = require('../services/notificationService');
+const { getMonthlyTarget, buildTargetProgress } = require('../services/salesTargetService');
 const {
   LEAD_POPULATE,
   FOLLOWUP_POPULATE,
@@ -200,6 +201,8 @@ const listExecutives = asyncHandler(async (req, res) => {
         Lead.countDocuments({ assignedTo: exId, status: { $ne: 'new' } }),
       ]);
 
+      const targetStats = buildTargetProgress(revenueAgg, await getMonthlyTarget(exId));
+
       return {
         _id: ex._id,
         name: ex.name,
@@ -213,6 +216,8 @@ const listExecutives = asyncHandler(async (req, res) => {
         revenue: revenueAgg,
         conversionRate: assignedLeads ? Math.round((conversions / assignedLeads) * 1000) / 10 : 0,
         contacted,
+        monthlyTarget: targetStats.monthlyTarget,
+        targetProgress: targetStats.progress,
       };
     })
   );

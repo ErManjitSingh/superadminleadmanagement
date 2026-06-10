@@ -63,6 +63,10 @@ upsert SMTP_PORT ${shQuote(SMTP_PORT)}
 upsert SMTP_USER ${shQuote(SMTP_USER)}
 upsert SMTP_PASS ${shQuote(SMTP_PASS)}
 upsert SMTP_FROM_NAME ${shQuote(SMTP_FROM_NAME)}
+upsert IMAP_HOST ${shQuote(process.env.IMAP_HOST || 'imap.hostinger.com')}
+upsert IMAP_PORT ${shQuote(process.env.IMAP_PORT || '993')}
+upsert IMAP_USER ${shQuote(SMTP_USER)}
+upsert IMAP_PASS ${shQuote(SMTP_PASS)}
 
 echo "==> SMTP vars set (password hidden)"
 grep -E '^SMTP_(HOST|PORT|USER|FROM_NAME)=' "$ENV_FILE"
