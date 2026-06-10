@@ -1,12 +1,22 @@
 import { AlertTriangle, CalendarPlus } from 'lucide-react';
 import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 
 const MISSED_ALERT_ROLES = new Set(['sales_executive', 'sales_manager', 'team_leader']);
 
+function isLeadSectionPath(pathname = '') {
+  return (
+    /^\/sales-executive\/leads(\/|$)/.test(pathname) ||
+    /^\/sales-manager\/leads(\/|$)/.test(pathname) ||
+    /^\/team-leader\/leads(\/|$)/.test(pathname)
+  );
+}
+
 export default function MissedFollowUpAlert() {
+  const { pathname } = useLocation();
   const { user } = useAuth();
   const { notifications, refresh, handleNotificationClick } = useNotifications();
 
@@ -20,7 +30,7 @@ export default function MissedFollowUpAlert() {
     });
   }, [notifications, user?.role]);
 
-  if (!MISSED_ALERT_ROLES.has(user?.role) || !unresolved.length) return null;
+  if (!MISSED_ALERT_ROLES.has(user?.role) || !unresolved.length || !isLeadSectionPath(pathname)) return null;
 
   const latest = unresolved[0];
 
