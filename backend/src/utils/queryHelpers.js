@@ -17,6 +17,7 @@ const LEAD_POPULATE = [
   { path: 'assignedManager', select: 'name email' },
   { path: 'assignedTeamLeader', select: 'name email' },
   { path: 'createdBy', select: 'name email' },
+  { path: 'lastContactedBy', select: 'name email' },
   { path: 'teamId', select: 'name' },
   { path: 'reactivation.reactivatedBy', select: 'name email' },
   { path: 'reactivation.reassignedBy', select: 'name email' },

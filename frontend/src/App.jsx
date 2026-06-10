@@ -34,6 +34,8 @@ import {
   DestinationAssignmentPage,
   SkillAssignmentPage,
   Notifications,
+  SettingsPage,
+  WhatsAppTemplatesPage,
   ReactivatedLeadsPage,
   SalesManagerLayout,
   ManagerDashboard,
@@ -240,7 +242,8 @@ function App() {
               <Route path="reports" element={<PermissionRoute module="reports"><Reports /></PermissionRoute>} />
               <Route path="calendar" element={<ComingSoon title="Calendar" description="Travel dates, follow-ups, and team schedule" />} />
               <Route path="notifications" element={<PermissionRoute module="leads"><Notifications /></PermissionRoute>} />
-              <Route path="settings" element={<ComingSoon title="Settings" description="Company profile, integrations, and permissions" />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/whatsapp-templates" element={<PermissionRoute module="whatsapp" action="manage"><WhatsAppTemplatesPage /></PermissionRoute>} />
               <Route path="profile" element={<ComingSoon title="My Profile" description="Personal settings and performance" />} />
             </Route>
             <Route path="*" element={<Navigate to="/login" replace />} />

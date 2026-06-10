@@ -19,8 +19,10 @@ const {
   getProfile,
   getCalendar,
 } = require('../controllers/salesExecutiveController');
+const { initiateWhatsAppContact } = require('../controllers/whatsappContactController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
+const { requirePermission } = require('../middleware/requirePermission');
 
 router.use(protect, authorize('sales_executive'));
 
@@ -51,5 +53,6 @@ router.get('/leads/:idOrFilter', (req, res, next) => {
 });
 router.put('/leads/:id', updateLead);
 router.post('/leads/:id/notes', addLeadNote);
+router.post('/leads/:id/whatsapp-contact', requirePermission('whatsapp', 'use'), initiateWhatsAppContact);
 
 module.exports = router;

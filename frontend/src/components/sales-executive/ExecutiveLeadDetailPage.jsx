@@ -15,6 +15,7 @@ import {
   LeadQuotationSection,
   LeadActionPanel,
 } from '../lead-detail';
+import LeadContactActions from '../whatsapp-contact/LeadContactActions';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 
 const STATUSES = [
@@ -118,6 +119,15 @@ export default function ExecutiveLeadDetailPage() {
         <LeadStatusPipeline status={lead.status} />
       </div>
 
+      <LeadContactActions
+        lead={lead}
+        leadId={id}
+        contactEndpoint="/sales-executive/leads"
+        onCreateQuote={() => navigate(`/sales-executive/quotations/new?leadId=${id}`)}
+        onContactLogged={loadLead}
+        className="mb-6"
+      />
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
           <LeadCustomerPanel lead={lead} />
@@ -159,7 +169,6 @@ export default function ExecutiveLeadDetailPage() {
               setModalStatusReason(lead.statusReason || '');
               setStatusModalOpen(true);
             }}
-            onCreateQuote={() => navigate(`/sales-executive/quotations/new?leadId=${id}`)}
           />
         </aside>
       </div>

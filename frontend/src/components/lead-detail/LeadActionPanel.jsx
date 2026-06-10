@@ -1,12 +1,9 @@
 import { Link } from 'react-router-dom';
 import {
   Phone,
-  MessageCircle,
-  Mail,
   CalendarPlus,
   UserCheck,
   RefreshCw,
-  FileText,
   Pencil,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -15,27 +12,9 @@ import { cn } from '../../lib/utils';
 const actions = [
   {
     icon: Phone,
-    label: 'Call Customer',
-    link: 'tel',
-    className: 'bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-md shadow-emerald-600/20 h-11',
-  },
-  {
-    icon: Phone,
     label: 'Log Call Note',
     action: 'callnote',
     className: 'text-emerald-700 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-400',
-  },
-  {
-    icon: MessageCircle,
-    label: 'WhatsApp Customer',
-    link: 'whatsapp',
-    className: 'text-green-700 border-green-500/40 bg-green-500/10 hover:bg-green-500/20 dark:text-green-400',
-  },
-  {
-    icon: Mail,
-    label: 'Send Email',
-    link: 'email',
-    className: 'text-sky-700 border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 dark:text-sky-400',
   },
   {
     icon: CalendarPlus,
@@ -55,51 +34,14 @@ const actions = [
     action: 'status',
     className: 'text-orange-700 border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 dark:text-orange-400',
   },
-  {
-    icon: FileText,
-    label: 'Create Quotation',
-    action: 'quote',
-    className: 'text-rose-700 border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 dark:text-rose-400 font-medium',
-  },
 ];
 
-function ActionButton({ action, lead, onAddFollowUp, onLogCallNote, onAssign, onCreateQuote, onChangeStatus }) {
+function ActionButton({ action, lead, onAddFollowUp, onLogCallNote, onAssign, onChangeStatus }) {
   const Icon = action.icon;
   const baseClass = cn(
     'w-full rounded-xl justify-start gap-3 h-10 border',
     action.className
   );
-
-  if (action.link === 'tel') {
-    return (
-      <a href={lead?.phone ? `tel:${lead.phone}` : '#'} className="block">
-        <Button className={baseClass}>
-          <Icon className="w-4 h-4" /> {action.label}
-        </Button>
-      </a>
-    );
-  }
-
-  if (action.link === 'whatsapp') {
-    const wa = lead?.phone ? `https://wa.me/${lead.phone.replace(/\D/g, '')}` : '#';
-    return (
-      <a href={wa} target="_blank" rel="noreferrer" className="block">
-        <Button variant="outline" className={baseClass}>
-          <Icon className="w-4 h-4" /> {action.label}
-        </Button>
-      </a>
-    );
-  }
-
-  if (action.link === 'email') {
-    return (
-      <a href={lead?.email ? `mailto:${lead.email}` : '#'} className="block">
-        <Button variant="outline" className={baseClass}>
-          <Icon className="w-4 h-4" /> {action.label}
-        </Button>
-      </a>
-    );
-  }
 
   return (
     <Button
@@ -109,7 +51,6 @@ function ActionButton({ action, lead, onAddFollowUp, onLogCallNote, onAssign, on
         if (action.action === 'callnote') onLogCallNote?.();
         if (action.action === 'assign') onAssign?.();
         if (action.action === 'status') onChangeStatus?.();
-        if (action.action === 'quote') onCreateQuote?.();
       }}
       className={baseClass}
     >
@@ -124,7 +65,6 @@ export default function LeadActionPanel({
   onAddFollowUp,
   onLogCallNote,
   onAssign,
-  onCreateQuote,
   onChangeStatus,
   canCreateFollowUp = true,
   canEditLead = true,
@@ -138,7 +78,6 @@ export default function LeadActionPanel({
         <div className="space-y-2">
           {actions.map((action) => {
             if (action.action === 'assign' && !onAssign) return null;
-            if (action.action === 'quote' && !onCreateQuote) return null;
             if (action.action === 'followup' && (!onAddFollowUp || !canCreateFollowUp)) return null;
             if (action.action === 'status' && (!onChangeStatus || !canChangeStatus)) return null;
             return (
@@ -149,7 +88,6 @@ export default function LeadActionPanel({
                 onAddFollowUp={onAddFollowUp}
                 onLogCallNote={onLogCallNote}
                 onAssign={onAssign}
-                onCreateQuote={onCreateQuote}
                 onChangeStatus={onChangeStatus}
               />
             );

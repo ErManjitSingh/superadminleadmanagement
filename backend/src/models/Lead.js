@@ -61,6 +61,13 @@ const leadSchema = new mongoose.Schema(
     isVip: { type: Boolean, default: false, index: true },
     responseRate: { type: Number, default: 0, min: 0, max: 100 },
     firstContactAt: { type: Date },
+    lastContactedAt: { type: Date, index: true },
+    lastContactMethod: {
+      type: String,
+      enum: ['call', 'whatsapp', 'email', ''],
+      default: '',
+    },
+    lastContactedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     slaContactedAt: { type: Date },
     slaBreached: { type: Boolean, default: false, index: true },
     isDeleted: { type: Boolean, default: false, index: true },

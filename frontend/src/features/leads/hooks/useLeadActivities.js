@@ -30,7 +30,7 @@ export function useLeadActivities(lead, leadId) {
     return () => {
       cancelled = true;
     };
-  }, [leadId, lead?.updatedAt, lead?.quotations?.length]);
+  }, [leadId, lead?.updatedAt, lead?.lastContactedAt, lead?.quotations?.length]);
 
   const detail = useMemo(() => (lead ? getLeadDetailData(lead) : { activities: [] }), [lead]);
   const activities = useMemo(() => {

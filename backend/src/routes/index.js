@@ -37,6 +37,7 @@ const destinationAssignmentRoutes = require('./destinationAssignmentRoutes');
 const skillAssignmentRoutes = require('./skillAssignmentRoutes');
 const assignmentConfigRoutes = require('./assignmentConfigRoutes');
 const reminderRoutes = require('./reminderRoutes');
+const whatsappTemplateRoutes = require('./whatsappTemplateRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/invites', inviteRoutes);
@@ -54,6 +55,7 @@ router.use('/activities', activityRoutes);
 router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
 router.use('/whatsapp', whatsappRoutes);
+router.use('/whatsapp-templates', whatsappTemplateRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/team', teamRoutes);

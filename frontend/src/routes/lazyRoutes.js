@@ -25,6 +25,8 @@ export const AdminAttendancePage = lazy(() => import('../pages/AdminAttendancePa
 export const DestinationAssignmentPage = lazy(() => import('../pages/DestinationAssignmentPage'));
 export const SkillAssignmentPage = lazy(() => import('../pages/SkillAssignmentPage'));
 export const Notifications = lazy(() => import('../pages/Notifications'));
+export const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'));
+export const WhatsAppTemplatesPage = lazy(() => import('../pages/settings/WhatsAppTemplatesPage'));
 export const ReactivatedLeadsPage = lazy(() => import('../components/leads/ReactivatedLeadsPage'));
 
 export const SalesManagerLayout = lazy(() => import('../components/sales-manager/SalesManagerLayout'));

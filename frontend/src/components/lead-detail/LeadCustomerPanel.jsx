@@ -1,4 +1,4 @@
-import { Phone, Mail, MessageCircle, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock } from 'lucide-react';
 import Avatar from '../ui/Avatar';
 import LeadStatusBadge from '../leads/LeadStatusBadge';
 import { formatLeadId } from '../leads/constants';
@@ -30,12 +30,11 @@ export default function LeadCustomerPanel({ lead }) {
         </div>
 
         <div className="space-y-2">
-          <a href={`tel:${lead.phone}`} className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-elevated text-sm text-content-secondary transition-colors">
-            <Phone className="w-4 h-4 text-brand-600 shrink-0" /> {lead.phone}
-          </a>
-          <a href={`https://wa.me/${lead.phone?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-green-500/5 text-sm text-content-secondary transition-colors">
-            <MessageCircle className="w-4 h-4 text-green-600 shrink-0" /> WhatsApp
-          </a>
+          {lead.phone && (
+            <a href={`tel:${lead.phone}`} className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-elevated text-sm text-content-secondary transition-colors">
+              <Phone className="w-4 h-4 text-brand-600 shrink-0" /> {lead.phone}
+            </a>
+          )}
           {lead.email && (
             <a href={`mailto:${lead.email}`} className="flex items-center gap-2.5 p-2.5 rounded-xl hover:bg-surface-elevated text-sm text-content-secondary transition-colors">
               <Mail className="w-4 h-4 text-content-muted shrink-0" /> {lead.email}
@@ -57,6 +56,32 @@ export default function LeadCustomerPanel({ lead }) {
         <InfoRow label="Budget" value={`₹${lead.budget?.toLocaleString('en-IN')}`} />
         <InfoRow label="Source" value={lead.sourceShort || lead.sourceLabel || lead.source} />
       </div>
+
+      {lead.lastContactedAt && (
+        <div className="rounded-2xl border border-subtle bg-surface p-5 shadow-sm">
+          <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted mb-3">Last Contact</h3>
+          <div className="flex items-start gap-3">
+            <Clock className="w-4 h-4 text-content-muted shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="text-content-primary font-medium capitalize">
+                {lead.lastContactMethod || 'contact'}
+              </p>
+              <p className="text-content-muted text-xs mt-0.5">
+                {new Date(lead.lastContactedAt).toLocaleString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+              {lead.lastContactedBy?.name && (
+                <p className="text-content-muted text-xs mt-1">by {lead.lastContactedBy.name}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Assignment */}
       <div className="rounded-2xl border border-subtle bg-surface p-5 shadow-sm">

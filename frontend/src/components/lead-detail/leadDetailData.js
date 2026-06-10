@@ -27,6 +27,7 @@ export const ACTIVITY_CONFIG = {
   lead_assigned: { label: 'Lead Assigned', icon: UserCheck, color: 'bg-violet-500/10 text-violet-600' },
   call_made: { label: 'Call Made', icon: Phone, color: 'bg-emerald-500/10 text-emerald-600' },
   whatsapp_sent: { label: 'WhatsApp Sent', icon: MessageCircle, color: 'bg-green-500/10 text-green-600' },
+  whatsapp_contact_initiated: { label: 'WhatsApp Contact Initiated', icon: MessageCircle, color: 'bg-green-500/10 text-green-600' },
   followup_added: { label: 'Follow Up Added', icon: CalendarPlus, color: 'bg-amber-500/10 text-amber-600' },
   followup_completed: { label: 'Follow Up Completed', icon: CalendarPlus, color: 'bg-emerald-500/10 text-emerald-600' },
   quotation_sent: { label: 'Quotation Sent', icon: FileText, color: 'bg-orange-500/10 text-orange-600' },

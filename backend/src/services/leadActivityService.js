@@ -8,6 +8,7 @@ const ACTIVITY_TITLES = {
   lead_merged: 'Lead Merged',
   call_made: 'Call Made',
   whatsapp_sent: 'WhatsApp Sent',
+  whatsapp_contact_initiated: 'WhatsApp Contact Initiated',
   followup_created: 'Follow-up Created',
   followup_completed: 'Follow-up Completed',
   followup_missed: 'Follow-up Missed',

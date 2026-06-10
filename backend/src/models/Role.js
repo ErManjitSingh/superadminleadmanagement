@@ -25,6 +25,10 @@ const roleSchema = new mongoose.Schema(
       packages: permissionBlock,
       payments: permissionBlock,
       operations: permissionBlock,
+      whatsapp: {
+        use: { type: Boolean, default: false },
+        manage: { type: Boolean, default: false },
+      },
     },
   },
   { timestamps: true }

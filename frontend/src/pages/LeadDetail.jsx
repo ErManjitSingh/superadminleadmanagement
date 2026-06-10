@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import API from '../api/axios';
@@ -29,9 +29,11 @@ import { invalidateLeadDetail } from '../lib/queryInvalidation';
 import CallNoteModal from '../components/leads/CallNoteModal';
 import MergeLeadModal from '../components/leads/MergeLeadModal';
 import { checkLeadDuplicate } from '../services/leadEnterpriseApi';
+import LeadContactActions from '../components/whatsapp-contact/LeadContactActions';
 
 export default function LeadDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { can } = usePermissions();
@@ -128,6 +130,19 @@ export default function LeadDetail() {
       <div className="mb-6">
         <LeadStatusPipeline status={lead.status} />
       </div>
+
+      <LeadContactActions
+        lead={lead}
+        leadId={id}
+        contactEndpoint="/leads"
+        onCreateQuote={
+          can('quotations', 'create')
+            ? () => navigate(`/quotations/new?leadId=${id}`)
+            : undefined
+        }
+        onContactLogged={refreshLead}
+        className="mb-6"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">

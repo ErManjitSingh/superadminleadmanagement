@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import API from '../../api/axios';
@@ -15,9 +15,11 @@ import {
   LeadFollowUpSection, LeadQuotationSection,
 } from '../lead-detail';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
+import LeadContactActions from '../whatsapp-contact/LeadContactActions';
 
 export default function LeaderLeadDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -92,6 +94,14 @@ export default function LeaderLeadDetailPage() {
       </div>
       <LeadDetailHeader lead={lead} />
       <div className="mb-6"><LeadStatusPipeline status={lead.status} /></div>
+      <LeadContactActions
+        lead={lead}
+        leadId={id}
+        contactEndpoint="/leads"
+        onCreateQuote={() => navigate(`/team-leader/quotations/new?leadId=${id}`)}
+        onContactLogged={loadLead}
+        className="mb-6"
+      />
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 order-2 xl:order-1">
           <LeadCustomerPanel lead={lead} />

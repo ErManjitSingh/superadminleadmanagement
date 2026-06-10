@@ -7,6 +7,7 @@ const noPerms = () => ({
   packages: { view: false, create: false, edit: false, delete: false },
   payments: { view: false, create: false, edit: false, delete: false },
   operations: { view: false, create: false, edit: false, delete: false },
+  whatsapp: { use: false, manage: false },
 });
 
 const fullPerms = () => ({
@@ -18,6 +19,7 @@ const fullPerms = () => ({
   packages: { view: true, create: true, edit: true, delete: true },
   payments: { view: true, create: true, edit: true, delete: true },
   operations: { view: true, create: true, edit: true, delete: true },
+  whatsapp: { use: true, manage: true },
 });
 
 const ROLE_PERMISSIONS = {
@@ -30,6 +32,7 @@ const ROLE_PERMISSIONS = {
     quotations: { view: true, create: true, edit: true, delete: false, approve: true },
     reports: { view: true, export: true },
     packages: { view: true, create: false, edit: false, delete: false },
+    whatsapp: { use: true, manage: false },
   },
   team_leader: {
     ...noPerms(),
@@ -39,6 +42,7 @@ const ROLE_PERMISSIONS = {
     reports: { view: true, export: true },
     packages: { view: true, create: false, edit: false, delete: false },
     users: { view: true, create: false, edit: false, delete: false },
+    whatsapp: { use: true, manage: false },
   },
   sales_executive: {
     ...noPerms(),
@@ -47,6 +51,7 @@ const ROLE_PERMISSIONS = {
     quotations: { view: true, create: true, edit: true, delete: false, approve: false },
     reports: { view: true, export: false },
     packages: { view: true, create: false, edit: false, delete: false },
+    whatsapp: { use: true, manage: false },
   },
   accountant: {
     ...noPerms(),
@@ -71,6 +76,7 @@ const PERMISSION_MODULES = [
   { key: 'packages', label: 'Packages & Inventory' },
   { key: 'payments', label: 'Payments' },
   { key: 'operations', label: 'Operations' },
+  { key: 'whatsapp', label: 'WhatsApp' },
 ];
 
 function getPermissionsForRole(role) {

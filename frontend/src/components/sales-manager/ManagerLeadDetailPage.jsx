@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 import API from '../../api/axios';
@@ -18,9 +18,11 @@ import {
   LeadQuotationSection,
 } from '../lead-detail';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
+import LeadContactActions from '../whatsapp-contact/LeadContactActions';
 
 export default function ManagerLeadDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [lead, setLead] = useState(null);
   const [executives, setExecutives] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,6 +110,15 @@ export default function ManagerLeadDetailPage() {
       <div className="mb-6">
         <LeadStatusPipeline status={lead.status} />
       </div>
+
+      <LeadContactActions
+        lead={lead}
+        leadId={id}
+        contactEndpoint="/leads"
+        onCreateQuote={() => navigate(`/sales-manager/quotations/new?leadId=${id}`)}
+        onContactLogged={loadLead}
+        className="mb-6"
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 order-2 xl:order-1">
