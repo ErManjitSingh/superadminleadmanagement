@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  MoreHorizontal, Eye, Phone, MessageCircle, StickyNote,
+  MoreHorizontal, Eye, Phone, MessageCircle,
   CalendarClock, RefreshCw, FileText,
 } from 'lucide-react';
 import {
@@ -14,7 +14,7 @@ import {
 import { Button } from '../ui/button';
 import AppModal from '../ui/AppModal';
 
-export default function LeadActionsMenu({ lead, onAddNote, onScheduleFollowUp, onChangeStatus, canChangeStatus = true }) {
+export default function LeadActionsMenu({ lead, onScheduleFollowUp, onChangeStatus, canChangeStatus = true }) {
   const phone = lead.phone?.replace(/\s/g, '');
 
   return (
@@ -42,9 +42,6 @@ export default function LeadActionsMenu({ lead, onAddNote, onScheduleFollowUp, o
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => onAddNote?.(lead)} className="flex items-center gap-2 cursor-pointer">
-          <StickyNote className="w-4 h-4" /> Add Note
-        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onScheduleFollowUp?.(lead)} className="flex items-center gap-2 cursor-pointer">
           <CalendarClock className="w-4 h-4" /> Schedule Follow-up
         </DropdownMenuItem>

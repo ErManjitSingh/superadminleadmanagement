@@ -3,7 +3,6 @@ import {
   Phone,
   MessageCircle,
   Mail,
-  StickyNote,
   CalendarPlus,
   UserCheck,
   RefreshCw,
@@ -39,12 +38,6 @@ const actions = [
     className: 'text-sky-700 border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 dark:text-sky-400',
   },
   {
-    icon: StickyNote,
-    label: 'Add Note',
-    action: 'note',
-    className: 'text-amber-700 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 dark:text-amber-400',
-  },
-  {
     icon: CalendarPlus,
     label: 'Add Follow Up',
     action: 'followup',
@@ -70,7 +63,7 @@ const actions = [
   },
 ];
 
-function ActionButton({ action, lead, onAddFollowUp, onAddNote, onLogCallNote, onAssign, onCreateQuote, onChangeStatus }) {
+function ActionButton({ action, lead, onAddFollowUp, onLogCallNote, onAssign, onCreateQuote, onChangeStatus }) {
   const Icon = action.icon;
   const baseClass = cn(
     'w-full rounded-xl justify-start gap-3 h-10 border',
@@ -113,7 +106,6 @@ function ActionButton({ action, lead, onAddFollowUp, onAddNote, onLogCallNote, o
       variant="outline"
       onClick={() => {
         if (action.action === 'followup') onAddFollowUp?.();
-        if (action.action === 'note') onAddNote?.();
         if (action.action === 'callnote') onLogCallNote?.();
         if (action.action === 'assign') onAssign?.();
         if (action.action === 'status') onChangeStatus?.();
@@ -130,7 +122,6 @@ export default function LeadActionPanel({
   lead,
   leadId,
   onAddFollowUp,
-  onAddNote,
   onLogCallNote,
   onAssign,
   onCreateQuote,
@@ -156,7 +147,6 @@ export default function LeadActionPanel({
                 action={action}
                 lead={lead}
                 onAddFollowUp={onAddFollowUp}
-                onAddNote={onAddNote}
                 onLogCallNote={onLogCallNote}
                 onAssign={onAssign}
                 onCreateQuote={onCreateQuote}

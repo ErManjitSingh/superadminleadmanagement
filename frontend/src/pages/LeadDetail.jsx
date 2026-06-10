@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,7 +16,6 @@ import {
   LeadStatusPipeline,
   LeadCustomerPanel,
   LeadActivityTimeline,
-  LeadNotesSection,
   LeadFollowUpSection,
   LeadQuotationSection,
   LeadActionPanel,
@@ -48,7 +47,6 @@ export default function LeadDetail() {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [hasDuplicates, setHasDuplicates] = useState(false);
   const leadQuery = useLeadQuery(id);
-  const notesRef = useRef(null);
 
   const refreshLead = () => invalidateLeadDetail(queryClient, id);
 
@@ -109,10 +107,6 @@ export default function LeadDetail() {
     );
   }
 
-  const scrollToNotes = () => {
-    notesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const handleReactivationAction = async (payload) => {
     if (!reactivationMode) return;
     const endpoint =
@@ -146,9 +140,6 @@ export default function LeadDetail() {
             loading={timelineLoading}
             quotations={lead.quotations || []}
           />
-          <div ref={notesRef}>
-            <LeadNotesSection notes={detail.notes} />
-          </div>
           <LeadFollowUpSection
             followUps={lead.followups || detail.followUps}
             lead={lead}
@@ -199,7 +190,6 @@ export default function LeadDetail() {
             canCreateFollowUp={canCreateFollowUp}
             canEditLead={canEditLead}
             editHref={canEditLead ? `/leads/${id}/edit` : undefined}
-            onAddNote={scrollToNotes}
             onLogCallNote={() => setCallNoteOpen(true)}
             onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
           />

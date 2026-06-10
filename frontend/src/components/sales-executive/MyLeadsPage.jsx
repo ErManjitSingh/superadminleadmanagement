@@ -66,7 +66,6 @@ export default function MyLeadsPage() {
   const [priorityFilter, setPriorityFilter] = useState('');
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const [modal, setModal] = useState(null);
-  const [modalText, setModalText] = useState('');
   const [modalStatus, setModalStatus] = useState('contacted');
   const [modalStatusReason, setModalStatusReason] = useState('');
 
@@ -106,14 +105,6 @@ export default function MyLeadsPage() {
   }, [isAllView]);
 
   useDataRefresh(['leads'], fetchLeads);
-
-  const handleSaveNote = async () => {
-    if (!modal?.lead || !modalText.trim()) return;
-    await API.post(`/sales-executive/leads/${modal.lead._id}/notes`, { text: modalText });
-    setModal(null);
-    setModalText('');
-    fetchLeads();
-  };
 
   const handleChangeStatus = async () => {
     if (!modal?.lead) return;
@@ -180,8 +171,7 @@ export default function MyLeadsPage() {
       cell: ({ row }) => (
         <LeadActionsMenu
           lead={row.original}
-          onAddNote={(lead) => { setModal({ type: 'note', lead }); setModalText(''); }}
-          onScheduleFollowUp={(lead) => { setModal({ type: 'followup', lead }); setModalText(''); }}
+          onScheduleFollowUp={(lead) => { setModal({ type: 'followup', lead }); }}
           onChangeStatus={(lead) => {
             setModal({ type: 'status', lead });
             setModalStatus(lead.status);
@@ -332,20 +322,6 @@ export default function MyLeadsPage() {
           <TablePagination table={table} totalLabel="leads" totalCount={total} />
         )}
       </div>
-
-      <ActionModal open={modal?.type === 'note'} title="Add Note" onClose={() => setModal(null)}>
-        <textarea
-          value={modalText}
-          onChange={(e) => setModalText(e.target.value)}
-          rows={4}
-          placeholder="Enter note…"
-          className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
-        />
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setModal(null)}>Cancel</Button>
-          <Button onClick={handleSaveNote}>Save Note</Button>
-        </div>
-      </ActionModal>
 
       <ActionModal open={modal?.type === 'status'} title="Change Status" onClose={() => setModal(null)}>
         <select

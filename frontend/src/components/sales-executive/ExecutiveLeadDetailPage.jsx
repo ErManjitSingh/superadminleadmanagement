@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,7 +11,6 @@ import {
   LeadStatusPipeline,
   LeadCustomerPanel,
   LeadActivityTimeline,
-  LeadNotesSection,
   LeadFollowUpSection,
   LeadQuotationSection,
   LeadActionPanel,
@@ -39,8 +38,6 @@ export default function ExecutiveLeadDetailPage() {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('contacted');
   const [modalStatusReason, setModalStatusReason] = useState('');
-  const notesRef = useRef(null);
-
   const loadLead = useCallback(({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     return API.get(`/sales-executive/leads/${id}`, { skipSuccessToast: true })
@@ -97,10 +94,6 @@ export default function ExecutiveLeadDetailPage() {
     );
   }
 
-  const scrollToNotes = () => {
-    notesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const handleChangeStatus = async () => {
     if (!id) return;
     await API.put(`/sales-executive/leads/${id}`, {
@@ -136,9 +129,6 @@ export default function ExecutiveLeadDetailPage() {
             loading={timelineLoading}
             quotations={lead.quotations || []}
           />
-          <div ref={notesRef}>
-            <LeadNotesSection notes={detail.notes} />
-          </div>
           <LeadFollowUpSection
             followUps={lead.followups || detail.followUps}
             lead={lead}
@@ -164,7 +154,6 @@ export default function ExecutiveLeadDetailPage() {
             canEditLead={false}
             canChangeStatus
             onAddFollowUp={() => setFollowUpModalOpen(true)}
-            onAddNote={scrollToNotes}
             onChangeStatus={() => {
               setModalStatus(lead.status || 'new');
               setModalStatusReason(lead.statusReason || '');

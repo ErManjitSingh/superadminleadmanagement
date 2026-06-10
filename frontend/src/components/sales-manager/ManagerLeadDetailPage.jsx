@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, UserPlus } from 'lucide-react';
@@ -14,7 +14,6 @@ import {
   LeadStatusPipeline,
   LeadCustomerPanel,
   LeadActivityTimeline,
-  LeadNotesSection,
   LeadFollowUpSection,
   LeadQuotationSection,
 } from '../lead-detail';
@@ -26,8 +25,6 @@ export default function ManagerLeadDetailPage() {
   const [executives, setExecutives] = useState([]);
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
-  const notesRef = useRef(null);
-
   const loadLead = useCallback(() => {
     setLoading(true);
     return API.get(`/sales-manager/leads/${id}`)
@@ -122,9 +119,6 @@ export default function ManagerLeadDetailPage() {
             loading={timelineLoading}
             quotations={lead.quotations || []}
           />
-          <div ref={notesRef}>
-            <LeadNotesSection notes={detail.notes} />
-          </div>
           <LeadFollowUpSection followUps={lead.followups || detail.followUps} lead={lead} canCreate={false} />
           <LeadQuotationSection quotations={detail.quotations} />
         </main>

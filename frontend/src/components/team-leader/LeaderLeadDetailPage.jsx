@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -12,7 +12,7 @@ import { UserPlus, RefreshCw } from 'lucide-react';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import {
   LeadDetailHeader, LeadStatusPipeline, LeadCustomerPanel, LeadActivityTimeline,
-  LeadNotesSection, LeadFollowUpSection, LeadQuotationSection,
+  LeadFollowUpSection, LeadQuotationSection,
 } from '../lead-detail';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 
@@ -22,8 +22,6 @@ export default function LeaderLeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
   const [executives, setExecutives] = useState([]);
-  const notesRef = useRef(null);
-
   const loadLead = useCallback(() => {
     setLoading(true);
     return API.get(`/team-leader/leads/${id}`, { skipSuccessToast: true })
@@ -104,7 +102,6 @@ export default function LeaderLeadDetailPage() {
             loading={timelineLoading}
             quotations={lead.quotations || []}
           />
-          <div ref={notesRef}><LeadNotesSection notes={detail.notes} /></div>
           <LeadFollowUpSection followUps={lead.followups || detail.followUps} lead={lead} />
           <LeadQuotationSection quotations={lead.quotations || detail.quotations} />
         </main>

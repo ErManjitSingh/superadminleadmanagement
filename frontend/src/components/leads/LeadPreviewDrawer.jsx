@@ -247,14 +247,6 @@ export default function LeadPreviewDrawer({ lead, onClose, onAssign, canEditLead
               </div>
             </section>
 
-            {lead.notes && (
-              <section>
-                <h3 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-content-muted">Notes</h3>
-                <p className="rounded-2xl border border-subtle bg-surface-elevated/40 p-4 text-sm italic leading-relaxed text-content-secondary">
-                  &ldquo;{lead.notes}&rdquo;
-                </p>
-              </section>
-            )}
           </div>
 
           <div className="shrink-0 space-y-2.5 border-t border-violet-500/10 bg-gradient-to-t from-violet-500/[0.04] to-transparent p-4">
