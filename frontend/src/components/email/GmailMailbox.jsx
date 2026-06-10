@@ -15,6 +15,7 @@ import {
   X,
   ExternalLink,
   PenSquare,
+  User,
 } from 'lucide-react';
 import { fetchMailbox, fetchMailboxMessage, syncEmailReplies } from '../../services/emailApi';
 import GmailComposeLeadPicker from './GmailComposeLeadPicker';
@@ -58,6 +59,25 @@ function initials(name = '', email = '') {
   const parts = src.trim().split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return (parts[0]?.[0] || '?').toUpperCase();
+}
+
+function ExecutiveBadge({ name, action, compact = false }) {
+  if (!name) return null;
+  const color = avatarColor(name);
+  const isReply = action === 'reply';
+  return (
+    <span
+      className={`shrink-0 inline-flex items-center gap-0.5 rounded font-semibold ${
+        compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-[11px]'
+      }`}
+      style={{ backgroundColor: `${color}18`, color, border: `1px solid ${color}40` }}
+      title={isReply ? `Reply on ${name}'s lead` : `Sent by ${name}`}
+    >
+      <User className={compact ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+      {isReply ? 'Reply' : 'Sent'}
+      <span className="font-bold truncate max-w-[72px]">{name.split(' ')[0]}</span>
+    </span>
+  );
 }
 
 function useLeadPathPrefix() {
@@ -160,6 +180,8 @@ export default function GmailMailbox() {
     if (id === 'starred') return starred.size;
     return data.counts?.[id] ?? 0;
   };
+
+  const showExecutive = data.showExecutive === true;
 
   return (
     <div className="h-full flex flex-col bg-[#f6f8fc] text-[#202124] text-[13px] leading-tight overflow-hidden rounded-lg border border-[#dadce0]">
@@ -318,7 +340,10 @@ export default function GmailMailbox() {
                       {initials(sender, senderEmail)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 min-w-0">
+                        {showExecutive && (
+                          <ExecutiveBadge name={msg.executiveName} action={msg.mailAction} compact />
+                        )}
                         <span className={`truncate text-[12px] ${unread ? 'font-bold' : 'font-medium'}`}>
                           {sender}
                         </span>
@@ -368,6 +393,23 @@ export default function GmailMailbox() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-3 py-2 md:px-4 md:py-3">
+                  {showExecutive && selected.executiveName && (
+                    <div
+                      className="mb-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md border"
+                      style={{
+                        backgroundColor: `${avatarColor(selected.executiveName)}12`,
+                        borderColor: `${avatarColor(selected.executiveName)}35`,
+                      }}
+                    >
+                      <ExecutiveBadge name={selected.executiveName} action={selected.mailAction} />
+                      <span className="text-[11px] text-[#5f6368] truncate">
+                        {selected.mailAction === 'reply'
+                          ? `Client replied on ${selected.executiveName}'s lead`
+                          : `${selected.executiveName} sent this email`}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h1 className="text-[15px] font-normal text-[#202124] leading-snug flex-1 min-w-0">
                       {selected.subject}
@@ -436,6 +478,18 @@ export default function GmailMailbox() {
                   )}
 
                   <div className="mt-3 flex flex-wrap gap-1.5 pt-2 border-t border-[#f1f3f4]">
+                    {showExecutive && selected.executiveName && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold"
+                        style={{
+                          backgroundColor: `${avatarColor(selected.executiveName)}18`,
+                          color: avatarColor(selected.executiveName),
+                        }}
+                      >
+                        <User className="w-3 h-3" />
+                        {selected.executiveName}
+                      </span>
+                    )}
                     {selected.leadId && (
                       <Link
                         to={`${leadPathPrefix}/${selected.leadId}${leadPathPrefix.includes('executive') || leadPathPrefix.includes('manager') || leadPathPrefix.includes('leader') ? '/view' : ''}`}

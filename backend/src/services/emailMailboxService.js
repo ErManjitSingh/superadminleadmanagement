@@ -29,6 +29,20 @@ async function resolveScopedLeadIds(req) {
   return null;
 }
 
+function resolveExecutiveFromLead(lead) {
+  const assignee = lead?.assignedTo;
+  if (assignee && typeof assignee === 'object') {
+    return {
+      executiveId: assignee._id ? String(assignee._id) : null,
+      executiveName: assignee.name || '',
+    };
+  }
+  return {
+    executiveId: assignee ? String(assignee) : null,
+    executiveName: '',
+  };
+}
+
 function mapSentRow(row, leadMap) {
   const lead = leadMap.get(String(row.leadId));
   const toEmail = row.to?.[0] || '';
@@ -36,6 +50,9 @@ function mapSentRow(row, leadMap) {
     id: String(row._id),
     type: 'sent',
     folder: row.status === 'failed' ? 'failed' : 'sent',
+    mailAction: 'sent',
+    executiveId: row.sentBy ? String(row.sentBy) : null,
+    executiveName: row.sentByName || '',
     from: { name: row.sentByName || 'UNO Trips', email: row.from || CRM_MAIL },
     to: row.to || [],
     subject: row.subject,
@@ -56,10 +73,14 @@ function mapSentRow(row, leadMap) {
 
 function mapInboundRow(row, leadMap) {
   const lead = leadMap.get(String(row.leadId));
+  const executive = resolveExecutiveFromLead(lead);
   return {
     id: String(row._id),
     type: 'inbound',
     folder: 'inbox',
+    mailAction: 'reply',
+    executiveId: executive.executiveId,
+    executiveName: executive.executiveName,
     from: { name: row.fromName || row.fromEmail, email: row.fromEmail },
     to: [CRM_MAIL],
     subject: row.subject || '(No subject)',
@@ -80,7 +101,10 @@ function mapInboundRow(row, leadMap) {
 async function fetchLeadMap(ids) {
   const unique = [...new Set(ids.filter(Boolean).map(String))];
   if (!unique.length) return new Map();
-  const leads = await Lead.find({ _id: { $in: unique } }).select('name destination email').lean();
+  const leads = await Lead.find({ _id: { $in: unique } })
+    .select('name destination email assignedTo')
+    .populate('assignedTo', 'name')
+    .lean();
   return new Map(leads.map((l) => [String(l._id), l]));
 }
 
@@ -92,6 +116,7 @@ function matchesSearch(item, q) {
     item.from?.name,
     item.from?.email,
     item.leadName,
+    item.executiveName,
     ...(item.to || []),
   ]
     .join(' ')
@@ -180,6 +205,7 @@ async function listMailboxMessages(req, { folder = 'inbox', search = '', page = 
       all: inboxTotal + sentTotal + failedTotal,
     },
     mailbox: CRM_MAIL,
+    showExecutive: ['team_leader', 'sales_manager', 'admin'].includes(req.user.role),
   };
 }
 
