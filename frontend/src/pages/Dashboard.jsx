@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useDashboardQuery } from '../features/dashboard/hooks/useDashboardQuery';
@@ -6,17 +6,22 @@ import { invalidateDashboard } from '../lib/queryInvalidation';
 import {
   DashboardHeader,
   DashboardHero,
-  RevenueChart,
-  SalesFunnel,
   DashboardLeadsTabs,
   TodayFollowUps,
   ActivityTimeline,
   DashboardSkeleton,
-  SourceAnalyticsPanel,
-  ExecutivePerformancePanel,
-  AgingChartPanel,
 } from '../components/dashboard';
 import DashboardPanel from '../components/dashboard/DashboardPanel';
+
+const RevenueChart = lazy(() => import('../components/dashboard/RevenueChart'));
+const SalesFunnel = lazy(() => import('../components/dashboard/SalesFunnel'));
+const SourceAnalyticsPanel = lazy(() => import('../components/dashboard/SourceAnalyticsPanel'));
+const ExecutivePerformancePanel = lazy(() => import('../components/dashboard/ExecutivePerformancePanel'));
+const AgingChartPanel = lazy(() => import('../components/dashboard/AgingChartPanel'));
+
+function PanelSkeleton() {
+  return <div className="h-56 rounded-2xl bg-surface-elevated/60 animate-pulse" />;
+}
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -51,19 +56,29 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-8">
-          <RevenueChart data={stats.monthlyRevenue || []} />
+          <Suspense fallback={<PanelSkeleton />}>
+            <RevenueChart data={stats.monthlyRevenue || []} />
+          </Suspense>
         </div>
         <div className="lg:col-span-4">
-          <SourceAnalyticsPanel data={stats.sourceAnalytics} />
+          <Suspense fallback={<PanelSkeleton />}>
+            <SourceAnalyticsPanel data={stats.sourceAnalytics} />
+          </Suspense>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <AgingChartPanel aging={stats.enterpriseKpis?.aging || []} />
-        <ExecutivePerformancePanel data={stats.executivePerformance} compact />
+        <Suspense fallback={<PanelSkeleton />}>
+          <AgingChartPanel aging={stats.enterpriseKpis?.aging || []} />
+        </Suspense>
+        <Suspense fallback={<PanelSkeleton />}>
+          <ExecutivePerformancePanel data={stats.executivePerformance} compact />
+        </Suspense>
       </div>
 
-      <SalesFunnel data={stats.salesFunnel || []} />
+      <Suspense fallback={<PanelSkeleton />}>
+        <SalesFunnel data={stats.salesFunnel || []} />
+      </Suspense>
 
       <TodayFollowUps followups={stats.todayFollowUps || []} />
 

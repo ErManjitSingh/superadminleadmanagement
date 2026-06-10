@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { lazy, Suspense, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
@@ -7,8 +7,13 @@ import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQu
 import { invalidateDashboard } from '../../lib/queryInvalidation';
 import PageHeader from '../ui/PageHeader';
 import ManagerKpiCards from './dashboard/ManagerKpiCards';
-import ManagerCharts from './dashboard/ManagerCharts';
 import ManagerDashboardPanels from './dashboard/ManagerDashboardPanels';
+
+const ManagerCharts = lazy(() => import('./dashboard/ManagerCharts'));
+
+function ChartSkeleton() {
+  return <div className="h-60 rounded-2xl bg-surface-elevated/60 animate-pulse" />;
+}
 
 export default function ManagerDashboard() {
   const queryClient = useQueryClient();
@@ -61,7 +66,9 @@ export default function ManagerDashboard() {
       </motion.div>
 
       <ManagerKpiCards kpis={data?.kpis} />
-      <ManagerCharts data={data} />
+      <Suspense fallback={<ChartSkeleton />}>
+        <ManagerCharts data={data} />
+      </Suspense>
       <ManagerDashboardPanels data={data} />
     </div>
   );

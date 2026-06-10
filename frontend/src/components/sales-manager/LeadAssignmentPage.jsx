@@ -180,11 +180,8 @@ export default function LeadAssignmentPage() {
               ) : leads.length === 0 ? (
                 <tr><td colSpan={9} className="p-12 text-center text-content-muted">No unassigned leads</td></tr>
               ) : leads.map((lead, i) => (
-                <motion.tr
+                <tr
                   key={lead._id}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
                   className={`group border-b border-subtle/60 last:border-0 hover:bg-gradient-to-r hover:from-amber-500/[0.06] hover:to-orange-500/[0.04] ${selected.includes(lead._id) ? 'bg-amber-500/[0.08]' : lead.isHot ? 'bg-rose-500/[0.04]' : i % 2 === 0 ? 'bg-surface/40' : ''}`}
                 >
                   <td className={compactTd}>
@@ -212,7 +209,7 @@ export default function LeadAssignmentPage() {
                       </Button>
                     </div>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>

@@ -11,6 +11,8 @@ export default defineConfig({
           query: ['@tanstack/react-query'],
           table: ['@tanstack/react-table'],
           charts: ['recharts'],
+          motion: ['framer-motion'],
+          icons: ['lucide-react'],
           calendar: ['@fullcalendar/core', '@fullcalendar/react', '@fullcalendar/daygrid', '@fullcalendar/timegrid'],
         },
       },

@@ -5,7 +5,7 @@ const FollowUp = require('../models/FollowUp');
 const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
-const { LEAD_POPULATE, enrichLead, buildLeadSearchFilter, FOLLOWUP_POPULATE } = require('../utils/queryHelpers');
+const { LEAD_LIST_POPULATE, enrichLead, buildLeadSearchFilter, FOLLOWUP_POPULATE } = require('../utils/queryHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 const listConversations = asyncHandler(async (req, res) => {
@@ -17,7 +17,13 @@ const listConversations = asyncHandler(async (req, res) => {
   Object.assign(filter, buildLeadSearchFilter(search));
 
   const [leads, total] = await Promise.all([
-    Lead.find(filter).populate(LEAD_POPULATE).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
+    Lead.find(filter)
+      .select('-notes')
+      .populate(LEAD_LIST_POPULATE)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Lead.countDocuments(filter),
   ]);
   const leadIds = leads.map((l) => l._id);

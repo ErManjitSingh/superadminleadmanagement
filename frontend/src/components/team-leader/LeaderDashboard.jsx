@@ -1,30 +1,25 @@
-import { useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { lazy, Suspense, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Crown, Users } from 'lucide-react';
-import API from '../../api/axios';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQuery';
+import { useMyTeamQuery } from '../../hooks/useMyTeamQuery';
 import { invalidateDashboard } from '../../lib/queryInvalidation';
-import { DASHBOARD_STALE_MS, GC_TIME_MS } from '../../lib/queryConfig';
 import PageHeader from '../ui/PageHeader';
 import LeaderKpiCards from './dashboard/LeaderKpiCards';
-import LeaderCharts from './dashboard/LeaderCharts';
 import MyTeamPanel from './MyTeamPanel';
+
+const LeaderCharts = lazy(() => import('./dashboard/LeaderCharts'));
+
+function ChartSkeleton() {
+  return <div className="h-60 rounded-2xl bg-surface-elevated/60 animate-pulse" />;
+}
 
 export default function LeaderDashboard() {
   const queryClient = useQueryClient();
   const dashboardQuery = useDashboardQuery('/team-leader/dashboard');
-  const teamQuery = useQuery({
-    queryKey: ['team-leader', 'my-team'],
-    queryFn: async () => {
-      const { data } = await API.get('/team-leader/my-team', { skipSuccessToast: true });
-      return data || { team: null, members: [], message: null };
-    },
-    staleTime: DASHBOARD_STALE_MS,
-    gcTime: GC_TIME_MS,
-    placeholderData: (prev) => prev,
-  });
+  const teamQuery = useMyTeamQuery();
 
   const refresh = useCallback(() => {
     invalidateDashboard(queryClient);
@@ -88,7 +83,9 @@ export default function LeaderDashboard() {
       </motion.div>
 
       <LeaderKpiCards kpis={data?.kpis} />
-      <LeaderCharts data={data} />
+      <Suspense fallback={<ChartSkeleton />}>
+        <LeaderCharts data={data} />
+      </Suspense>
     </div>
   );
 }

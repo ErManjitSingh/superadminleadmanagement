@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarClock, AlertTriangle, Clock } from 'lucide-react';
-import API from '../../api/axios';
-import { unwrapList } from '../../utils/apiHelpers';
+import { useFollowUpsQuery } from '../../features/followups/hooks/useFollowUpsQuery';
 import PageHeader from '../ui/PageHeader';
 import FollowUpPriorityBadge from '../followups/FollowUpPriorityBadge';
 import FollowUpStatusBadge from '../followups/FollowUpStatusBadge';
@@ -19,17 +18,13 @@ const TABS = [
 export default function FollowUpMonitoringPage() {
   const [tab, setTab] = useState('today');
   const [category, setCategory] = useState('');
-  const [followups, setFollowups] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    const params = { tab };
-    if (category) params.category = category;
-    API.get('/sales-manager/followups', { params })
-      .then((r) => setFollowups(unwrapList(r.data)))
-      .finally(() => setLoading(false));
-  }, [tab, category]);
+  const { data, isLoading: loading } = useFollowUpsQuery({
+    endpoint: '/sales-manager/followups',
+    kpiTab: tab,
+    filters: { category },
+    limit: 100,
+  });
+  const followups = data?.data ?? [];
 
   return (
     <div className="space-y-6">

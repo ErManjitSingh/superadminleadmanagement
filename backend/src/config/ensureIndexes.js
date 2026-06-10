@@ -12,6 +12,11 @@ const CallNote = require('../models/CallNote');
 const LeadEscalation = require('../models/LeadEscalation');
 const LeadMergeLog = require('../models/LeadMergeLog');
 const LeadTransferLog = require('../models/LeadTransferLog');
+const EmailLog = require('../models/EmailLog');
+const EmailReply = require('../models/EmailReply');
+const WhatsAppMessage = require('../models/WhatsAppMessage');
+const Payment = require('../models/Payment');
+const Notification = require('../models/Notification');
 
 async function ensureIndexes() {
   await Promise.all([
@@ -37,6 +42,10 @@ async function ensureIndexes() {
     Lead.collection.createIndex({ branchId: 1, isDeleted: 1, assignedTo: 1, createdAt: -1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, isDeleted: 1, source: 1, status: 1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, slaBreached: 1, createdAt: -1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, assignedTo: 1, status: 1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, assignedTo: 1, isHot: 1, status: 1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, channel: 1, updatedAt: -1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, source: 1 }, { background: true }),
     Lead.collection.createIndex({ email: 1 }, { background: true, sparse: true }),
     LeadActivity.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
     AuditLog.collection.createIndex({ entityType: 1, entityId: 1, createdAt: -1 }, { background: true }),
@@ -63,6 +72,14 @@ async function ensureIndexes() {
     ActivityLog.collection.createIndex({ createdAt: 1 }, { expireAfterSeconds: 86400, background: true }),
     Attendance.collection.createIndex({ date: 1, workMode: 1 }, { background: true }),
     Attendance.collection.createIndex({ date: 1, status: 1 }, { background: true }),
+
+    EmailLog.collection.createIndex({ branchId: 1, leadId: 1, status: 1, sentAt: -1 }, { background: true }),
+    EmailLog.collection.createIndex({ branchId: 1, sentBy: 1, status: 1, sentAt: -1 }, { background: true }),
+    EmailReply.collection.createIndex({ branchId: 1, leadId: 1, receivedAt: -1 }, { background: true }),
+    WhatsAppMessage.collection.createIndex({ lead: 1, timestamp: -1 }, { background: true }),
+    WhatsAppMessage.collection.createIndex({ lead: 1, direction: 1, status: 1 }, { background: true }),
+    Payment.collection.createIndex({ branchId: 1, status: 1, paidAt: -1 }, { background: true }),
+    Notification.collection.createIndex({ user: 1, read: 1, createdAt: -1 }, { background: true }),
   ]);
 
   console.log('[MongoDB] Performance indexes ensured');

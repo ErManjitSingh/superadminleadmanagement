@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarClock, AlertTriangle, Clock, TrendingUp } from 'lucide-react';
 import API from '../../api/axios';
-import { unwrapList } from '../../utils/apiHelpers';
+import { useFollowUpsQuery } from '../../features/followups/hooks/useFollowUpsQuery';
 import PageHeader from '../ui/PageHeader';
 import Avatar from '../ui/Avatar';
 import FollowUpPriorityBadge from '../followups/FollowUpPriorityBadge';
@@ -20,20 +20,18 @@ const TABS = [
 export default function LeaderFollowUpsPage() {
   const [tab, setTab] = useState('today');
   const [category, setCategory] = useState('');
-  const [followups, setFollowups] = useState([]);
   const [executives, setExecutives] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useFollowUpsQuery({
+    endpoint: '/team-leader/followups',
+    kpiTab: tab,
+    filters: { category },
+    limit: 100,
+  });
+  const followups = data?.data ?? [];
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      API.get('/team-leader/followups', { params: { tab, ...(category ? { category } : {}) } }),
-      API.get('/team-leader/executives'),
-    ]).then(([fu, ex]) => {
-      setFollowups(unwrapList(fu.data));
-      setExecutives(ex.data);
-    }).finally(() => setLoading(false));
-  }, [tab, category]);
+    API.get('/team-leader/executives').then((ex) => setExecutives(ex.data));
+  }, []);
 
   const execStats = executives.map((ex) => {
     const mine = followups.filter((f) => f.assignedTo?.name === ex.name);

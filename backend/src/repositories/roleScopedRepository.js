@@ -74,7 +74,13 @@ async function findManagerLeadsPaginated(query = {}, options = {}) {
   const filter = withBranch(buildManagerLeadFilter(query), options.branchId);
 
   const [rows, total] = await Promise.all([
-    Lead.find(filter).populate(LEAD_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
+    Lead.find(filter)
+      .select('-notes')
+      .populate(LEAD_LIST_POPULATE)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Lead.countDocuments(filter),
   ]);
 
@@ -137,7 +143,13 @@ async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {
   const filter = withBranch({ ...squadFilter, ...extra, ...buildLeadSearchFilter(query.search) }, options.branchId);
 
   const [rows, total] = await Promise.all([
-    Lead.find(filter).populate(LEAD_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
+    Lead.find(filter)
+      .select('-notes')
+      .populate(LEAD_LIST_POPULATE)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean(),
     Lead.countDocuments(filter),
   ]);
 
@@ -197,25 +209,42 @@ async function getFollowUpSummary(baseFilter = {}, options = {}) {
   const todayEnd = new Date(todayStart);
   todayEnd.setHours(23, 59, 59, 999);
 
-  const [total, today, missed, upcoming, completed] = await Promise.all([
-    FollowUp.countDocuments(scopedBase),
-    FollowUp.countDocuments({
-      ...scopedBase,
-      scheduledAt: { $gte: todayStart, $lte: todayEnd },
-    }),
-    FollowUp.countDocuments({
-      ...scopedBase,
-      $or: [{ status: 'missed' }, { status: 'pending', scheduledAt: { $lt: todayStart } }],
-    }),
-    FollowUp.countDocuments({
-      ...scopedBase,
-      status: 'pending',
-      scheduledAt: { $gt: todayEnd },
-    }),
-    FollowUp.countDocuments({ ...scopedBase, status: 'completed' }),
+  const [row] = await FollowUp.aggregate([
+    { $match: scopedBase },
+    {
+      $facet: {
+        total: [{ $count: 'n' }],
+        today: [
+          { $match: { scheduledAt: { $gte: todayStart, $lte: todayEnd } } },
+          { $count: 'n' },
+        ],
+        missed: [
+          {
+            $match: {
+              $or: [{ status: 'missed' }, { status: 'pending', scheduledAt: { $lt: todayStart } }],
+            },
+          },
+          { $count: 'n' },
+        ],
+        upcoming: [
+          { $match: { status: 'pending', scheduledAt: { $gt: todayEnd } } },
+          { $count: 'n' },
+        ],
+        completed: [{ $match: { status: 'completed' } }, { $count: 'n' }],
+      },
+    },
   ]);
 
-  return { total, today, missed, upcoming, completed };
+  const facet = row || {};
+  const count = (key) => facet?.[key]?.[0]?.n ?? 0;
+
+  return {
+    total: count('total'),
+    today: count('today'),
+    missed: count('missed'),
+    upcoming: count('upcoming'),
+    completed: count('completed'),
+  };
 }
 
 async function getQuotationStats(baseFilter = {}, options = {}) {

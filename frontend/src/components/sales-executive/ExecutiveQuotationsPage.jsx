@@ -173,12 +173,9 @@ export default function ExecutiveQuotationsPage() {
                   </td>
                 </tr>
               ) : (
-                quotes.map((q, i) => (
-                  <motion.tr
+                quotes.map((q) => (
+                  <tr
                     key={q._id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.03 }}
                     className="hover:bg-sky-500/[0.03] cursor-pointer"
                     onClick={() => setSelected(q)}
                   >
@@ -214,7 +211,7 @@ export default function ExecutiveQuotationsPage() {
                         )}
                       </div>
                     </td>
-                  </motion.tr>
+                  </tr>
                 ))
               )}
             </tbody>

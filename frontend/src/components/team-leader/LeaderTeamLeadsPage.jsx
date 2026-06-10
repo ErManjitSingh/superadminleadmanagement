@@ -26,6 +26,7 @@ import { useLeadAssign } from '../../hooks/useLeadAssign';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import { useLeadReactivate } from '../../hooks/useLeadReactivate';
+import { useMyTeamQuery } from '../../hooks/useMyTeamQuery';
 import MyTeamPanel from './MyTeamPanel';
 import {
   DropdownMenuRoot, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -59,8 +60,7 @@ export default function LeaderTeamLeadsPage() {
   const MetaIcon = meta.icon;
   const theme = FILTER_THEMES[filter] || FILTER_THEMES.all;
   const showRecoveryUi = filter === 'lost' || filter === 'reactivated';
-  const [myTeam, setMyTeam] = useState({ team: null, members: [], message: null });
-  const [teamLoading, setTeamLoading] = useState(true);
+  const { data: myTeam = { team: null, members: [], message: null }, isLoading: teamLoading } = useMyTeamQuery();
   const [search, setSearch] = useState('');
   const [reactivateLeadRow, setReactivateLeadRow] = useState(null);
   const debouncedSearch = useDebouncedValue(search, 350);
@@ -103,14 +103,6 @@ export default function LeaderTeamLeadsPage() {
       refreshAfterAssign();
     },
   });
-
-  useEffect(() => {
-    setTeamLoading(true);
-    API.get('/team-leader/my-team')
-      .then((r) => setMyTeam(r.data || { team: null, members: [], message: null }))
-      .catch(() => setMyTeam({ team: null, members: [], message: 'Could not load team' }))
-      .finally(() => setTeamLoading(false));
-  }, []);
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
@@ -279,12 +271,12 @@ export default function LeaderTeamLeadsPage() {
                 <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">Loading…</td></tr>
               ) : leads.length === 0 ? (
                 <tr><td colSpan={columns.length}><ReactivationEmptyState isLost={filter === 'lost'} /></td></tr>
-              ) : table.getRowModel().rows.map((row, i) => (
-                <motion.tr key={row.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }} className="hover:bg-amber-500/[0.03]">
+              ) : table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="hover:bg-amber-500/[0.03]">
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-3.5 align-middle">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
                   ))}
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>

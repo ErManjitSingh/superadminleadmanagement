@@ -77,22 +77,32 @@ export function NotificationProvider({ children }) {
     showBrowserNotification(notification);
   }, []);
 
-  const loadInitial = useCallback(async () => {
+  const loadUnreadOnly = useCallback(async () => {
+    if (!user) return;
+    try {
+      const count = await fetchUnreadCount();
+      setUnreadCount(count);
+    } catch {
+      /* offline / unauthorized */
+    }
+  }, [user]);
+
+  const loadNotificationsList = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [list, count] = await Promise.all([
-        fetchNotifications(50),
-        fetchUnreadCount(),
-      ]);
+      const list = await fetchNotifications(50);
       setNotifications(list);
-      setUnreadCount(count);
     } catch {
       /* offline / unauthorized */
     } finally {
       setLoading(false);
     }
   }, [user]);
+
+  const loadInitial = useCallback(async () => {
+    await Promise.all([loadUnreadOnly(), loadNotificationsList()]);
+  }, [loadUnreadOnly, loadNotificationsList]);
 
   useEffect(() => {
     if (!user) {
@@ -106,7 +116,7 @@ export function NotificationProvider({ children }) {
       return;
     }
 
-    loadInitial();
+    loadUnreadOnly();
 
     const token = authStorage.getToken();
     if (!token) return;
@@ -142,7 +152,7 @@ export function NotificationProvider({ children }) {
       socketRef.current = null;
       setConnected(false);
     };
-  }, [user, loadInitial, handleIncoming]);
+  }, [user, loadUnreadOnly, handleIncoming]);
 
   const requestBrowserPermission = useCallback(async () => {
     if (!('Notification' in window)) return 'unsupported';
@@ -154,8 +164,9 @@ export function NotificationProvider({ children }) {
 
   const openDrawer = useCallback(() => {
     setDrawerOpen(true);
+    loadNotificationsList();
     requestBrowserPermission();
-  }, [requestBrowserPermission]);
+  }, [loadNotificationsList, requestBrowserPermission]);
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
 
@@ -201,7 +212,7 @@ export function NotificationProvider({ children }) {
     }
   }, []);
 
-  const refresh = useCallback(() => loadInitial(), [loadInitial]);
+  const refresh = useCallback(() => loadUnreadOnly(), [loadUnreadOnly]);
 
   return (
     <NotificationContext.Provider

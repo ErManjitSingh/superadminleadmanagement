@@ -503,49 +503,90 @@ async function buildTeamLeaderDashboard(leaderId, options = {}) {
   const execIds = await getExecutiveIdsForLeader(leaderId);
   const squadFilter = withBranch(execIds.length ? { assignedTo: { $in: execIds } } : { assignedTo: null }, branchId);
 
-  const [teamLeadsRaw, teamFollowups, teamQuotes, teamRevenue] = await Promise.all([
-    Lead.find(squadFilter).populate('assignedTo', 'name email').lean(),
-    FollowUp.countDocuments({
-      status: 'pending',
-      $or: [{ assignedTo: { $in: execIds } }, { lead: { $in: [] } }],
-    }),
+  const facetCount = (facet, key) => facet?.[key]?.[0]?.n ?? 0;
+
+  const [
+    facetResult,
+    teamQuotes,
+    teamRevenue,
+    executives,
+    sourceAgg,
+    reactivationWidget,
+    monthlyTarget,
+    teamRevenueTrend,
+  ] = await Promise.all([
+    Lead.aggregate([
+      { $match: squadFilter },
+      {
+        $facet: {
+          total: [{ $count: 'n' }],
+          active: [
+            { $match: { status: { $nin: ['lost', 'booked_from_another_company'] } } },
+            { $count: 'n' },
+          ],
+          converted: [{ $match: { status: 'converted' } }, { $count: 'n' }],
+          new: [{ $match: { status: 'new' } }, { $count: 'n' }],
+          contacted: [{ $match: { status: 'contacted' } }, { $count: 'n' }],
+          followUp: [
+            { $match: { status: { $in: ['follow_up', 'negotiation'] } } },
+            { $count: 'n' },
+          ],
+          quotation: [{ $match: { status: 'quotation_sent' } }, { $count: 'n' }],
+          byAssignee: [
+            {
+              $group: {
+                _id: '$assignedTo',
+                assignedLeads: { $sum: 1 },
+                conversions: { $sum: { $cond: [{ $eq: ['$status', 'converted'] }, 1, 0] } },
+              },
+            },
+          ],
+          leadIds: [{ $project: { _id: 1 } }],
+        },
+      },
+    ]),
     Quotation.find({ status: 'pending_approval' }).populate('lead', 'assignedTo').lean(),
     sumConvertedPackageRevenue({ assigneeIds: execIds, branchId }),
+    User.find({ _id: { $in: execIds } }).select('name email').lean(),
+    Lead.aggregate([{ $match: squadFilter }, { $group: { _id: '$source', count: { $sum: 1 } } }]),
+    buildReactivationWidget(branchId, execIds),
+    getMonthlyTarget(leaderId),
+    aggregateConvertedPackageRevenueByMonth({ assigneeIds: execIds, branchId }),
   ]);
 
-  const teamLeads = teamLeadsRaw.map(enrichLead);
-  const leadIds = teamLeadsRaw.map((l) => l._id);
+  const facet = facetResult[0] || {};
+  const totalLeads = facetCount(facet, 'total');
+  const convertedCount = facetCount(facet, 'converted');
+  const activeLeads = facetCount(facet, 'active');
+  const leadIds = (facet.leadIds || []).map((l) => l._id);
+  const conversionRate = totalLeads
+    ? Math.round((convertedCount / totalLeads) * 1000) / 10
+    : 0;
+
   const activeFollowups = await FollowUp.countDocuments({
     status: 'pending',
     $or: [{ assignedTo: { $in: execIds } }, { lead: { $in: leadIds } }],
   });
 
-  const converted = teamLeads.filter((l) => l.status === 'converted');
-  const conversionRate = teamLeads.length
-    ? Math.round((converted.length / teamLeads.length) * 1000) / 10
-    : 0;
-  const monthlyTarget = await getMonthlyTarget(leaderId);
-
   const squadQuotes = teamQuotes.filter((q) =>
     execIds.some((id) => q.lead?.assignedTo?.toString?.() === id.toString())
   );
 
-  const executives = await User.find({ _id: { $in: execIds } }).select('name email').lean();
+  const assigneeMap = Object.fromEntries((facet.byAssignee || []).map((a) => [String(a._id), a]));
   const executiveRanking = await Promise.all(
     executives.map(async (ex, i) => {
-      const [assignedLeads, conversions, revenue] = await Promise.all([
-        Lead.countDocuments({ assignedTo: ex._id }),
-        Lead.countDocuments({ assignedTo: ex._id, status: 'converted' }),
-        sumConvertedPackageRevenue({ assigneeId: ex._id, branchId }),
-      ]);
+      const stats = assigneeMap[String(ex._id)] || { assignedLeads: 0, conversions: 0 };
+      const revenue = await sumConvertedPackageRevenue({ assigneeId: ex._id, branchId });
       return {
         _id: ex._id,
         name: ex.name,
         email: ex.email,
-        assignedLeads,
-        conversions,
+        assignedLeads: stats.assignedLeads,
+        conversions: stats.conversions,
         revenue,
-        conversionRate: assignedLeads ? Math.round((conversions / assignedLeads) * 1000) / 10 : 0,
+        conversionRate: stats.assignedLeads
+          ? Math.round((stats.conversions / stats.assignedLeads) * 1000) / 10
+          : 0,
         rank: i + 1,
       };
     })
@@ -555,37 +596,31 @@ async function buildTeamLeaderDashboard(leaderId, options = {}) {
     e.rank = i + 1;
   });
 
-  const sourceAgg = await Lead.aggregate([
-    { $match: squadFilter },
-    { $group: { _id: '$source', count: { $sum: 1 } } },
-  ]);
-  const reactivationWidget = await buildReactivationWidget(branchId, execIds);
-
   return {
     kpis: {
-      teamLeads: teamLeads.filter((l) => !['lost', 'booked_from_another_company'].includes(l.status)).length,
+      teamLeads: activeLeads,
       activeFollowups,
-      teamConversions: converted.length,
+      teamConversions: convertedCount,
       teamRevenue,
       conversionRate,
       targetAchievement: Math.round((teamRevenue / monthlyTarget) * 100),
     },
-    teamRevenueTrend: await aggregateConvertedPackageRevenueByMonth({ assigneeIds: execIds, branchId }),
+    teamRevenueTrend,
     executiveRanking,
     conversionFunnel: [
-      { stage: 'New', count: teamLeads.filter((l) => l.status === 'new').length, fill: '#F59E0B' },
-      { stage: 'Contacted', count: teamLeads.filter((l) => l.status === 'contacted').length, fill: '#8B5CF6' },
+      { stage: 'New', count: facetCount(facet, 'new'), fill: '#F59E0B' },
+      { stage: 'Contacted', count: facetCount(facet, 'contacted'), fill: '#8B5CF6' },
       {
         stage: 'Follow-up',
-        count: teamLeads.filter((l) => ['follow_up', 'negotiation'].includes(l.status)).length,
+        count: facetCount(facet, 'followUp'),
         fill: '#6366F1',
       },
       {
         stage: 'Quotation',
-        count: teamLeads.filter((l) => l.status === 'quotation_sent').length,
+        count: facetCount(facet, 'quotation'),
         fill: '#0EA5E9',
       },
-      { stage: 'Converted', count: converted.length, fill: '#10B981' },
+      { stage: 'Converted', count: convertedCount, fill: '#10B981' },
     ],
     leadSources: sourceAgg.map((s) => ({
       source: s._id || 'Other',

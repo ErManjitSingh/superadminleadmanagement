@@ -96,6 +96,8 @@ function buildLeadSearchFilter(search) {
       { name: { $regex: q, $options: 'i' } },
       { email: { $regex: q, $options: 'i' } },
       { phone: { $regex: q, $options: 'i' } },
+      { whatsapp: { $regex: q, $options: 'i' } },
+      { alternatePhone: { $regex: q, $options: 'i' } },
       { destination: { $regex: q, $options: 'i' } },
     ],
   };

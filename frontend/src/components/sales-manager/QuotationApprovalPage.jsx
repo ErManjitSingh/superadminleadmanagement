@@ -114,7 +114,7 @@ export default function QuotationApprovalPage() {
               ) : quotes.length === 0 ? (
                 <tr><td colSpan={7} className="p-12 text-center text-content-muted">No quotations match your filters</td></tr>
               ) : quotes.map((q, i) => (
-                <motion.tr key={q._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="hover:bg-violet-500/[0.03] cursor-pointer" onClick={() => setSelected(q)}>
+                <tr key={q._id} className="hover:bg-violet-500/[0.03] cursor-pointer" onClick={() => setSelected(q)}>
                   <td className="px-4 py-3.5 font-mono text-xs font-medium text-brand-600">{q.quoteNumber}</td>
                   <td className="px-4 py-3.5 font-medium text-content-primary">{q.lead?.name}</td>
                   <td className="px-4 py-3.5 text-content-secondary">{q.lead?.destination}</td>
@@ -130,7 +130,7 @@ export default function QuotationApprovalPage() {
                       </div>
                     )}
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>

@@ -119,14 +119,46 @@ async function buildAdminNavCounts(userId, { branchId } = {}) {
   };
 }
 
+async function aggregateSalesManagerLeadCounts(branchId) {
+  const match = withBranch({ isDeleted: { $ne: true } }, branchId);
+  const [row] = await Lead.aggregate([
+    { $match: match },
+    {
+      $facet: {
+        all: [{ $count: 'n' }],
+        unassigned: [{ $match: { assignedTo: null } }, { $count: 'n' }],
+        assigned: [{ $match: { assignedTo: { $ne: null } } }, { $count: 'n' }],
+        hot: [
+          {
+            $match: {
+              isHot: true,
+              status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
+            },
+          },
+          { $count: 'n' },
+        ],
+        lost: [
+          { $match: { status: { $in: ['lost', 'booked_from_another_company'] } } },
+          { $count: 'n' },
+        ],
+        reactivated: [{ $match: { 'reactivation.isReactivated': true } }, { $count: 'n' }],
+      },
+    },
+  ]);
+
+  return {
+    all: facetCount(row, 'all'),
+    unassigned: facetCount(row, 'unassigned'),
+    assigned: facetCount(row, 'assigned'),
+    hot: facetCount(row, 'hot'),
+    lost: facetCount(row, 'lost'),
+    reactivated: facetCount(row, 'reactivated'),
+  };
+}
+
 async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
   const [
-    leadsAll,
-    leadsUnassigned,
-    leadsAssigned,
-    leadsHot,
-    leadsLost,
-    leadsReactivated,
+    leads,
     followUpsDue,
     quotationsPending,
     quotationsApproved,
@@ -134,12 +166,7 @@ async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
     notificationsUnread,
     calendarToday,
   ] = await Promise.all([
-    Lead.countDocuments(withBranch({}, branchId)),
-    Lead.countDocuments(withBranch({ assignedTo: null }, branchId)),
-    Lead.countDocuments(withBranch({ assignedTo: { $ne: null } }, branchId)),
-    countHotLeads({}, branchId),
-    Lead.countDocuments(withBranch({ status: { $in: ['lost', 'booked_from_another_company'] } }, branchId)),
-    Lead.countDocuments(withBranch({ 'reactivation.isReactivated': true }, branchId)),
+    aggregateSalesManagerLeadCounts(branchId),
     countFollowUpsDue({}, branchId),
     Quotation.countDocuments(withBranch({ status: { $in: ['sent', 'negotiation', 'pending_approval'] } }, branchId)),
     Quotation.countDocuments(withBranch({ status: 'approved' }, branchId)),
@@ -149,15 +176,8 @@ async function buildSalesManagerNavCounts(userId, { branchId } = {}) {
   ]);
 
   return {
-    leads: {
-      all: leadsAll,
-      unassigned: leadsUnassigned,
-      assigned: leadsAssigned,
-      hot: leadsHot,
-      lost: leadsLost,
-      reactivated: leadsReactivated,
-    },
-    assignment: leadsUnassigned,
+    leads,
+    assignment: leads.unassigned,
     followups: { due: followUpsDue },
     quotations: {
       pending: quotationsPending,
@@ -244,40 +264,61 @@ async function buildExecutiveNavCounts(userId, { branchId } = {}) {
   };
 }
 
+async function aggregateTeamLeaderLeadCounts(squadFilter) {
+  const fiveDaysAgo = new Date(Date.now() - 5 * 86400000);
+  const [row] = await Lead.aggregate([
+    { $match: squadFilter },
+    {
+      $facet: {
+        all: [{ $count: 'n' }],
+        lost: [
+          { $match: { status: { $in: ['lost', 'booked_from_another_company'] } } },
+          { $count: 'n' },
+        ],
+        reactivated: [{ $match: { 'reactivation.isReactivated': true } }, { $count: 'n' }],
+        escalations: [
+          {
+            $match: {
+              $or: [
+                {
+                  status: { $in: ['follow_up', 'negotiation', 'quotation_sent'] },
+                  updatedAt: { $lt: fiveDaysAgo },
+                },
+                {
+                  budget: { $gte: 200000 },
+                  status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
+                },
+              ],
+            },
+          },
+          { $count: 'n' },
+        ],
+        leadIds: [{ $project: { _id: 1 } }],
+      },
+    },
+  ]);
+
+  return {
+    all: facetCount(row, 'all'),
+    lost: facetCount(row, 'lost'),
+    reactivated: facetCount(row, 'reactivated'),
+    escalations: facetCount(row, 'escalations'),
+    leadIds: (row?.leadIds || []).map((l) => l._id),
+  };
+}
+
 async function buildTeamLeaderNavCounts(userId, { branchId } = {}) {
   const execIds = await getExecutiveIdsForLeader(userId);
   const squadFilter = withBranch(execIds.length ? { assignedTo: { $in: execIds } } : { assignedTo: null }, branchId);
-  const leadIds = execIds.length
-    ? await Lead.find(squadFilter).distinct('_id')
-    : [];
+  const aggregated = await aggregateTeamLeaderLeadCounts(squadFilter);
+  const { leadIds } = aggregated;
   const quoteFilter = leadIds.length ? { lead: { $in: leadIds } } : { lead: null };
-
-  const fiveDaysAgo = new Date(Date.now() - 5 * 86400000);
-  const [stuckIds, highValueIds] = await Promise.all([
-    Lead.find({
-      ...squadFilter,
-      status: { $in: ['follow_up', 'negotiation', 'quotation_sent'] },
-      updatedAt: { $lt: fiveDaysAgo },
-    }).distinct('_id'),
-    Lead.find({
-      ...squadFilter,
-      budget: { $gte: 200000 },
-      status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
-    }).distinct('_id'),
-  ]);
-  const escalations = new Set([
-    ...stuckIds.map(String),
-    ...highValueIds.map(String),
-  ]).size;
 
   const squadFollowFilter = execIds.length
     ? { assignedTo: { $in: execIds } }
     : { assignedTo: null };
 
   const [
-    leadsAll,
-    leadsLost,
-    leadsReactivated,
     followUpsDue,
     quotationsPending,
     quotationsNegotiation,
@@ -285,12 +326,6 @@ async function buildTeamLeaderNavCounts(userId, { branchId } = {}) {
     quotationsRejected,
     notificationsUnread,
   ] = await Promise.all([
-    Lead.countDocuments(squadFilter),
-    Lead.countDocuments({
-      ...squadFilter,
-      status: { $in: ['lost', 'booked_from_another_company'] },
-    }),
-    Lead.countDocuments({ ...squadFilter, 'reactivation.isReactivated': true }),
     countFollowUpsDue(squadFollowFilter, branchId),
     Quotation.countDocuments(withBranch({ ...quoteFilter, status: 'pending_approval' }, branchId)),
     Quotation.countDocuments(withBranch({ ...quoteFilter, status: 'negotiation' }, branchId)),
@@ -300,9 +335,9 @@ async function buildTeamLeaderNavCounts(userId, { branchId } = {}) {
   ]);
 
   return {
-    leads: { all: leadsAll, lost: leadsLost, reactivated: leadsReactivated },
+    leads: { all: aggregated.all, lost: aggregated.lost, reactivated: aggregated.reactivated },
     followups: { due: followUpsDue },
-    escalations,
+    escalations: aggregated.escalations,
     quotations: {
       pending: quotationsPending,
       negotiation: quotationsNegotiation,

@@ -496,7 +496,12 @@ const listNotifications = asyncHandler(async (req, res) => {
 });
 
 const getProfile = asyncHandler(async (req, res) => {
-  const dash = await buildTeamLeaderDashboard(req.user._id, { branchId: req.branchId });
+  const dash = await getOrSetFresh(
+    req,
+    cacheKey('team_leader', `${req.user._id}:${req.branchId || 'all'}`),
+    () => buildTeamLeaderDashboard(req.user._id, { branchId: req.branchId }),
+    60 * 1000
+  );
   const team = await getTeamForLeader(req.user._id);
   const execIds = await getExecutiveIdsForLeader(req.user._id);
 
