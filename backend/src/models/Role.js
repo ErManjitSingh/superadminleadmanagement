@@ -29,6 +29,10 @@ const roleSchema = new mongoose.Schema(
         use: { type: Boolean, default: false },
         manage: { type: Boolean, default: false },
       },
+      email: {
+        send: { type: Boolean, default: false },
+        manage: { type: Boolean, default: false },
+      },
     },
   },
   { timestamps: true }

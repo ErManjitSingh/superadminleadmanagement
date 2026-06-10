@@ -16,6 +16,7 @@ import {
   LeadActionPanel,
 } from '../lead-detail';
 import LeadContactActions from '../whatsapp-contact/LeadContactActions';
+import LeadEmailHistory from '../email/LeadEmailHistory';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 
 const STATUSES = [
@@ -125,12 +126,18 @@ export default function ExecutiveLeadDetailPage() {
         contactEndpoint="/sales-executive/leads"
         onCreateQuote={() => navigate(`/sales-executive/quotations/new?leadId=${id}`)}
         onContactLogged={loadLead}
+        onEmailSent={loadLead}
         className="mb-6"
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
           <LeadCustomerPanel lead={lead} />
+          <LeadEmailHistory
+            leadId={id}
+            emailEndpoint="/sales-executive/leads"
+            refreshKey={lead?.lastContactedAt || lead?.updatedAt}
+          />
         </aside>
 
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
@@ -154,7 +161,13 @@ export default function ExecutiveLeadDetailPage() {
             modalOpen={followUpModalOpen}
             onModalOpenChange={setFollowUpModalOpen}
           />
-          <LeadQuotationSection quotations={lead.quotations || detail.quotations || []} />
+          <LeadQuotationSection
+            quotations={lead.quotations || detail.quotations || []}
+            lead={lead}
+            leadId={id}
+            emailEndpoint="/sales-executive/leads"
+            onEmailSent={loadLead}
+          />
         </main>
 
         <aside className="xl:col-span-3 order-3">

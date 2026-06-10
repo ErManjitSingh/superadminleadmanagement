@@ -99,6 +99,11 @@ export function keysFromMutationUrl(url, _method) {
     keys.add('leads');
   }
 
+  if (/\/emails/.test(path) || /\/send-email/.test(path) || /\/email-templates/.test(path)) {
+    keys.add('dashboard');
+    keys.add('leads');
+  }
+
   if (/\/operations-manager/.test(path) || /\/payments/.test(path)) {
     keys.add('operations');
     keys.add('dashboard');

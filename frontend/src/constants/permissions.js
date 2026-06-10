@@ -9,4 +9,5 @@ export const PERMISSION_MODULES = {
   payments: { label: 'Payments', actions: ['view', 'create', 'edit', 'delete'] },
   operations: { label: 'Operations', actions: ['view', 'create', 'edit', 'delete'] },
   whatsapp: { label: 'WhatsApp', actions: ['use', 'manage'] },
+  email: { label: 'Email', actions: ['send', 'manage'] },
 };

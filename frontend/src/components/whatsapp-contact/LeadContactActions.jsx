@@ -1,6 +1,7 @@
-import { Phone, Mail, FileText } from 'lucide-react';
+import { Phone, FileText } from 'lucide-react';
 import { Button } from '../ui/button';
 import WhatsAppActionButton from './WhatsAppActionButton';
+import EmailActionButton from '../email/EmailActionButton';
 
 export default function LeadContactActions({
   lead,
@@ -8,10 +9,10 @@ export default function LeadContactActions({
   contactEndpoint = '/leads',
   onCreateQuote,
   onContactLogged,
+  onEmailSent,
   className = '',
 }) {
   const phone = lead?.phone;
-  const email = lead?.email;
 
   return (
     <div className={`rounded-2xl border border-subtle bg-surface/90 backdrop-blur-sm p-4 shadow-sm ${className}`}>
@@ -35,16 +36,13 @@ export default function LeadContactActions({
           size="lg"
         />
 
-        <a href={email ? `mailto:${email}` : '#'} className={!email ? 'pointer-events-none opacity-50' : ''}>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl gap-2 h-11 px-5 text-sky-700 border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
-          >
-            <Mail className="w-4 h-4" />
-            Email
-          </Button>
-        </a>
+        <EmailActionButton
+          lead={lead}
+          leadId={leadId}
+          emailEndpoint={contactEndpoint}
+          onEmailSent={onEmailSent || onContactLogged}
+          size="lg"
+        />
 
         {onCreateQuote && (
           <Button

@@ -12,6 +12,7 @@ const {
 } = require('../utils/convertedPackageRevenue');
 const { getExecutiveIdsForLeader } = require('./teamScopeService');
 const { getEnterpriseKpis, getSourceAnalytics, getExecutivePerformance } = require('./leadAnalyticsService');
+const { getEmailDashboardStats } = require('./emailStatsService');
 const { withBranch } = require('../utils/branchScope');
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -165,10 +166,11 @@ async function buildAdminDashboard(options = {}) {
   const revenue = revenueAgg[0]?.total || 0;
   const monthlyRevenue = await aggregateRevenueByMonth({}, branchId);
   const reactivationWidget = await buildReactivationWidget(branchId);
-  const [enterpriseKpis, sourceAnalytics, executivePerformance] = await Promise.all([
+  const [enterpriseKpis, sourceAnalytics, executivePerformance, emailStats] = await Promise.all([
     getEnterpriseKpis(branchId),
     getSourceAnalytics(branchId),
     getExecutivePerformance(branchId),
+    getEmailDashboardStats({ branchId }),
   ]);
 
   const statusCounts = Object.fromEntries(leadsByStatus.map((s) => [s._id, s.count]));
@@ -249,6 +251,7 @@ async function buildAdminDashboard(options = {}) {
     enterpriseKpis,
     sourceAnalytics,
     executivePerformance,
+    emailStats,
     kpiSparklines: {
       totalLeads: [totalLeads],
       newLeads: [todayLeads],
@@ -282,6 +285,7 @@ async function buildExecutiveDashboard(userId, options = {}) {
     recentLeadsRaw,
     myFollowups,
     statusAgg,
+    emailStats,
   ] = await Promise.all([
     Lead.countDocuments({ ...leadScope, status: { $nin: ['lost', 'booked_from_another_company'] } }),
     Lead.countDocuments({ ...leadScope, isHot: true, status: { $nin: ['converted', 'lost', 'booked_from_another_company'] } }),
@@ -311,6 +315,7 @@ async function buildExecutiveDashboard(userId, options = {}) {
       { $match: leadScope },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
+    getEmailDashboardStats({ branchId, userId: execId }),
   ]);
 
   const statusCounts = Object.fromEntries(statusAgg.map((s) => [s._id, s.count]));
@@ -319,6 +324,7 @@ async function buildExecutiveDashboard(userId, options = {}) {
   const totalAssigned = Object.values(statusCounts).reduce((s, n) => s + n, 0);
 
   return {
+    emailStats,
     kpis: {
       myLeads,
       todayFollowups: todayFollowups.length,

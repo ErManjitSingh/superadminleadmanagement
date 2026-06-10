@@ -1,19 +1,27 @@
 import { Link } from 'react-router-dom';
-import { MessageCircle, ChevronRight } from 'lucide-react';
+import { MessageCircle, Mail, ChevronRight } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export default function SettingsPage() {
   const { can } = usePermissions();
-  const canManageTemplates = can('whatsapp', 'manage');
+  const canManageWhatsApp = can('whatsapp', 'manage');
+  const canManageEmail = can('email', 'manage');
 
   const items = [
-    canManageTemplates && {
+    canManageWhatsApp && {
       to: '/settings/whatsapp-templates',
       icon: MessageCircle,
       title: 'WhatsApp Templates',
       description: 'Manage predefined WhatsApp messages for sales team',
       color: 'text-green-600 bg-green-500/10',
+    },
+    canManageEmail && {
+      to: '/settings/email-templates',
+      icon: Mail,
+      title: 'Email Templates',
+      description: 'Manage email templates for sales@unotrips.com',
+      color: 'text-sky-600 bg-sky-500/10',
     },
   ].filter(Boolean);
 

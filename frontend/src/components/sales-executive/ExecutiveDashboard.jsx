@@ -9,6 +9,7 @@ import { invalidateDashboard } from '../../lib/queryInvalidation';
 import PageHeader from '../ui/PageHeader';
 import ExecutiveKpiCards from './dashboard/ExecutiveKpiCards';
 import ExecutiveDashboardPanels from './dashboard/ExecutiveDashboardPanels';
+import EmailStatsPanel from '../dashboard/EmailStatsPanel';
 
 export default function ExecutiveDashboard() {
   const { user } = useAuth();
@@ -67,6 +68,7 @@ export default function ExecutiveDashboard() {
       </motion.div>
 
       <ExecutiveKpiCards kpis={data?.kpis} />
+      {data?.emailStats && <EmailStatsPanel stats={data.emailStats} />}
       <ExecutiveDashboardPanels data={data} />
     </div>
   );

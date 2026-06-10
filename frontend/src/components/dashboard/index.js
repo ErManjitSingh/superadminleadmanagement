@@ -15,3 +15,4 @@ export { default as EnterpriseKpiStrip } from './EnterpriseKpiStrip';
 export { default as SourceAnalyticsPanel } from './SourceAnalyticsPanel';
 export { default as ExecutivePerformancePanel } from './ExecutivePerformancePanel';
 export { default as AgingChartPanel } from './AgingChartPanel';
+export { default as EmailStatsPanel } from './EmailStatsPanel';

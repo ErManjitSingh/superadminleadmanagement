@@ -9,6 +9,7 @@ const noPerms = () => ({
   payments: { view: false, create: false, edit: false, delete: false },
   operations: { view: false, create: false, edit: false, delete: false },
   whatsapp: { use: false, manage: false },
+  email: { send: false, manage: false },
 });
 
 const fullPerms = () => ({
@@ -21,6 +22,7 @@ const fullPerms = () => ({
   payments: { view: true, create: true, edit: true, delete: true },
   operations: { view: true, create: true, edit: true, delete: true },
   whatsapp: { use: true, manage: true },
+  email: { send: true, manage: true },
 });
 
 const ROLE_PERMISSIONS = {
@@ -34,6 +36,7 @@ const ROLE_PERMISSIONS = {
     reports: { view: true, export: true },
     packages: { view: true, create: false, edit: false, delete: false },
     whatsapp: { use: true, manage: false },
+    email: { send: true, manage: false },
   },
   team_leader: {
     ...noPerms(),
@@ -44,6 +47,7 @@ const ROLE_PERMISSIONS = {
     packages: { view: true, create: false, edit: false, delete: false },
     users: { view: true, create: false, edit: false, delete: false },
     whatsapp: { use: true, manage: false },
+    email: { send: true, manage: false },
   },
   sales_executive: {
     ...noPerms(),
@@ -53,6 +57,7 @@ const ROLE_PERMISSIONS = {
     reports: { view: true, export: false },
     packages: { view: true, create: false, edit: false, delete: false },
     whatsapp: { use: true, manage: false },
+    email: { send: true, manage: false },
   },
   accountant: {
     ...noPerms(),

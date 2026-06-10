@@ -36,6 +36,7 @@ import {
   Notifications,
   SettingsPage,
   WhatsAppTemplatesPage,
+  EmailTemplatesPage,
   ReactivatedLeadsPage,
   SalesManagerLayout,
   ManagerDashboard,
@@ -244,6 +245,7 @@ function App() {
               <Route path="notifications" element={<PermissionRoute module="leads"><Notifications /></PermissionRoute>} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/whatsapp-templates" element={<PermissionRoute module="whatsapp" action="manage"><WhatsAppTemplatesPage /></PermissionRoute>} />
+              <Route path="settings/email-templates" element={<PermissionRoute module="email" action="manage"><EmailTemplatesPage /></PermissionRoute>} />
               <Route path="profile" element={<ComingSoon title="My Profile" description="Personal settings and performance" />} />
             </Route>
             <Route path="*" element={<Navigate to="/login" replace />} />

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Download, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '../ui/button';
+import EmailActionButton from '../email/EmailActionButton';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import { formatINR } from '../quotations/quotationUtils';
 import { resolveQuotationAmount } from './leadDetailData';
@@ -17,7 +18,13 @@ function canDownloadPdf(q) {
   return Boolean(q?._id && (q.pricing || q.packageSnapshot || q.package));
 }
 
-export default function LeadQuotationSection({ quotations = [] }) {
+export default function LeadQuotationSection({
+  quotations = [],
+  lead = null,
+  leadId = null,
+  emailEndpoint = '/leads',
+  onEmailSent,
+}) {
   const [pdfQuote, setPdfQuote] = useState(null);
   const pdfRef = useRef(null);
 
@@ -67,16 +74,32 @@ export default function LeadQuotationSection({ quotations = [] }) {
                   <p className="text-xs text-content-muted truncate mt-0.5">{title}</p>
                   <p className="text-sm font-bold text-content-primary metric-tabular mt-1">{formatINR(amount)}</p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={!downloadable}
-                  onClick={() => downloadable && setPdfQuote(q)}
-                  className="rounded-lg h-8 gap-1 shrink-0 text-sky-700 border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 dark:text-sky-400 disabled:opacity-40"
-                >
-                  <Download className="w-3.5 h-3.5" /> PDF
-                </Button>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={!downloadable}
+                    onClick={() => downloadable && setPdfQuote(q)}
+                    className="rounded-lg h-8 gap-1 text-sky-700 border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20 dark:text-sky-400 disabled:opacity-40"
+                  >
+                    <Download className="w-3.5 h-3.5" /> PDF
+                  </Button>
+                  {lead && leadId && (
+                    <EmailActionButton
+                      lead={lead}
+                      leadId={leadId}
+                      emailEndpoint={emailEndpoint}
+                      quotation={q}
+                      defaultCategory="quotation"
+                      onEmailSent={onEmailSent}
+                      size="default"
+                      label="Email"
+                      showLabel
+                      className="!h-8 !px-3 !text-xs"
+                    />
+                  )}
+                </div>
               </div>
             );
           })}

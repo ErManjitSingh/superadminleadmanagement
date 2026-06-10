@@ -19,6 +19,7 @@ import {
 } from '../lead-detail';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 import LeadContactActions from '../whatsapp-contact/LeadContactActions';
+import LeadEmailHistory from '../email/LeadEmailHistory';
 
 export default function ManagerLeadDetailPage() {
   const { id } = useParams();
@@ -117,12 +118,14 @@ export default function ManagerLeadDetailPage() {
         contactEndpoint="/leads"
         onCreateQuote={() => navigate(`/sales-manager/quotations/new?leadId=${id}`)}
         onContactLogged={loadLead}
+        onEmailSent={loadLead}
         className="mb-6"
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 order-2 xl:order-1">
           <LeadCustomerPanel lead={lead} />
+          <LeadEmailHistory leadId={id} emailEndpoint="/leads" refreshKey={lead?.lastContactedAt || lead?.updatedAt} />
         </aside>
         <main className="xl:col-span-9 space-y-6 order-1 xl:order-2">
           <LeadActivityTimeline
@@ -131,7 +134,13 @@ export default function ManagerLeadDetailPage() {
             quotations={lead.quotations || []}
           />
           <LeadFollowUpSection followUps={lead.followups || detail.followUps} lead={lead} canCreate={false} />
-          <LeadQuotationSection quotations={detail.quotations} />
+          <LeadQuotationSection
+            quotations={detail.quotations}
+            lead={lead}
+            leadId={id}
+            emailEndpoint="/leads"
+            onEmailSent={loadLead}
+          />
         </main>
       </div>
 

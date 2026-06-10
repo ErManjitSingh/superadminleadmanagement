@@ -20,6 +20,7 @@ const {
   getCalendar,
 } = require('../controllers/salesExecutiveController');
 const { initiateWhatsAppContact } = require('../controllers/whatsappContactController');
+const { sendLeadEmail, listLeadEmailHistory } = require('../controllers/emailController');
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 const { requirePermission } = require('../middleware/requirePermission');
@@ -54,5 +55,7 @@ router.get('/leads/:idOrFilter', (req, res, next) => {
 router.put('/leads/:id', updateLead);
 router.post('/leads/:id/notes', addLeadNote);
 router.post('/leads/:id/whatsapp-contact', requirePermission('whatsapp', 'use'), initiateWhatsAppContact);
+router.post('/leads/:id/send-email', requirePermission('email', 'send'), sendLeadEmail);
+router.get('/leads/:id/email-history', requirePermission('email', 'send'), listLeadEmailHistory);
 
 module.exports = router;

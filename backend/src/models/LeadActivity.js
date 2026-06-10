@@ -8,6 +8,7 @@ const LEAD_ACTIVITY_TYPES = [
   'call_made',
   'whatsapp_sent',
   'whatsapp_contact_initiated',
+  'email_sent',
   'followup_created',
   'followup_completed',
   'followup_missed',

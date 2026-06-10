@@ -15,6 +15,7 @@ import {
   SourceAnalyticsPanel,
   ExecutivePerformancePanel,
   AgingChartPanel,
+  EmailStatsPanel,
 } from '../components/dashboard';
 import DashboardPanel from '../components/dashboard/DashboardPanel';
 
@@ -40,6 +41,8 @@ export default function Dashboard() {
       )}
       <DashboardHeader />
       <DashboardHero stats={stats} />
+
+      {stats.emailStats && <EmailStatsPanel stats={stats.emailStats} />}
 
       <DashboardLeadsTabs
         newLeads={stats.newLeads || []}

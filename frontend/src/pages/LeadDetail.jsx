@@ -30,6 +30,7 @@ import CallNoteModal from '../components/leads/CallNoteModal';
 import MergeLeadModal from '../components/leads/MergeLeadModal';
 import { checkLeadDuplicate } from '../services/leadEnterpriseApi';
 import LeadContactActions from '../components/whatsapp-contact/LeadContactActions';
+import LeadEmailHistory from '../components/email/LeadEmailHistory';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -141,12 +142,14 @@ export default function LeadDetail() {
             : undefined
         }
         onContactLogged={refreshLead}
+        onEmailSent={refreshLead}
         className="mb-6"
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
           <LeadCustomerPanel lead={lead} />
+          <LeadEmailHistory leadId={id} emailEndpoint="/leads" refreshKey={lead?.lastContactedAt || lead?.updatedAt} />
         </aside>
 
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
@@ -164,7 +167,13 @@ export default function LeadDetail() {
             modalOpen={followUpModalOpen}
             onModalOpenChange={setFollowUpModalOpen}
           />
-          <LeadQuotationSection quotations={detail.quotations} />
+          <LeadQuotationSection
+            quotations={detail.quotations}
+            lead={lead}
+            leadId={id}
+            emailEndpoint="/leads"
+            onEmailSent={refreshLead}
+          />
           <LeadTransferHistory leadId={id} />
           <LeadAuditPanel leadId={id} canView={isAdmin || user?.role === 'sales_manager'} />
         </main>
