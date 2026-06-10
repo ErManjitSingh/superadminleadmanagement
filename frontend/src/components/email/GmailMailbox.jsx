@@ -97,6 +97,25 @@ export default function GmailMailbox() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setSyncing(true);
+      try {
+        await syncEmailReplies({ silent: true });
+      } catch {
+        /* IMAP may be unavailable */
+      }
+      if (!cancelled) load();
+      if (!cancelled) setSyncing(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Sync inbox once when opening Email Activity
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const items = useMemo(() => {
     let rows = data.items || [];
     if (folder === 'starred') rows = rows.filter((m) => starred.has(m.id));
@@ -131,7 +150,7 @@ export default function GmailMailbox() {
   const handleSync = async () => {
     setSyncing(true);
     try {
-      await syncEmailReplies();
+      await syncEmailReplies({ silent: false });
       load();
     } finally {
       setSyncing(false);

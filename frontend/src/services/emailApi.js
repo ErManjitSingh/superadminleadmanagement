@@ -30,7 +30,7 @@ export async function fetchMailboxMessage(type, id) {
   return data;
 }
 
-export async function syncEmailReplies() {
-  const { data } = await API.post('/emails/sync-replies', {}, { skipSuccessToast: false });
+export async function syncEmailReplies({ silent = false } = {}) {
+  const { data } = await API.post('/emails/sync-replies', {}, { skipSuccessToast: silent });
   return data;
 }
