@@ -23,9 +23,9 @@ import {
   LeadTransferHistory,
   LeadAuditPanel,
   ReactivationActionsModal,
-  getLeadDetailData,
 } from '../components/lead-detail';
-import { useLeadQuery, useLeadTimelineQuery } from '../features/leads/hooks/useLeadDetailQuery';
+import { useLeadQuery } from '../features/leads/hooks/useLeadDetailQuery';
+import { useLeadActivities } from '../features/leads/hooks/useLeadActivities';
 import { invalidateLeadDetail } from '../lib/queryInvalidation';
 import CallNoteModal from '../components/leads/CallNoteModal';
 import MergeLeadModal from '../components/leads/MergeLeadModal';
@@ -47,10 +47,7 @@ export default function LeadDetail() {
   const [callNoteOpen, setCallNoteOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [hasDuplicates, setHasDuplicates] = useState(false);
-  const [showTimeline, setShowTimeline] = useState(false);
-
   const leadQuery = useLeadQuery(id);
-  const timelineQuery = useLeadTimelineQuery(id, { enabled: showTimeline && !!leadQuery.data });
   const notesRef = useRef(null);
 
   const refreshLead = () => invalidateLeadDetail(queryClient, id);
@@ -85,6 +82,7 @@ export default function LeadDetail() {
 
   const lead = leadQuery.data;
   const loading = leadQuery.isLoading && !lead;
+  const { activities, timelineLoading, detail } = useLeadActivities(lead, id);
 
   if (loading) {
     return (
@@ -110,9 +108,6 @@ export default function LeadDetail() {
       </div>
     );
   }
-
-  const detail = getLeadDetailData(lead);
-  const timeline = timelineQuery.data?.data || [];
 
   const scrollToNotes = () => {
     notesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -146,18 +141,7 @@ export default function LeadDetail() {
         </aside>
 
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          {showTimeline ? (
-            <LeadActivityTimeline
-              activities={timeline.length ? timeline : detail.activities}
-              loading={timelineQuery.isLoading}
-            />
-          ) : (
-            <div className="rounded-2xl border border-subtle bg-surface/80 p-5">
-              <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setShowTimeline(true)}>
-                Load Activity Timeline
-              </Button>
-            </div>
-          )}
+          <LeadActivityTimeline activities={activities} loading={timelineLoading} />
           <div ref={notesRef}>
             <LeadNotesSection notes={detail.notes} />
           </div>

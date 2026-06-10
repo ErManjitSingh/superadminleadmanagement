@@ -15,8 +15,8 @@ import {
   LeadFollowUpSection,
   LeadQuotationSection,
   LeadActionPanel,
-  getLeadDetailData,
 } from '../lead-detail';
+import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 
 const STATUSES = [
   'new',
@@ -61,6 +61,17 @@ export default function ExecutiveLeadDetailPage() {
 
   useDataRefresh(['leads'], loadLead);
 
+  const { activities, timelineLoading, detail } = useLeadActivities(
+    lead
+      ? {
+          ...lead,
+          followUps: lead.followups || [],
+          quotations: lead.quotations || [],
+        }
+      : null,
+    id
+  );
+
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -85,12 +96,6 @@ export default function ExecutiveLeadDetailPage() {
       </div>
     );
   }
-
-  const detail = getLeadDetailData({
-    ...lead,
-    followUps: lead.followups || [],
-    quotations: lead.quotations || [],
-  });
 
   const scrollToNotes = () => {
     notesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -126,7 +131,7 @@ export default function ExecutiveLeadDetailPage() {
         </aside>
 
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline activities={detail.activities} />
+          <LeadActivityTimeline activities={activities} loading={timelineLoading} />
           <div ref={notesRef}>
             <LeadNotesSection notes={detail.notes} />
           </div>

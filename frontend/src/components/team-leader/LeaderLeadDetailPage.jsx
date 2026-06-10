@@ -13,8 +13,8 @@ import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import {
   LeadDetailHeader, LeadStatusPipeline, LeadCustomerPanel, LeadActivityTimeline,
   LeadNotesSection, LeadFollowUpSection, LeadQuotationSection,
-  getLeadDetailData,
 } from '../lead-detail';
+import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 
 export default function LeaderLeadDetailPage() {
   const { id } = useParams();
@@ -50,6 +50,13 @@ export default function LeaderLeadDetailPage() {
 
   const reactivate = useLeadReactivate({ leadId: id, onSuccess: loadLead });
 
+  const { activities, timelineLoading, detail } = useLeadActivities(
+    lead
+      ? { ...lead, followUps: lead.followups || [], quotations: lead.quotations || [] }
+      : null,
+    id
+  );
+
   if (loading) {
     return <div className="flex justify-center py-32"><div className="w-9 h-9 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" /></div>;
   }
@@ -62,8 +69,6 @@ export default function LeaderLeadDetailPage() {
       </div>
     );
   }
-
-  const detail = getLeadDetailData({ ...lead, followUps: lead.followups || [], quotations: lead.quotations || [] });
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
@@ -94,7 +99,7 @@ export default function LeaderLeadDetailPage() {
           <LeadCustomerPanel lead={lead} />
         </aside>
         <main className="xl:col-span-9 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline activities={detail.activities} />
+          <LeadActivityTimeline activities={activities} loading={timelineLoading} />
           <div ref={notesRef}><LeadNotesSection notes={detail.notes} /></div>
           <LeadFollowUpSection followUps={lead.followups || detail.followUps} lead={lead} />
           <LeadQuotationSection quotations={lead.quotations || detail.quotations} />

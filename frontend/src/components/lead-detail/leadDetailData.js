@@ -74,6 +74,24 @@ export function followUpToActivity(f, fallbackUser = 'User') {
   };
 }
 
+/** Merge DB timeline with client-built activities (follow-ups, legacy quotes). */
+export function mergeLeadActivities(synthetic = [], timeline = []) {
+  if (!timeline.length) return synthetic;
+
+  const timelineHasQuotations = timeline.some((a) => a.type?.startsWith('quotation_'));
+
+  const extras = synthetic.filter((a) => {
+    if (a.type === 'followup_added' || a.type === 'followup_completed') return true;
+    if (a.type?.startsWith('quotation_') && !timelineHasQuotations) return true;
+    if (['lead_reactivated', 'lead_reassigned', 'reactivation_progress'].includes(a.type)) {
+      return !timeline.some((t) => t.type === a.type);
+    }
+    return false;
+  });
+
+  return [...timeline, ...extras].sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
 export function getLeadDetailData(lead) {
   const agent = lead.assignedTo?.name || 'Unassigned';
   const created = lead.createdAt || new Date().toISOString();

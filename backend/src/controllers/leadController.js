@@ -1,6 +1,7 @@
 const Lead = require('../models/Lead');
 const LeadNote = require('../models/LeadNote');
 const FollowUp = require('../models/FollowUp');
+const Quotation = require('../models/Quotation');
 const User = require('../models/User');
 const Branch = require('../models/Branch');
 const ApiError = require('../utils/apiError');
@@ -15,7 +16,7 @@ const {
   notifyReactivationProgress,
   parseAndNotifyMentions,
 } = require('../services/notificationService');
-const { LEAD_POPULATE, FOLLOWUP_POPULATE, enrichLead } = require('../utils/queryHelpers');
+const { LEAD_POPULATE, FOLLOWUP_POPULATE, QUOTATION_POPULATE, enrichLead } = require('../utils/queryHelpers');
 const { createFollowUpForLead } = require('../services/followUpService');
 const { normalizeLeadInput, computeLeadScoreByBudget } = require('../utils/normalizeLeadInput');
 const { ROLE_LABELS } = require('../config/roles');
@@ -141,18 +142,26 @@ const getLead = asyncHandler(async (req, res) => {
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   const followUpLimit = Math.min(Number(req.query.followupsLimit) || 20, 50);
-  const followups = await FollowUp.find({ lead: lead._id, ...(req.branchId ? { branchId: req.branchId } : {}) })
-    .populate(FOLLOWUP_POPULATE)
-    .sort({ scheduledAt: -1 })
-    .limit(followUpLimit)
-    .lean();
+  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
+  const branchFilter = req.branchId ? { branchId: req.branchId } : {};
+  const leadFilter = { lead: lead._id, ...branchFilter };
 
-  const followUpTotal = await FollowUp.countDocuments({
-    lead: lead._id,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  });
+  const [followups, quotations, followUpTotal, quotationTotal] = await Promise.all([
+    FollowUp.find(leadFilter)
+      .populate(FOLLOWUP_POPULATE)
+      .sort({ scheduledAt: -1 })
+      .limit(followUpLimit)
+      .lean(),
+    Quotation.find(leadFilter)
+      .populate(QUOTATION_POPULATE)
+      .sort({ createdAt: -1 })
+      .limit(DETAIL_RELATED_LIMIT)
+      .lean(),
+    FollowUp.countDocuments(leadFilter),
+    Quotation.countDocuments(leadFilter),
+  ]);
 
-  res.json({ ...enrichLead(lead), followups, followUpTotal });
+  res.json({ ...enrichLead(lead), followups, followUpTotal, quotations, quotationTotal });
 });
 
 const listLostLeads = asyncHandler(async (req, res) => {

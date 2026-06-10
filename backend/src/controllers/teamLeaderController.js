@@ -99,7 +99,6 @@ const getLeadDetail = asyncHandler(async (req, res) => {
   const branchFilter = req.branchId ? { branchId: req.branchId } : {};
   const leadFilter = { lead: lead._id, ...branchFilter };
 
-  const execIds = await getExecutiveIdsForLeader(req.user._id);
   const [followups, quotations, followupTotal, quotationTotal] = await Promise.all([
     FollowUp.find(leadFilter)
       .populate(FOLLOWUP_POPULATE)
@@ -115,15 +114,11 @@ const getLeadDetail = asyncHandler(async (req, res) => {
     Quotation.countDocuments(leadFilter),
   ]);
 
-  const squadQuotes = quotations.filter((q) =>
-    execIds.some((id) => q.lead?.assignedTo?.toString?.() === id.toString())
-  );
-
   res.json({
     ...enrichLead(lead),
     followups,
     followupTotal,
-    quotations: squadQuotes,
+    quotations,
     quotationTotal,
   });
 });

@@ -2,6 +2,7 @@ const Quotation = require('../models/Quotation');
 const ApiError = require('../utils/apiError');
 const { generateQuoteNumber, QUOTATION_POPULATE } = require('../utils/queryHelpers');
 const { logActivity, getClientIp } = require('./activityService');
+const { logLeadActivity } = require('./leadActivityService');
 const { notifyQuotationCreated } = require('./notificationService');
 const { resolvePackageReference } = require('../utils/packageRef');
 
@@ -48,6 +49,29 @@ async function persistQuotation({
     ip: getClientIp(req),
     branchId: req.branchId || lead.branchId || req.user.branchId || null,
   });
+
+  const branchId = req.branchId || lead.branchId || req.user.branchId || null;
+  const quoteTotal = body.pricing?.total ?? 0;
+  const pkgName = body.package?.name || lead.destination || 'Package';
+  await logLeadActivity({
+    leadId: lead._id,
+    branchId,
+    type: 'quotation_created',
+    description: `${quotation.quoteNumber} · ${pkgName} · ₹${Number(quoteTotal).toLocaleString('en-IN')} · ${status.replace(/_/g, ' ')}`,
+    actor: req.user,
+    meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber, status },
+  });
+
+  if (status === 'pending_approval' && lead.status === 'quotation_sent') {
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId,
+      type: 'quotation_sent',
+      description: `Quotation ${quotation.quoteNumber} sent for ${pkgName}`,
+      actor: req.user,
+      meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber },
+    });
+  }
 
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   if (status === 'pending_approval') {
