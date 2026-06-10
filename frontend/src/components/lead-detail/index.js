@@ -9,4 +9,10 @@ export { default as LeadActionPanel } from './LeadActionPanel';
 export { default as LeadTransferHistory } from './LeadTransferHistory';
 export { default as LeadAuditPanel } from './LeadAuditPanel';
 export { default as ReactivationActionsModal } from './ReactivationActionsModal';
-export { getLeadDetailData, mergeLeadActivities } from './leadDetailData';
+export {
+  getLeadDetailData,
+  mergeLeadActivities,
+  enrichQuotationActivities,
+  resolveQuotationAmount,
+  findQuotationForActivity,
+} from './leadDetailData';

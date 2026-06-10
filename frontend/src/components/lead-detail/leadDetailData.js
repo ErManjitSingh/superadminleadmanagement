@@ -56,6 +56,66 @@ const FOLLOWUP_CATEGORY_LABELS = {
   expected_conv: 'Expected Conv.',
 };
 
+export function resolveQuotationAmount(q) {
+  if (!q) return 0;
+  const direct = Number(q.amount);
+  if (direct > 0) return direct;
+  const pricingTotal = Number(q.pricing?.total);
+  if (pricingTotal > 0) return pricingTotal;
+  const costingTotal = Number(q.costing?.grandTotal);
+  if (costingTotal > 0) return costingTotal;
+  return pricingTotal || costingTotal || 0;
+}
+
+function formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status, sent = false }) {
+  const price = `₹${Number(amount).toLocaleString('en-IN')}`;
+  if (sent) return `${quoteNumber} sent to customer · ${pkgName} · ${price}`;
+  return `${quoteNumber} · ${pkgName} · ${price} · ${(status || 'draft').replace(/_/g, ' ')}`;
+}
+
+export function findQuotationForActivity(item, quotations = []) {
+  const id = item?.meta?.quotationId;
+  const num = item?.meta?.quoteNumber;
+  return quotations.find(
+    (q) => (id && String(q._id) === String(id)) || (num && q.quoteNumber === num)
+  );
+}
+
+/** Add price and download meta to quotation timeline rows from lead quotations. */
+export function enrichQuotationActivities(activities = [], quotations = []) {
+  if (!quotations.length) return activities;
+
+  return activities.map((item) => {
+    if (!item.type?.startsWith('quotation_')) return item;
+
+    const quote = findQuotationForActivity(item, quotations);
+    if (!quote) return item;
+
+    const amount = resolveQuotationAmount(quote);
+    const pkgName = quote.packageSnapshot?.name || quote.package?.name || 'Package';
+    const quoteNumber = quote.quoteNumber || item.meta?.quoteNumber || 'Quote';
+    const sent = item.type === 'quotation_sent';
+    const notes = formatQuoteActivityNotes({
+      quoteNumber,
+      pkgName,
+      amount,
+      status: quote.status,
+      sent,
+    });
+
+    return {
+      ...item,
+      notes,
+      meta: {
+        ...item.meta,
+        quotationId: quote._id,
+        quoteNumber,
+        amount,
+      },
+    };
+  });
+}
+
 export function followUpToActivity(f, fallbackUser = 'User') {
   const category = FOLLOWUP_CATEGORY_LABELS[f.category] || f.category || 'Warm';
   const typeLabel = (f.type || 'call').replace(/_/g, ' ');
@@ -144,17 +204,18 @@ export function getLeadDetailData(lead) {
 
   const quoteItems = lead.quotations || [];
   quoteItems.forEach((q) => {
-    const amount = q.pricing?.total ?? 0;
+    const amount = resolveQuotationAmount(q);
     const pkgName = q.packageSnapshot?.name || lead.destination || 'Package';
     const quoteUser = q.createdByExecutive?.name || q.createdBy?.name || agent;
-    const baseNotes = `${q.quoteNumber || 'Quote'} · ${pkgName} · ₹${Number(amount).toLocaleString('en-IN')} · ${(q.status || 'draft').replace(/_/g, ' ')}`;
+    const quoteNumber = q.quoteNumber || 'Quote';
 
     activities.push({
       id: `qc-${q._id}`,
       type: 'quotation_created',
       user: quoteUser,
       date: q.createdAt || created,
-      notes: baseNotes,
+      notes: formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status: q.status }),
+      meta: { quotationId: q._id, quoteNumber, amount },
     });
 
     if (q.sentAt) {
@@ -163,15 +224,17 @@ export function getLeadDetailData(lead) {
         type: 'quotation_sent',
         user: quoteUser,
         date: q.sentAt,
-        notes: `${q.quoteNumber || 'Quote'} sent to customer · ${pkgName}`,
+        notes: formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status: q.status, sent: true }),
+        meta: { quotationId: q._id, quoteNumber, amount },
       });
     } else if (['sent', 'approved'].includes(q.status)) {
       activities.push({
-        id: `qs-${q._id}`,
+        id: `qs-${q._id}-sent`,
         type: 'quotation_sent',
         user: quoteUser,
         date: q.updatedAt || q.createdAt || created,
-        notes: `${q.quoteNumber || 'Quote'} · ${pkgName}`,
+        notes: formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status: q.status, sent: true }),
+        meta: { quotationId: q._id, quoteNumber, amount },
       });
     }
   });
@@ -218,9 +281,10 @@ export function getLeadDetailData(lead) {
   }));
 
   const quotations = (lead.quotations || []).map((q, i) => ({
+    ...q,
     id: q.quoteNumber || q._id || `q-${i}`,
     title: q.packageSnapshot?.name || q.lead?.destination || `${lead.destination} Package`,
-    amount: q.pricing?.total ?? lead.budget ?? 0,
+    amount: resolveQuotationAmount(q) || lead.budget || 0,
     status: q.status,
     sentAt: q.sentAt || q.createdAt || null,
   }));

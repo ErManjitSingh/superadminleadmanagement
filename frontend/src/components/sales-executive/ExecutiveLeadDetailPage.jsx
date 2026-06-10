@@ -131,7 +131,11 @@ export default function ExecutiveLeadDetailPage() {
         </aside>
 
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline activities={activities} loading={timelineLoading} />
+          <LeadActivityTimeline
+            activities={activities}
+            loading={timelineLoading}
+            quotations={lead.quotations || []}
+          />
           <div ref={notesRef}>
             <LeadNotesSection notes={detail.notes} />
           </div>
@@ -150,7 +154,7 @@ export default function ExecutiveLeadDetailPage() {
             modalOpen={followUpModalOpen}
             onModalOpenChange={setFollowUpModalOpen}
           />
-          <LeadQuotationSection quotations={lead.quotations || detail.quotations} />
+          <LeadQuotationSection quotations={lead.quotations || detail.quotations || []} />
         </main>
 
         <aside className="xl:col-span-3 order-3">

@@ -117,7 +117,11 @@ export default function ManagerLeadDetailPage() {
           <LeadCustomerPanel lead={lead} />
         </aside>
         <main className="xl:col-span-9 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline activities={activities} loading={timelineLoading} />
+          <LeadActivityTimeline
+            activities={activities}
+            loading={timelineLoading}
+            quotations={lead.quotations || []}
+          />
           <div ref={notesRef}>
             <LeadNotesSection notes={detail.notes} />
           </div>

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getLeadDetailData, mergeLeadActivities } from '../../../components/lead-detail/leadDetailData';
+import {
+  getLeadDetailData,
+  mergeLeadActivities,
+  enrichQuotationActivities,
+} from '../../../components/lead-detail/leadDetailData';
 import { fetchLeadTimeline } from '../../../services/leadEnterpriseApi';
 
 export function useLeadActivities(lead, leadId) {
@@ -29,10 +33,10 @@ export function useLeadActivities(lead, leadId) {
   }, [leadId, lead?.updatedAt, lead?.quotations?.length]);
 
   const detail = useMemo(() => (lead ? getLeadDetailData(lead) : { activities: [] }), [lead]);
-  const activities = useMemo(
-    () => mergeLeadActivities(detail.activities, timeline),
-    [detail.activities, timeline]
-  );
+  const activities = useMemo(() => {
+    const merged = mergeLeadActivities(detail.activities, timeline);
+    return enrichQuotationActivities(merged, lead?.quotations || []);
+  }, [detail.activities, timeline, lead?.quotations]);
 
   return { activities, timelineLoading, detail };
 }

@@ -343,15 +343,25 @@ const createQuotation = asyncHandler(async (req, res) => {
     branchId: req.branchId || lead.branchId || req.user.branchId || null,
   });
 
-  const quoteTotal = req.body.pricing?.total ?? 0;
+  const quoteTotal =
+    Number(quotation.pricing?.total) ||
+    Number(quotation.costing?.grandTotal) ||
+    Number(req.body.pricing?.total) ||
+    0;
   const pkgName = req.body.package?.name || lead.destination || 'Package';
+  const priceLabel = `₹${Number(quoteTotal).toLocaleString('en-IN')}`;
   await logLeadActivity({
     leadId: lead._id,
     branchId: lead.branchId,
     type: 'quotation_created',
-    description: `${quotation.quoteNumber} · ${pkgName} · ₹${Number(quoteTotal).toLocaleString('en-IN')} · ${status.replace(/_/g, ' ')}`,
+    description: `${quotation.quoteNumber} · ${pkgName} · ${priceLabel} · ${status.replace(/_/g, ' ')}`,
     actor: req.user,
-    meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber, status },
+    meta: {
+      quotationId: quotation._id,
+      quoteNumber: quotation.quoteNumber,
+      status,
+      amount: quoteTotal,
+    },
   });
 
   if (lead.status === 'quotation_sent') {
@@ -359,9 +369,13 @@ const createQuotation = asyncHandler(async (req, res) => {
       leadId: lead._id,
       branchId: lead.branchId,
       type: 'quotation_sent',
-      description: `Quotation ${quotation.quoteNumber} sent for ${pkgName}`,
+      description: `${quotation.quoteNumber} sent to customer · ${pkgName} · ${priceLabel}`,
       actor: req.user,
-      meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber },
+      meta: {
+        quotationId: quotation._id,
+        quoteNumber: quotation.quoteNumber,
+        amount: quoteTotal,
+      },
     });
   }
 

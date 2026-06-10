@@ -51,15 +51,25 @@ async function persistQuotation({
   });
 
   const branchId = req.branchId || lead.branchId || req.user.branchId || null;
-  const quoteTotal = body.pricing?.total ?? 0;
+  const quoteTotal =
+    Number(quotation.pricing?.total) ||
+    Number(quotation.costing?.grandTotal) ||
+    Number(body.pricing?.total) ||
+    0;
   const pkgName = body.package?.name || lead.destination || 'Package';
+  const priceLabel = `₹${Number(quoteTotal).toLocaleString('en-IN')}`;
   await logLeadActivity({
     leadId: lead._id,
     branchId,
     type: 'quotation_created',
-    description: `${quotation.quoteNumber} · ${pkgName} · ₹${Number(quoteTotal).toLocaleString('en-IN')} · ${status.replace(/_/g, ' ')}`,
+    description: `${quotation.quoteNumber} · ${pkgName} · ${priceLabel} · ${status.replace(/_/g, ' ')}`,
     actor: req.user,
-    meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber, status },
+    meta: {
+      quotationId: quotation._id,
+      quoteNumber: quotation.quoteNumber,
+      status,
+      amount: quoteTotal,
+    },
   });
 
   if (status === 'pending_approval' && lead.status === 'quotation_sent') {
@@ -67,9 +77,13 @@ async function persistQuotation({
       leadId: lead._id,
       branchId,
       type: 'quotation_sent',
-      description: `Quotation ${quotation.quoteNumber} sent for ${pkgName}`,
+      description: `${quotation.quoteNumber} sent to customer · ${pkgName} · ${priceLabel}`,
       actor: req.user,
-      meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber },
+      meta: {
+        quotationId: quotation._id,
+        quoteNumber: quotation.quoteNumber,
+        amount: quoteTotal,
+      },
     });
   }
 
