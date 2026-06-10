@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { SidebarProvider, useSidebar } from '../../context/SidebarContext';
 import AppSidebar from '../sidebar/AppSidebar';
 import TopBar from '../TopBar';
-import MissedFollowUpAlert from '../notifications/MissedFollowUpAlert';
 import { operationsManagerNavItems } from './sidebar-config';
 
 function OperationsManagerShell() {
@@ -52,7 +51,6 @@ function OperationsManagerShell() {
         <TopBar onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
-            <MissedFollowUpAlert />
             <Outlet />
           </div>
         </main>

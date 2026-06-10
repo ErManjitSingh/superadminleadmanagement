@@ -114,7 +114,7 @@ export default function ManagerLeadDetailPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 order-2 xl:order-1">
-          <LeadCustomerPanel lead={lead} valueScore={detail.valueScore} />
+          <LeadCustomerPanel lead={lead} />
         </aside>
         <main className="xl:col-span-9 space-y-6 order-1 xl:order-2">
           <LeadActivityTimeline activities={detail.activities} />

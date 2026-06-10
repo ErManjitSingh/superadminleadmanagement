@@ -4,6 +4,7 @@ const Notification = require('../models/Notification');
 const ApiError = require('../utils/apiError');
 const { FOLLOWUP_POPULATE } = require('../utils/queryHelpers');
 const { NOTIFICATION_TYPES } = require('../constants/notificationTypes');
+const { notifyFollowUpOutcome } = require('./notificationService');
 const {
   normalizeFollowUpPayload,
   syncLeadFollowUpDates,
@@ -90,6 +91,9 @@ async function updateFollowUpRecord({ followup, body }) {
     await syncLeadFollowUpDates(lead._id);
     if (action === 'reschedule') {
       await resolveMissedAlertsForLead(lead._id, followup._id);
+    }
+    if (action === 'complete') {
+      notifyFollowUpOutcome(followup, lead).catch(() => {});
     }
   }
 

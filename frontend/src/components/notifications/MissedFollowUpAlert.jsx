@@ -1,24 +1,26 @@
 import { AlertTriangle, CalendarPlus } from 'lucide-react';
 import { useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 
+const MISSED_ALERT_ROLES = new Set(['sales_executive', 'sales_manager', 'team_leader']);
+
 export default function MissedFollowUpAlert() {
+  const { user } = useAuth();
   const { notifications, refresh, handleNotificationClick } = useNotifications();
 
   useDataRefresh(['followups'], refresh);
 
-  const unresolved = useMemo(
-    () =>
-      notifications.filter(
-        (n) =>
-          n?.type === 'followup_missed' &&
-          n?.meta?.resolved !== true
-      ),
-    [notifications]
-  );
+  const unresolved = useMemo(() => {
+    const isOversightRole = user?.role === 'sales_manager' || user?.role === 'team_leader';
+    return notifications.filter((n) => {
+      if (n?.type !== 'followup_missed' || n?.meta?.resolved === true) return false;
+      return isOversightRole ? n?.meta?.oversight === true : n?.meta?.oversight !== true;
+    });
+  }, [notifications, user?.role]);
 
-  if (!unresolved.length) return null;
+  if (!MISSED_ALERT_ROLES.has(user?.role) || !unresolved.length) return null;
 
   const latest = unresolved[0];
 

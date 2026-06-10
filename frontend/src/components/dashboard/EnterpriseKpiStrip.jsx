@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Flame, Snowflake, Sun, Crown, Clock, AlertTriangle, UserX, Brain } from 'lucide-react';
+import { Flame, Snowflake, Sun, Crown, Clock, AlertTriangle, UserX } from 'lucide-react';
 
 const TEMP_ICONS = { hot: Flame, warm: Sun, cold: Snowflake, vip: Crown };
 const TEMP_COLORS = {
@@ -21,12 +21,6 @@ export default function EnterpriseKpiStrip({ kpis }) {
       animate={{ opacity: 1, y: 0 }}
       className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-3"
     >
-      <KpiTile
-        icon={Brain}
-        label="Avg Smart Score"
-        value={kpis.avgSmartScore ?? 0}
-        tone="brand"
-      />
       <KpiTile icon={Crown} label="VIP Leads" value={kpis.vipCount ?? 0} tone="violet" />
       <KpiTile icon={UserX} label="Unassigned" value={kpis.unassigned ?? 0} tone="amber" />
       <KpiTile icon={AlertTriangle} label="SLA Breached" value={sla.breached ?? 0} tone="rose" />

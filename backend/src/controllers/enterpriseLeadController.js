@@ -30,19 +30,27 @@ const checkDuplicate = asyncHandler(async (req, res) => {
     excludeId,
   });
 
+  const matches = duplicates.map((d) => ({
+    _id: d._id,
+    leadId: d.leadId,
+    name: d.name,
+    phone: d.phone,
+    email: d.email,
+    assignedTo: d.assignedTo,
+    createdAt: d.createdAt,
+    status: d.status,
+    statusReason: d.statusReason || '',
+    daysAgo: Math.floor((Date.now() - new Date(d.createdAt).getTime()) / 86400000),
+  }));
+
+  const originalLead = matches.length
+    ? [...matches].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0]
+    : null;
+
   res.json({
-    isDuplicate: duplicates.length > 0,
-    matches: duplicates.map((d) => ({
-      _id: d._id,
-      leadId: d.leadId,
-      name: d.name,
-      phone: d.phone,
-      email: d.email,
-      assignedTo: d.assignedTo,
-      createdAt: d.createdAt,
-      status: d.status,
-      daysAgo: Math.floor((Date.now() - new Date(d.createdAt).getTime()) / 86400000),
-    })),
+    isDuplicate: matches.length > 0,
+    matches,
+    originalLead,
   });
 });
 

@@ -13,7 +13,7 @@ function InfoRow({ label, value }) {
   );
 }
 
-export default function LeadCustomerPanel({ lead, valueScore }) {
+export default function LeadCustomerPanel({ lead }) {
   const status = normalizeLeadStatus(lead.status);
 
   return (
@@ -79,17 +79,6 @@ export default function LeadCustomerPanel({ lead, valueScore }) {
         )}
       </div>
 
-      {/* Value Score */}
-      <div className="rounded-2xl border border-subtle bg-gradient-to-br from-brand-500/5 to-violet-500/5 p-5">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-medium uppercase tracking-wider text-content-muted">Customer Value Score</h3>
-          <span className="text-2xl font-bold text-brand-600 metric-tabular">{valueScore}</span>
-        </div>
-        <div className="h-2 rounded-full bg-surface-elevated overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-violet-500 transition-all" style={{ width: `${valueScore}%` }} />
-        </div>
-        <p className="text-[11px] text-content-muted mt-2">Based on budget, engagement & conversion potential</p>
-      </div>
     </div>
   );
 }

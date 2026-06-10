@@ -13,6 +13,7 @@ import FollowUpDataTable from './FollowUpDataTable';
 import FollowUpCalendar from './FollowUpCalendar';
 import FollowUpTimeline from './FollowUpTimeline';
 import MissedFollowUpsPanel from './MissedFollowUpsPanel';
+import FollowUpConsolidatedReport from './FollowUpConsolidatedReport';
 import FollowUpNotifications from './FollowUpNotifications';
 import AddFollowUpModal from './AddFollowUpModal';
 import FollowUpDetailDrawer from './FollowUpDetailDrawer';
@@ -35,6 +36,7 @@ export default function FollowUpPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const canCreate = canManageFollowUps(user);
+  const isAdminView = user?.role === 'admin';
   const followEndpoint = canCreate ? '/sales-executive/followups' : '/followups';
   const leadsEndpoint = canCreate ? '/sales-executive/leads' : '/leads';
 
@@ -108,6 +110,7 @@ export default function FollowUpPage() {
   }, [summaryQuery.data]);
 
   const missed = summaryQuery.data?.missedPreview?.map(enrichFollowUp) ?? [];
+  const teamReport = summaryQuery.data?.teamReport ?? [];
   const notifications = useMemo(
     () => buildNotifications(calendarFollowups.length ? calendarFollowups : listFollowups),
     [calendarFollowups, listFollowups]
@@ -182,7 +185,11 @@ export default function FollowUpPage() {
         onAdd={() => { setEditFollowup(null); setModalOpen(true); }}
       />
       {!canCreate && (
-        <p className="text-sm text-content-muted mb-4 -mt-2">View only — only sales executives can add or edit follow-ups.</p>
+        <p className="text-sm text-content-muted mb-4 -mt-2">
+          {isAdminView
+            ? 'Consolidated team report — individual missed alerts are sent to executives, team leaders, and sales managers.'
+            : 'View only — only sales executives can add or edit follow-ups.'}
+        </p>
       )}
 
       <FollowUpKpiCards kpis={kpis} onFilter={handleKpiFilter} activeFilter={kpiFilter} />
@@ -227,7 +234,11 @@ export default function FollowUpPage() {
 
         <aside className="xl:col-span-4 space-y-4 xl:sticky xl:top-20">
           <FollowUpNotifications notifications={notifications} onSelect={setSelected} />
-          <MissedFollowUpsPanel missed={missed} onSelect={setSelected} />
+          {isAdminView ? (
+            <FollowUpConsolidatedReport teamReport={teamReport} />
+          ) : (
+            <MissedFollowUpsPanel missed={missed} onSelect={setSelected} />
+          )}
         </aside>
       </div>
 

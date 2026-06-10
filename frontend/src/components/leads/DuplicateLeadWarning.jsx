@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/button';
+import { getLeadStatusLabel } from '../../lib/leadStatusLabel';
 
 export default function DuplicateLeadWarning({
   match,
@@ -27,6 +28,12 @@ export default function DuplicateLeadWarning({
             <> · Assigned to <span className="font-medium">{match.assignedTo.name}</span></>
           )}
           {' · '}Created {daysAgo} day{daysAgo === 1 ? '' : 's'} ago
+        </p>
+        <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-1.5">
+          Original lead status: <span className="font-semibold">{getLeadStatusLabel(match.status)}</span>
+          {match.statusReason ? (
+            <> — <span className="italic">&quot;{match.statusReason}&quot;</span></>
+          ) : null}
         </p>
         <div className="flex flex-wrap gap-2 mt-3">
           {onOpenExisting ? (

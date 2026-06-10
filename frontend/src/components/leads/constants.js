@@ -41,7 +41,7 @@ export const TRAVEL_MONTHS = [
 
 export const pageConfig = {
   '/leads': { title: 'Lead Management', subtitle: 'All travel inquiries', status: '', assignee: '' },
-  '/leads/new-leads': { title: 'New Leads', subtitle: 'Awaiting first contact', status: 'new', assignee: '' },
+  '/leads/new-leads': { title: "Today's Leads", subtitle: 'Inquiries received today', status: '', assignee: '', todayOnly: true },
   '/leads/unassigned': {
     title: 'Unassigned Leads',
     subtitle: 'Not yet assigned to any executive',

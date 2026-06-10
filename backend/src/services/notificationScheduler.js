@@ -36,7 +36,7 @@ async function processFollowUpReminders() {
     scheduledAt: { $gte: now, $lte: windowEnd },
   })
     .populate('lead', 'name assignedTo')
-    .populate('assignedTo', '_id')
+    .populate('assignedTo', 'name _id')
     .lean();
 
   for (const fu of dueSoon) {
@@ -60,14 +60,22 @@ async function processMissedFollowUps() {
     scheduledAt: { $lt: todayStart },
   })
     .populate('lead', 'name assignedTo')
-    .populate('assignedTo', '_id')
+    .populate('assignedTo', 'name _id')
     .lean();
 
   for (const fu of missed) {
-    const userId = fu.assignedTo?._id || fu.lead?.assignedTo;
-    if (!userId) continue;
+    const execId = fu.assignedTo?._id || fu.lead?.assignedTo;
     // Missed alert is persistent; send only once until follow-up is rescheduled/added.
-    if (await alreadyNotified(userId, NOTIFICATION_TYPES.FOLLOWUP_MISSED, fu._id)) continue;
+    if (execId) {
+      if (await alreadyNotified(execId, NOTIFICATION_TYPES.FOLLOWUP_MISSED, fu._id)) continue;
+    } else {
+      const followUpIdStr = fu._id?.toString?.() || `${fu._id}`;
+      const exists = await Notification.findOne({
+        type: NOTIFICATION_TYPES.FOLLOWUP_MISSED,
+        'meta.followUpId': { $in: [fu._id, followUpIdStr] },
+      }).select('_id');
+      if (exists) continue;
+    }
     await notifyFollowUpMissed(fu, fu.lead);
   }
 }

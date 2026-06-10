@@ -54,7 +54,7 @@ export const teamManagementItems = [
 
 export const leadManagementItems = [
   { path: '/leads', label: 'All Leads', icon: Users, countKey: 'leads.all', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/new-leads', label: 'New Leads', icon: Inbox, badgeKey: 'leads.new', permission: { module: 'leads', action: 'view' } },
+  { path: '/leads/new-leads', label: "Today's Leads", icon: Inbox, badgeKey: 'leads.new', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/unassigned', label: 'Unassigned Leads', icon: Inbox, badgeKey: 'leads.unassigned', permission: { module: 'leads', action: 'view' } },
   { path: '/leads/assigned', label: 'Assigned Leads', icon: UserCheck, countKey: 'leads.assigned', permission: { module: 'leads', action: 'view' } },
   { path: '/followups', label: 'Follow Ups', icon: CalendarClock, badgeKey: 'followups.due', countKey: 'followups.total', permission: { module: 'leads', action: 'view' } },

@@ -10,6 +10,7 @@ const { LEAD_STATUSES } = require('../models/Lead');
 const { buildExecutiveDashboard } = require('../services/dashboardService');
 const { getTeamLeaderForExecutive } = require('../services/teamScopeService');
 const { logActivity, getClientIp } = require('../services/activityService');
+const { logLeadActivity } = require('../services/leadActivityService');
 const { notifyQuotationCreated } = require('../services/notificationService');
 const {
   LEAD_POPULATE,
@@ -148,10 +149,30 @@ const updateLead = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Reason is required for this status');
   }
 
+  const prevStatus = lead.status;
   lead.status = status;
   lead.statusReason = trimmedReason;
   lead.statusReasonUpdatedAt = new Date();
   await lead.save();
+
+  if (status !== prevStatus) {
+    const typeMap = {
+      lost: 'lead_lost',
+      booked_from_another_company: 'lead_lost',
+      converted: 'lead_converted',
+      quotation_sent: 'quotation_sent',
+      reactivated: 'lead_reactivated',
+    };
+    const statusLabel = status.replace(/_/g, ' ');
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: typeMap[status] || 'status_changed',
+      description: `Status changed from ${prevStatus.replace(/_/g, ' ')} to ${statusLabel}${trimmedReason ? ` — ${trimmedReason}` : ''}`,
+      actor: req.user,
+      meta: { from: prevStatus, to: status, reason: trimmedReason || undefined },
+    });
+  }
 
   const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
   res.json(enrichLead(populated));
@@ -320,6 +341,28 @@ const createQuotation = asyncHandler(async (req, res) => {
     ip: getClientIp(req),
     branchId: req.branchId || lead.branchId || req.user.branchId || null,
   });
+
+  const quoteTotal = req.body.pricing?.total ?? 0;
+  const pkgName = req.body.package?.name || lead.destination || 'Package';
+  await logLeadActivity({
+    leadId: lead._id,
+    branchId: lead.branchId,
+    type: 'quotation_created',
+    description: `${quotation.quoteNumber} · ${pkgName} · ₹${Number(quoteTotal).toLocaleString('en-IN')} · ${status.replace(/_/g, ' ')}`,
+    actor: req.user,
+    meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber, status },
+  });
+
+  if (lead.status === 'quotation_sent') {
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: 'quotation_sent',
+      description: `Quotation ${quotation.quoteNumber} sent for ${pkgName}`,
+      actor: req.user,
+      meta: { quotationId: quotation._id, quoteNumber: quotation.quoteNumber },
+    });
+  }
 
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   if (status === 'pending_approval') {

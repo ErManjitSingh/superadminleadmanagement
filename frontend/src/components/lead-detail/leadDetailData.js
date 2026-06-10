@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Trophy,
 } from 'lucide-react';
+import { getLeadStatusLabel } from '../../lib/leadStatusLabel';
 
 export const PIPELINE_STAGES = [
   { value: 'new', label: 'New Lead' },
@@ -96,9 +97,65 @@ export function getLeadDetailData(lead) {
     });
   }
 
+  if (lead.status && lead.status !== 'new') {
+    const statusTypeMap = {
+      contacted: 'status_changed',
+      working_progress: 'status_changed',
+      follow_up: 'status_changed',
+      quotation_sent: 'quotation_sent',
+      negotiation: 'status_changed',
+      converted: 'lead_converted',
+      lost: 'lead_lost',
+      booked_from_another_company: 'lead_lost',
+      reactivated: 'lead_reactivated',
+    };
+    const statusNotes = `Status: ${getLeadStatusLabel(lead.status)}`;
+    activities.push({
+      id: `status-${lead.status}`,
+      type: statusTypeMap[lead.status] || 'status_changed',
+      user: lead.assignedTo?.name || agent,
+      date: lead.statusReasonUpdatedAt || lead.updatedAt || created,
+      notes: lead.statusReason ? `${statusNotes} — ${lead.statusReason}` : statusNotes,
+    });
+  }
+
   const followUpItems = lead.followups || lead.followUps || [];
   followUpItems.forEach((f) => {
     activities.push(followUpToActivity(f, agent));
+  });
+
+  const quoteItems = lead.quotations || [];
+  quoteItems.forEach((q) => {
+    const amount = q.pricing?.total ?? 0;
+    const pkgName = q.packageSnapshot?.name || lead.destination || 'Package';
+    const quoteUser = q.createdByExecutive?.name || q.createdBy?.name || agent;
+    const baseNotes = `${q.quoteNumber || 'Quote'} · ${pkgName} · ₹${Number(amount).toLocaleString('en-IN')} · ${(q.status || 'draft').replace(/_/g, ' ')}`;
+
+    activities.push({
+      id: `qc-${q._id}`,
+      type: 'quotation_created',
+      user: quoteUser,
+      date: q.createdAt || created,
+      notes: baseNotes,
+    });
+
+    if (q.sentAt) {
+      activities.push({
+        id: `qs-${q._id}`,
+        type: 'quotation_sent',
+        user: quoteUser,
+        date: q.sentAt,
+        notes: `${q.quoteNumber || 'Quote'} sent to customer · ${pkgName}`,
+      });
+    } else if (['sent', 'approved'].includes(q.status)) {
+      activities.push({
+        id: `qs-${q._id}`,
+        type: 'quotation_sent',
+        user: quoteUser,
+        date: q.updatedAt || q.createdAt || created,
+        notes: `${q.quoteNumber || 'Quote'} · ${pkgName}`,
+      });
+    }
   });
 
   const stageHistory = lead.reactivation?.stageHistory || [];
@@ -155,9 +212,5 @@ export function getLeadDetailData(lead) {
     notes,
     followUps,
     quotations,
-    valueScore: Math.min(
-      99,
-      Math.round(40 + (lead.budget || 0) / 10000 + (lead.status === 'converted' ? 30 : 10))
-    ),
   };
 }

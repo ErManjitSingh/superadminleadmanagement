@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, CheckCheck, Wifi, WifiOff, X } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { getNotificationMeta } from '../../lib/notificationMeta';
+import FollowUpCategoryBadge from '../followups/FollowUpCategoryBadge';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import AppDrawer from '../ui/AppDrawer';
@@ -29,6 +30,14 @@ function NotificationItem({ item, onClick }) {
           {unread && <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0 mt-1.5" />}
         </div>
         <p className="text-sm text-content-secondary mt-0.5 line-clamp-2">{item.message}</p>
+        {(item.meta?.category || item.meta?.leadName) && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+            {item.meta?.leadName && (
+              <span className="text-[10px] font-medium text-brand-600 truncate max-w-[140px]">{item.meta.leadName}</span>
+            )}
+            {item.meta?.category && <FollowUpCategoryBadge category={item.meta.category} />}
+          </div>
+        )}
         <p className="text-xs text-content-muted mt-1">{item.time || 'just now'}</p>
       </div>
     </button>

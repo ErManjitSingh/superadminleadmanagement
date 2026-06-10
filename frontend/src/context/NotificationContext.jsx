@@ -18,6 +18,8 @@ import {
   markAllNotificationsRead,
 } from '../api/notificationApi';
 import NotificationDrawer from '../components/notifications/NotificationDrawer';
+import NotificationDetailModal from '../components/notifications/NotificationDetailModal';
+
 const NotificationContext = createContext(null);
 
 function getSocketUrl() {
@@ -50,6 +52,7 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailNotification, setDetailNotification] = useState(null);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const socketRef = useRef(null);
@@ -169,16 +172,24 @@ export function NotificationProvider({ children }) {
     }
   }, []);
 
-  const handleNotificationClick = useCallback(async (item) => {
+  const navigateToNotification = useCallback(async (item) => {
     if (!item?._id) return;
     const unread = !item.read && !item.isRead;
     if (unread) await markRead(item._id);
     const href = item.meta?.href;
     if (href) {
       setDrawerOpen(false);
+      setDetailNotification(null);
       navigate(href);
     }
   }, [markRead, navigate]);
+
+  const handleNotificationClick = useCallback(async (item) => {
+    if (!item?._id) return;
+    const unread = !item.read && !item.isRead;
+    if (unread) await markRead(item._id);
+    setDetailNotification(item);
+  }, [markRead]);
 
   const markAllRead = useCallback(async () => {
     try {
@@ -211,6 +222,11 @@ export function NotificationProvider({ children }) {
     >
       {children}
       <NotificationDrawer />
+      <NotificationDetailModal
+        notification={detailNotification}
+        onClose={() => setDetailNotification(null)}
+        onViewLead={navigateToNotification}
+      />
     </NotificationContext.Provider>
   );
 }

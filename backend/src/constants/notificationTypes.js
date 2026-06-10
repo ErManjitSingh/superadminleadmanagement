@@ -19,6 +19,7 @@ const NOTIFICATION_TYPES = {
   LEAD_RESTORED: 'lead_restored',
   LEAD_SLA_BREACH: 'lead_sla_breach',
   FOLLOWUP_ESCALATION: 'followup_escalation',
+  FOLLOWUP_OUTCOME: 'followup_outcome',
 };
 
 module.exports = { NOTIFICATION_TYPES };

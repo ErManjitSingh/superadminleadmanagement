@@ -3,6 +3,7 @@ import { GitMerge } from 'lucide-react';
 import AppModal from '../ui/AppModal';
 import { Button } from '../ui/button';
 import { mergeLeads, checkLeadDuplicate } from '../../services/leadEnterpriseApi';
+import { getLeadStatusLabel } from '../../lib/leadStatusLabel';
 
 export default function MergeLeadModal({
   open,
@@ -75,8 +76,13 @@ export default function MergeLeadModal({
                 >
                   <p className="text-sm font-medium text-content-primary">{m.name}</p>
                   <p className="text-xs text-content-muted mt-0.5">
-                    {m.phone} · {m.status} · {m.daysAgo}d ago
+                    {m.phone} · {getLeadStatusLabel(m.status)} · {m.daysAgo}d ago
                   </p>
+                  {m.statusReason && (
+                    <p className="text-[11px] text-content-secondary mt-1 italic">
+                      Executive note: {m.statusReason}
+                    </p>
+                  )}
                 </button>
               ))}
             </div>

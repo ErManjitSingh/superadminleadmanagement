@@ -6,7 +6,7 @@ const { notifyFollowUpEscalation } = require('./notificationService');
 const LEVELS = [
   { key: '15m', minutes: 15, roles: ['team_leader'] },
   { key: '30m', minutes: 30, roles: ['sales_manager'] },
-  { key: '1h', minutes: 60, roles: ['admin', 'sales_manager'] },
+  { key: '1h', minutes: 60, roles: ['sales_manager'] },
 ];
 
 async function processFollowUpEscalations() {

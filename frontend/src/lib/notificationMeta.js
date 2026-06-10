@@ -18,6 +18,7 @@ export const NOTIFICATION_META = {
   followup_reminder: { icon: CalendarClock, color: 'text-violet-600 bg-violet-500/10' },
   followup_missed: { icon: AlertTriangle, color: 'text-amber-600 bg-amber-500/10' },
   followup_escalation: { icon: AlertTriangle, color: 'text-orange-600 bg-orange-500/10' },
+  followup_outcome: { icon: FileCheck, color: 'text-emerald-600 bg-emerald-500/10' },
   lead_sla_breach: { icon: AlertTriangle, color: 'text-rose-600 bg-rose-500/10' },
   quotation_created: { icon: FileText, color: 'text-blue-600 bg-blue-500/10' },
   quotation_approved: { icon: FileCheck, color: 'text-emerald-600 bg-emerald-500/10' },

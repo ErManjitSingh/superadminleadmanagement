@@ -29,6 +29,7 @@ import { useLeadQuery, useLeadTimelineQuery } from '../features/leads/hooks/useL
 import { invalidateLeadDetail } from '../lib/queryInvalidation';
 import CallNoteModal from '../components/leads/CallNoteModal';
 import MergeLeadModal from '../components/leads/MergeLeadModal';
+import { checkLeadDuplicate } from '../services/leadEnterpriseApi';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -45,6 +46,7 @@ export default function LeadDetail() {
   const [reactivationExecs, setReactivationExecs] = useState([]);
   const [callNoteOpen, setCallNoteOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [hasDuplicates, setHasDuplicates] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
 
   const leadQuery = useLeadQuery(id);
@@ -61,6 +63,22 @@ export default function LeadDetail() {
   }, [user?.role]);
 
   useDataRefresh([`lead:${id}`, 'leads'], refreshLead);
+
+  useEffect(() => {
+    const currentLead = leadQuery.data;
+    if (!currentLead || !['admin', 'sales_manager'].includes(user?.role)) {
+      setHasDuplicates(false);
+      return;
+    }
+    checkLeadDuplicate({
+      phone: currentLead.phone,
+      email: currentLead.email,
+      alternatePhone: currentLead.alternatePhone,
+      excludeId: currentLead._id,
+    })
+      .then((res) => setHasDuplicates((res.matches || []).length > 0))
+      .catch(() => setHasDuplicates(false));
+  }, [leadQuery.data, user?.role]);
 
   const { assignees, assigneesLoading, assignModal, openAssign, closeAssign, handleAssign } = useLeadAssign({
     onAssigned: refreshLead,
@@ -125,7 +143,7 @@ export default function LeadDetail() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
-          <LeadCustomerPanel lead={lead} valueScore={detail.valueScore} />
+          <LeadCustomerPanel lead={lead} />
         </aside>
 
         <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
@@ -180,7 +198,7 @@ export default function LeadDetail() {
               </Button>
             </div>
           )}
-          {isAdmin || user?.role === 'sales_manager' ? (
+          {hasDuplicates && (isAdmin || user?.role === 'sales_manager') ? (
             <div className="mb-4">
               <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setMergeOpen(true)}>
                 Merge Duplicate Lead

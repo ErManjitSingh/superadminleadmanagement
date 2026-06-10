@@ -200,7 +200,14 @@ async function notifyFollowUpReminder(followUp, lead) {
     type: T.FOLLOWUP_REMINDER,
     title: 'Follow-up reminder',
     message: `Follow-up with ${lead?.name || 'customer'} scheduled at ${when}`,
-    meta: { followUpId: followUp._id, leadId: lead?._id, href: lead?._id ? `/leads/${lead._id}` : undefined },
+    meta: {
+      followUpId: followUp._id,
+      leadId: lead?._id,
+      leadName: lead?.name,
+      category: followUp.category || 'warm',
+      leadStatus: lead?.status,
+      href: lead?._id ? `/leads/${lead._id}` : undefined,
+    },
   };
 
   if (userId) {
@@ -208,7 +215,8 @@ async function notifyFollowUpReminder(followUp, lead) {
     return;
   }
 
-  await notifyUsers(await getAdminUserIds(), {
+  const managers = await getActiveUserIdsByRolesInBranch(['sales_manager', 'team_leader'], lead?.branchId);
+  await notifyUsers(managers.length ? managers : await getActiveUserIdsByRoles(['sales_manager']), {
     ...payload,
     title: 'Follow-up reminder (unassigned lead)',
     message: `Unassigned lead ${lead?.name || 'customer'} has a follow-up at ${when}`,
@@ -275,6 +283,10 @@ async function notifyFollowUpEscalation({ followUp, lead, level, minutesOverdue,
     meta: {
       followUpId: followUp?._id,
       leadId: lead?._id || lead,
+      leadName: lead?.name,
+      category: followUp?.category || 'warm',
+      leadStatus: lead?.status,
+      executiveName: followUp?.assignedTo?.name,
       level,
       minutesOverdue,
       href: lead?._id ? `/leads/${lead._id}` : '/reminders',
@@ -283,32 +295,100 @@ async function notifyFollowUpEscalation({ followUp, lead, level, minutesOverdue,
   });
 }
 
-async function notifyFollowUpMissed(followUp, lead) {
-  const userId = followUp.assignedTo?._id || followUp.assignedTo || lead?.assignedTo?._id || lead?.assignedTo;
-
-  const payload = {
-    branchId: lead?.branchId || null,
-    type: T.FOLLOWUP_MISSED,
-    title: 'Follow-up missed',
-    message: `Missed follow-up for ${lead?.name || 'customer'}. Please reschedule.`,
-    meta: {
-      followUpId: followUp._id,
-      leadId: lead?._id,
-      href: lead?._id ? `/leads/${lead._id}` : undefined,
-      resolved: false,
-      persistent: true,
-    },
+function buildFollowUpNotificationMeta(followUp, lead) {
+  const execName = followUp.assignedTo?.name || 'Unassigned';
+  return {
+    followUpId: followUp._id,
+    leadId: lead?._id,
+    leadName: lead?.name,
+    category: followUp.category || 'warm',
+    leadStatus: lead?.status,
+    executiveName: execName,
+    href: lead?._id ? `/leads/${lead._id}` : undefined,
+    resolved: false,
+    persistent: true,
   };
+}
 
-  if (userId) {
-    await notifyUser(userId, payload);
+async function notifyFollowUpMissed(followUp, lead) {
+  const execId = followUp.assignedTo?._id || followUp.assignedTo || lead?.assignedTo?._id || lead?.assignedTo;
+  const branchId = lead?.branchId || followUp.branchId || null;
+  const leadName = lead?.name || 'customer';
+  const execName = followUp.assignedTo?.name || 'Unassigned';
+  const meta = buildFollowUpNotificationMeta(followUp, lead);
+
+  if (execId) {
+    await notifyUser(execId, {
+      branchId,
+      type: T.FOLLOWUP_MISSED,
+      title: 'Follow-up missed',
+      message: `Missed follow-up for ${leadName} (${meta.category} lead). Please reschedule.`,
+      meta,
+    });
+  }
+
+  const oversightIds = await getActiveUserIdsByRolesInBranch(['sales_manager', 'team_leader'], branchId);
+  const managers = oversightIds.filter((id) => id.toString() !== execId?.toString());
+
+  if (managers.length) {
+    await notifyUsers(managers, {
+      branchId,
+      type: T.FOLLOWUP_MISSED,
+      title: 'Team follow-up missed',
+      message: `${leadName} — missed by ${execName}. Category: ${meta.category}.`,
+      meta: { ...meta, oversight: true },
+    });
     return;
   }
 
-  await notifyUsers(await getAdminUserIds(), {
-    ...payload,
-    title: 'Follow-up missed (unassigned lead)',
-    message: `Missed follow-up for unassigned lead ${lead?.name || 'customer'}. Please assign and reschedule.`,
+  if (!execId) {
+    const fallbackManagers = await getActiveUserIdsByRoles(['sales_manager']);
+    await notifyUsers(fallbackManagers, {
+      branchId,
+      type: T.FOLLOWUP_MISSED,
+      title: 'Follow-up missed (unassigned lead)',
+      message: `Unassigned lead ${leadName} missed follow-up. Please assign and reschedule.`,
+      meta,
+    });
+  }
+}
+
+async function notifyFollowUpOutcome(followUp, lead) {
+  const category = followUp.category;
+  if (!category || !['warm', 'converted', 'expected_conv', 'cold'].includes(category)) return;
+
+  const branchId = lead?.branchId || followUp.branchId || null;
+  const leadName = lead?.name || 'Lead';
+  const categoryLabels = {
+    warm: 'Warm Lead',
+    cold: 'Cold Lead',
+    converted: 'Converted Lead',
+    expected_conv: 'Expected Conversion',
+  };
+  const label = categoryLabels[category] || category;
+
+  const recipients = [];
+  const execId = followUp.assignedTo?._id || followUp.assignedTo || lead?.assignedTo?._id || lead?.assignedTo;
+  if (execId) recipients.push(execId);
+
+  const oversight = await getActiveUserIdsByRolesInBranch(['sales_manager', 'team_leader'], branchId);
+  oversight.forEach((id) => {
+    if (!recipients.some((r) => r.toString() === id.toString())) recipients.push(id);
+  });
+
+  await notifyUsers(recipients, {
+    branchId,
+    type: T.FOLLOWUP_OUTCOME,
+    title: label,
+    message: `${leadName} marked as ${label} after follow-up completion.`,
+    meta: {
+      followUpId: followUp._id,
+      leadId: lead?._id,
+      leadName,
+      category,
+      leadStatus: lead?.status,
+      href: lead?._id ? `/leads/${lead._id}` : undefined,
+    },
   });
 }
 
@@ -441,6 +521,7 @@ module.exports = {
   notifyReactivationProgress,
   notifyFollowUpReminder,
   notifyFollowUpMissed,
+  notifyFollowUpOutcome,
   notifyFollowUpEscalation,
   notifyLeadMerged,
   notifySlaBreach,

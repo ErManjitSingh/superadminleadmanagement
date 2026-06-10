@@ -53,12 +53,16 @@ function facetCount(facet, key) {
 /** Single aggregation for lead sidebar counts — replaces 7 separate countDocuments */
 async function aggregateAdminLeadCounts(branchId) {
   const match = withBranch({ isDeleted: { $ne: true } }, branchId);
+  const { startOfToday, endOfToday } = todayRange();
   const [row] = await Lead.aggregate([
     { $match: match },
     {
       $facet: {
         all: [{ $count: 'n' }],
-        new: [{ $match: { status: 'new' } }, { $count: 'n' }],
+        new: [
+          { $match: { createdAt: { $gte: startOfToday, $lte: endOfToday } } },
+          { $count: 'n' },
+        ],
         unassigned: [{ $match: { assignedTo: null } }, { $count: 'n' }],
         assigned: [{ $match: { assignedTo: { $ne: null } } }, { $count: 'n' }],
         converted: [{ $match: { status: 'converted' } }, { $count: 'n' }],

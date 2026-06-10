@@ -34,7 +34,7 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
       const t = setTimeout(() => {
         checkLeadDuplicate({ phone, email, excludeId: leadId })
           .then((res) => {
-            const match = res.matches?.[0] || null;
+            const match = res.originalLead || res.matches?.[0] || null;
             setDuplicate(match);
           })
           .catch(() => setDuplicate(null))

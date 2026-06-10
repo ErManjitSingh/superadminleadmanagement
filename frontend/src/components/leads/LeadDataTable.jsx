@@ -11,7 +11,6 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { Eye, Pencil, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import LeadStatusBadge from './LeadStatusBadge';
 import LeadTemperatureBadge from './LeadTemperatureBadge';
-import LeadScoreBadge from './LeadScoreBadge';
 import { formatLeadId } from './constants';
 import {
   SourceBadge,
@@ -177,7 +176,6 @@ export default function LeadDataTable({
           <div className="flex flex-wrap items-center gap-1">
             <LeadStatusBadge status={getValue()} pulse={getValue() === 'new'} size="sm" />
             <LeadTemperatureBadge temperature={row.original.temperature} />
-            <LeadScoreBadge score={row.original.smartScore} />
           </div>
         ),
       },

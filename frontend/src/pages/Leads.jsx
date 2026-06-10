@@ -15,6 +15,7 @@ import LeadBulkActionsBar from '../components/leads/LeadBulkActionsBar';
 import LeadDataTable from '../components/leads/LeadDataTable';
 import LeadPreviewDrawer from '../components/leads/LeadPreviewDrawer';
 import { pageConfig, emptyFilters } from '../components/leads/constants';
+import { getTodayDateRange } from '../lib/todayDateRange';
 import { countActiveFilters } from '../components/leads/leadFilters';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useLeadsQuery } from '../features/leads/hooks/useLeadsQuery';
@@ -61,8 +62,13 @@ export default function Leads() {
     if (config.status && !base.status) base.status = config.status;
     if (config.assignee === 'unassigned') base.filter = 'unassigned';
     else if (config.assignee === 'assigned') base.filter = 'assigned';
+    if (config.todayOnly) {
+      const { dateFrom, dateTo } = getTodayDateRange();
+      base.dateFrom = dateFrom;
+      base.dateTo = dateTo;
+    }
     return base;
-  }, [appliedFilters, config.status, config.assignee]);
+  }, [appliedFilters, config.status, config.assignee, config.todayOnly]);
 
   const activeCursor = pagination.pageIndex > DEEP_PAGE_INDEX ? pageCursors[pagination.pageIndex] : null;
 

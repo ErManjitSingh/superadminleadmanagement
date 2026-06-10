@@ -7,7 +7,11 @@ const {
 } = require('../utils/queryHelpers');
 const { createFollowUpForLead, updateFollowUpRecord } = require('../services/followUpService');
 const { findFollowUpsPaginated } = require('../repositories/followUpRepository');
-const { getAdminFollowUpSummary, getMissedFollowUpsPreview } = require('../services/followUpSummaryService');
+const {
+  getAdminFollowUpSummary,
+  getMissedFollowUpsPreview,
+  getTeamFollowUpReport,
+} = require('../services/followUpSummaryService');
 
 async function syncMissedFollowUps() {
   const todayStart = startOfDay();
@@ -25,11 +29,12 @@ const listFollowUps = asyncHandler(async (req, res) => {
 
 const getFollowUpSummary = asyncHandler(async (req, res) => {
   await syncMissedFollowUps();
-  const [summary, missedPreview] = await Promise.all([
+  const [summary, missedPreview, teamReport] = await Promise.all([
     getAdminFollowUpSummary(),
     getMissedFollowUpsPreview({}, 8),
+    getTeamFollowUpReport(req.branchId),
   ]);
-  res.json({ ...summary, missedPreview });
+  res.json({ ...summary, missedPreview, teamReport });
 });
 
 const getFollowUp = asyncHandler(async (req, res) => {
