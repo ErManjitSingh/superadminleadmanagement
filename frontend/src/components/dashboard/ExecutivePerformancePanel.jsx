@@ -9,23 +9,27 @@ function formatCurrency(n) {
   return `₹${n.toLocaleString('en-IN')}`;
 }
 
+const VISIBLE_ROWS = 5;
+
 export default function ExecutivePerformancePanel({ data, compact = false }) {
   const executives = data?.executives || [];
-  const rows = compact ? executives.slice(0, 5) : executives;
 
   return (
     <DashboardPanel
       title="Executive Performance"
       subtitle="Assigned, converted, follow-up completion"
-      action={compact && executives.length > 5 ? (
+      action={compact && executives.length > VISIBLE_ROWS ? (
         <Link to="/leads/analytics" className="text-xs text-brand-600 hover:underline">View all</Link>
       ) : null}
     >
-      {!rows.length ? (
+      {!executives.length ? (
         <p className="text-sm text-content-muted py-6 text-center">No executive data</p>
       ) : (
-        <div className="space-y-2">
-          {rows.map((exec, i) => (
+        <div
+          className="space-y-2 overflow-y-auto scrollbar-thin pr-1"
+          style={{ maxHeight: `${VISIBLE_ROWS * 4.75}rem` }}
+        >
+          {executives.map((exec, i) => (
             <motion.div
               key={exec._id}
               initial={{ opacity: 0, y: 4 }}

@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import DashboardPanel from './DashboardPanel';
 
+const VISIBLE_ROWS = 5;
+
 const SOURCE_COLORS = [
   'bg-brand-500',
   'bg-violet-500',
@@ -26,8 +28,11 @@ export default function SourceAnalyticsPanel({ data }) {
 
   return (
     <DashboardPanel title="Source Analytics" subtitle="Leads, conversion rate & pipeline by source">
-      <div className="space-y-4">
-        {sources.slice(0, 8).map((src, i) => (
+      <div
+        className="space-y-4 overflow-y-auto scrollbar-thin pr-1"
+        style={{ maxHeight: `${VISIBLE_ROWS * 6.25}rem` }}
+      >
+        {sources.map((src, i) => (
           <motion.div
             key={src.key}
             initial={{ opacity: 0, x: -6 }}

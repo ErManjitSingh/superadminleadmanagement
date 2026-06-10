@@ -12,7 +12,6 @@ import {
   TodayFollowUps,
   ActivityTimeline,
   DashboardSkeleton,
-  EnterpriseKpiStrip,
   SourceAnalyticsPanel,
   ExecutivePerformancePanel,
   AgingChartPanel,
@@ -41,10 +40,6 @@ export default function Dashboard() {
       )}
       <DashboardHeader />
       <DashboardHero stats={stats} />
-
-      {stats.enterpriseKpis && (
-        <EnterpriseKpiStrip kpis={stats.enterpriseKpis} />
-      )}
 
       <RecentLeadsTable
         leads={stats.newLeads || []}
