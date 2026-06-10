@@ -1,5 +1,6 @@
 const EmailLog = require('../models/EmailLog');
 const { withBranch } = require('../utils/branchScope');
+const { isEmailConfigured } = require('./emailService');
 
 function todayRange() {
   const start = new Date();
@@ -28,6 +29,7 @@ async function getEmailDashboardStats({ branchId, userId = null } = {}) {
     failedToday,
     quotationEmails,
     followUpEmails,
+    configured: isEmailConfigured(),
   };
 }
 

@@ -1,3 +1,4 @@
+require('../config/env');
 const nodemailer = require('nodemailer');
 
 const DEFAULT_FROM = process.env.SMTP_USER || 'sales@unotrips.com';
