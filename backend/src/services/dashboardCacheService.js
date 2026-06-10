@@ -3,6 +3,11 @@ const cacheService = require('./cacheService');
 const DEFAULT_TTL_MS = 60 * 1000;
 const NAV_COUNTS_TTL_MS = 30 * 1000;
 
+function wantsFreshData(req) {
+  const value = req?.query?.fresh;
+  return value === '1' || value === 'true';
+}
+
 function cacheKey(role, scope = 'global') {
   return `${role}:${scope}`;
 }
@@ -13,6 +18,13 @@ function navCountsKey(role, userId, branchId) {
 
 async function getOrSet(key, factory, ttlMs = DEFAULT_TTL_MS) {
   return cacheService.getOrSet(key, factory, ttlMs);
+}
+
+async function getOrSetFresh(req, key, factory, ttlMs = DEFAULT_TTL_MS) {
+  if (wantsFreshData(req)) {
+    await cacheService.invalidate(key);
+  }
+  return getOrSet(key, factory, ttlMs);
 }
 
 async function invalidate(prefix) {
@@ -28,10 +40,12 @@ function wrapDashboardBuilder(role, builder, ttlMs = DEFAULT_TTL_MS) {
 
 module.exports = {
   getOrSet,
+  getOrSetFresh,
   invalidate,
   wrapDashboardBuilder,
   cacheKey,
   navCountsKey,
+  wantsFreshData,
   NAV_COUNTS_TTL_MS,
   DEFAULT_TTL_MS,
 };

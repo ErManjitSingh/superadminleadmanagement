@@ -27,7 +27,7 @@ const {
 } = require('../utils/queryHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { sumConvertedPackageRevenue } = require('../utils/convertedPackageRevenue');
-const { getOrSet, cacheKey } = require('../services/dashboardCacheService');
+const { getOrSetFresh, cacheKey } = require('../services/dashboardCacheService');
 const {
   findManagerLeadsPaginated,
   findScopedFollowUpsPaginated,
@@ -35,7 +35,8 @@ const {
 } = require('../repositories/roleScopedRepository');
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const stats = await getOrSet(
+  const stats = await getOrSetFresh(
+    req,
     cacheKey('sales_manager', `dashboard:${req.branchId || 'all'}`),
     () => buildSalesManagerDashboard({ branchId: req.branchId }),
     60 * 1000

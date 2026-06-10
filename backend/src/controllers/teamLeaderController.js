@@ -13,7 +13,7 @@ const {
 } = require('../services/teamScopeService');
 const { buildTeamLeaderDashboard } = require('../services/dashboardService');
 const { sumConvertedPackageRevenue } = require('../utils/convertedPackageRevenue');
-const { getOrSet, cacheKey } = require('../services/dashboardCacheService');
+const { getOrSetFresh, cacheKey } = require('../services/dashboardCacheService');
 const {
   findTeamLeaderLeadsPaginated,
   findScopedFollowUpsPaginated,
@@ -68,7 +68,8 @@ const getMyTeam = asyncHandler(async (req, res) => {
 });
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const stats = await getOrSet(
+  const stats = await getOrSetFresh(
+    req,
     cacheKey('team_leader', `${req.user._id}:${req.branchId || 'all'}`),
     () => buildTeamLeaderDashboard(req.user._id, { branchId: req.branchId }),
     60 * 1000

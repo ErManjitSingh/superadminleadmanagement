@@ -27,7 +27,7 @@ const { createFollowUpForLead, updateFollowUpRecord } = require('../services/fol
 const { resolvePackageReference } = require('../utils/packageRef');
 const { getExecutiveFollowUpSummary, getMissedFollowUpsPreview } = require('../services/followUpSummaryService');
 const { ROLE_LABELS } = require('../config/roles');
-const { getOrSet, cacheKey } = require('../services/dashboardCacheService');
+const { getOrSetFresh, cacheKey } = require('../services/dashboardCacheService');
 const {
   findExecutiveLeadsPaginated,
   findScopedFollowUpsPaginated,
@@ -68,7 +68,8 @@ function buildExecutiveLeadFilter(filter) {
 }
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const stats = await getOrSet(
+  const stats = await getOrSetFresh(
+    req,
     cacheKey('sales_executive', `${req.user._id}:${req.branchId || 'all'}`),
     () => buildExecutiveDashboard(req.user._id, { branchId: req.branchId }),
     60 * 1000

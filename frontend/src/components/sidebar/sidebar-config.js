@@ -8,7 +8,6 @@ import {
   XCircle,
   RefreshCw,
   MessageCircle,
-  Contact,
   FileText,
   Globe2,
   UsersRound,
@@ -77,7 +76,6 @@ export const mainNavItems = [
     icon: Users,
     children: leadManagementItems,
   },
-  { path: '/customers', label: 'Customers', icon: Contact, countKey: 'customers', permission: { module: 'customers', action: 'view' } },
   { path: '/quotations', label: 'Quotations', icon: FileText, badgeKey: 'quotations.pending', permission: { module: 'quotations', action: 'view' } },
   { path: '/packages', label: 'Packages', icon: Globe2, countKey: 'packages', permission: { module: 'packages', action: 'view' } },
   {

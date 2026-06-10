@@ -18,7 +18,7 @@ import {
   setAvailableBranches,
   setSelectedBranch,
 } from '../store/slices/branchSlice';
-import { invalidateDashboard, invalidateLeadLists, invalidateNavCounts } from '../lib/queryInvalidation';
+import { refreshAppData } from '../lib/appRefresh';
 
 function getInitials(name) {
   return (
@@ -93,7 +93,7 @@ export default function TopBar({ onMenuClick }) {
     ? `${user?.roleName || 'Admin'}${selectedBranchLabel ? ` - ${selectedBranchLabel}` : ''}`
     : (user?.roleName || user?.role);
   const [isBranchSwitching, setIsBranchSwitching] = useState(false);
-  const [isLeadsRefreshing, setIsLeadsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const refreshTimerRef = useRef(null);
   const failSafeTimerRef = useRef(null);
 
@@ -166,25 +166,11 @@ export default function TopBar({ onMenuClick }) {
     }
   };
 
-  const isLeadsSectionRoute =
-    location.pathname.startsWith('/leads') ||
-    location.pathname.startsWith('/whatsapp') ||
-    location.pathname.startsWith('/sales-manager/leads') ||
-    location.pathname.startsWith('/sales-manager/assignment') ||
-    location.pathname.startsWith('/team-leader/leads') ||
-    location.pathname.startsWith('/sales-executive/leads');
-
-  const handleLeadsRefresh = () => {
-    setIsLeadsRefreshing(true);
-    Promise.all([
-      invalidateLeadLists(queryClient),
-      invalidateDashboard(queryClient),
-      invalidateNavCounts(queryClient),
-      queryClient.invalidateQueries({ queryKey: ['quotations'] }),
-      queryClient.invalidateQueries({ queryKey: ['followups'] }),
-      queryClient.invalidateQueries({ queryKey: ['reports'] }),
-    ]).finally(() => {
-      window.setTimeout(() => setIsLeadsRefreshing(false), 900);
+  const handleAppRefresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    refreshAppData(queryClient).finally(() => {
+      window.setTimeout(() => setIsRefreshing(false), 900);
     });
   };
 
@@ -221,15 +207,22 @@ export default function TopBar({ onMenuClick }) {
 
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          {isLeadsSectionRoute && (
+          {user && (
             <button
               type="button"
-              onClick={handleLeadsRefresh}
-              className="hidden md:inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-subtle bg-surface/95 text-xs font-semibold text-content-primary"
-              title="Refresh leads data"
+              onClick={handleAppRefresh}
+              disabled={isRefreshing}
+              className={cn(
+                'inline-flex items-center gap-2 h-10 rounded-xl border border-subtle bg-surface/95',
+                'text-xs font-semibold text-content-primary transition-colors',
+                'px-3 disabled:opacity-70',
+                accent.iconHover
+              )}
+              title="Refresh data"
+              aria-label="Refresh data"
             >
-              <RefreshCw className={cn('w-3.5 h-3.5', isLeadsRefreshing && 'animate-spin')} />
-              Refresh Leads
+              <RefreshCw className={cn('w-3.5 h-3.5 shrink-0', isRefreshing && 'animate-spin')} />
+              <span className="hidden md:inline">Refresh</span>
             </button>
           )}
           {isAdmin && availableBranches.length > 0 && (
