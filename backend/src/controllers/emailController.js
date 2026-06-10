@@ -4,6 +4,7 @@ const { queueLeadEmail, getLeadEmailHistory } = require('../services/emailSendSe
 const { getEmailDashboardStats } = require('../services/emailStatsService');
 const { isEmailConfigured } = require('../services/emailService');
 const { pollInboxOnce, isInboxConfigured } = require('../services/emailInboxService');
+const { listMailboxMessages } = require('../services/emailMailboxService');
 
 const sendLeadEmail = asyncHandler(async (req, res) => {
   if (!req.permissions?.email?.send) {
@@ -53,4 +54,19 @@ const syncEmailReplies = asyncHandler(async (req, res) => {
   res.json({ ok: true, message: 'Inbox synced' });
 });
 
-module.exports = { sendLeadEmail, listLeadEmailHistory, getEmailStats, syncEmailReplies };
+const getMailbox = asyncHandler(async (req, res) => {
+  if (!req.permissions?.email?.send) {
+    throw new ApiError(403, 'You do not have permission to view emails');
+  }
+
+  const data = await listMailboxMessages(req, {
+    folder: req.query.folder || 'inbox',
+    search: req.query.search || '',
+    page: Number(req.query.page) || 1,
+    limit: Math.min(Number(req.query.limit) || 50, 100),
+  });
+
+  res.json({ ...data, configured: isEmailConfigured() });
+});
+
+module.exports = { sendLeadEmail, listLeadEmailHistory, getEmailStats, syncEmailReplies, getMailbox };

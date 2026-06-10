@@ -19,3 +19,13 @@ export async function fetchEmailStats() {
   const { data } = await API.get('/emails/stats', { skipSuccessToast: true });
   return data;
 }
+
+export async function fetchMailbox(params = {}) {
+  const { data } = await API.get('/emails/mailbox', { params, skipSuccessToast: true });
+  return data;
+}
+
+export async function syncEmailReplies() {
+  const { data } = await API.post('/emails/sync-replies', {}, { skipSuccessToast: false });
+  return data;
+}

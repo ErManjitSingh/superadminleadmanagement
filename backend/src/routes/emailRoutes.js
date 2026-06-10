@@ -7,11 +7,13 @@ const {
   listLeadEmailHistory,
   getEmailStats,
   syncEmailReplies,
+  getMailbox,
 } = require('../controllers/emailController');
 
 router.use(protect);
 
 router.get('/stats', requirePermission('email', 'send'), getEmailStats);
+router.get('/mailbox', requirePermission('email', 'send'), getMailbox);
 router.post('/sync-replies', requirePermission('email', 'send'), syncEmailReplies);
 router.get('/leads/:id/history', requirePermission('email', 'send'), listLeadEmailHistory);
 router.post('/leads/:id/send', requirePermission('email', 'send'), sendLeadEmail);

@@ -126,7 +126,7 @@ function App() {
               <Route path="teams/:id" element={<TeamDetailPage />} />
               <Route path="follow-ups" element={<FollowUpMonitoringPage />} />
               <Route path="team" element={<TeamPerformancePage />} />
-              <Route path="email-activity" element={<EmailActivityPage breadcrumbs={['Sales Manager', 'Email Activity']} />} />
+              <Route path="email-activity" element={<EmailActivityPage />} />
               <Route path="quotations/new" element={<ManagerQuotationBuilder />} />
               <Route path="quotations/:status" element={<QuotationApprovalPage />} />
               <Route path="reports" element={<ManagerReportsPage />} />
@@ -149,7 +149,7 @@ function App() {
               <Route path="leads/:id/view" element={<ExecutiveLeadDetailPage />} />
               <Route path="leads/:filter" element={<MyLeadsPage />} />
               <Route path="follow-ups" element={<ExecutiveFollowUpsPage />} />
-              <Route path="email-activity" element={<EmailActivityPage breadcrumbs={['Sales Executive', 'Email Activity']} />} />
+              <Route path="email-activity" element={<EmailActivityPage />} />
               <Route path="quotations/new" element={<ExecutiveQuotationBuilder />} />
               <Route path="quotations" element={<ExecutiveQuotationsPage />} />
               <Route path="customers" element={<ExecutiveCustomersPage />} />
@@ -172,7 +172,7 @@ function App() {
               <Route path="leads/:filter" element={<LeaderTeamLeadsPage />} />
               <Route path="leads" element={<LeaderTeamLeadsPage />} />
               <Route path="follow-ups" element={<LeaderFollowUpsPage />} />
-              <Route path="email-activity" element={<EmailActivityPage breadcrumbs={['Team Leader', 'Email Activity']} />} />
+              <Route path="email-activity" element={<EmailActivityPage />} />
               <Route path="performance" element={<ExecutivePerformancePage />} />
               <Route path="escalations" element={<LeadEscalationsPage />} />
               <Route path="quotations/new" element={<LeaderQuotationBuilder />} />
@@ -236,7 +236,7 @@ function App() {
               <Route path="followups" element={<PermissionRoute module="leads"><Followups /></PermissionRoute>} />
               <Route path="reminders" element={<PermissionRoute module="leads"><Reminders /></PermissionRoute>} />
               <Route path="whatsapp" element={<PermissionRoute module="leads"><WhatsAppLeads /></PermissionRoute>} />
-              <Route path="email-activity" element={<PermissionRoute module="email" action="send"><EmailActivityPage breadcrumbs={['Email Activity']} /></PermissionRoute>} />
+              <Route path="email-activity" element={<PermissionRoute module="email" action="send"><EmailActivityPage /></PermissionRoute>} />
               <Route path="customers" element={<PermissionRoute module="customers"><ComingSoon title="Customers" description="Repeat customers and relationship management" /></PermissionRoute>} />
               <Route path="quotations/*" element={<PermissionRoute module="quotations"><Quotations /></PermissionRoute>} />
               <Route path="packages" element={<PermissionRoute module="packages"><Packages /></PermissionRoute>} />
