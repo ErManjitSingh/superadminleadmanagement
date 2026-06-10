@@ -21,7 +21,6 @@ export default function MergeLeadModal({
     setSourceId(initialSourceId || '');
     checkLeadDuplicate({
       phone: targetLead.phone,
-      email: targetLead.email,
       alternatePhone: targetLead.alternatePhone,
       excludeId: targetLead._id,
     })

@@ -17,6 +17,7 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
   const { user } = useAuth();
   const { register, watch, setValue, formState: { errors } } = useWizardForm();
   const phone = watch('phone');
+  const alternatePhone = watch('alternatePhone');
   const email = watch('email');
   const name = watch('name');
   const [searching, setSearching] = useState(false);
@@ -29,10 +30,10 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
   useEffect(() => {
     if (forceCreate) return;
     const normalized = normalizePhone(phone);
-    if (normalized.length >= 10 || email?.includes('@')) {
+    if (normalized.length === 10) {
       setSearching(true);
       const t = setTimeout(() => {
-        checkLeadDuplicate({ phone, email, excludeId: leadId })
+        checkLeadDuplicate({ phone, alternatePhone, excludeId: leadId })
           .then((res) => {
             const match = res.originalLead || res.matches?.[0] || null;
             setDuplicate(match);
@@ -43,7 +44,7 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
       return () => clearTimeout(t);
     }
     setDuplicate(null);
-  }, [phone, email, leadId, forceCreate]);
+  }, [phone, alternatePhone, leadId, forceCreate]);
 
   const nameMatches = useMemo(() => {
     if (!name || name.length < 2 || !duplicate) return [];

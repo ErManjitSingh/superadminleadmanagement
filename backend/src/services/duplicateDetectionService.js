@@ -5,22 +5,20 @@ function normalizePhone(phone = '') {
   return String(phone).replace(/\D/g, '').slice(-10);
 }
 
-async function findDuplicateLeads({ phone, alternatePhone, email, branchId, excludeId }) {
-  const phones = [phone, alternatePhone]
+/** Duplicate = same 10-digit phone (primary or alternate). Email is not used. */
+async function findDuplicateLeads({ phone, alternatePhone, branchId, excludeId }) {
+  const phones = [...new Set([phone, alternatePhone]
     .filter(Boolean)
     .map(normalizePhone)
-    .filter((p) => p.length >= 10);
+    .filter((p) => p.length === 10))];
+
+  if (!phones.length) return [];
 
   const or = [];
-  for (const p of phones) {
-    const tail = p.slice(-10);
-    or.push({ phone: { $regex: tail } });
-    or.push({ alternatePhone: { $regex: tail } });
+  for (const tail of phones) {
+    or.push({ phone: { $regex: `${tail}$` } });
+    or.push({ alternatePhone: { $regex: `${tail}$` } });
   }
-  if (email?.trim()) {
-    or.push({ email: { $regex: new RegExp(`^${email.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } });
-  }
-  if (!or.length) return [];
 
   const filter = { $or: or, isDeleted: { $ne: true } };
   if (branchId) filter.branchId = branchId;
@@ -29,7 +27,7 @@ async function findDuplicateLeads({ phone, alternatePhone, email, branchId, excl
   const rows = await Lead.find(filter)
     .populate(LEAD_POPULATE)
     .sort({ createdAt: -1 })
-    .limit(5)
+    .limit(10)
     .lean();
 
   return rows.map(enrichLead);

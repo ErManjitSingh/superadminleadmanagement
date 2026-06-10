@@ -21,9 +21,9 @@ export default function DuplicateLeadWarning({
     <div className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10">
       <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">This lead already exists</p>
+        <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">Duplicate phone number</p>
         <p className="text-xs text-amber-700/90 dark:text-amber-300/90 mt-1">
-          <span className="font-medium">{match.name}</span>
+          A lead with this phone already exists — <span className="font-medium">{match.name}</span>
           {match.assignedTo?.name && (
             <> · Assigned to <span className="font-medium">{match.assignedTo.name}</span></>
           )}

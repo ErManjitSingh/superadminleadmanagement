@@ -21,11 +21,10 @@ const {
 const { getSlaDashboard } = require('../services/slaService');
 const { listBranchAuditLogs } = require('../services/leadAuditService');
 const checkDuplicate = asyncHandler(async (req, res) => {
-  const { phone, alternatePhone, email, excludeId } = req.query;
+  const { phone, alternatePhone, excludeId } = req.query;
   const duplicates = await findDuplicateLeads({
     phone,
     alternatePhone,
-    email,
     branchId: req.branchId,
     excludeId,
   });

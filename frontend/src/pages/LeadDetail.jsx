@@ -72,7 +72,6 @@ export default function LeadDetail() {
     }
     checkLeadDuplicate({
       phone: currentLead.phone,
-      email: currentLead.email,
       alternatePhone: currentLead.alternatePhone,
       excludeId: currentLead._id,
     })
