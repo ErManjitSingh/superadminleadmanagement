@@ -16,7 +16,8 @@ import {
   ExternalLink,
   PenSquare,
 } from 'lucide-react';
-import { fetchMailbox, syncEmailReplies } from '../../services/emailApi';
+import { fetchMailbox, fetchMailboxMessage, syncEmailReplies } from '../../services/emailApi';
+import GmailComposeLeadPicker from './GmailComposeLeadPicker';
 
 const FOLDERS = [
   { id: 'inbox', label: 'Inbox', icon: Inbox },
@@ -79,6 +80,9 @@ export default function GmailMailbox() {
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [messageBody, setMessageBody] = useState(null);
+  const [bodyLoading, setBodyLoading] = useState(false);
   const [data, setData] = useState({ items: [], counts: {}, mailbox: 'sales@unotrips.com' });
 
   const load = useCallback(() => {
@@ -100,6 +104,19 @@ export default function GmailMailbox() {
   }, [data.items, folder, starred]);
 
   const selected = items.find((m) => m.id === selectedId) || null;
+
+  useEffect(() => {
+    if (!selected) {
+      setMessageBody(null);
+      return;
+    }
+
+    setBodyLoading(true);
+    fetchMailboxMessage(selected.type, selected.id)
+      .then(setMessageBody)
+      .catch(() => setMessageBody(null))
+      .finally(() => setBodyLoading(false));
+  }, [selected?.id, selected?.type]);
 
   const toggleStar = (id, e) => {
     e?.stopPropagation();
@@ -179,12 +196,12 @@ export default function GmailMailbox() {
           <div className="p-3 pt-4">
             <button
               type="button"
+              onClick={() => setComposeOpen(true)}
               className="flex items-center gap-3 w-auto px-6 py-4 rounded-2xl bg-[#c2e7ff] hover:shadow-md text-[#001d35] font-medium text-sm transition-shadow"
             >
               <PenSquare className="w-5 h-5" />
               Compose
             </button>
-            <p className="text-[10px] text-[#5f6368] mt-2 px-2">Send from lead page → 📧 Send Email</p>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-2 space-y-0.5">
@@ -266,11 +283,13 @@ export default function GmailMailbox() {
                 const unread = msg.type === 'inbound' && !msg.isRead;
 
                 return (
-                  <button
+                  <div
                     key={msg.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedId(msg.id)}
-                    className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f1f3f4] transition-colors ${
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedId(msg.id)}
+                    className={`w-full text-left flex items-start gap-3 px-4 py-3 border-b border-[#f1f3f4] transition-colors cursor-pointer ${
                       isSelected ? 'bg-[#c2dbff]' : unread ? 'bg-[#f2f6fc] hover:shadow-sm' : 'hover:shadow-sm hover:z-[1] hover:bg-[#f5f5f5]'
                     }`}
                   >
@@ -306,7 +325,7 @@ export default function GmailMailbox() {
                         className={`w-4 h-4 ${isStarred ? 'fill-[#f4b400] text-[#f4b400]' : 'text-[#dadce0] hover:text-[#5f6368]'}`}
                       />
                     </button>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -371,11 +390,30 @@ export default function GmailMailbox() {
                     </button>
                   </div>
 
-                  <div className="prose prose-sm max-w-none text-[#202124] leading-relaxed whitespace-pre-wrap">
-                    {selected.snippet || 'No preview available for this message.'}
+                  <div className="prose prose-sm max-w-none text-[#202124] leading-relaxed">
+                    {bodyLoading && (
+                      <p className="text-sm text-[#5f6368]">Loading message…</p>
+                    )}
+
+                    {!bodyLoading && messageBody?.bodyHtml && (
+                      <iframe
+                        title="Email body"
+                        srcDoc={messageBody.bodyHtml}
+                        className="w-full min-h-[320px] border border-[#dadce0]/60 rounded-lg bg-white"
+                        sandbox=""
+                      />
+                    )}
+
+                    {!bodyLoading && !messageBody?.bodyHtml && (messageBody?.bodyText || selected.snippet) && (
+                      <div className="whitespace-pre-wrap">{messageBody?.bodyText || selected.snippet}</div>
+                    )}
+
+                    {!bodyLoading && !messageBody?.bodyHtml && !messageBody?.bodyText && !selected.snippet && (
+                      <p className="text-[#5f6368]">No message content available.</p>
+                    )}
                   </div>
 
-                  {selected.type === 'sent' && (
+                  {selected.type === 'sent' && !messageBody?.bodyText && (
                     <p className="mt-6 text-xs text-[#5f6368] italic">
                       Full message body is not stored. Only metadata is kept for compliance.
                     </p>
@@ -413,6 +451,12 @@ export default function GmailMailbox() {
           </div>
         </div>
       </div>
+
+      <GmailComposeLeadPicker
+        open={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onSent={load}
+      />
     </div>
   );
 }

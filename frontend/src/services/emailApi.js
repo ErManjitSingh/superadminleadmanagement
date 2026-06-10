@@ -25,6 +25,11 @@ export async function fetchMailbox(params = {}) {
   return data;
 }
 
+export async function fetchMailboxMessage(type, id) {
+  const { data } = await API.get(`/emails/messages/${type}/${id}`, { skipSuccessToast: true });
+  return data;
+}
+
 export async function syncEmailReplies() {
   const { data } = await API.post('/emails/sync-replies', {}, { skipSuccessToast: false });
   return data;

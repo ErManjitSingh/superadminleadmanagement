@@ -10,6 +10,8 @@ const emailReplySchema = new mongoose.Schema(
     fromName: { type: String, trim: true, default: '' },
     subject: { type: String, trim: true, default: '' },
     snippet: { type: String, trim: true, maxlength: 1000 },
+    bodyText: { type: String, trim: true, maxlength: 50000 },
+    bodyHtml: { type: String, maxlength: 100000 },
     receivedAt: { type: Date, index: true },
     notifiedUser: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },

@@ -385,7 +385,7 @@ export default function EmailComposerModal({
       {/* Footer */}
       <div className="shrink-0 px-5 py-4 border-t border-subtle flex flex-wrap items-center justify-between gap-3 bg-surface-elevated/60 backdrop-blur-sm">
         <p className="text-[11px] text-content-muted max-w-sm">
-          Sent asynchronously · Message body not stored · Branded HTML wrapper applied automatically
+          Sent asynchronously · Branded HTML wrapper applied automatically
         </p>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={submitting} className="rounded-xl">

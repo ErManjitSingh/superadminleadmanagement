@@ -85,6 +85,8 @@ async function processInboundMessage(parsed, messageId) {
   if (!fromEmail || fromEmail === CRM_MAILBOX) return null;
 
   const subject = parsed.subject || '';
+  const bodyText = (parsed.text || stripHtml(parsed.html) || '').trim().slice(0, 50000);
+  const bodyHtml = String(parsed.html || '').slice(0, 100000);
   const snippet = buildSnippet(parsed.text, parsed.html);
   if (!snippet && !subject) return null;
 
@@ -109,6 +111,8 @@ async function processInboundMessage(parsed, messageId) {
     fromName: parsed.from?.value?.[0]?.name || lead.name || '',
     subject,
     snippet,
+    bodyText,
+    bodyHtml: bodyHtml || undefined,
     receivedAt: parsed.date || new Date(),
   });
 

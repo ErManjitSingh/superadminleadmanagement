@@ -115,6 +115,7 @@ async function queueLeadEmail({ req, leadId, payload }) {
     sentBy: req.user._id,
     sentByName: req.user.name,
     attachmentNames,
+    bodyText: resolvedBody.slice(0, 50000),
     templateId: templateId || null,
   });
 

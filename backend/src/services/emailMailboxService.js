@@ -183,4 +183,62 @@ async function listMailboxMessages(req, { folder = 'inbox', search = '', page = 
   };
 }
 
-module.exports = { listMailboxMessages };
+async function assertMessageAccess(req, leadId) {
+  const scopedLeadIds = await resolveScopedLeadIds(req);
+  if (!scopedLeadIds) return;
+  if (!scopedLeadIds.some((id) => String(id) === String(leadId))) {
+    const ApiError = require('../utils/apiError');
+    throw new ApiError(403, 'You do not have access to this message');
+  }
+}
+
+async function getMailboxMessage(req, { type, id }) {
+  const ApiError = require('../utils/apiError');
+  const branchFilter = withBranch({}, req.branchId);
+
+  if (type === 'inbound') {
+    const row = await EmailReply.findOne({ _id: id, ...branchFilter }).lean();
+    if (!row) throw new ApiError(404, 'Message not found');
+    await assertMessageAccess(req, row.leadId);
+
+    const leadMap = await fetchLeadMap([row.leadId]);
+    const item = mapInboundRow(row, leadMap);
+    return {
+      ...item,
+      bodyText: row.bodyText || row.snippet || '',
+      bodyHtml: row.bodyHtml || '',
+      cc: [],
+      bcc: [],
+    };
+  }
+
+  if (type === 'sent') {
+    const sentScope =
+      req.user.role === 'sales_executive'
+        ? { sentBy: req.user._id, ...branchFilter }
+        : { ...branchFilter };
+
+    const row = await EmailLog.findOne({
+      _id: id,
+      ...sentScope,
+      status: { $in: ['sent', 'failed'] },
+    }).lean();
+    if (!row) throw new ApiError(404, 'Message not found');
+    await assertMessageAccess(req, row.leadId);
+
+    const leadMap = await fetchLeadMap([row.leadId]);
+    const item = mapSentRow(row, leadMap);
+    return {
+      ...item,
+      bodyText: row.bodyText || item.snippet || '',
+      bodyHtml: '',
+      cc: row.cc || [],
+      bcc: row.bcc || [],
+      errorMessage: row.errorMessage || '',
+    };
+  }
+
+  throw new ApiError(400, 'Invalid message type');
+}
+
+module.exports = { listMailboxMessages, getMailboxMessage };
