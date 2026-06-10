@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Sparkles, Plane } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQuery';
 import { invalidateDashboard } from '../../lib/queryInvalidation';
@@ -10,8 +11,10 @@ import ExecutiveKpiCards from './dashboard/ExecutiveKpiCards';
 import ExecutiveDashboardPanels from './dashboard/ExecutiveDashboardPanels';
 
 export default function ExecutiveDashboard() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data, isLoading, isFetching } = useDashboardQuery('/sales-executive/dashboard');
+  const displayName = user?.name?.trim() || 'Sales Executive';
 
   const refresh = useCallback(() => {
     invalidateDashboard(queryClient);
@@ -36,7 +39,7 @@ export default function ExecutiveDashboard() {
       )}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <PageHeader
-          title="Sales Workspace"
+          title={displayName}
           description="Your leads, follow-ups, and conversion pipeline"
           breadcrumbs={['Sales Executive', 'Dashboard']}
         />
