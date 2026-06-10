@@ -50,8 +50,14 @@ const syncEmailReplies = asyncHandler(async (req, res) => {
   if (!isInboxConfigured()) {
     throw new ApiError(503, 'Email inbox is not configured for reply tracking');
   }
-  await pollInboxOnce();
-  res.json({ ok: true, message: 'Inbox synced' });
+  const result = await pollInboxOnce();
+  res.json({
+    ok: result.ok !== false,
+    message: result.imported
+      ? `Synced ${result.imported} new reply(ies)`
+      : 'Inbox synced — no new replies matched to leads',
+    ...result,
+  });
 });
 
 const getMailbox = asyncHandler(async (req, res) => {

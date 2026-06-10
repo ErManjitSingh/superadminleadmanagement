@@ -7,6 +7,8 @@ const { notifyUser } = require('./notificationService');
 
 const POLL_MS = Number(process.env.EMAIL_INBOX_POLL_MS || 5 * 60 * 1000);
 const CRM_MAILBOX = (process.env.SMTP_USER || 'sales@unotrips.com').toLowerCase();
+const MAX_MESSAGES_PER_POLL = Number(process.env.EMAIL_INBOX_MAX_MESSAGES || 50);
+const LOOKBACK_DAYS = Number(process.env.EMAIL_INBOX_LOOKBACK_DAYS || 30);
 
 let pollTimer = null;
 let polling = false;
@@ -18,9 +20,48 @@ function isInboxConfigured() {
   return !!(host && user && pass);
 }
 
+function createImapClient() {
+  const host = process.env.IMAP_HOST || 'imap.hostinger.com';
+  return new ImapFlow({
+    host,
+    port: Number(process.env.IMAP_PORT || 993),
+    secure: process.env.IMAP_SECURE !== 'false',
+    auth: {
+      user: process.env.IMAP_USER || process.env.SMTP_USER,
+      pass: process.env.IMAP_PASS || process.env.SMTP_PASS,
+    },
+    logger: false,
+    socketTimeout: 120000,
+    greetingTimeout: 30000,
+    tls: {
+      servername: host,
+      minVersion: 'TLSv1.2',
+    },
+  });
+}
+
 function extractEmailAddress(value) {
-  const match = String(value || '').match(/<([^>]+)>/) || String(value || '').match(/([\w.+-]+@[\w.-]+\.\w+)/);
+  const match =
+    String(value || '').match(/<([^>]+)>/) ||
+    String(value || '').match(/([\w.+-]+@[\w.-]+\.\w+)/);
   return (match?.[1] || '').toLowerCase().trim();
+}
+
+function normalizeMessageId(value) {
+  return String(value || '')
+    .replace(/^<|>$/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function collectReferenceIds(inReplyTo, references) {
+  const raw = [inReplyTo, references].filter(Boolean).join(' ');
+  return [...new Set(
+    raw
+      .split(/\s+/)
+      .map((part) => part.replace(/^<|>$/g, '').trim())
+      .filter(Boolean)
+  )];
 }
 
 function stripHtml(html) {
@@ -40,44 +81,109 @@ function isReplySubject(subject) {
   return /^(re|fwd|fw)\s*:/i.test(String(subject || '').trim());
 }
 
-async function matchLeadAndLog(fromEmail, subject, inReplyTo, references) {
+function escapeRegex(text) {
+  return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function findEmailLogByReferences(refIds) {
+  if (!refIds.length) return null;
+
+  const variants = new Set();
+  for (const id of refIds) {
+    const normalized = normalizeMessageId(id);
+    variants.add(id);
+    variants.add(normalized);
+    variants.add(`<${normalized}>`);
+  }
+
+  const direct = await EmailLog.findOne({
+    messageId: { $in: [...variants] },
+    status: 'sent',
+  }).lean();
+  if (direct) return direct;
+
+  const recentLogs = await EmailLog.find({
+    messageId: { $exists: true, $ne: '' },
+    status: 'sent',
+  })
+    .select('_id leadId messageId subject sentAt')
+    .sort({ sentAt: -1 })
+    .limit(300)
+    .lean();
+
+  const refSet = new Set(refIds.map(normalizeMessageId));
+  return recentLogs.find((row) => refSet.has(normalizeMessageId(row.messageId))) || null;
+}
+
+async function findLeadByEmail(fromEmail) {
+  if (!fromEmail) return null;
+  return Lead.findOne({
+    email: new RegExp(`^${escapeRegex(fromEmail)}$`, 'i'),
+    isDeleted: { $ne: true },
+  })
+    .select('_id assignedTo branchId name email')
+    .lean();
+}
+
+async function findLeadByRecentSentTo(fromEmail) {
+  if (!fromEmail) return { lead: null, emailLog: null };
+  const emailLog = await EmailLog.findOne({
+    status: 'sent',
+    to: { $elemMatch: { $regex: new RegExp(`^${escapeRegex(fromEmail)}$`, 'i') } },
+  })
+    .sort({ sentAt: -1 })
+    .lean();
+  if (!emailLog?.leadId) return { lead: null, emailLog: null };
+
   const lead = await Lead.findOne({
-    email: new RegExp(`^${fromEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+    _id: emailLog.leadId,
     isDeleted: { $ne: true },
   })
     .select('_id assignedTo branchId name email')
     .lean();
 
-  if (!lead) return { lead: null, emailLog: null };
+  return { lead, emailLog: lead ? emailLog : null };
+}
 
-  let emailLog = null;
-  const refIds = String(references || inReplyTo || '')
-    .split(/\s+/)
-    .map((s) => s.replace(/[<>]/g, ''))
-    .filter(Boolean);
+async function matchLeadAndLog(fromEmail, subject, inReplyTo, references) {
+  const refIds = collectReferenceIds(inReplyTo, references);
 
-  if (refIds.length) {
-    emailLog = await EmailLog.findOne({ messageId: { $in: refIds } }).lean();
-  }
-
-  if (!emailLog && isReplySubject(subject)) {
-    const baseSubject = String(subject).replace(/^(re|fwd|fw)\s*:\s*/i, '').trim();
-    emailLog = await EmailLog.findOne({
-      leadId: lead._id,
-      subject: new RegExp(baseSubject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
-      status: 'sent',
+  const emailLogFromRef = await findEmailLogByReferences(refIds);
+  if (emailLogFromRef?.leadId) {
+    const lead = await Lead.findOne({
+      _id: emailLogFromRef.leadId,
+      isDeleted: { $ne: true },
     })
-      .sort({ sentAt: -1 })
+      .select('_id assignedTo branchId name email')
       .lean();
+    if (lead) return { lead, emailLog: emailLogFromRef };
   }
 
-  if (!emailLog) {
-    emailLog = await EmailLog.findOne({ leadId: lead._id, status: 'sent' })
-      .sort({ sentAt: -1 })
-      .lean();
+  const lead = await findLeadByEmail(fromEmail);
+  if (lead) {
+    let emailLog = emailLogFromRef;
+
+    if (!emailLog && isReplySubject(subject)) {
+      const baseSubject = String(subject).replace(/^(re|fwd|fw)\s*:\s*/i, '').trim();
+      emailLog = await EmailLog.findOne({
+        leadId: lead._id,
+        subject: new RegExp(escapeRegex(baseSubject), 'i'),
+        status: 'sent',
+      })
+        .sort({ sentAt: -1 })
+        .lean();
+    }
+
+    if (!emailLog) {
+      emailLog = await EmailLog.findOne({ leadId: lead._id, status: 'sent' })
+        .sort({ sentAt: -1 })
+        .lean();
+    }
+
+    return { lead, emailLog };
   }
 
-  return { lead, emailLog };
+  return findLeadByRecentSentTo(fromEmail);
 }
 
 async function processInboundMessage(parsed, messageId) {
@@ -97,7 +203,10 @@ async function processInboundMessage(parsed, messageId) {
     parsed.references
   );
 
-  if (!lead) return null;
+  if (!lead) {
+    console.log('[EmailInbox] No lead match for reply from', fromEmail, 'subject:', subject?.slice(0, 80));
+    return null;
+  }
 
   const exists = await EmailReply.findOne({ messageId }).lean();
   if (exists) return null;
@@ -116,6 +225,8 @@ async function processInboundMessage(parsed, messageId) {
     receivedAt: parsed.date || new Date(),
   });
 
+  console.log('[EmailInbox] Stored reply from', fromEmail, 'lead:', lead.name || lead._id);
+
   if (lead.assignedTo) {
     await notifyUser(lead.assignedTo, {
       type: 'email_reply',
@@ -130,52 +241,81 @@ async function processInboundMessage(parsed, messageId) {
   return reply;
 }
 
-async function pollInboxOnce() {
-  if (!isInboxConfigured() || polling) return;
-  polling = true;
+function chunk(list, size) {
+  const out = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
 
-  const client = new ImapFlow({
-    host: process.env.IMAP_HOST || process.env.SMTP_HOST,
-    port: Number(process.env.IMAP_PORT || 993),
-    secure: process.env.IMAP_SECURE !== 'false',
-    auth: {
-      user: process.env.IMAP_USER || process.env.SMTP_USER,
-      pass: process.env.IMAP_PASS || process.env.SMTP_PASS,
-    },
-    logger: false,
-  });
+async function pollInboxOnce() {
+  if (!isInboxConfigured()) {
+    return { ok: false, reason: 'not_configured' };
+  }
+  if (polling) {
+    return { ok: false, reason: 'already_polling' };
+  }
+
+  polling = true;
+  const stats = { scanned: 0, imported: 0, skipped: 0, errors: [] };
+  const client = createImapClient();
 
   try {
     await client.connect();
     const lock = await client.getMailboxLock('INBOX');
     try {
       const since = new Date();
-      since.setDate(since.getDate() - 14);
+      since.setDate(since.getDate() - LOOKBACK_DAYS);
 
-      const uids = await client.search({ since }, { uid: true });
-      if (uids.length) {
-      for await (const msg of client.fetch(uids, { envelope: true, source: true, uid: true })) {
-        const messageId = msg.envelope?.messageId;
-        if (!messageId) continue;
-
-        const known = await EmailReply.findOne({ messageId }).select('_id').lean();
-        if (known) continue;
-
-        const parsed = await simpleParser(msg.source);
-        await processInboundMessage(parsed, messageId);
+      let uids = await client.search({ since }, { uid: true });
+      if (!Array.isArray(uids) || !uids.length) {
+        uids = await client.search({ all: true }, { uid: true });
       }
+
+      const sorted = [...(uids || [])].sort((a, b) => b - a).slice(0, MAX_MESSAGES_PER_POLL);
+      const batches = chunk(sorted, 5);
+
+      for (const batch of batches) {
+        try {
+          for await (const msg of client.fetch(batch.join(','), { envelope: true, source: true, uid: true }, { uid: true })) {
+            stats.scanned += 1;
+            const messageId = msg.envelope?.messageId;
+            if (!messageId) {
+              stats.skipped += 1;
+              continue;
+            }
+
+            const known = await EmailReply.findOne({ messageId }).select('_id').lean();
+            if (known) {
+              stats.skipped += 1;
+              continue;
+            }
+
+            const parsed = await simpleParser(msg.source);
+            const reply = await processInboundMessage(parsed, messageId);
+            if (reply) stats.imported += 1;
+            else stats.skipped += 1;
+          }
+        } catch (batchErr) {
+          stats.errors.push(batchErr.message);
+          console.error('[EmailInbox] Batch fetch failed:', batchErr.message);
+        }
       }
     } finally {
       lock.release();
     }
+
     await client.logout();
+    console.log('[EmailInbox] Poll complete', stats);
+    return { ok: true, ...stats };
   } catch (err) {
     console.error('[EmailInbox] Poll failed:', err.message);
+    stats.errors.push(err.message);
     try {
       await client.logout();
     } catch {
       /* ignore */
     }
+    return { ok: false, ...stats, error: err.message };
   } finally {
     polling = false;
   }
@@ -188,12 +328,16 @@ function startEmailInboxPoller() {
   }
   if (pollTimer) return;
   console.log('[EmailInbox] Starting reply poller');
-  pollInboxOnce().catch(() => {});
-  pollTimer = setInterval(() => pollInboxOnce().catch(() => {}), POLL_MS);
+  pollInboxOnce().catch((err) => console.error('[EmailInbox] Initial poll failed:', err.message));
+  pollTimer = setInterval(() => {
+    pollInboxOnce().catch((err) => console.error('[EmailInbox] Scheduled poll failed:', err.message));
+  }, POLL_MS);
 }
 
 module.exports = {
   isInboxConfigured,
   pollInboxOnce,
   startEmailInboxPoller,
+  processInboundMessage,
+  matchLeadAndLog,
 };
