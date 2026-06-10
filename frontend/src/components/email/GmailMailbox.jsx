@@ -296,7 +296,11 @@ export default function GmailMailbox() {
           <div
             className={`${
               selected ? 'hidden md:flex' : 'flex'
-            } flex-col w-full md:w-[280px] lg:w-[300px] shrink-0 border-r border-[#dadce0]/80 min-h-0`}
+            } flex-col min-h-0 ${
+              selected
+                ? 'w-full md:w-[280px] lg:w-[300px] shrink-0 border-r border-[#dadce0]/80'
+                : 'w-full flex-1'
+            }`}
           >
             <div className="shrink-0 flex items-center justify-between px-2 py-1 border-b border-[#dadce0]/60 text-[11px] text-[#5f6368]">
               <span>{loading ? 'Loading…' : `${items.length} messages`}</span>
@@ -374,15 +378,8 @@ export default function GmailMailbox() {
             </div>
           </div>
 
-          {/* Reading pane */}
-          <div className={`${selected ? 'flex' : 'hidden md:flex'} flex-col flex-1 min-w-0 min-h-0`}>
-            {!selected && (
-              <div className="flex-1 flex flex-col items-center justify-center text-[#5f6368] bg-[#fafafa]">
-                <Mail className="w-12 h-12 mb-2 opacity-20" />
-                <p className="text-[13px]">Select an item to read</p>
-              </div>
-            )}
-
+          {/* Reading pane — only after clicking a mail */}
+          <div className={`${selected ? 'flex' : 'hidden'} flex-col flex-1 min-w-0 min-h-0`}>
             {selected && (
               <>
                 <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-[#dadce0]/60 bg-white md:hidden">
