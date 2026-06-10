@@ -252,13 +252,17 @@ export default function LeadDataTable({
     <div className="rounded-2xl border border-brand-500/20 bg-surface/90 backdrop-blur-xl shadow-lg shadow-brand-500/5 overflow-hidden">
       <div ref={scrollRef} className="overflow-auto max-h-[min(70vh,640px)]">
         <table className={`${compactTable} min-w-[1040px]`}>
-          <thead className="sticky top-0 z-10">
+          <thead className="sticky top-0 z-20">
             {table.getHeaderGroups().map((hg) => (
-              <tr key={hg.id} className="border-b border-brand-500/15 bg-gradient-to-r from-brand-600/10 via-violet-600/8 to-indigo-600/10">
+              <tr
+                key={hg.id}
+                className="border-b border-brand-500/15 bg-surface dark:bg-slate-900 shadow-[0_1px_0_0_rgba(124,58,237,0.12)]"
+              >
                 {hg.headers.map((header) => {
                   const colId = header.column.id;
                   const thClass = cn(
                     colId === 'rowActions' ? stickyRowActionsTh : compactTh,
+                    'bg-surface dark:bg-slate-900',
                     colId !== 'rowActions' && 'cursor-pointer select-none hover:text-brand-600 transition-colors'
                   );
                   return (

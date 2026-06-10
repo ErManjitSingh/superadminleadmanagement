@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Eye,
@@ -56,8 +57,8 @@ function ActionCluster({ children, className }) {
   return (
     <div
       className={cn(
-        'inline-flex items-stretch overflow-hidden rounded-xl',
-        'bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm',
+        'inline-flex items-stretch rounded-xl',
+        'bg-white dark:bg-slate-900',
         'ring-1 ring-violet-500/20 shadow-sm shadow-violet-500/10',
         className
       )}
@@ -72,8 +73,9 @@ function AssignButton({ onClick }) {
     <button
       type="button"
       onClick={onClick}
+      onPointerDown={(e) => e.stopPropagation()}
       className={cn(
-        'inline-flex h-8 items-center gap-1.5 px-2.5 text-[11px] font-semibold text-white',
+        'inline-flex h-8 items-center gap-1.5 rounded-l-xl px-2.5 text-[11px] font-semibold text-white',
         'bg-gradient-to-r from-violet-600 via-indigo-600 to-brand-600',
         'hover:brightness-110 active:scale-[0.98] transition-all',
         'shadow-inner shadow-white/10'
@@ -85,23 +87,33 @@ function AssignButton({ onClick }) {
   );
 }
 
-function MoreMenuButton({ solo = false }) {
+const MoreMenuButton = forwardRef(function MoreMenuButton(
+  { solo = false, className, onPointerDown, ...props },
+  ref
+) {
   return (
     <button
+      ref={ref}
       type="button"
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onPointerDown?.(e);
+      }}
       className={cn(
-        'inline-flex h-8 w-8 items-center justify-center',
+        'inline-flex h-8 w-8 shrink-0 items-center justify-center',
         'text-content-muted hover:text-violet-600',
-        'bg-white/60 dark:bg-slate-800/60 hover:bg-violet-500/10',
+        'bg-white dark:bg-slate-900 hover:bg-violet-500/10',
         'border-violet-500/15 transition-colors',
-        solo ? 'rounded-xl border' : 'border-l'
+        solo ? 'rounded-xl border' : 'rounded-none rounded-r-xl border-l',
+        className
       )}
       aria-label="More actions"
+      {...props}
     >
       <MoreHorizontal className="w-4 h-4" />
     </button>
   );
-}
+});
 
 export default function LeadRowActions({
   lead,
@@ -126,8 +138,10 @@ export default function LeadRowActions({
   const menuContent = (
     <DropdownMenuContent
       align="end"
+      side="left"
       sideOffset={8}
-      className="min-w-[232px] rounded-2xl border-violet-500/15 bg-surface/95 p-1.5 shadow-xl shadow-violet-500/10 backdrop-blur-xl"
+      collisionPadding={12}
+      className="z-[200] min-w-[232px] rounded-2xl border-violet-500/15 bg-surface p-1.5 shadow-xl shadow-violet-500/10"
     >
       <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-violet-600/80">
         Lead Actions
@@ -203,12 +217,10 @@ export default function LeadRowActions({
 
   if (!hasLeading && hasMenuItems) {
     return (
-      <div onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuRoot>
+      <div className="relative z-10" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+        <DropdownMenuRoot modal={false}>
           <DropdownMenuTrigger asChild>
-            <ActionCluster>
-              <MoreMenuButton solo />
-            </ActionCluster>
+            <MoreMenuButton solo className="ring-1 ring-violet-500/20 shadow-sm shadow-violet-500/10" />
           </DropdownMenuTrigger>
           {menuContent}
         </DropdownMenuRoot>
@@ -217,12 +229,12 @@ export default function LeadRowActions({
   }
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div className="relative z-10" onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
       <ActionCluster>
         {showAssign && <AssignButton onClick={() => onAssign(lead)} />}
         {showAssignedName && !showAssign && <AssignedChip name={assignedName} />}
         {hasMenuItems && (
-          <DropdownMenuRoot>
+          <DropdownMenuRoot modal={false}>
             <DropdownMenuTrigger asChild>
               <MoreMenuButton />
             </DropdownMenuTrigger>
