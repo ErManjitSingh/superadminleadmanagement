@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Bell, Sun, Moon, Menu, LogOut, User, LogIn, ChevronDown, RefreshCw } from 'lucide-react';
+import { Plus, Bell, Sun, Moon, Menu, X, LogOut, User, LogIn, ChevronDown, RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '../context/ThemeContext';
@@ -19,6 +19,7 @@ import {
   setSelectedBranch,
 } from '../store/slices/branchSlice';
 import { refreshAppData } from '../lib/appRefresh';
+import { useSidebar } from '../context/SidebarContext';
 
 function getInitials(name) {
   return (
@@ -75,6 +76,7 @@ function IconButton({ children, className, accent, ...props }) {
 }
 
 export default function TopBar({ onMenuClick }) {
+  const { mobileOpen, setMobileOpen } = useSidebar();
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
   const { toggleTheme, isDark } = useTheme();
@@ -184,15 +186,18 @@ export default function TopBar({ onMenuClick }) {
         {/* Mobile menu */}
         <button
           type="button"
-          onClick={onMenuClick}
+          onClick={() => {
+            if (mobileOpen) setMobileOpen(false);
+            else onMenuClick?.();
+          }}
           className={cn(
             'lg:hidden flex items-center justify-center w-10 h-10 rounded-xl',
             'border border-subtle bg-surface/90 text-content-secondary shadow-sm transition-colors',
             accent.iconHover
           )}
-          aria-label="Open menu"
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
         >
-          <Menu className="w-5 h-5" />
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
         {/* Greeting — desktop */}

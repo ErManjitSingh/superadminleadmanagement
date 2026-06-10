@@ -1,12 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plane, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Plane, PanelLeftClose, PanelLeft, X } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import { useSidebarTheme } from './SidebarThemeContext';
 import { cn } from '../../lib/utils';
 import { APP_BRAND_NAME, APP_DEFAULT_SUBTITLE } from '../../config/branding';
 
 export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DEFAULT_SUBTITLE }) {
-  const { collapsed, toggleCollapsed } = useSidebar();
+  const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
   const { accent } = useSidebarTheme();
 
   const titleParts = title.split(' ');
@@ -110,7 +110,23 @@ export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DE
             </motion.div>
           </AnimatePresence>
 
-          {/* Collapse */}
+          {/* Mobile drawer close */}
+          {mobileOpen && (
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                'shrink-0 p-1.5 rounded-lg transition-colors lg:hidden',
+                'text-sidebar-muted hover:text-sidebar-text',
+                'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+              )}
+              aria-label="Close menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Desktop collapse */}
           <button
             type="button"
             onClick={toggleCollapsed}

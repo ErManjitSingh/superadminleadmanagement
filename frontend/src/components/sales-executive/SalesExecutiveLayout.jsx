@@ -5,6 +5,7 @@ import { SidebarProvider, useSidebar } from '../../context/SidebarContext';
 import AppSidebar from '../sidebar/AppSidebar';
 import TopBar from '../TopBar';
 import MissedFollowUpAlert from '../notifications/MissedFollowUpAlert';
+import SalesExecutiveMobileNav from './SalesExecutiveMobileNav';
 import { salesExecutiveNavItems } from './sidebar-config';
 
 function SalesExecutiveShell() {
@@ -50,12 +51,13 @@ function SalesExecutiveShell() {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         <TopBar onMenuClick={() => setMobileOpen(true)} />
-        <main data-workspace-main className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain">
+        <main data-workspace-main className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-20 lg:pb-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
             <MissedFollowUpAlert />
             <Outlet />
           </div>
         </main>
+        <SalesExecutiveMobileNav />
       </div>
     </div>
   );
