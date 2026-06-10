@@ -14,5 +14,5 @@ export function stickyRowActionsTd(rowIndex) {
   const hover = even
     ? 'group-hover:bg-slate-50 dark:group-hover:bg-slate-800'
     : 'group-hover:bg-slate-100 dark:group-hover:bg-slate-700';
-  return `px-1 py-1 align-middle text-sm text-right sticky right-0 z-[2] min-w-[96px] border-l border-subtle ${bg} ${hover}`;
+  return `px-1.5 py-1 align-middle text-sm text-right sticky right-0 z-[2] min-w-[132px] border-l border-subtle ${bg} ${hover}`;
 }

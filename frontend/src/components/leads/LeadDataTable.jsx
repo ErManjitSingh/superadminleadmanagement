@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   flexRender,
   getCoreRowModel,
@@ -8,9 +7,9 @@ import {
 } from '@tanstack/react-table';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Eye, Pencil, UserCheck, RefreshCw, Trash2 } from 'lucide-react';
 import LeadStatusBadge from './LeadStatusBadge';
 import LeadTemperatureBadge from './LeadTemperatureBadge';
+import LeadRowActions from './LeadRowActions';
 import { formatLeadId } from './constants';
 import {
   SourceBadge,
@@ -20,20 +19,7 @@ import {
   LeadIdPill,
   CustomerCell,
   ExecutiveBadge,
-  assignLeadBtnClass,
-  moreLeadBtnClass,
-  moreLeadBtnSoloClass,
-  AssignedExecutiveChip,
 } from '../sales-manager/LeadListBadges';
-import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '../ui/dropdown-menu';
-import { Button } from '../ui/button';
 import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import { cn } from '../../lib/utils';
 import {
@@ -209,80 +195,18 @@ export default function LeadDataTable({
       {
         id: 'rowActions',
         header: '',
-        cell: ({ row }) => {
-          const lead = row.original;
-          const assignedName = lead.assignedTo?.name;
-          const showAssign = showAssignButton && actions.assign && !assignedName && onAssign;
-          const showAssignedName = Boolean(assignedName);
-          const showEdit = actions.edit && canEditLead;
-          const showAssignMenu = actions.assign && onAssign;
-          const showTransfer = actions.transferBranch && onTransferBranch;
-          const showDelete = actions.delete && onDelete;
-          const hasMenuItems = actions.view || showEdit || showAssignMenu || showTransfer || showDelete;
-
-          return (
-            <div className="inline-flex items-stretch justify-end gap-0 isolate" onClick={(e) => e.stopPropagation()}>
-              {showAssign && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="gradient"
-                  className={assignLeadBtnClass}
-                  onClick={() => onAssign(lead)}
-                >
-                  Assign
-                </Button>
-              )}
-              {showAssignedName && !showAssign && (
-                <AssignedExecutiveChip name={assignedName} />
-              )}
-              {hasMenuItems && (
-                <DropdownMenuRoot>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className={showAssign || showAssignedName ? moreLeadBtnClass : moreLeadBtnSoloClass}
-                    >
-                      More
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    {actions.view && (
-                      <DropdownMenuItem onClick={() => onRowClick(lead)}>
-                        <Eye className="w-4 h-4 text-sky-600" /> View Lead
-                      </DropdownMenuItem>
-                    )}
-                    {showEdit && (
-                      <DropdownMenuItem asChild>
-                        <Link to={`/leads/${lead._id}/edit`}><Pencil className="w-4 h-4 text-violet-600" /> Edit Lead</Link>
-                      </DropdownMenuItem>
-                    )}
-                    {showAssignMenu && (
-                      <DropdownMenuItem onClick={() => onAssign(lead)}>
-                        <UserCheck className="w-4 h-4 text-emerald-600" /> Assign Lead
-                      </DropdownMenuItem>
-                    )}
-                    {showTransfer && (
-                      <DropdownMenuItem onClick={() => onTransferBranch(lead)}>
-                        <RefreshCw className="w-4 h-4 text-fuchsia-600" /> Transfer Branch
-                      </DropdownMenuItem>
-                    )}
-                    {showDelete && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => onDelete(lead._id)}>
-                          <Trash2 className="w-4 h-4" /> Delete Lead
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenuRoot>
-              )}
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <LeadRowActions
+            lead={row.original}
+            onRowClick={onRowClick}
+            onDelete={onDelete}
+            onAssign={onAssign}
+            onTransferBranch={onTransferBranch}
+            canEditLead={canEditLead}
+            actions={actions}
+            showAssignButton={showAssignButton}
+          />
+        ),
       },
     ],
     [onRowClick, onDelete, onAssign, onTransferBranch, canEditLead, actions, showAssignButton]
