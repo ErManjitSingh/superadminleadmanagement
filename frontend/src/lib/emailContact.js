@@ -1,3 +1,5 @@
+import { wrapEmailHtml } from './emailHtmlLayout';
+
 export function renderEmailTemplate(text, lead = {}, extras = {}) {
   const amount = extras.amount ?? lead.budget;
   const formattedAmount =
@@ -47,18 +49,32 @@ export async function filesToAttachments(files) {
   return Promise.all(list.map(fileToAttachment));
 }
 
-export function buildQuotationHtmlAttachment(quote) {
+export function buildQuotationHtmlAttachment(quote, lead = {}) {
   if (!quote) return null;
-  const lines = [
-    `<h2>Quotation ${quote.quoteNumber || ''}</h2>`,
-    `<p><strong>Customer:</strong> ${quote.lead?.name || quote.customerName || ''}</p>`,
-    `<p><strong>Destination:</strong> ${quote.destination || quote.lead?.destination || ''}</p>`,
-    `<p><strong>Amount:</strong> ₹${Number(quote.totalAmount || quote.grandTotal || 0).toLocaleString('en-IN')}</p>`,
-    `<p><strong>Travel date:</strong> ${quote.travelDate ? new Date(quote.travelDate).toLocaleDateString('en-IN') : '—'}</p>`,
-    '<p>Please contact us for the full itinerary and inclusions.</p>',
-    '<p>— UNO Trips Sales Team</p>',
-  ];
-  const html = `<!DOCTYPE html><html><body>${lines.join('')}</body></html>`;
+  const customer = quote.lead?.name || quote.customerName || lead.name || 'Customer';
+  const destination = quote.destination || quote.lead?.destination || lead.destination || '';
+  const amount = quote.totalAmount ?? quote.grandTotal ?? 0;
+  const travelDate = quote.travelDate || lead.travelDate;
+
+  const body = `Thank you for choosing UNO Trips. Your personalised quotation is ready for review.
+
+Our travel experts have prepared this package based on your requirements. Please review the summary and reach out if you'd like any changes.
+
+We look forward to making your journey truly memorable!`;
+
+  const html = wrapEmailHtml(body, {
+    subject: `Quotation ${quote.quoteNumber || ''}`,
+    category: 'quotation',
+    customerName: customer,
+    destination,
+    quotationNumber: quote.quoteNumber,
+    amount: `₹${Number(amount).toLocaleString('en-IN')}`,
+    travelDate: travelDate
+      ? new Date(travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '—',
+    executiveName: 'UNO Trips Sales Team',
+  });
+
   const content = btoa(unescape(encodeURIComponent(html)));
   return {
     filename: `Quotation-${quote.quoteNumber || 'UNO'}.html`,

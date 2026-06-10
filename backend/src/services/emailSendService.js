@@ -5,6 +5,7 @@ const ApiError = require('../utils/apiError');
 const { isEmailConfigured, normalizeRecipients } = require('./emailService');
 const { enqueueEmailJob } = require('./emailQueueService');
 const { renderEmailTemplate } = require('./emailTemplateService');
+const { wrapEmailHtml } = require('../utils/emailHtmlLayout');
 
 async function assertCanAccessLead(req, leadId) {
   const lead = await Lead.findOne({
@@ -23,11 +24,31 @@ async function assertCanAccessLead(req, leadId) {
   return lead;
 }
 
-function textToHtml(text) {
-  return String(text || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .join('<br/>');
+function formatAmount(amount) {
+  if (amount == null || amount === '') return '';
+  return `₹${Number(amount).toLocaleString('en-IN')}`;
+}
+
+function formatTravelDate(date) {
+  if (!date) return '—';
+  return new Date(date).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function buildClientEmailHtml(bodyText, { lead, category, subject, payload, user }) {
+  return wrapEmailHtml(bodyText, {
+    subject,
+    category,
+    customerName: lead.name,
+    destination: lead.destination,
+    quotationNumber: payload.quotationNumber,
+    amount: formatAmount(payload.amount ?? lead.budget),
+    travelDate: formatTravelDate(lead.travelDate),
+    executiveName: user?.name || 'UNO Trips Sales Team',
+  });
 }
 
 async function queueLeadEmail({ req, leadId, payload }) {
@@ -105,7 +126,13 @@ async function queueLeadEmail({ req, leadId, payload }) {
     cc: normalizeRecipients(cc),
     bcc: normalizeRecipients(bcc),
     subject: resolvedSubject,
-    html: html || textToHtml(resolvedBody),
+    html: html || buildClientEmailHtml(resolvedBody, {
+      lead,
+      category,
+      subject: resolvedSubject,
+      payload,
+      user: req.user,
+    }),
     text: resolvedBody,
     attachments,
     actor: req.user,

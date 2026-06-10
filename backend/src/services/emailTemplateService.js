@@ -4,49 +4,49 @@ const DEFAULT_TEMPLATES = [
   {
     name: 'Quotation',
     category: 'quotation',
-    subject: 'Your travel quotation — {{destination}} | UNO Trips',
+    subject: '✨ Your dream trip to {{destination}} — Quotation {{quotationNumber}}',
     body:
-      'Dear {{customerName}},\n\nThank you for your interest in travelling to {{destination}}.\n\nPlease find your quotation {{quotationNumber}} attached. Total amount: {{amount}}.\n\nTravel date: {{travelDate}}.\n\nWe look forward to hearing from you.\n\nWarm regards,\nUNO Trips Sales Team',
+      'Thank you for trusting UNO Trips with your travel plans!\n\nWe have carefully crafted a personalised quotation for your journey to {{destination}}. Your quote reference is {{quotationNumber}} with a package value of {{amount}}.\n\nYour preferred travel date: {{travelDate}}.\n\nPlease review the attached quotation at your convenience. Our team is ready to customise every detail — hotels, transfers, sightseeing, and more.\n\nReply to this email or call us anytime to confirm or request changes.',
     sortOrder: 1,
   },
   {
     name: 'Follow-up',
     category: 'follow_up',
-    subject: 'Following up on your trip to {{destination}}',
+    subject: 'Still thinking about {{destination}}? We are here to help ✈️',
     body:
-      'Dear {{customerName}},\n\nJust following up regarding your travel inquiry for {{destination}}.\n\nPlease let us know if you have any questions or would like to proceed.\n\nBest regards,\nUNO Trips',
+      'We hope you are doing well!\n\nWe wanted to gently follow up on your travel enquiry for {{destination}}. Our travel experts have some wonderful options that match your preferences.\n\nWhether you need more details, a revised itinerary, or help with dates — we are just a message away.\n\nLet us know a convenient time to connect, and we will make planning effortless for you.',
     sortOrder: 2,
   },
   {
     name: 'Booking Confirmation',
     category: 'booking_confirmation',
-    subject: 'Booking confirmed — {{destination}} | UNO Trips',
+    subject: '🎉 Booking confirmed! Your {{destination}} adventure awaits',
     body:
-      'Dear {{customerName}},\n\nYour booking for {{destination}} is confirmed.\n\nTravel date: {{travelDate}}.\n\nThank you for choosing UNO Trips!',
+      'Wonderful news — your booking is confirmed!\n\nWe are thrilled to be part of your upcoming trip to {{destination}}. Your travel date is {{travelDate}}.\n\nOur operations team is now finalising every detail to ensure a seamless, memorable experience.\n\nYou will receive your vouchers and itinerary shortly. Thank you for choosing UNO Trips — where every journey becomes a story.',
     sortOrder: 3,
   },
   {
     name: 'Payment Confirmation',
     category: 'payment_confirmation',
-    subject: 'Payment received — {{amount}} | UNO Trips',
+    subject: '✅ Payment received — {{amount}} | UNO Trips',
     body:
-      'Dear {{customerName}},\n\nWe have received your payment of {{amount}}.\n\nThank you for your trust in UNO Trips.',
+      'Thank you! We have successfully received your payment of {{amount}}.\n\nYour transaction has been recorded and our team is processing the next steps for your travel arrangements.\n\nIf you need a receipt or have any questions, simply reply to this email.\n\nWe appreciate your trust in UNO Trips.',
     sortOrder: 4,
   },
   {
     name: 'Welcome',
     category: 'welcome',
-    subject: 'Welcome to UNO Trips, {{customerName}}!',
+    subject: 'Welcome aboard, {{customerName}}! 🌏 Your journey starts here',
     body:
-      'Dear {{customerName}},\n\nWelcome to UNO Trips!\n\nWe are delighted to assist you with your travel plans to {{destination}}.\n\nOur team will be in touch shortly.',
+      'Welcome to the UNO Trips family!\n\nWe are delighted to have you with us. Your enquiry for {{destination}} has been received and assigned to our dedicated travel specialist.\n\nFrom curated itineraries to handpicked stays — we craft experiences, not just trips.\n\nSit back and relax — we will be in touch shortly with exciting options tailored just for you.',
     sortOrder: 5,
   },
   {
     name: 'Reactivation',
     category: 'reactivation',
-    subject: 'Still planning your trip to {{destination}}?',
+    subject: '{{customerName}}, your {{destination}} trip is still waiting for you ✨',
     body:
-      'Dear {{customerName}},\n\nWe noticed you were interested in a trip to {{destination}}.\n\nWe would love to help you plan again. Reply to this email or call us anytime.\n\nUNO Trips Sales Team',
+      'We noticed you were exploring a trip to {{destination}} — and we would love to bring that plan back to life!\n\nTravel trends, seasonal offers, and fresh itineraries change often. Our team can share updated packages that may suit you even better than before.\n\nReply to this email or give us a call — let us help you take the next step toward an unforgettable journey.',
     sortOrder: 6,
   },
 ];
