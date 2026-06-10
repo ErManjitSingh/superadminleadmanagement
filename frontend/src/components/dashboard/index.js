@@ -6,6 +6,7 @@ export { default as LeadSourceChart } from './LeadSourceChart';
 export { default as RevenueChart } from './RevenueChart';
 export { default as SalesFunnel } from './SalesFunnel';
 export { default as RecentLeadsTable } from './RecentLeadsTable';
+export { default as DashboardLeadsTabs } from './DashboardLeadsTabs';
 export { default as TodayFollowUps } from './TodayFollowUps';
 export { default as TeamPerformance } from './TeamPerformance';
 export { default as ActivityTimeline } from './ActivityTimeline';

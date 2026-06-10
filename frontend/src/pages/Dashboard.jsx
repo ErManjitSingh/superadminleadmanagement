@@ -8,7 +8,7 @@ import {
   DashboardHero,
   RevenueChart,
   SalesFunnel,
-  RecentLeadsTable,
+  DashboardLeadsTabs,
   TodayFollowUps,
   ActivityTimeline,
   DashboardSkeleton,
@@ -41,14 +41,12 @@ export default function Dashboard() {
       <DashboardHeader />
       <DashboardHero stats={stats} />
 
-      <RecentLeadsTable
-        leads={stats.newLeads || []}
-        totalCount={stats.newLeadsTotal ?? stats.todayLeads}
+      <DashboardLeadsTabs
+        newLeads={stats.newLeads || []}
+        newLeadsTotal={stats.newLeadsTotal ?? stats.todayLeads}
+        unassignedLeads={stats.unassignedLeads || []}
+        unassignedLeadsTotal={stats.unassignedLeadsTotal ?? 0}
         maxRows={5}
-        title="New Leads"
-        subtitle="Today's fresh inquiries"
-        viewAllHref="/leads/new-leads"
-        emptyMessage="No new leads today"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">

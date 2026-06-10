@@ -92,6 +92,8 @@ async function buildAdminDashboard(options = {}) {
     revenueAgg,
     recentLeadsRaw,
     newLeadsRaw,
+    unassignedLeadsTotal,
+    unassignedLeadsRaw,
     upcomingFollowups,
     topAgents,
     leadsWithoutBudget,
@@ -121,6 +123,12 @@ async function buildAdminDashboard(options = {}) {
       .limit(10)
       .lean(),
     Lead.find(withBranch({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId))
+      .populate('assignedTo', 'name email')
+      .sort({ createdAt: -1 })
+      .limit(DASHBOARD_NEW_LEADS_LIMIT)
+      .lean(),
+    Lead.countDocuments(withBranch({ assignedTo: null, isDeleted: { $ne: true } }, branchId)),
+    Lead.find(withBranch({ assignedTo: null, isDeleted: { $ne: true } }, branchId))
       .populate('assignedTo', 'name email')
       .sort({ createdAt: -1 })
       .limit(DASHBOARD_NEW_LEADS_LIMIT)
@@ -199,6 +207,8 @@ async function buildAdminDashboard(options = {}) {
     leadsBySource,
     newLeads: newLeadsRaw.map(enrichLead),
     newLeadsTotal: todayLeads,
+    unassignedLeads: unassignedLeadsRaw.map(enrichLead),
+    unassignedLeadsTotal,
     recentLeads: recentLeadsRaw.map(enrichLead),
     todayFollowUps: todayFollowUps.map((f) => ({
       _id: f._id,
