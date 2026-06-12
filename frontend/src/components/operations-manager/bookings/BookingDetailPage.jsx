@@ -59,6 +59,8 @@ export default function BookingDetailPage() {
   const [addingDoc, setAddingDoc] = useState(false);
   const [itineraryPdfUrl, setItineraryPdfUrl] = useState(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [catalogHotels, setCatalogHotels] = useState([]);
+  const [catalogCabs, setCatalogCabs] = useState([]);
 
   const setters = { setBooking, setItinerary, setHotels, setTransport };
 
@@ -70,6 +72,16 @@ export default function BookingDetailPage() {
   };
 
   useEffect(() => { fetchBooking(); }, [id]);
+
+  useEffect(() => {
+    Promise.all([
+      API.get('/operations-manager/hotels'),
+      API.get('/operations-manager/transport'),
+    ]).then(([hotelsRes, transportRes]) => {
+      setCatalogHotels(hotelsRes.data || []);
+      setCatalogCabs(transportRes.data?.cabs || []);
+    }).catch(() => {});
+  }, []);
 
   const syncFromQuotation = async () => {
     setSyncingQuote(true);
@@ -224,6 +236,8 @@ export default function BookingDetailPage() {
             onPdf={generateItineraryPdf}
             generatingPdf={generatingPdf}
             pdfUrl={itineraryPdfUrl}
+            catalogHotels={catalogHotels}
+            catalogCabs={catalogCabs}
           />
 
           <BookingHotelsEditor
@@ -231,6 +245,7 @@ export default function BookingDetailPage() {
             onChange={setHotels}
             onSave={saveHotels}
             saving={savingHotels}
+            catalogHotels={catalogHotels}
           />
 
           <BookingTransportEditor
@@ -238,6 +253,7 @@ export default function BookingDetailPage() {
             onChange={setTransport}
             onSave={saveTransport}
             saving={savingTransport}
+            catalogCabs={catalogCabs}
           />
 
           {booking.activities?.length > 0 && (

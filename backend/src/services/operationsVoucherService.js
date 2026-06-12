@@ -114,7 +114,10 @@ function buildItineraryHtml(booking) {
       <div style="font-size:11px;font-weight:800;color:#0d9488;text-transform:uppercase;">Day ${d.day}</div>
       <div style="font-size:16px;font-weight:700;margin:6px 0;">${esc(d.title)}</div>
       <div style="font-size:13px;color:#475569;white-space:pre-wrap;">${esc(d.description)}</div>
+      ${d.accommodation ? `<div style="font-size:12px;color:#0d9488;margin-top:8px;">Stay: ${esc(d.accommodation)}</div>` : ''}
+      ${d.transport ? `<div style="font-size:12px;color:#7c3aed;margin-top:8px;">Transport: ${esc(d.transport)}</div>` : ''}
       ${d.meals ? `<div style="font-size:12px;color:#64748b;margin-top:8px;">Meals: ${esc(d.meals)}</div>` : ''}
+      ${d.activities ? `<div style="font-size:12px;color:#e11d48;margin-top:8px;">Activities: ${esc(d.activities)}</div>` : ''}
     </div>
   `).join('');
 

@@ -18,6 +18,300 @@ const VEHICLE_TYPES = [
 
 const HOTEL_STATUS = ['pending', 'requested', 'confirmed', 'rejected', 'cancelled'];
 
+const MANUAL_HOTEL = '__manual_hotel__';
+const MANUAL_CAB = '__manual_cab__';
+
+function formatDayHotelLabel(dayHotel) {
+  if (!dayHotel?.hotelName) return '';
+  return [dayHotel.hotelName, dayHotel.roomType, dayHotel.mealPlan].filter(Boolean).join(' · ');
+}
+
+function formatDayCabLabel(dayCab) {
+  if (!dayCab) return '';
+  const type = VEHICLE_TYPES.find((v) => v.value === dayCab.vehicleType)?.label || dayCab.vehicleType;
+  return [type, dayCab.pickupLocation, dayCab.dropLocation].filter(Boolean).join(' · ');
+}
+
+function applyCatalogHotel(day, hotel) {
+  const roomType = hotel.roomTypes?.[0]?.name || hotel.roomType || '';
+  const dayHotel = {
+    hotelId: hotel._id,
+    hotelName: hotel.name,
+    destination: hotel.destination || '',
+    location: hotel.location || '',
+    roomType,
+    mealPlan: hotel.mealPlan || '',
+    source: 'catalog',
+  };
+  return { ...day, dayHotel, accommodation: formatDayHotelLabel(dayHotel) };
+}
+
+function applyCatalogCab(day, cab) {
+  const dayCab = {
+    cabId: cab._id,
+    vehicleType: (cab.vehicleType || 'suv').toLowerCase().replace(/\s+/g, '_'),
+    pickupLocation: cab.pickupLocation || '',
+    dropLocation: cab.dropLocation || '',
+    source: 'catalog',
+  };
+  return { ...day, dayCab, transport: formatDayCabLabel(dayCab) };
+}
+
+function updateDayHotel(day, patch) {
+  const dayHotel = { source: 'manual', ...day.dayHotel, ...patch };
+  return { ...day, dayHotel, accommodation: formatDayHotelLabel(dayHotel) };
+}
+
+function updateDayCab(day, patch) {
+  const dayCab = { source: 'manual', ...day.dayCab, ...patch };
+  return { ...day, dayCab, transport: formatDayCabLabel(dayCab) };
+}
+
+function DayHotelPicker({ day, catalogHotels, onChange }) {
+  const selectedId = day.dayHotel?.source === 'catalog' && day.dayHotel?.hotelId
+    ? String(day.dayHotel.hotelId)
+    : day.dayHotel?.hotelName
+      ? MANUAL_HOTEL
+      : '';
+
+  const selectedHotel = catalogHotels.find((h) => String(h._id) === String(day.dayHotel?.hotelId));
+  const roomOptions = selectedHotel?.roomTypes?.length
+    ? selectedHotel.roomTypes
+    : selectedHotel?.roomType
+      ? [{ name: selectedHotel.roomType }]
+      : [];
+
+  const handleSelect = (value) => {
+    if (!value) {
+      onChange({ ...day, dayHotel: undefined, accommodation: '' });
+      return;
+    }
+    if (value === MANUAL_HOTEL) {
+      onChange(updateDayHotel(day, { hotelId: undefined, source: 'manual' }));
+      return;
+    }
+    const hotel = catalogHotels.find((h) => String(h._id) === value);
+    if (hotel) onChange(applyCatalogHotel(day, hotel));
+  };
+
+  return (
+    <div className="rounded-xl border border-teal-500/25 bg-gradient-to-br from-teal-500/[0.06] to-emerald-500/[0.03] p-3 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-teal-700 flex items-center gap-1.5">
+          <Hotel className="w-3.5 h-3.5" /> Hotel for this day
+        </span>
+        {day.dayHotel?.hotelName && (
+          <button
+            type="button"
+            onClick={() => onChange({ ...day, dayHotel: undefined, accommodation: '' })}
+            className="text-[10px] font-medium text-rose-600 hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      <select
+        value={selectedId}
+        onChange={(e) => handleSelect(e.target.value)}
+        className="input-premium h-10 w-full rounded-xl text-sm"
+      >
+        <option value="">— Select hotel from inventory —</option>
+        {catalogHotels.map((h) => (
+          <option key={h._id} value={h._id}>
+            {h.name} · {h.location || h.destination}
+          </option>
+        ))}
+        <option value={MANUAL_HOTEL}>✎ Enter hotel manually</option>
+      </select>
+
+      {(selectedId === MANUAL_HOTEL || day.dayHotel?.source === 'manual') && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <input
+            value={day.dayHotel?.hotelName || ''}
+            onChange={(e) => onChange(updateDayHotel(day, { hotelName: e.target.value, hotelId: undefined }))}
+            placeholder="Hotel name"
+            className="input-premium h-9 rounded-xl text-sm sm:col-span-2"
+          />
+          <input
+            value={day.dayHotel?.destination || day.dayHotel?.location || ''}
+            onChange={(e) => onChange(updateDayHotel(day, { destination: e.target.value, location: e.target.value }))}
+            placeholder="City / destination"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+          <input
+            value={day.dayHotel?.roomType || ''}
+            onChange={(e) => onChange(updateDayHotel(day, { roomType: e.target.value }))}
+            placeholder="Room type"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+          <input
+            value={day.dayHotel?.mealPlan || ''}
+            onChange={(e) => onChange(updateDayHotel(day, { mealPlan: e.target.value }))}
+            placeholder="Meal plan (MAP / CP)"
+            className="input-premium h-9 rounded-xl text-sm sm:col-span-2"
+          />
+        </div>
+      )}
+
+      {day.dayHotel?.source === 'catalog' && selectedHotel && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="sm:col-span-2 rounded-lg bg-white/50 dark:bg-surface/50 px-3 py-2 text-xs text-content-secondary">
+            <span className="font-semibold text-content-primary">{selectedHotel.name}</span>
+            {selectedHotel.location ? ` · ${selectedHotel.location}` : ''}
+            {selectedHotel.category ? ` · ${selectedHotel.category}` : ''}
+          </div>
+          {roomOptions.length > 1 ? (
+            <select
+              value={day.dayHotel?.roomType || ''}
+              onChange={(e) => onChange(updateDayHotel(day, { roomType: e.target.value, source: 'catalog', hotelId: selectedHotel._id }))}
+              className="input-premium h-9 rounded-xl text-sm"
+            >
+              {roomOptions.map((r) => (
+                <option key={r.name} value={r.name}>{r.name}</option>
+              ))}
+            </select>
+          ) : (
+            <input
+              value={day.dayHotel?.roomType || ''}
+              onChange={(e) => onChange(updateDayHotel(day, { roomType: e.target.value, source: 'catalog', hotelId: selectedHotel._id }))}
+              placeholder="Room type"
+              className="input-premium h-9 rounded-xl text-sm"
+            />
+          )}
+          <input
+            value={day.dayHotel?.mealPlan || ''}
+            onChange={(e) => onChange(updateDayHotel(day, { mealPlan: e.target.value, source: 'catalog', hotelId: selectedHotel._id }))}
+            placeholder="Meal plan"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DayCabPicker({ day, catalogCabs, onChange }) {
+  const selectedId = day.dayCab?.source === 'catalog' && day.dayCab?.cabId
+    ? String(day.dayCab.cabId)
+    : day.dayCab?.vehicleType || day.dayCab?.pickupLocation
+      ? MANUAL_CAB
+      : '';
+
+  const handleSelect = (value) => {
+    if (!value) {
+      onChange({ ...day, dayCab: undefined, transport: '' });
+      return;
+    }
+    if (value === MANUAL_CAB) {
+      onChange(updateDayCab(day, { cabId: undefined, source: 'manual' }));
+      return;
+    }
+    const cab = catalogCabs.find((c) => String(c._id) === value);
+    if (cab) onChange(applyCatalogCab(day, cab));
+  };
+
+  return (
+    <div className="rounded-xl border border-violet-500/25 bg-gradient-to-br from-violet-500/[0.06] to-purple-500/[0.03] p-3 space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-violet-700 flex items-center gap-1.5">
+          <Car className="w-3.5 h-3.5" /> Cab / transport for this day
+        </span>
+        {day.dayCab && (day.dayCab.vehicleType || day.dayCab.pickupLocation) && (
+          <button
+            type="button"
+            onClick={() => onChange({ ...day, dayCab: undefined, transport: '' })}
+            className="text-[10px] font-medium text-rose-600 hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      <select
+        value={selectedId}
+        onChange={(e) => handleSelect(e.target.value)}
+        className="input-premium h-10 w-full rounded-xl text-sm"
+      >
+        <option value="">— Select cab from fleet —</option>
+        {catalogCabs.map((c) => (
+          <option key={c._id} value={c._id}>
+            {c.vehicleType} · {c.pickupLocation} → {c.dropLocation}
+          </option>
+        ))}
+        <option value={MANUAL_CAB}>✎ Enter cab manually</option>
+      </select>
+
+      {(selectedId === MANUAL_CAB || day.dayCab?.source === 'manual') && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <select
+            value={day.dayCab?.vehicleType || 'suv'}
+            onChange={(e) => onChange(updateDayCab(day, { vehicleType: e.target.value, cabId: undefined }))}
+            className="input-premium h-9 rounded-xl text-sm"
+          >
+            {VEHICLE_TYPES.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
+          </select>
+          <input
+            value={day.dayCab?.vehicleNumber || ''}
+            onChange={(e) => onChange(updateDayCab(day, { vehicleNumber: e.target.value }))}
+            placeholder="Vehicle number"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+          <input
+            value={day.dayCab?.pickupLocation || ''}
+            onChange={(e) => onChange(updateDayCab(day, { pickupLocation: e.target.value }))}
+            placeholder="Pickup location"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+          <input
+            value={day.dayCab?.dropLocation || ''}
+            onChange={(e) => onChange(updateDayCab(day, { dropLocation: e.target.value }))}
+            placeholder="Drop location"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+          <input
+            value={day.dayCab?.driverName || ''}
+            onChange={(e) => onChange(updateDayCab(day, { driverName: e.target.value }))}
+            placeholder="Driver name"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+          <input
+            value={day.dayCab?.driverPhone || ''}
+            onChange={(e) => onChange(updateDayCab(day, { driverPhone: e.target.value }))}
+            placeholder="Driver phone"
+            className="input-premium h-9 rounded-xl text-sm"
+          />
+        </div>
+      )}
+
+      {day.dayCab?.source === 'catalog' && day.dayCab?.cabId && (
+        <div className="rounded-lg bg-white/50 dark:bg-surface/50 px-3 py-2 text-xs text-content-secondary space-y-1">
+          <p>
+            <span className="font-semibold text-content-primary capitalize">{day.dayCab.vehicleType?.replace(/_/g, ' ')}</span>
+            {day.dayCab.pickupLocation && day.dayCab.dropLocation
+              ? ` · ${day.dayCab.pickupLocation} → ${day.dayCab.dropLocation}`
+              : ''}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+            <input
+              value={day.dayCab?.driverName || ''}
+              onChange={(e) => onChange(updateDayCab(day, { driverName: e.target.value, source: 'catalog', cabId: day.dayCab.cabId }))}
+              placeholder="Driver name (optional)"
+              className="input-premium h-9 rounded-xl text-sm"
+            />
+            <input
+              value={day.dayCab?.driverPhone || ''}
+              onChange={(e) => onChange(updateDayCab(day, { driverPhone: e.target.value, source: 'catalog', cabId: day.dayCab.cabId }))}
+              placeholder="Driver phone (optional)"
+              className="input-premium h-9 rounded-xl text-sm"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionShell({ gradient, icon: Icon, title, subtitle, children, actions }) {
   return (
     <motion.div
@@ -75,9 +369,24 @@ export function QuotationSyncBanner({ meta, onSync, syncing, autoSynced }) {
   );
 }
 
-export function BookingHotelsEditor({ hotels, onChange, onSave, saving }) {
+export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogHotels = [] }) {
   const update = (i, field, value) => {
     onChange(hotels.map((h, idx) => (idx === i ? { ...h, [field]: value } : h)));
+  };
+
+  const applyCatalogToRow = (i, hotelId) => {
+    if (!hotelId) return;
+    const hotel = catalogHotels.find((h) => String(h._id) === String(hotelId));
+    if (!hotel) return;
+    onChange(hotels.map((h, idx) => (idx === i ? {
+      ...h,
+      hotelId: hotel._id,
+      hotelName: hotel.name,
+      destination: hotel.destination || hotel.location || '',
+      category: hotel.category || '',
+      roomType: hotel.roomTypes?.[0]?.name || hotel.roomType || '',
+      mealPlan: hotel.mealPlan || '',
+    } : h)));
   };
 
   const addHotel = () => {
@@ -117,6 +426,18 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving }) {
                 </button>
               )}
             </div>
+            {catalogHotels.length > 0 && (
+              <select
+                value={h.hotelId || ''}
+                onChange={(e) => applyCatalogToRow(i, e.target.value)}
+                className="input-premium h-10 w-full rounded-xl text-sm"
+              >
+                <option value="">— Pick from hotel inventory —</option>
+                {catalogHotels.map((opt) => (
+                  <option key={opt._id} value={opt._id}>{opt.name} · {opt.location || opt.destination}</option>
+                ))}
+              </select>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input value={h.hotelName || ''} onChange={(e) => update(i, 'hotelName', e.target.value)} placeholder="Hotel name" className="input-premium h-10 rounded-xl text-sm font-medium" />
               <input value={h.destination || ''} onChange={(e) => update(i, 'destination', e.target.value)} placeholder="Destination / city" className="input-premium h-10 rounded-xl text-sm" />
@@ -135,9 +456,21 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving }) {
   );
 }
 
-export function BookingTransportEditor({ transport, onChange, onSave, saving }) {
+export function BookingTransportEditor({ transport, onChange, onSave, saving, catalogCabs = [] }) {
   const update = (i, field, value) => {
     onChange(transport.map((t, idx) => (idx === i ? { ...t, [field]: value } : t)));
+  };
+
+  const applyCatalogCabToRow = (i, cabId) => {
+    if (!cabId) return;
+    const cab = catalogCabs.find((c) => String(c._id) === String(cabId));
+    if (!cab) return;
+    onChange(transport.map((t, idx) => (idx === i ? {
+      ...t,
+      vehicleType: (cab.vehicleType || 'suv').toLowerCase().replace(/\s+/g, '_'),
+      pickupLocation: cab.pickupLocation || '',
+      dropLocation: cab.dropLocation || '',
+    } : t)));
   };
 
   const addRow = () => {
@@ -175,6 +508,18 @@ export function BookingTransportEditor({ transport, onChange, onSave, saving }) 
                 </button>
               )}
             </div>
+            {catalogCabs.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => applyCatalogCabToRow(i, e.target.value)}
+                className="input-premium h-10 w-full rounded-xl text-sm"
+              >
+                <option value="">— Pick from cab fleet —</option>
+                {catalogCabs.map((c) => (
+                  <option key={c._id} value={c._id}>{c.vehicleType} · {c.pickupLocation} → {c.dropLocation}</option>
+                ))}
+              </select>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select value={t.vehicleType || 'suv'} onChange={(e) => update(i, 'vehicleType', e.target.value)} className="input-premium h-10 rounded-xl text-sm">
                 {VEHICLE_TYPES.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
@@ -194,16 +539,31 @@ export function BookingTransportEditor({ transport, onChange, onSave, saving }) 
 
 export function BookingItineraryTimeline({
   itinerary, onChange, onSave, saving, onPdf, generatingPdf, pdfUrl,
+  catalogHotels = [], catalogCabs = [],
 }) {
   const update = (i, field, value) => {
     onChange(itinerary.map((d, idx) => (idx === i ? { ...d, [field]: value } : d)));
   };
 
   const addDay = () => {
-    onChange([...itinerary, { day: itinerary.length + 1, title: '', description: '', meals: '', accommodation: '', transport: '', activities: '' }]);
+    onChange([...itinerary, {
+      day: itinerary.length + 1,
+      title: '',
+      description: '',
+      meals: '',
+      accommodation: '',
+      transport: '',
+      activities: '',
+      dayHotel: undefined,
+      dayCab: undefined,
+    }]);
   };
 
   const removeDay = (i) => onChange(itinerary.filter((_, idx) => idx !== i).map((d, idx) => ({ ...d, day: idx + 1 })));
+
+  const updateDay = (i, nextDay) => {
+    onChange(itinerary.map((d, idx) => (idx === i ? nextDay : d)));
+  };
 
   return (
     <SectionShell
@@ -268,23 +628,47 @@ export function BookingItineraryTimeline({
                   rows={2}
                   className="input-premium w-full rounded-xl text-sm resize-none"
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {[
-                    { field: 'accommodation', icon: Hotel, placeholder: 'Hotel / stay', color: 'text-teal-600' },
-                    { field: 'meals', icon: Utensils, placeholder: 'Meals', color: 'text-amber-600' },
-                    { field: 'transport', icon: Bus, placeholder: 'Transport', color: 'text-violet-600' },
-                    { field: 'activities', icon: Compass, placeholder: 'Activities & sightseeing', color: 'text-rose-600' },
-                  ].map(({ field, icon: Icon, placeholder, color }) => (
-                    <div key={field} className="flex items-center gap-2 rounded-xl border border-subtle/60 bg-surface/60 px-3 py-2">
-                      <Icon className={cn('w-3.5 h-3.5 shrink-0', color)} />
-                      <input
-                        value={day[field] || ''}
-                        onChange={(e) => update(i, field, e.target.value)}
-                        placeholder={placeholder}
-                        className="flex-1 bg-transparent text-xs outline-none placeholder:text-content-muted"
-                      />
+                <div className="space-y-3">
+                  <DayHotelPicker
+                    day={day}
+                    catalogHotels={catalogHotels}
+                    onChange={(next) => updateDay(i, next)}
+                  />
+                  <DayCabPicker
+                    day={day}
+                    catalogCabs={catalogCabs}
+                    onChange={(next) => updateDay(i, next)}
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {[
+                      { field: 'meals', icon: Utensils, placeholder: 'Meals (B/L/D)', color: 'text-amber-600' },
+                      { field: 'activities', icon: Compass, placeholder: 'Activities & sightseeing', color: 'text-rose-600' },
+                    ].map(({ field, icon: Icon, placeholder, color }) => (
+                      <div key={field} className="flex items-center gap-2 rounded-xl border border-subtle/60 bg-surface/60 px-3 py-2">
+                        <Icon className={cn('w-3.5 h-3.5 shrink-0', color)} />
+                        <input
+                          value={day[field] || ''}
+                          onChange={(e) => update(i, field, e.target.value)}
+                          placeholder={placeholder}
+                          className="flex-1 bg-transparent text-xs outline-none placeholder:text-content-muted"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  {(day.accommodation || day.transport) && (
+                    <div className="flex flex-wrap gap-2 text-[10px]">
+                      {day.accommodation && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-teal-500/10 text-teal-700">
+                          <Hotel className="w-3 h-3" /> {day.accommodation}
+                        </span>
+                      )}
+                      {day.transport && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-violet-500/10 text-violet-700">
+                          <Bus className="w-3 h-3" /> {day.transport}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                  )}
                 </div>
                 {day.date && (
                   <p className="text-[10px] text-content-muted flex items-center gap-1">

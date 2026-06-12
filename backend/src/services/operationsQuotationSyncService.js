@@ -22,15 +22,28 @@ function mapQuoteItinerary(quotation, travelDate) {
     const hotelForDay = selectedHotels.find((h) => Number(h.day) === dayNum);
     const dayDate = travelDate ? addDays(travelDate, dayNum - 1) : null;
 
+    const hotelName = d.accommodation || d.hotel || hotelForDay?.name || '';
+    const dayHotel = hotelForDay || hotelName
+      ? {
+          hotelName: hotelForDay?.name || hotelName,
+          destination: hotelForDay?.location || hotelForDay?.city || hotelForDay?.destination || '',
+          location: hotelForDay?.location || hotelForDay?.city || '',
+          roomType: hotelForDay?.room?.name || hotelForDay?.room || hotelForDay?.roomType || '',
+          mealPlan: hotelForDay?.mealPlan || '',
+          source: hotelForDay ? 'manual' : 'manual',
+        }
+      : undefined;
+
     return {
       day: dayNum,
       title: d.title || `Day ${dayNum}`,
       description: d.description || '',
       meals: d.meals || '',
-      accommodation: d.accommodation || d.hotel || hotelForDay?.name || '',
+      accommodation: hotelName,
       transport: d.transport || '',
       activities: d.activities || d.sightseeing || d.activityNotes || '',
       date: dayDate,
+      ...(dayHotel ? { dayHotel } : {}),
     };
   });
 }

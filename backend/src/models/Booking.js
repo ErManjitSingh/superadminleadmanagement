@@ -79,6 +79,33 @@ const activityAssignmentSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const itineraryDayHotelSchema = new mongoose.Schema(
+  {
+    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel' },
+    hotelName: { type: String, trim: true, default: '' },
+    destination: { type: String, trim: true, default: '' },
+    location: { type: String, trim: true, default: '' },
+    roomType: { type: String, trim: true, default: '' },
+    mealPlan: { type: String, trim: true, default: '' },
+    source: { type: String, enum: ['catalog', 'manual'], default: 'manual' },
+  },
+  { _id: false }
+);
+
+const itineraryDayCabSchema = new mongoose.Schema(
+  {
+    cabId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cab' },
+    vehicleType: { type: String, trim: true, default: '' },
+    pickupLocation: { type: String, trim: true, default: '' },
+    dropLocation: { type: String, trim: true, default: '' },
+    driverName: { type: String, trim: true, default: '' },
+    driverPhone: { type: String, trim: true, default: '' },
+    vehicleNumber: { type: String, trim: true, default: '' },
+    source: { type: String, enum: ['catalog', 'manual'], default: 'manual' },
+  },
+  { _id: false }
+);
+
 const itineraryDaySchema = new mongoose.Schema(
   {
     day: { type: Number, required: true },
@@ -88,6 +115,9 @@ const itineraryDaySchema = new mongoose.Schema(
     accommodation: { type: String, trim: true, default: '' },
     transport: { type: String, trim: true, default: '' },
     activities: { type: String, trim: true, default: '' },
+    date: Date,
+    dayHotel: itineraryDayHotelSchema,
+    dayCab: itineraryDayCabSchema,
   },
   { _id: false }
 );
