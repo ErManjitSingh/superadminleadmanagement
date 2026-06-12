@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ListTodo, Loader2 } from 'lucide-react';
 import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
 import { Button } from '../../ui/button';
+import OperationsDataTable from '../ui/OperationsDataTable';
+import OperationsFilterTabs from '../ui/OperationsFilterTabs';
 import { formatDate } from '../operationsUtils';
 import { cn } from '../../../lib/utils';
 
-const STATUS_FILTERS = ['', 'pending', 'in_progress', 'completed'];
+const STATUS_FILTERS = [
+  { value: '', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'completed', label: 'Completed' },
+];
 
 const STATUS_STYLE = {
   pending: 'bg-amber-500/15 text-amber-700',
@@ -38,6 +45,72 @@ export default function TasksPage() {
     setUpdating(null);
   };
 
+  const columns = useMemo(() => [
+    {
+      key: 'title',
+      header: 'Task',
+      render: (t) => (
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-teal-500/10 shrink-0 mt-0.5">
+            <ListTodo className="w-4 h-4 text-teal-600" />
+          </div>
+          <div>
+            <p className="font-semibold">{t.title}</p>
+            <p className="text-xs text-content-muted capitalize mt-0.5">{t.type?.replace(/_/g, ' ')}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'dueDate',
+      header: 'Due Date',
+      className: 'text-content-muted whitespace-nowrap',
+      render: (t) => formatDate(t.dueDate),
+    },
+    {
+      key: 'booking',
+      header: 'Booking',
+      render: (t) => (
+        t.booking ? (
+          <Link
+            to={`/operations-manager/booking/${t.booking}`}
+            className="text-xs font-medium text-teal-600 hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            View booking
+          </Link>
+        ) : '—'
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (t) => (
+        <span className={cn('text-[10px] font-semibold px-2.5 py-1 rounded-lg capitalize', STATUS_STYLE[t.status])}>
+          {t.status?.replace(/_/g, ' ')}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (t) => (
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          {t.status === 'pending' && (
+            <Button variant="outline" size="sm" className="h-8 rounded-xl" disabled={updating === t._id} onClick={() => updateStatus(t._id, 'in_progress')}>
+              {updating === t._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Start'}
+            </Button>
+          )}
+          {t.status === 'in_progress' && (
+            <Button variant="teal" size="sm" className="h-8 rounded-xl" disabled={updating === t._id} onClick={() => updateStatus(t._id, 'completed')}>
+              Complete
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ], [updating]);
+
   return (
     <div className="space-y-6 pb-8">
       <PageHeader
@@ -46,61 +119,17 @@ export default function TasksPage() {
         breadcrumbs={['Operations', 'Tasks']}
       />
 
-      <div className="flex flex-wrap gap-2">
-        {STATUS_FILTERS.map((s) => (
-          <button
-            key={s || 'all'}
-            type="button"
-            onClick={() => setFilter(s)}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-medium border capitalize',
-              filter === s ? 'bg-teal-600 text-white border-teal-600' : 'border-subtle text-content-muted',
-            )}
-          >
-            {s ? s.replace(/_/g, ' ') : 'All'}
-          </button>
-        ))}
-      </div>
+      <OperationsFilterTabs options={STATUS_FILTERS} value={filter} onChange={setFilter} />
 
-      <div className="space-y-3">
-        {loading ? (
-          <div className="py-16 text-center text-content-muted animate-pulse">Loading tasks…</div>
-        ) : tasks.length === 0 ? (
-          <div className="py-16 text-center text-content-muted">No tasks found</div>
-        ) : (
-          tasks.map((t) => (
-            <div key={t._id} className="rounded-2xl border border-subtle bg-surface/80 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="p-2.5 rounded-xl bg-teal-500/10 shrink-0">
-                <ListTodo className="w-5 h-5 text-teal-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-content-primary">{t.title}</p>
-                <p className="text-xs text-content-muted capitalize mt-0.5">{t.type?.replace(/_/g, ' ')} · Due {formatDate(t.dueDate)}</p>
-                {t.booking && (
-                  <Link to={`/operations-manager/booking/${t.booking}`} className="text-xs text-teal-600 hover:underline mt-1 inline-block">
-                    View booking
-                  </Link>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={cn('text-[10px] font-semibold px-2.5 py-1 rounded-md capitalize', STATUS_STYLE[t.status])}>
-                  {t.status?.replace(/_/g, ' ')}
-                </span>
-                {t.status === 'pending' && (
-                  <Button variant="outline" size="sm" className="h-8 rounded-lg" disabled={updating === t._id} onClick={() => updateStatus(t._id, 'in_progress')}>
-                    {updating === t._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Start'}
-                  </Button>
-                )}
-                {t.status === 'in_progress' && (
-                  <Button variant="teal" size="sm" className="h-8 rounded-lg" disabled={updating === t._id} onClick={() => updateStatus(t._id, 'completed')}>
-                    Complete
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      <OperationsDataTable
+        columns={columns}
+        data={tasks}
+        loading={loading}
+        emptyIcon={ListTodo}
+        emptyTitle="No tasks found"
+        emptyDescription="Tasks are auto-created when bookings need hotel, cab, or voucher confirmation."
+        footer={tasks.length ? `${tasks.length} task${tasks.length === 1 ? '' : 's'}` : undefined}
+      />
     </div>
   );
 }

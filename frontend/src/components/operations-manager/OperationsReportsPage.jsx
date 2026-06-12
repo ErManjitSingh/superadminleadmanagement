@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Building2 } from 'lucide-react';
 import API from '../../api/axios';
 import PageHeader from '../ui/PageHeader';
+import OperationsDataTable from './ui/OperationsDataTable';
 import { formatINR } from './operationsUtils';
 
 export default function OperationsReportsPage() {
@@ -12,6 +14,12 @@ export default function OperationsReportsPage() {
   useEffect(() => {
     API.get('/operations-manager/reports').then((r) => setData(r.data)).finally(() => setLoading(false));
   }, []);
+
+  const vendorColumns = useMemo(() => [
+    { key: 'name', header: 'Vendor', render: (v) => <span className="font-semibold">{v.name}</span> },
+    { key: 'rating', header: 'Rating', render: (v) => <span className="text-amber-600 font-bold">★ {v.rating}</span> },
+    { key: 'bookings', header: 'Bookings Handled', className: 'tabular-nums font-medium' },
+  ], []);
 
   if (loading) return <div className="flex justify-center py-32"><div className="w-9 h-9 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /></div>;
 
@@ -63,22 +71,15 @@ export default function OperationsReportsPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-subtle bg-surface/80 p-5">
-        <h3 className="font-bold mb-4">Vendor Performance</h3>
-        <table className="w-full">
-          <thead><tr className="border-b border-subtle">
-            {['Vendor', 'Rating', 'Bookings Handled'].map((h) => <th key={h} className="text-left px-4 py-2 text-[11px] font-semibold uppercase text-content-muted">{h}</th>)}
-          </tr></thead>
-          <tbody className="divide-y divide-subtle">
-            {vendorPerformance?.map((v) => (
-              <tr key={v.name}>
-                <td className="px-4 py-3 font-medium">{v.name}</td>
-                <td className="px-4 py-3 text-amber-600 font-bold">★ {v.rating}</td>
-                <td className="px-4 py-3 tabular-nums">{v.bookings}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-3">
+        <h3 className="font-bold px-1">Vendor Performance</h3>
+        <OperationsDataTable
+          columns={vendorColumns}
+          data={vendorPerformance || []}
+          compact
+          emptyIcon={Building2}
+          emptyTitle="No vendor performance data"
+        />
       </div>
     </div>
   );

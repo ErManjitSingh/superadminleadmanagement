@@ -23,7 +23,9 @@ import {
   Shield,
   Archive,
   Timer,
+  Briefcase,
 } from 'lucide-react';
+import { operationsAdminMenuChildren } from '../operations-manager/operations-nav-config';
 
 export const teamManagementItems = [
   {
@@ -76,6 +78,14 @@ export const mainNavItems = [
     label: 'Lead Management',
     icon: Users,
     children: leadManagementItems,
+  },
+  {
+    id: 'operations-management',
+    label: 'Operations Management',
+    icon: Briefcase,
+    roles: ['admin'],
+    permission: { module: 'operations', action: 'view' },
+    children: operationsAdminMenuChildren,
   },
   {
     path: '/email-activity',

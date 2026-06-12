@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Headphones, CheckCircle2, Plus } from 'lucide-react';
 import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
 import { Button } from '../../ui/button';
+import OperationsDataTable from '../ui/OperationsDataTable';
+import OperationsFilterTabs from '../ui/OperationsFilterTabs';
 import { TICKET_STATUS_CONFIG, ISSUE_CATEGORIES } from '../constants';
 import { formatDate } from '../operationsUtils';
 import { cn } from '../../../lib/utils';
@@ -15,6 +17,13 @@ const EMPTY_FORM = {
   priority: 'medium',
   description: '',
 };
+
+const STATUS_FILTERS = [
+  { value: '', label: 'All' },
+  { value: 'open', label: 'Open' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'resolved', label: 'Resolved' },
+];
 
 export default function SupportTicketsPage() {
   const [tickets, setTickets] = useState([]);
@@ -48,6 +57,72 @@ export default function SupportTicketsPage() {
     setSubmitting(false);
   };
 
+  const columns = useMemo(() => [
+    {
+      key: 'ticket',
+      header: 'Ticket',
+      render: (t) => (
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-rose-500/10 shrink-0">
+            <Headphones className="w-4 h-4 text-rose-600" />
+          </div>
+          <div>
+            <span className="font-mono text-xs font-bold text-content-muted">{t.ticketNumber}</span>
+            <p className="font-semibold mt-0.5">{t.subject}</p>
+          </div>
+        </div>
+      ),
+    },
+    { key: 'customerName', header: 'Customer' },
+    { key: 'bookingNumber', header: 'Booking', className: 'font-mono text-xs' },
+    {
+      key: 'category',
+      header: 'Category',
+      className: 'capitalize',
+      render: (t) => ISSUE_CATEGORIES[t.category] || t.category,
+    },
+    {
+      key: 'priority',
+      header: 'Priority',
+      render: (t) => (
+        <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-lg capitalize', t.priority === 'high' ? 'bg-rose-500/15 text-rose-700' : 'bg-amber-500/15 text-amber-700')}>
+          {t.priority}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (t) => (
+        <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-lg', TICKET_STATUS_CONFIG[t.status]?.className)}>
+          {TICKET_STATUS_CONFIG[t.status]?.label}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      header: 'Created',
+      className: 'text-xs text-content-muted whitespace-nowrap',
+      render: (t) => formatDate(t.createdAt),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (t) => (
+        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+          {t.status === 'open' && (
+            <Button size="sm" variant="outline" className="rounded-xl h-8" onClick={() => updateStatus(t._id, 'in_progress')}>Start</Button>
+          )}
+          {t.status !== 'resolved' && (
+            <Button size="sm" variant="emerald" className="rounded-xl h-8 gap-1" onClick={() => updateStatus(t._id, 'resolved')}>
+              <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ], []);
+
   return (
     <div className="space-y-6 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -58,7 +133,7 @@ export default function SupportTicketsPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={createTicket} className="rounded-2xl border border-subtle bg-surface/80 p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={createTicket} className="rounded-3xl border border-subtle/80 bg-surface/80 p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 shadow-sm">
           <input required value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} placeholder="Issue subject" className="input-premium h-10 rounded-xl text-sm sm:col-span-2" />
           <input required value={form.customerName} onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))} placeholder="Customer name" className="input-premium h-10 rounded-xl text-sm" />
           <input value={form.bookingNumber} onChange={(e) => setForm((f) => ({ ...f, bookingNumber: e.target.value }))} placeholder="Booking number" className="input-premium h-10 rounded-xl text-sm" />
@@ -78,52 +153,17 @@ export default function SupportTicketsPage() {
         </form>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {['', 'open', 'in_progress', 'resolved'].map((s) => (
-          <button
-            key={s || 'all'}
-            type="button"
-            onClick={() => setFilter(s)}
-            className={cn('px-3 py-1.5 rounded-lg text-xs font-medium border capitalize', filter === s ? 'bg-teal-600 text-white border-teal-600' : 'border-subtle text-content-muted')}
-          >
-            {s ? s.replace('_', ' ') : 'All'}
-          </button>
-        ))}
-      </div>
+      <OperationsFilterTabs options={STATUS_FILTERS} value={filter} onChange={setFilter} />
 
-      <div className="space-y-3">
-        {loading ? (
-          <div className="p-16 text-center text-content-muted animate-pulse">Loading tickets...</div>
-        ) : tickets.map((t) => (
-          <div key={t._id} className="rounded-2xl border border-subtle bg-surface/80 p-5 hover:border-teal-500/15 transition-colors">
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-rose-500/10"><Headphones className="w-5 h-5 text-rose-600" /></div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs font-bold text-content-muted">{t.ticketNumber}</span>
-                    <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-md capitalize', t.priority === 'high' ? 'bg-rose-500/15 text-rose-700' : 'bg-amber-500/15 text-amber-700')}>{t.priority}</span>
-                    <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-md', TICKET_STATUS_CONFIG[t.status]?.className)}>{TICKET_STATUS_CONFIG[t.status]?.label}</span>
-                  </div>
-                  <h3 className="font-bold text-content-primary mt-1">{t.subject}</h3>
-                  <p className="text-sm text-content-muted mt-0.5">{t.customerName} · {t.bookingNumber} · {t.category}</p>
-                  <p className="text-xs text-content-muted mt-1">Created {formatDate(t.createdAt)}</p>
-                </div>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                {t.status === 'open' && (
-                  <Button size="sm" variant="outline" className="rounded-lg h-8" onClick={() => updateStatus(t._id, 'in_progress')}>Start</Button>
-                )}
-                {t.status !== 'resolved' && (
-                  <Button size="sm" variant="emerald" className="rounded-lg h-8 gap-1" onClick={() => updateStatus(t._id, 'resolved')}>
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Resolve
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <OperationsDataTable
+        columns={columns}
+        data={tickets}
+        loading={loading}
+        emptyIcon={Headphones}
+        emptyTitle="No support tickets"
+        emptyDescription="Customer issues during trips will appear here."
+        footer={tickets.length ? `${tickets.length} ticket${tickets.length === 1 ? '' : 's'}` : undefined}
+      />
     </div>
   );
 }

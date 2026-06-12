@@ -1,7 +1,9 @@
-import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Hotel, Car, Headphones } from 'lucide-react';
+import { ArrowRight, Hotel, Car, Headphones, ClipboardList } from 'lucide-react';
 import BookingStatusBadge from '../bookings/BookingStatusBadge';
+import OperationsDataTable from '../ui/OperationsDataTable';
 import { CONFIRMATION_CONFIG } from '../constants';
 import { formatDate } from '../operationsUtils';
 import { cn } from '../../../lib/utils';
@@ -12,6 +14,33 @@ function ConfirmBadge({ status }) {
 }
 
 export default function OperationsDashboardPanels({ data }) {
+  const navigate = useNavigate();
+
+  const recentColumns = useMemo(() => [
+    {
+      key: 'bookingNumber',
+      header: 'Booking #',
+      render: (b) => (
+        <Link to={`/operations-manager/booking/${b._id}`} className="font-mono text-sm font-bold text-teal-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+          {b.bookingNumber}
+        </Link>
+      ),
+    },
+    { key: 'customerName', header: 'Customer' },
+    { key: 'destination', header: 'Destination', className: 'text-content-secondary' },
+    {
+      key: 'travel',
+      header: 'Travel Dates',
+      className: 'text-xs text-content-muted whitespace-nowrap',
+      render: (b) => `${formatDate(b.travelDate || b.travelStart)} → ${formatDate(b.returnDate || b.travelEnd)}`,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (b) => <BookingStatusBadge status={b.status} />,
+    },
+  ], []);
+
   if (!data) return null;
 
   return (
@@ -80,35 +109,22 @@ export default function OperationsDashboardPanels({ data }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="lg:col-span-2 rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden"
+        className="lg:col-span-2 space-y-3"
       >
-        <div className="px-5 py-4 border-b border-subtle">
+        <div className="flex items-center justify-between px-1">
           <h3 className="font-bold text-content-primary">Recent Bookings</h3>
+          <Link to="/operations-manager/bookings/pending" className="text-xs text-teal-600 hover:text-teal-500 flex items-center gap-1">
+            View all <ArrowRight className="w-3 h-3" />
+          </Link>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-subtle bg-surface-elevated/50">
-                {['Booking #', 'Customer', 'Destination', 'Travel Dates', 'Status'].map((h) => (
-                  <th key={h} className="text-left px-4 py-2.5 text-[11px] font-semibold uppercase text-content-muted">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-subtle">
-              {(data.recentBookings || []).map((b) => (
-                <tr key={b._id} className="hover:bg-teal-500/[0.03]">
-                  <td className="px-4 py-3">
-                    <Link to={`/operations-manager/booking/${b._id}`} className="font-mono text-sm font-bold text-teal-600 hover:underline">{b.bookingNumber}</Link>
-                  </td>
-                  <td className="px-4 py-3 text-sm">{b.customerName}</td>
-                  <td className="px-4 py-3 text-sm text-content-secondary">{b.destination}</td>
-                  <td className="px-4 py-3 text-xs text-content-muted">{formatDate(b.travelDate || b.travelStart)} → {formatDate(b.returnDate || b.travelEnd)}</td>
-                  <td className="px-4 py-3"><BookingStatusBadge status={b.status} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <OperationsDataTable
+          columns={recentColumns}
+          data={data.recentBookings || []}
+          compact
+          emptyIcon={ClipboardList}
+          emptyTitle="No recent bookings"
+          onRowClick={(b) => navigate(`/operations-manager/booking/${b._id}`)}
+        />
       </motion.div>
     </div>
   );

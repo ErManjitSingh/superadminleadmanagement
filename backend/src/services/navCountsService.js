@@ -5,6 +5,7 @@ const Package = require('../models/Package');
 const Notification = require('../models/Notification');
 const Booking = require('../models/Booking');
 const SupportTicket = require('../models/SupportTicket');
+const TripTask = require('../models/TripTask');
 const { getExecutiveIdsForLeader } = require('./teamScopeService');
 const { withBranch } = require('../utils/branchScope');
 
@@ -94,6 +95,7 @@ async function buildAdminNavCounts(userId, { branchId } = {}) {
     packages,
     notificationsUnread,
     calendarToday,
+    opsCounts,
   ] = await Promise.all([
     aggregateAdminLeadCounts(branchId),
     FollowUp.countDocuments(withBranch({ status: 'pending' }, branchId)),
@@ -106,6 +108,7 @@ async function buildAdminNavCounts(userId, { branchId } = {}) {
     Package.countDocuments(),
     unreadNotifications(userId, branchId),
     countFollowUpsToday({}, branchId),
+    buildOperationsNavCounts(userId, { branchId }),
   ]);
 
   return {
@@ -116,6 +119,9 @@ async function buildAdminNavCounts(userId, { branchId } = {}) {
     packages,
     notifications: { unread: notificationsUnread },
     calendar: { today: calendarToday },
+    bookings: opsCounts.bookings,
+    support: opsCounts.support,
+    tasks: opsCounts.tasks,
   };
 }
 
@@ -355,6 +361,7 @@ async function buildOperationsNavCounts(userId, { branchId } = {}) {
     bookingsActive,
     bookingsCompleted,
     supportOpen,
+    tasksPending,
     notificationsUnread,
   ] = await Promise.all([
     Booking.countDocuments(withBranch({ status: 'pending' }, branchId)),
@@ -362,6 +369,7 @@ async function buildOperationsNavCounts(userId, { branchId } = {}) {
     Booking.countDocuments(withBranch({ status: 'in_progress' }, branchId)),
     Booking.countDocuments(withBranch({ status: 'completed' }, branchId)),
     SupportTicket.countDocuments({ status: { $in: ['open', 'in_progress'] } }),
+    TripTask.countDocuments({ status: 'pending' }),
     unreadNotifications(userId, branchId),
   ]);
 
@@ -373,6 +381,7 @@ async function buildOperationsNavCounts(userId, { branchId } = {}) {
       completed: bookingsCompleted,
     },
     support: { open: supportOpen },
+    tasks: { pending: tasksPending },
     notifications: { unread: notificationsUnread },
   };
 }

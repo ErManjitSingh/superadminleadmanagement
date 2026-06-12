@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Car, Plane } from 'lucide-react';
 import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
+import OperationsDataTable from '../ui/OperationsDataTable';
+import OperationsFilterTabs from '../ui/OperationsFilterTabs';
 import { formatINR } from '../operationsUtils';
-import { cn } from '../../../lib/utils';
+
+const TAB_OPTIONS = [
+  { value: 'cabs', label: 'Cabs', icon: Car },
+  { value: 'flights', label: 'Flights', icon: Plane },
+];
 
 export default function OperationsTransportPage() {
   const [data, setData] = useState({ cabs: [], flights: [] });
@@ -16,66 +22,49 @@ export default function OperationsTransportPage() {
 
   const list = tab === 'cabs' ? data.cabs : data.flights;
 
+  const columns = useMemo(() => (
+    tab === 'cabs'
+      ? [
+          { key: 'vehicleType', header: 'Vehicle', render: (c) => <span className="font-semibold">{c.vehicleType}</span> },
+          { key: 'pickupLocation', header: 'Pickup', render: (c) => c.pickupLocation || '—' },
+          { key: 'dropLocation', header: 'Drop', render: (c) => c.dropLocation || '—' },
+          {
+            key: 'cost',
+            header: 'Cost',
+            render: (c) => <span className="font-bold tabular-nums text-teal-700">{formatINR(c.cost)}</span>,
+          },
+        ]
+      : [
+          { key: 'airline', header: 'Airline', render: (f) => <span className="font-semibold">{f.airline}</span> },
+          { key: 'flightNumber', header: 'Flight', className: 'font-mono', render: (f) => f.flightNumber || '—' },
+          {
+            key: 'route',
+            header: 'Route',
+            render: (f) => `${f.departure || '—'} → ${f.arrival || '—'}`,
+          },
+          {
+            key: 'cost',
+            header: 'Cost',
+            render: (f) => <span className="font-bold tabular-nums text-teal-700">{formatINR(f.cost)}</span>,
+          },
+        ]
+  ), [tab]);
+
   return (
     <div className="space-y-6 pb-8">
       <PageHeader title="Transport Management" description="Cab fleet and flight inventory for trip execution" breadcrumbs={['Operations', 'Transport']} />
 
-      <div className="flex gap-2 p-1 rounded-xl border border-subtle bg-surface w-fit">
-        {[
-          { id: 'cabs', label: 'Cabs', icon: Car },
-          { id: 'flights', label: 'Flights', icon: Plane },
-        ].map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-              tab === id ? 'bg-teal-600 text-white shadow-sm' : 'text-content-muted hover:text-content-primary',
-            )}
-          >
-            <Icon className="w-4 h-4" /> {label}
-          </button>
-        ))}
-      </div>
+      <OperationsFilterTabs options={TAB_OPTIONS} value={tab} onChange={setTab} />
 
-      <div className="rounded-2xl border border-subtle bg-surface/80 overflow-hidden">
-        {loading ? (
-          <div className="p-16 text-center text-content-muted animate-pulse">Loading...</div>
-        ) : tab === 'cabs' ? (
-          <table className="w-full">
-            <thead><tr className="border-b border-subtle bg-surface-elevated/50">
-              {['Vehicle', 'Pickup', 'Drop', 'Cost'].map((h) => <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold uppercase text-content-muted">{h}</th>)}
-            </tr></thead>
-            <tbody className="divide-y divide-subtle">
-              {data.cabs.map((c) => (
-                <tr key={c._id} className="hover:bg-teal-500/[0.03]">
-                  <td className="px-4 py-3.5 font-medium">{c.vehicleType}</td>
-                  <td className="px-4 py-3.5 text-sm">{c.pickupLocation}</td>
-                  <td className="px-4 py-3.5 text-sm">{c.dropLocation}</td>
-                  <td className="px-4 py-3.5 font-bold tabular-nums">{formatINR(c.cost)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <table className="w-full">
-            <thead><tr className="border-b border-subtle bg-surface-elevated/50">
-              {['Airline', 'Flight', 'Route', 'Cost'].map((h) => <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold uppercase text-content-muted">{h}</th>)}
-            </tr></thead>
-            <tbody className="divide-y divide-subtle">
-              {data.flights.map((f) => (
-                <tr key={f._id} className="hover:bg-teal-500/[0.03]">
-                  <td className="px-4 py-3.5 font-medium">{f.airline}</td>
-                  <td className="px-4 py-3.5 font-mono text-sm">{f.flightNumber}</td>
-                  <td className="px-4 py-3.5 text-sm">{f.departure} → {f.arrival}</td>
-                  <td className="px-4 py-3.5 font-bold tabular-nums">{formatINR(f.cost)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <OperationsDataTable
+        columns={columns}
+        data={list}
+        loading={loading}
+        emptyIcon={tab === 'cabs' ? Car : Plane}
+        emptyTitle={tab === 'cabs' ? 'No cabs in fleet' : 'No flights in inventory'}
+        emptyDescription="Transport options will appear here once configured."
+        footer={list.length ? `${list.length} ${tab === 'cabs' ? 'cab' : 'flight'}${list.length === 1 ? '' : 's'}` : undefined}
+      />
     </div>
   );
 }

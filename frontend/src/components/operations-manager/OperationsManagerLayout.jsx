@@ -13,7 +13,7 @@ function OperationsManagerShell() {
   const sidebarProps = {
     user,
     navItems: operationsManagerNavItems,
-    brandSubtitle: 'Operations ERP',
+    brandSubtitle: 'Operations Manager',
     accent: 'teal',
     profilePath: '/operations-manager/profile',
   };
