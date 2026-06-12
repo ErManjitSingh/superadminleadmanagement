@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Hotel, Car, Ticket, Phone, Mail, CheckCircle2, Loader2,
-  FileText, ListTodo, Calendar, Save, Plus, ExternalLink,
+  ArrowLeft, Ticket, Phone, Mail, CheckCircle2, Loader2,
+  FileText, ListTodo, MapPin, Users, Wallet, ExternalLink,
 } from 'lucide-react';
 import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
 import { Button } from '../../ui/button';
 import BookingStatusBadge from './BookingStatusBadge';
 import { formatINR, formatDate, formatPax, formatTravelRange } from '../operationsUtils';
-import { CONFIRMATION_CONFIG } from '../constants';
 import { cn } from '../../../lib/utils';
+import {
+  QuotationSyncBanner,
+  BookingHotelsEditor,
+  BookingTransportEditor,
+  BookingItineraryTimeline,
+} from './BookingFulfillmentSections';
 
 const DOC_TYPES = [
   { value: 'customer_id', label: 'Customer ID' },
@@ -28,29 +33,74 @@ const TASK_STATUS = {
   completed: 'bg-emerald-500/15 text-emerald-700',
 };
 
+function applyBookingState(data, setters) {
+  const {
+    setBooking, setItinerary, setHotels, setTransport,
+  } = setters;
+  setBooking(data);
+  setItinerary(data.itinerary?.length ? data.itinerary : [{ day: 1, title: '', description: '' }]);
+  setHotels(data.hotels?.length ? data.hotels : []);
+  setTransport(data.transport?.length ? data.transport : []);
+}
+
 export default function BookingDetailPage() {
   const { id } = useParams();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [itinerary, setItinerary] = useState([]);
+  const [hotels, setHotels] = useState([]);
+  const [transport, setTransport] = useState([]);
   const [savingItinerary, setSavingItinerary] = useState(false);
+  const [savingHotels, setSavingHotels] = useState(false);
+  const [savingTransport, setSavingTransport] = useState(false);
+  const [syncingQuote, setSyncingQuote] = useState(false);
   const [docForm, setDocForm] = useState({ type: 'hotel_confirmation', fileName: '', fileUrl: '' });
   const [addingDoc, setAddingDoc] = useState(false);
   const [itineraryPdfUrl, setItineraryPdfUrl] = useState(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
 
+  const setters = { setBooking, setItinerary, setHotels, setTransport };
+
   const fetchBooking = () => {
     setLoading(true);
     API.get(`/operations-manager/bookings/${id}`)
-      .then((r) => {
-        setBooking(r.data);
-        setItinerary(r.data.itinerary?.length ? r.data.itinerary : [{ day: 1, title: '', description: '' }]);
-      })
+      .then((r) => applyBookingState(r.data, setters))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchBooking(); }, [id]);
+
+  const syncFromQuotation = async () => {
+    setSyncingQuote(true);
+    try {
+      const r = await API.post(`/operations-manager/bookings/${id}/sync-quotation`, { force: true });
+      applyBookingState(r.data, setters);
+    } finally {
+      setSyncingQuote(false);
+    }
+  };
+
+  const saveItinerary = async () => {
+    setSavingItinerary(true);
+    await API.put(`/operations-manager/bookings/${id}`, { itinerary });
+    fetchBooking();
+    setSavingItinerary(false);
+  };
+
+  const saveHotels = async () => {
+    setSavingHotels(true);
+    await API.put(`/operations-manager/bookings/${id}`, { hotels });
+    fetchBooking();
+    setSavingHotels(false);
+  };
+
+  const saveTransport = async () => {
+    setSavingTransport(true);
+    await API.put(`/operations-manager/bookings/${id}`, { transport });
+    fetchBooking();
+    setSavingTransport(false);
+  };
 
   const confirmHotel = async () => {
     setActionLoading('hotel');
@@ -71,21 +121,6 @@ export default function BookingDetailPage() {
     await API.put(`/operations-manager/bookings/${id}`, { status });
     fetchBooking();
     setActionLoading(null);
-  };
-
-  const saveItinerary = async () => {
-    setSavingItinerary(true);
-    await API.put(`/operations-manager/bookings/${id}`, { itinerary });
-    fetchBooking();
-    setSavingItinerary(false);
-  };
-
-  const addItineraryDay = () => {
-    setItinerary((prev) => [...prev, { day: prev.length + 1, title: '', description: '' }]);
-  };
-
-  const updateItineraryDay = (index, field, value) => {
-    setItinerary((prev) => prev.map((d, i) => (i === index ? { ...d, [field]: value } : d)));
   };
 
   const addDocument = async (e) => {
@@ -116,17 +151,23 @@ export default function BookingDetailPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-32"><div className="w-9 h-9 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-content-muted">Loading trip fulfillment...</p>
+      </div>
+    );
   }
 
   if (!booking) return <div className="text-center py-20 text-content-muted">Booking not found</div>;
 
   const amount = booking.totalAmount ?? booking.amount ?? 0;
+  const quoteMeta = booking.quotationMeta || booking.quotationPreview?.meta;
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-10">
       <div className="flex items-center gap-3">
-        <Link to="/operations-manager/bookings/pending" className="p-2 rounded-xl border border-subtle hover:bg-surface-elevated">
+        <Link to="/operations-manager/bookings/pending" className="p-2.5 rounded-xl border border-subtle hover:bg-surface-elevated transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <PageHeader
@@ -136,135 +177,100 @@ export default function BookingDetailPage() {
         />
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
-              <div>
-                <BookingStatusBadge status={booking.status} />
-                <h2 className="text-xl font-bold text-content-primary mt-2">{booking.packageName || booking.destination}</h2>
-                <p className="text-sm text-content-muted">
-                  Quote: {booking.quotationReference || booking.quoteNumber || '—'} · Executive: {booking.executiveName || '—'}
-                </p>
-                <p className="text-sm text-content-muted">Sales Manager: {booking.salesManagerName || '—'}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-black text-teal-600 tabular-nums">{formatINR(amount)}</p>
-                <p className="text-xs text-content-muted capitalize mt-1">Payment: {booking.paymentStatus || 'pending'}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { label: 'Travel Date', value: formatDate(booking.travelDate || booking.travelStart) },
-                { label: 'Return Date', value: formatDate(booking.returnDate || booking.travelEnd) },
-                { label: 'Passengers', value: formatPax(booking) },
-                { label: 'Pending Amount', value: formatINR(booking.pendingAmount) },
-              ].map(({ label, value }) => (
-                <div key={label} className="p-3 rounded-xl bg-surface-elevated/50 border border-subtle">
-                  <p className="text-[10px] font-semibold uppercase text-content-muted">{label}</p>
-                  <p className="text-sm font-bold text-content-primary mt-0.5">{value}</p>
-                </div>
-              ))}
-            </div>
+      {/* Hero */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-3xl border border-teal-500/15 bg-gradient-to-br from-teal-600/15 via-cyan-500/10 to-violet-500/10 p-6 sm:p-8"
+      >
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4" />
+        <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+          <div>
+            <BookingStatusBadge status={booking.status} />
+            <h1 className="text-2xl sm:text-3xl font-black text-content-primary mt-3 tracking-tight">
+              {booking.packageName || booking.destination}
+            </h1>
+            <p className="text-sm text-content-secondary mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{booking.destination}</span>
+              <span className="inline-flex items-center gap-1"><Users className="w-3.5 h-3.5" />{formatPax(booking)}</span>
+              <span>{formatTravelRange(booking)}</span>
+            </p>
+            <p className="text-xs text-content-muted mt-2">
+              Quote {booking.quotationReference || '—'} · Executive {booking.executiveName || '—'}
+            </p>
           </div>
+          <div className="text-left lg:text-right shrink-0">
+            <p className="text-3xl sm:text-4xl font-black text-teal-600 tabular-nums">{formatINR(amount)}</p>
+            <p className="text-xs text-content-muted capitalize mt-1">Payment: {booking.paymentStatus || 'pending'}</p>
+            <p className="text-sm text-amber-600 font-semibold mt-1">Pending {formatINR(booking.pendingAmount)}</p>
+          </div>
+        </div>
+      </motion.div>
 
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-6 space-y-4">
-            <h3 className="font-bold flex items-center gap-2"><Hotel className="w-4 h-4 text-teal-600" /> Hotel Details</h3>
-            {(booking.hotels?.length ? booking.hotels : [{ hotelName: 'Not assigned', status: 'pending' }]).map((h, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-subtle bg-surface-elevated/30">
-                <div>
-                  <p className="font-semibold">{h.hotelName || h.name || 'Hotel'}</p>
-                  <p className="text-xs text-content-muted">{formatDate(h.checkIn)} → {formatDate(h.checkOut)}</p>
-                  {h.roomType && <p className="text-xs text-content-muted">{h.roomType}</p>}
-                </div>
-                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-lg', CONFIRMATION_CONFIG[h.status]?.className)}>
-                  {CONFIRMATION_CONFIG[h.status]?.label || h.status}
-                </span>
-              </div>
-            ))}
-          </div>
+      <QuotationSyncBanner
+        meta={quoteMeta}
+        autoSynced={booking.autoSyncedFromQuotation}
+        syncing={syncingQuote}
+        onSync={syncFromQuotation}
+      />
 
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-6 space-y-4">
-            <h3 className="font-bold flex items-center gap-2"><Car className="w-4 h-4 text-violet-600" /> Transport</h3>
-            {(booking.transport?.length ? booking.transport : [{ vehicleType: 'Not assigned', status: 'pending' }]).map((t, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-subtle bg-surface-elevated/30">
-                <div>
-                  <p className="font-semibold capitalize">{(t.vehicleType || t.type || 'Vehicle').replace(/_/g, ' ')}</p>
-                  <p className="text-xs text-content-muted">{t.pickupLocation || t.pickup || '—'} → {t.dropLocation || t.drop || '—'}</p>
-                  {t.driverName && <p className="text-xs text-content-muted">{t.driverName} · {t.driverPhone}</p>}
-                </div>
-                <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-lg', CONFIRMATION_CONFIG[t.status]?.className)}>
-                  {CONFIRMATION_CONFIG[t.status]?.label || t.status}
-                </span>
-              </div>
-            ))}
-          </div>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        <div className="xl:col-span-8 space-y-6">
+          <BookingItineraryTimeline
+            itinerary={itinerary}
+            onChange={setItinerary}
+            onSave={saveItinerary}
+            saving={savingItinerary}
+            onPdf={generateItineraryPdf}
+            generatingPdf={generatingPdf}
+            pdfUrl={itineraryPdfUrl}
+          />
+
+          <BookingHotelsEditor
+            hotels={hotels}
+            onChange={setHotels}
+            onSave={saveHotels}
+            saving={savingHotels}
+          />
+
+          <BookingTransportEditor
+            transport={transport}
+            onChange={setTransport}
+            onSave={saveTransport}
+            saving={savingTransport}
+          />
 
           {booking.activities?.length > 0 && (
-            <div className="rounded-2xl border border-subtle bg-surface/80 p-6 space-y-3">
-              <h3 className="font-bold">Activities</h3>
-              {booking.activities.map((a, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-xl border border-subtle">
-                  <span className="font-medium">{a.name || a}</span>
-                  <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-md capitalize', CONFIRMATION_CONFIG[a.status]?.className || 'bg-slate-500/15 text-slate-600')}>
-                    {a.status || 'pending'}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-3xl border border-subtle bg-surface/80 p-6"
+            >
+              <h3 className="font-bold text-lg mb-4">Activities</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {booking.activities.map((a, i) => (
+                  <div key={i} className="p-4 rounded-2xl border border-subtle bg-gradient-to-br from-rose-500/5 to-orange-500/5">
+                    <p className="font-semibold">{a.name || a}</p>
+                    <p className="text-xs text-content-muted mt-1 capitalize">{a.status || 'pending'}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           )}
 
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><Calendar className="w-4 h-4 text-teal-600" /> Day-wise Itinerary</h3>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="rounded-lg gap-1" onClick={addItineraryDay}>
-                  <Plus className="w-3.5 h-3.5" /> Add Day
-                </Button>
-                <Button variant="teal" size="sm" className="rounded-lg gap-1" disabled={savingItinerary} onClick={saveItinerary}>
-                  {savingItinerary ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  Save
-                </Button>
-                <Button variant="outline" size="sm" className="rounded-lg gap-1" disabled={generatingPdf} onClick={generateItineraryPdf}>
-                  {generatingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-                  PDF
-                </Button>
-              </div>
-            </div>
-            {itineraryPdfUrl && (
-              <a href={itineraryPdfUrl} target="_blank" rel="noreferrer" className="text-xs text-teal-600 hover:underline inline-flex items-center gap-1">
-                <ExternalLink className="w-3 h-3" /> Open itinerary document
-              </a>
-            )}
-            {itinerary.map((day, i) => (
-              <div key={i} className="p-4 rounded-xl border border-subtle bg-surface-elevated/30 space-y-2">
-                <p className="text-xs font-bold text-teal-600 uppercase">Day {day.day || i + 1}</p>
-                <input
-                  value={day.title || ''}
-                  onChange={(e) => updateItineraryDay(i, 'title', e.target.value)}
-                  placeholder="Day title"
-                  className="input-premium w-full h-9 rounded-lg text-sm"
-                />
-                <textarea
-                  value={day.description || ''}
-                  onChange={(e) => updateItineraryDay(i, 'description', e.target.value)}
-                  placeholder="Activities, meals, accommodation..."
-                  rows={2}
-                  className="input-premium w-full rounded-lg text-sm resize-none"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-6 space-y-4">
-            <h3 className="font-bold flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-600" /> Documents</h3>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-3xl border border-subtle bg-surface/80 p-6 space-y-4"
+          >
+            <h3 className="font-bold flex items-center gap-2 text-lg"><FileText className="w-5 h-5 text-indigo-600" /> Documents</h3>
             <form onSubmit={addDocument} className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-              <select value={docForm.type} onChange={(e) => setDocForm((f) => ({ ...f, type: e.target.value }))} className="input-premium h-9 rounded-lg text-sm">
+              <select value={docForm.type} onChange={(e) => setDocForm((f) => ({ ...f, type: e.target.value }))} className="input-premium h-10 rounded-xl text-sm">
                 {DOC_TYPES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
               </select>
-              <input value={docForm.fileName} onChange={(e) => setDocForm((f) => ({ ...f, fileName: e.target.value }))} placeholder="File name" className="input-premium h-9 rounded-lg text-sm" />
-              <input value={docForm.fileUrl} onChange={(e) => setDocForm((f) => ({ ...f, fileUrl: e.target.value }))} placeholder="Document URL" required className="input-premium h-9 rounded-lg text-sm sm:col-span-2" />
-              <Button type="submit" variant="teal" size="sm" className="rounded-lg h-9" disabled={addingDoc}>Add URL</Button>
+              <input value={docForm.fileName} onChange={(e) => setDocForm((f) => ({ ...f, fileName: e.target.value }))} placeholder="File name" className="input-premium h-10 rounded-xl text-sm" />
+              <input value={docForm.fileUrl} onChange={(e) => setDocForm((f) => ({ ...f, fileUrl: e.target.value }))} placeholder="Document URL" required className="input-premium h-10 rounded-xl text-sm sm:col-span-2" />
+              <Button type="submit" variant="teal" size="sm" className="rounded-xl h-10" disabled={addingDoc}>Add URL</Button>
             </form>
             <div className="space-y-2">
               {(booking.documents || []).map((d) => (
@@ -277,62 +283,62 @@ export default function BookingDetailPage() {
                 </a>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
 
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-5">
+        <aside className="xl:col-span-4 space-y-4 xl:sticky xl:top-20">
+          <div className="rounded-3xl border border-subtle bg-surface/90 p-5 shadow-sm">
             <h3 className="font-bold mb-4">Customer</h3>
-            <div className="space-y-3 text-sm">
-              <p className="font-semibold text-lg">{booking.customerName}</p>
-              <p className="flex items-center gap-2 text-content-secondary"><Phone className="w-4 h-4" />{booking.customerPhone || '—'}</p>
-              <p className="flex items-center gap-2 text-content-secondary"><Mail className="w-4 h-4" />{booking.customerEmail || '—'}</p>
-              <p className="text-xs text-content-muted pt-2">{formatTravelRange(booking)}</p>
+            <p className="font-bold text-xl text-content-primary">{booking.customerName}</p>
+            <div className="mt-3 space-y-2 text-sm text-content-secondary">
+              <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-teal-600" />{booking.customerPhone || '—'}</p>
+              <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-teal-600" />{booking.customerEmail || '—'}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-5">
-            <h3 className="font-bold mb-3">Payment Tracking</h3>
+          <div className="rounded-3xl border border-subtle bg-gradient-to-br from-emerald-500/10 to-teal-500/5 p-5">
+            <h3 className="font-bold mb-3 flex items-center gap-2"><Wallet className="w-4 h-4 text-emerald-600" /> Payment</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-content-muted">Advance</span><span className="font-bold">{formatINR(booking.advanceReceived)}</span></div>
               <div className="flex justify-between"><span className="text-content-muted">Pending</span><span className="font-bold text-amber-600">{formatINR(booking.pendingAmount)}</span></div>
-              <div className="flex justify-between"><span className="text-content-muted">Total</span><span className="font-bold">{formatINR(amount)}</span></div>
+              <div className="h-px bg-subtle my-2" />
+              <div className="flex justify-between"><span className="font-medium">Total</span><span className="font-black text-lg">{formatINR(amount)}</span></div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-subtle bg-surface/80 p-5 space-y-3">
-            <h3 className="font-bold mb-2">Operations Actions</h3>
+          <div className="rounded-3xl border border-subtle bg-surface/90 p-5 space-y-2">
+            <h3 className="font-bold mb-3">Quick Actions</h3>
             {booking.hotelConfirmation === 'pending' && (
               <Button variant="teal" className="w-full rounded-xl gap-2" disabled={actionLoading === 'hotel'} onClick={confirmHotel}>
-                {actionLoading === 'hotel' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Hotel className="w-4 h-4" />}
-                Confirm Hotel
+                {actionLoading === 'hotel' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Confirm All Hotels
               </Button>
             )}
             {booking.cabConfirmation === 'pending' && (
               <Button variant="violet" className="w-full rounded-xl gap-2" disabled={actionLoading === 'cab'} onClick={confirmCab}>
-                {actionLoading === 'cab' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Car className="w-4 h-4" />}
-                Confirm Cab
+                {actionLoading === 'cab' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                Confirm Transport
               </Button>
             )}
             {booking.status === 'confirmed' && (
               <Button variant="emerald" className="w-full rounded-xl gap-2" disabled={actionLoading === 'in_progress'} onClick={() => updateStatus('in_progress')}>
-                <CheckCircle2 className="w-4 h-4" /> Mark Trip In Progress
+                Mark In Progress
               </Button>
             )}
             {booking.status === 'in_progress' && (
               <Button variant="secondary" className="w-full rounded-xl gap-2" disabled={actionLoading === 'completed'} onClick={() => updateStatus('completed')}>
-                <CheckCircle2 className="w-4 h-4" /> Mark Completed
+                Mark Completed
               </Button>
             )}
             <Link to="/operations-manager/vouchers">
-              <Button variant="outline" className="w-full rounded-xl gap-2 mt-1">
+              <Button variant="outline" className="w-full rounded-xl gap-2">
                 <Ticket className="w-4 h-4" /> Generate Voucher
               </Button>
             </Link>
           </div>
 
           {(booking.tasks?.length > 0) && (
-            <div className="rounded-2xl border border-subtle bg-surface/80 p-5 space-y-3">
+            <div className="rounded-3xl border border-subtle bg-surface/90 p-5 space-y-3">
               <h3 className="font-bold flex items-center gap-2"><ListTodo className="w-4 h-4" /> Tasks</h3>
               {booking.tasks.map((t) => (
                 <div key={t._id} className="p-3 rounded-xl border border-subtle text-sm">
@@ -341,7 +347,7 @@ export default function BookingDetailPage() {
                     <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-md capitalize', TASK_STATUS[t.status])}>{t.status?.replace(/_/g, ' ')}</span>
                     {t.status !== 'completed' && (
                       <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => updateTaskStatus(t._id, t.status === 'pending' ? 'in_progress' : 'completed')}>
-                        {t.status === 'pending' ? 'Start' : 'Complete'}
+                        {t.status === 'pending' ? 'Start' : 'Done'}
                       </Button>
                     )}
                   </div>
@@ -349,15 +355,8 @@ export default function BookingDetailPage() {
               ))}
             </div>
           )}
-
-          {booking.notes && (
-            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 text-sm text-amber-800 dark:text-amber-300">
-              <p className="font-semibold mb-1">Notes</p>
-              {booking.notes}
-            </div>
-          )}
-        </div>
-      </motion.div>
+        </aside>
+      </div>
     </div>
   );
 }

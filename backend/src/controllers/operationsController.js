@@ -11,6 +11,10 @@ const asyncHandler = require('../utils/asyncHandler');
 const ops = require('../services/operationsService');
 const cacheService = require('../services/cacheService');
 const { generateVoucherDocument, generateItineraryDocument } = require('../services/operationsVoucherService');
+const {
+  enrichBookingWithQuotation,
+  syncBookingFromQuotation,
+} = require('../services/operationsQuotationSyncService');
 
 const getDashboard = asyncHandler(async (req, res) => {
   const data = await ops.getDashboard(req.branchId);
@@ -28,13 +32,33 @@ const createBooking = asyncHandler(async (req, res) => {
 });
 
 const getBooking = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.id).lean();
+  let booking = await Booking.findById(req.params.id).lean();
   if (!booking) throw new ApiError(404, 'Booking not found');
+  booking = await enrichBookingWithQuotation(booking);
   const [tasks, documents] = await Promise.all([
     ops.listTasks({ bookingId: req.params.id }),
     ops.listDocuments(req.params.id),
   ]);
   res.json({ ...booking, tasks, documents });
+});
+
+const syncBookingQuotation = asyncHandler(async (req, res) => {
+  const result = await syncBookingFromQuotation(req.params.id, { force: req.body?.force === true });
+  if (!result?.booking) throw new ApiError(404, 'Booking not found');
+  if (!result.quotation) throw new ApiError(404, 'No quotation linked to this booking');
+  await cacheService.invalidate('ops:');
+  const [tasks, documents] = await Promise.all([
+    ops.listTasks({ bookingId: req.params.id }),
+    ops.listDocuments(req.params.id),
+  ]);
+  res.json({
+    ...result.booking,
+    tasks,
+    documents,
+    quotationPreview: result.quotationPreview,
+    quotationMeta: result.quotationPreview?.meta,
+    syncedFromQuotation: result.synced,
+  });
 });
 
 const updateBooking = asyncHandler(async (req, res) => {
@@ -339,6 +363,7 @@ module.exports = {
   createBooking,
   generateItineraryPdf,
   getBooking,
+  syncBookingQuotation,
   updateBooking,
   confirmHotel,
   confirmCab,

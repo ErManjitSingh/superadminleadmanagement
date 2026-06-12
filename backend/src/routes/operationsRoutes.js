@@ -9,6 +9,7 @@ const {
   createBooking,
   generateItineraryPdf,
   getBooking,
+  syncBookingQuotation,
   updateBooking,
   confirmHotel,
   confirmCab,
@@ -51,6 +52,7 @@ router.get('/trip-tracker', requirePermission('operations', 'view'), getTripTrac
 router.get('/bookings', requirePermission('operations', 'view'), listBookings);
 router.post('/bookings', requirePermission('operations', 'create'), createBooking);
 router.get('/bookings/:id', requirePermission('operations', 'view'), getBooking);
+router.post('/bookings/:id/sync-quotation', requirePermission('operations', 'edit'), syncBookingQuotation);
 router.put('/bookings/:id', requirePermission('operations', 'edit'), updateBooking);
 router.post('/bookings/:id/itinerary-pdf', requirePermission('operations', 'edit'), generateItineraryPdf);
 router.post('/bookings/:id/confirm-hotel', requirePermission('operations', 'edit'), confirmHotel);

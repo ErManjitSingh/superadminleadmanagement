@@ -15,6 +15,12 @@ const User = require('../models/User');
 const { withBranch } = require('../utils/branchScope');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { createOperationsTasksForBooking } = require('./operationsAutomationService');
+const {
+  mapQuoteItinerary,
+  mapQuoteHotels,
+  mapQuoteTransport,
+  mapQuoteActivities,
+} = require('./operationsQuotationSyncService');
 const { notifyBookingConfirmed } = require('./notificationService');
 const cacheService = require('./cacheService');
 
@@ -257,34 +263,6 @@ async function updateBooking(id, payload, actor) {
   return booking;
 }
 
-function mapQuoteHotels(selected = []) {
-  return selected.map((h) => ({
-    hotelName: h.name || h.hotelName || '',
-    destination: h.destination || h.location || '',
-    roomType: h.roomType || '',
-    checkIn: h.checkIn,
-    checkOut: h.checkOut,
-    status: 'pending',
-  }));
-}
-
-function mapQuoteTransport(selected = []) {
-  return selected.map((t) => ({
-    vehicleType: t.vehicleType || t.type || 'suv',
-    pickupLocation: t.pickup || t.pickupLocation || '',
-    dropLocation: t.drop || t.dropLocation || '',
-    status: 'pending',
-  }));
-}
-
-function mapQuoteActivities(selected = []) {
-  return selected.map((a) => ({
-    name: a.name || a.title || '',
-    scheduledAt: a.date || a.scheduledAt,
-    status: 'pending',
-  }));
-}
-
 async function buildBookingPayloadFromPayment(payment) {
   const [quotation, lead] = await Promise.all([
     payment.quotation ? Quotation.findById(payment.quotation).lean() : null,
@@ -325,18 +303,10 @@ async function buildBookingPayloadFromPayment(payment) {
     pendingAmount: Math.max(0, totalAmount - (payment.paidAmount || 0)),
     quotationReference: quotation?.quoteNumber || '',
     executiveName: executive?.name || '',
-    hotels: mapQuoteHotels(quotation?.selectedHotels),
-    transport: mapQuoteTransport(quotation?.selectedCabs),
-    activities: mapQuoteActivities(quotation?.selectedActivities),
-    itinerary: (snap.itinerary || []).map((d, i) => ({
-      day: d.day || i + 1,
-      title: d.title || '',
-      description: d.description || '',
-      meals: d.meals || '',
-      accommodation: d.accommodation || '',
-      transport: d.transport || '',
-      activities: d.activities || '',
-    })),
+    hotels: quotation ? mapQuoteHotels(quotation, travelDate) : [],
+    transport: quotation ? mapQuoteTransport(quotation) : [],
+    activities: quotation ? mapQuoteActivities(quotation) : [],
+    itinerary: quotation ? mapQuoteItinerary(quotation, travelDate) : [],
     hotelConfirmation: 'pending',
     cabConfirmation: 'pending',
     voucherStatus: 'pending',
