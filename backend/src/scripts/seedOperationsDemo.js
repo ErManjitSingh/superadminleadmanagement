@@ -38,12 +38,16 @@ async function run() {
     {
       name: 'Demo Beach Resort Goa',
       destination: 'Goa',
+      location: 'Calangute, Goa',
       category: '4 Star',
       contactPerson: 'Anita Desai',
       phone: '+91 98765 11111',
       email: 'reservations@demobeach.com',
       address: 'Calangute Beach Road, Goa',
-      roomTypes: ['Deluxe Sea View', 'Premium Suite'],
+      roomTypes: [
+        { name: 'Deluxe Sea View', maxOccupancy: 3, baseRate: 7500 },
+        { name: 'Premium Suite', maxOccupancy: 4, baseRate: 12000 },
+      ],
       contractRates: [{ roomType: 'Deluxe Sea View', rate: 7500, season: 'peak' }],
       specialNotes: 'Demo hotel for operations testing',
       branchId: branch._id,
