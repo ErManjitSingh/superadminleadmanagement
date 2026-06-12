@@ -9,6 +9,8 @@
     "seed": "node src/seed/seed.js",
     "seed:demo-quotations": "node src/scripts/seedDemoQuotations.js",
     "seed:whatsapp-demo": "node src/scripts/seedWhatsappDemo.js",
+    "seed:load-test-leads": "node src/scripts/seedLoadTestLeads.js",
+    "clear:load-test-leads": "node src/scripts/clearLoadTestLeads.js",
     "clear-leads": "node src/scripts/clearLeads.js",
     "remove-sales-demo-users": "node src/scripts/removeSalesDemoUsers.js",
     "keep-admin-only": "node src/scripts/keepAdminOnly.js",
