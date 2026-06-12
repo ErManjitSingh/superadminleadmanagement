@@ -1,5 +1,6 @@
 const { resolveDataKeys } = require('../services/dataSyncService');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
+const { invalidateMailboxCache } = require('../services/emailMailboxCache');
 
 /** After successful mutations, invalidate server-side dashboard cache (no socket broadcast). */
 function dataSyncMiddleware(req, res, next) {
@@ -13,6 +14,10 @@ function dataSyncMiddleware(req, res, next) {
         invalidateDashboardCache(role)
       );
       invalidateDashboardCache('nav:');
+    }
+
+    if (keys.includes('emails')) {
+      invalidateMailboxCache();
     }
   });
   next();

@@ -20,6 +20,19 @@ import {
 import { fetchMailbox, fetchMailboxMessage, syncEmailReplies } from '../../services/emailApi';
 import GmailComposeLeadPicker from './GmailComposeLeadPicker';
 
+const PAGE_SIZE = 50;
+const STARRED_STORAGE_KEY = 'crm-mailbox-starred';
+
+function loadStarredIds() {
+  try {
+    const raw = localStorage.getItem(STARRED_STORAGE_KEY);
+    const ids = raw ? JSON.parse(raw) : [];
+    return new Set(Array.isArray(ids) ? ids : []);
+  } catch {
+    return new Set();
+  }
+}
+
 const FOLDERS = [
   { id: 'inbox', label: 'Inbox', icon: Inbox },
   { id: 'starred', label: 'Starred', icon: Star },
@@ -93,10 +106,11 @@ function useLeadPathPrefix() {
 export default function GmailMailbox() {
   const leadPathPrefix = useLeadPathPrefix();
   const [folder, setFolder] = useState('inbox');
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
-  const [starred, setStarred] = useState(() => new Set());
+  const [starred, setStarred] = useState(loadStarredIds);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -107,15 +121,25 @@ export default function GmailMailbox() {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetchMailbox({ folder: folder === 'starred' ? 'all' : folder, search: query })
+    const apiFolder = folder === 'starred' ? 'all' : folder;
+    fetchMailbox({
+      folder: apiFolder,
+      search: query,
+      page: folder === 'starred' ? 1 : page,
+      limit: folder === 'starred' ? 200 : PAGE_SIZE,
+    })
       .then(setData)
-      .catch(() => setData({ items: [], counts: {}, mailbox: 'sales@unotrips.com' }))
+      .catch(() => setData({ items: [], counts: {}, mailbox: 'sales@unotrips.com', total: 0 }))
       .finally(() => setLoading(false));
-  }, [folder, query]);
+  }, [folder, query, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    localStorage.setItem(STARRED_STORAGE_KEY, JSON.stringify([...starred]));
+  }, [starred]);
 
   const items = useMemo(() => {
     let rows = data.items || [];
@@ -164,6 +188,14 @@ export default function GmailMailbox() {
   };
 
   const showExecutive = data.showExecutive === true;
+  const totalMessages = folder === 'starred' ? items.length : (data.total ?? 0);
+  const totalPages = Math.max(1, Math.ceil(totalMessages / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const rangeStart = totalMessages === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = folder === 'starred'
+    ? items.length
+    : Math.min(safePage * PAGE_SIZE, totalMessages);
+  const canPaginate = folder !== 'starred' && totalMessages > PAGE_SIZE;
 
   return (
     <div className="h-full flex flex-col bg-[#f6f8fc] text-[#202124] text-[13px] leading-tight overflow-hidden rounded-lg border border-[#dadce0]">
@@ -186,12 +218,18 @@ export default function GmailMailbox() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && setQuery(search.trim())}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setQuery(search.trim());
+                  setPage(1);
+                  setSelectedId(null);
+                }
+              }}
               placeholder="Search mail"
               className="flex-1 bg-transparent border-0 outline-none text-[12px] px-2 text-[#202124] placeholder:text-[#5f6368]"
             />
             {search && (
-              <button type="button" onClick={() => { setSearch(''); setQuery(''); }} className="p-0.5 rounded-full hover:bg-[#dadce0]/50">
+              <button type="button" onClick={() => { setSearch(''); setQuery(''); setPage(1); setSelectedId(null); }} className="p-0.5 rounded-full hover:bg-[#dadce0]/50">
                 <X className="w-3 h-3 text-[#5f6368]" />
               </button>
             )}
@@ -236,6 +274,7 @@ export default function GmailMailbox() {
                   type="button"
                   onClick={() => {
                     setFolder(id);
+                    setPage(1);
                     setSelectedId(null);
                     setMobileSidebar(false);
                   }}
@@ -285,11 +324,35 @@ export default function GmailMailbox() {
             }`}
           >
             <div className="shrink-0 flex items-center justify-between px-2 py-1 border-b border-[#dadce0]/60 text-[11px] text-[#5f6368]">
-              <span>{loading ? 'Loading…' : `${items.length} messages`}</span>
-              <div className="flex items-center">
-                <button type="button" className="p-1 rounded hover:bg-[#f1f3f4]"><ChevronLeft className="w-3.5 h-3.5" /></button>
-                <button type="button" className="p-1 rounded hover:bg-[#f1f3f4]"><ChevronRight className="w-3.5 h-3.5" /></button>
-              </div>
+              <span>
+                {loading
+                  ? 'Loading…'
+                  : totalMessages === 0
+                    ? 'No messages'
+                    : `${rangeStart}–${rangeEnd} of ${totalMessages}`}
+              </span>
+              {canPaginate && (
+                <div className="flex items-center">
+                  <button
+                    type="button"
+                    disabled={safePage <= 1 || loading}
+                    onClick={() => { setPage((p) => Math.max(1, p - 1)); setSelectedId(null); }}
+                    className="p-1 rounded hover:bg-[#f1f3f4] disabled:opacity-40 disabled:pointer-events-none"
+                    aria-label="Previous page"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safePage >= totalPages || loading}
+                    onClick={() => { setPage((p) => p + 1); setSelectedId(null); }}
+                    className="p-1 rounded hover:bg-[#f1f3f4] disabled:opacity-40 disabled:pointer-events-none"
+                    aria-label="Next page"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto">

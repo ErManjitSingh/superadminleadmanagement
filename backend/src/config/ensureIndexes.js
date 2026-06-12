@@ -75,7 +75,10 @@ async function ensureIndexes() {
 
     EmailLog.collection.createIndex({ branchId: 1, leadId: 1, status: 1, sentAt: -1 }, { background: true }),
     EmailLog.collection.createIndex({ branchId: 1, sentBy: 1, status: 1, sentAt: -1 }, { background: true }),
+    EmailLog.collection.createIndex({ branchId: 1, status: 1, sentAt: -1 }, { background: true }),
+    EmailLog.collection.createIndex({ branchId: 1, status: 1, createdAt: -1 }, { background: true }),
     EmailReply.collection.createIndex({ branchId: 1, leadId: 1, receivedAt: -1 }, { background: true }),
+    EmailReply.collection.createIndex({ branchId: 1, receivedAt: -1 }, { background: true }),
     WhatsAppMessage.collection.createIndex({ lead: 1, timestamp: -1 }, { background: true }),
     WhatsAppMessage.collection.createIndex({ lead: 1, direction: 1, status: 1 }, { background: true }),
     Payment.collection.createIndex({ branchId: 1, status: 1, paidAt: -1 }, { background: true }),

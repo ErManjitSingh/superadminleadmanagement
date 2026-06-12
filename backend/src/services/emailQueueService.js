@@ -1,6 +1,7 @@
 const EmailLog = require('../models/EmailLog');
 const { sendMailMessage } = require('./emailService');
 const { logLeadActivity } = require('./leadActivityService');
+const { invalidateMailboxCache } = require('./emailMailboxCache');
 
 const queue = [];
 let processing = false;
@@ -36,6 +37,7 @@ async function processEmailQueue() {
         errorMessage: '',
         messageId: info.messageId || '',
       });
+      invalidateMailboxCache().catch(() => {});
 
       if (job.leadId && job.actor) {
         await logLeadActivity({
@@ -69,6 +71,7 @@ async function processEmailQueue() {
         sentAt: new Date(),
         errorMessage: err.message || 'Failed to send email',
       });
+      invalidateMailboxCache().catch(() => {});
     }
   }
 

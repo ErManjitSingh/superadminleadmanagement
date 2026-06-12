@@ -2,9 +2,22 @@ const EmailLog = require('../models/EmailLog');
 const EmailReply = require('../models/EmailReply');
 const Lead = require('../models/Lead');
 const { withBranch } = require('../utils/branchScope');
-const { getExecutiveIdsForLeader } = require('./teamScopeService');
+const { getLeaderLeadScopeFilter } = require('./teamScopeService');
+const {
+  cacheService,
+  MAILBOX_COUNTS_TTL_MS,
+  MAILBOX_SCOPE_TTL_MS,
+  mailboxCountsKey,
+  mailboxScopeKey,
+  invalidateMailboxCache,
+} = require('./emailMailboxCache');
 
 const CRM_MAIL = (process.env.SMTP_USER || 'sales@unotrips.com').toLowerCase();
+
+const REPLY_LIST_SELECT =
+  'fromEmail fromName subject snippet receivedAt leadId emailLogId createdAt';
+const SENT_LIST_SELECT =
+  'to subject sentBy sentByName from sentAt createdAt status category attachmentNames leadId errorMessage';
 
 function escapeRegex(text) {
   return String(text || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -15,18 +28,34 @@ async function getExecutiveLeadIds(userId, branchId) {
 }
 
 async function getLeaderScopeLeadIds(leaderId, branchId) {
-  const execIds = await getExecutiveIdsForLeader(leaderId);
-  return Lead.find(withBranch({ assignedTo: { $in: execIds } }, branchId)).distinct('_id');
+  const squadFilter = await getLeaderLeadScopeFilter(leaderId);
+  return Lead.find(withBranch(squadFilter, branchId)).distinct('_id');
 }
 
 async function resolveScopedLeadIds(req) {
   if (req.user.role === 'sales_executive') {
-    return getExecutiveLeadIds(req.user._id, req.branchId);
+    const key = mailboxScopeKey(req.user._id, req.branchId, 'sales_executive');
+    return cacheService.getOrSet(
+      key,
+      () => getExecutiveLeadIds(req.user._id, req.branchId),
+      MAILBOX_SCOPE_TTL_MS
+    );
   }
   if (req.user.role === 'team_leader') {
-    return getLeaderScopeLeadIds(req.user._id, req.branchId);
+    const key = mailboxScopeKey(req.user._id, req.branchId, 'team_leader');
+    return cacheService.getOrSet(
+      key,
+      () => getLeaderScopeLeadIds(req.user._id, req.branchId),
+      MAILBOX_SCOPE_TTL_MS
+    );
   }
   return null;
+}
+
+function buildLeadScopeClause(scopedLeadIds) {
+  if (!scopedLeadIds) return {};
+  if (!scopedLeadIds.length) return { leadId: null };
+  return { leadId: { $in: scopedLeadIds } };
 }
 
 function resolveExecutiveFromLead(lead) {
@@ -124,10 +153,40 @@ function matchesSearch(item, q) {
   return hay.includes(q);
 }
 
+function applySearchFilters(replyFilter, sentFilter, searchRegex) {
+  if (!searchRegex) return;
+  replyFilter.$or = [
+    { subject: searchRegex },
+    { snippet: searchRegex },
+    { fromEmail: searchRegex },
+    { fromName: searchRegex },
+  ];
+  sentFilter.$or = [{ subject: searchRegex }, { sentByName: searchRegex }];
+}
+
+async function fetchMailboxCounts(req, replyFilter, sentFilter) {
+  const key = mailboxCountsKey(req.user._id, req.branchId, req.user.role);
+  return cacheService.getOrSet(
+    key,
+    () =>
+      Promise.all([
+        EmailLog.countDocuments({ ...sentFilter, status: 'sent' }),
+        EmailLog.countDocuments({ ...sentFilter, status: 'failed' }),
+        EmailReply.countDocuments(replyFilter),
+      ]).then(([sentTotal, failedTotal, inboxTotal]) => ({
+        inbox: inboxTotal,
+        sent: sentTotal,
+        failed: failedTotal,
+        all: inboxTotal + sentTotal + failedTotal,
+      })),
+    MAILBOX_COUNTS_TTL_MS
+  );
+}
+
 async function listMailboxMessages(req, { folder = 'inbox', search = '', page = 1, limit = 50 } = {}) {
   const branchFilter = withBranch({}, req.branchId);
   const scopedLeadIds = await resolveScopedLeadIds(req);
-  const leadScope = scopedLeadIds ? { leadId: { $in: scopedLeadIds } } : {};
+  const leadScope = buildLeadScopeClause(scopedLeadIds);
   const sentScope =
     req.user.role === 'sales_executive' ? { sentBy: req.user._id, ...branchFilter } : { ...branchFilter };
 
@@ -137,91 +196,106 @@ async function listMailboxMessages(req, { folder = 'inbox', search = '', page = 
 
   const replyFilter = { ...branchFilter, ...leadScope };
   const sentFilter = { ...sentScope, ...leadScope };
-
-  if (searchRegex) {
-    replyFilter.$or = [
-      { subject: searchRegex },
-      { snippet: searchRegex },
-      { fromEmail: searchRegex },
-      { fromName: searchRegex },
-    ];
-    sentFilter.$or = [{ subject: searchRegex }, { sentByName: searchRegex }];
-  }
+  applySearchFilters(replyFilter, sentFilter, searchRegex);
 
   const safePage = Math.max(1, page);
   const safeLimit = Math.min(Math.max(1, limit), 100);
   const skip = (safePage - 1) * safeLimit;
 
-  const [sentTotal, failedTotal, inboxTotal] = await Promise.all([
-    EmailLog.countDocuments({ ...sentFilter, status: 'sent' }),
-    EmailLog.countDocuments({ ...sentFilter, status: 'failed' }),
-    EmailReply.countDocuments(replyFilter),
+  async function fetchFolderItems() {
+    if (folder === 'inbox') {
+      const replies = await EmailReply.find(replyFilter)
+        .select(REPLY_LIST_SELECT)
+        .sort({ receivedAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .lean();
+      const leadMap = await fetchLeadMap(replies.map((r) => r.leadId));
+      return replies.map((r) => mapInboundRow(r, leadMap));
+    }
+
+    if (folder === 'sent') {
+      const sentRows = await EmailLog.find({ ...sentFilter, status: 'sent' })
+        .select(SENT_LIST_SELECT)
+        .sort({ sentAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .lean();
+      const leadMap = await fetchLeadMap(sentRows.map((r) => r.leadId));
+      return sentRows.map((r) => mapSentRow(r, leadMap));
+    }
+
+    if (folder === 'failed') {
+      const failedRows = await EmailLog.find({ ...sentFilter, status: 'failed' })
+        .select(SENT_LIST_SELECT)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(safeLimit)
+        .lean();
+      const leadMap = await fetchLeadMap(failedRows.map((r) => r.leadId));
+      return failedRows.map((r) => mapSentRow(r, leadMap));
+    }
+
+    if (folder === 'all') {
+      const prefetch = skip + safeLimit;
+      const [replies, sentRows, failedRows] = await Promise.all([
+        EmailReply.find(replyFilter)
+          .select(REPLY_LIST_SELECT)
+          .sort({ receivedAt: -1 })
+          .limit(prefetch)
+          .lean(),
+        EmailLog.find({ ...sentFilter, status: 'sent' })
+          .select(SENT_LIST_SELECT)
+          .sort({ sentAt: -1 })
+          .limit(prefetch)
+          .lean(),
+        EmailLog.find({ ...sentFilter, status: 'failed' })
+          .select(SENT_LIST_SELECT)
+          .sort({ createdAt: -1 })
+          .limit(prefetch)
+          .lean(),
+      ]);
+      const leadMap = await fetchLeadMap([
+        ...replies.map((r) => r.leadId),
+        ...sentRows.map((r) => r.leadId),
+        ...failedRows.map((r) => r.leadId),
+      ]);
+      let merged = [
+        ...replies.map((r) => mapInboundRow(r, leadMap)),
+        ...sentRows.map((r) => mapSentRow(r, leadMap)),
+        ...failedRows.map((r) => mapSentRow(r, leadMap)),
+      ];
+      if (search.trim() && !searchRegex) {
+        const q = search.trim().toLowerCase();
+        merged = merged.filter((item) => matchesSearch(item, q));
+      }
+      merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+      return merged.slice(skip, skip + safeLimit);
+    }
+
+    return [];
+  }
+
+  const totalByFolder = {
+    inbox: 'inbox',
+    sent: 'sent',
+    failed: 'failed',
+    all: 'all',
+  };
+
+  const [counts, items] = await Promise.all([
+    fetchMailboxCounts(req, replyFilter, sentFilter),
+    fetchFolderItems(),
   ]);
 
-  let replies = [];
-  let sentRows = [];
-  let failedRows = [];
-  let total = 0;
-  let items = [];
-
-  if (folder === 'inbox') {
-    [replies, total] = await Promise.all([
-      EmailReply.find(replyFilter).sort({ receivedAt: -1 }).skip(skip).limit(safeLimit).lean(),
-      Promise.resolve(inboxTotal),
-    ]);
-    const leadMap = await fetchLeadMap(replies.map((r) => r.leadId));
-    items = replies.map((r) => mapInboundRow(r, leadMap));
-  } else if (folder === 'sent') {
-    [sentRows, total] = await Promise.all([
-      EmailLog.find({ ...sentFilter, status: 'sent' }).sort({ sentAt: -1 }).skip(skip).limit(safeLimit).lean(),
-      Promise.resolve(sentTotal),
-    ]);
-    const leadMap = await fetchLeadMap(sentRows.map((r) => r.leadId));
-    items = sentRows.map((r) => mapSentRow(r, leadMap));
-  } else if (folder === 'failed') {
-    [failedRows, total] = await Promise.all([
-      EmailLog.find({ ...sentFilter, status: 'failed' }).sort({ createdAt: -1 }).skip(skip).limit(safeLimit).lean(),
-      Promise.resolve(failedTotal),
-    ]);
-    const leadMap = await fetchLeadMap(failedRows.map((r) => r.leadId));
-    items = failedRows.map((r) => mapSentRow(r, leadMap));
-  } else if (folder === 'all') {
-    const prefetch = Math.min(safePage * safeLimit, 200);
-    [replies, sentRows, failedRows] = await Promise.all([
-      EmailReply.find(replyFilter).sort({ receivedAt: -1 }).limit(prefetch).lean(),
-      EmailLog.find({ ...sentFilter, status: 'sent' }).sort({ sentAt: -1 }).limit(prefetch).lean(),
-      EmailLog.find({ ...sentFilter, status: 'failed' }).sort({ createdAt: -1 }).limit(prefetch).lean(),
-    ]);
-    const leadMap = await fetchLeadMap([
-      ...replies.map((r) => r.leadId),
-      ...sentRows.map((r) => r.leadId),
-      ...failedRows.map((r) => r.leadId),
-    ]);
-    items = [
-      ...replies.map((r) => mapInboundRow(r, leadMap)),
-      ...sentRows.map((r) => mapSentRow(r, leadMap)),
-      ...failedRows.map((r) => mapSentRow(r, leadMap)),
-    ];
-    if (search.trim() && !searchRegex) {
-      const q = search.trim().toLowerCase();
-      items = items.filter((item) => matchesSearch(item, q));
-    }
-    items.sort((a, b) => new Date(b.date) - new Date(a.date));
-    total = inboxTotal + sentTotal + failedTotal;
-    items = items.slice(skip, skip + safeLimit);
-  }
+  const totalKey = totalByFolder[folder] || 'inbox';
 
   return {
     items,
-    total,
+    total: counts[totalKey] ?? 0,
     page: safePage,
     limit: safeLimit,
-    counts: {
-      inbox: inboxTotal,
-      sent: sentTotal,
-      failed: failedTotal,
-      all: inboxTotal + sentTotal + failedTotal,
-    },
+    counts,
     mailbox: CRM_MAIL,
     showExecutive: ['team_leader', 'sales_manager', 'admin'].includes(req.user.role),
   };
@@ -241,10 +315,10 @@ async function assertMessageAccess(req, leadId) {
   }
 
   if (req.user.role === 'team_leader') {
-    const execIds = await getExecutiveIdsForLeader(req.user._id);
+    const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
     const allowed = await Lead.exists({
       _id: leadId,
-      assignedTo: { $in: execIds },
+      ...squadFilter,
       ...branchClause,
     });
     if (!allowed) throw new ApiError(403, 'You do not have access to this message');
@@ -256,7 +330,9 @@ async function getMailboxMessage(req, { type, id }) {
   const branchFilter = withBranch({}, req.branchId);
 
   if (type === 'inbound') {
-    const row = await EmailReply.findOne({ _id: id, ...branchFilter }).lean();
+    const row = await EmailReply.findOne({ _id: id, ...branchFilter })
+      .select(`${REPLY_LIST_SELECT} bodyText bodyHtml`)
+      .lean();
     if (!row) throw new ApiError(404, 'Message not found');
     await assertMessageAccess(req, row.leadId);
 
@@ -281,7 +357,9 @@ async function getMailboxMessage(req, { type, id }) {
       _id: id,
       ...sentScope,
       status: { $in: ['sent', 'failed'] },
-    }).lean();
+    })
+      .select(`${SENT_LIST_SELECT} bodyText cc bcc`)
+      .lean();
     if (!row) throw new ApiError(404, 'Message not found');
     await assertMessageAccess(req, row.leadId);
 
@@ -300,4 +378,4 @@ async function getMailboxMessage(req, { type, id }) {
   throw new ApiError(400, 'Invalid message type');
 }
 
-module.exports = { listMailboxMessages, getMailboxMessage };
+module.exports = { listMailboxMessages, getMailboxMessage, invalidateMailboxCache };

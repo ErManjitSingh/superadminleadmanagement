@@ -64,6 +64,10 @@ function resolveDataKeys(req) {
     keys.add('leads');
   }
 
+  if (path.includes('/emails') || path.includes('/send-email')) {
+    keys.add('emails');
+  }
+
   if (path.includes('/operations-manager') || path.includes('/payments')) {
     keys.add('operations');
     keys.add('dashboard');

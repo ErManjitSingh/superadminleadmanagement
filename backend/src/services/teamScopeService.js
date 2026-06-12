@@ -1,22 +1,30 @@
 const Team = require('../models/Team');
 const User = require('../models/User');
+const cacheService = require('./cacheService');
+
+const TEAM_CACHE_TTL_MS = 60_000;
 
 async function getTeamForLeader(leaderId) {
-  return Team.findOne({ teamLeader: leaderId }).populate('members', 'name email role status');
+  const key = `team:leader:${String(leaderId)}`;
+  return cacheService.getOrSet(
+    key,
+    () => Team.findOne({ teamLeader: leaderId }).populate('members', 'name email role status').lean(),
+    TEAM_CACHE_TTL_MS
+  );
 }
 
 async function getExecutiveIdsForLeader(leaderId) {
   const team = await getTeamForLeader(leaderId);
-  if (!team) return [];
+  if (!team?.members?.length) return [];
   return team.members
     .filter((m) => m.role === 'sales_executive' && m.status !== 'disabled')
-    .map((m) => m._id.toString());
+    .map((m) => String(m._id));
 }
 
 /** Leads a team leader may view or assign within their squad */
 async function getLeaderLeadScopeFilter(leaderId) {
   const team = await getTeamForLeader(leaderId);
-  const execIds = team
+  const execIds = team?.members?.length
     ? team.members.filter((m) => m.role === 'sales_executive').map((m) => m._id)
     : [];
 
@@ -37,8 +45,9 @@ async function getTeamLeaderForExecutive(executiveId) {
 
 async function getSquadNamesForLeader(leaderId) {
   const team = await getTeamForLeader(leaderId);
-  if (!team) return [];
-  const members = await User.find({ _id: { $in: team.members } }).select('name');
+  if (!team?.members?.length) return [];
+  const memberIds = team.members.map((m) => m._id || m);
+  const members = await User.find({ _id: { $in: memberIds } }).select('name').lean();
   return members.map((m) => m.name);
 }
 

@@ -16,7 +16,7 @@ const fullPerms = () => ({
   users: { view: true, create: true, edit: true, delete: true },
   leads: { view: true, create: true, edit: true, delete: true },
   customers: { view: true, create: true, edit: true, delete: true },
-  quotations: { view: true, create: true, edit: true, delete: true, approve: true },
+  quotations: { view: true, create: false, edit: false, delete: false, approve: false },
   reports: { view: true, export: true },
   packages: { view: true, create: true, edit: true, delete: true },
   payments: { view: true, create: true, edit: true, delete: true },

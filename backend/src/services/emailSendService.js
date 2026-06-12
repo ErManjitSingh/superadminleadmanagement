@@ -3,6 +3,8 @@ const EmailTemplate = require('../models/EmailTemplate');
 const EmailLog = require('../models/EmailLog');
 const EmailReply = require('../models/EmailReply');
 const ApiError = require('../utils/apiError');
+const { getLeaderLeadScopeFilter } = require('./teamScopeService');
+const { invalidateMailboxCache } = require('./emailMailboxCache');
 const { isEmailConfigured, normalizeRecipients } = require('./emailService');
 const { enqueueEmailJob } = require('./emailQueueService');
 const { renderEmailTemplate } = require('./emailTemplateService');
@@ -20,6 +22,16 @@ async function assertCanAccessLead(req, leadId) {
     if (String(lead.assignedTo) !== String(req.user._id)) {
       throw new ApiError(403, 'Lead not assigned to you');
     }
+  }
+
+  if (req.user.role === 'team_leader') {
+    const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
+    const inScope = await Lead.exists({
+      _id: leadId,
+      ...squadFilter,
+      ...(req.branchId ? { branchId: req.branchId } : {}),
+    });
+    if (!inScope) throw new ApiError(403, 'Lead is outside your team');
   }
 
   return lead;
@@ -118,6 +130,8 @@ async function queueLeadEmail({ req, leadId, payload }) {
     bodyText: resolvedBody.slice(0, 50000),
     templateId: templateId || null,
   });
+
+  invalidateMailboxCache().catch(() => {});
 
   enqueueEmailJob({
     logId: log._id,

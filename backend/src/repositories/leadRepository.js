@@ -90,13 +90,18 @@ async function findLeadsPaginated(query = {}, { branchId } = {}) {
 
   const fetchLimit = useCursor ? limit + 1 : limit;
 
-  let rows = await Lead.find(listFilter)
-    .select('-notes')
-    .populate(LEAD_LIST_POPULATE)
-    .sort(sort)
-    .skip(useCursor ? 0 : skip)
-    .limit(fetchLimit)
-    .lean();
+  const needsTotal = !useCursor && page <= DEEP_PAGE_THRESHOLD;
+
+  let [rows, total] = await Promise.all([
+    Lead.find(listFilter)
+      .select('-notes')
+      .populate(LEAD_LIST_POPULATE)
+      .sort(sort)
+      .skip(useCursor ? 0 : skip)
+      .limit(fetchLimit)
+      .lean(),
+    needsTotal ? Lead.countDocuments(filter) : Promise.resolve(null),
+  ]);
 
   let nextCursor = null;
   if (useCursor && rows.length > limit) {
@@ -104,11 +109,6 @@ async function findLeadsPaginated(query = {}, { branchId } = {}) {
     nextCursor = encodeCursor(rows[rows.length - 1], sortField);
   } else if (!useCursor && page === DEEP_PAGE_THRESHOLD && rows.length > 0) {
     nextCursor = encodeCursor(rows[rows.length - 1], sortField);
-  }
-
-  let total = null;
-  if (!useCursor && page <= DEEP_PAGE_THRESHOLD) {
-    total = await Lead.countDocuments(filter);
   }
 
   return paginatedResponse(rows.map(enrichLead), {
