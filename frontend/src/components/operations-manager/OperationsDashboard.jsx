@@ -50,6 +50,26 @@ export default function OperationsDashboard() {
       </motion.div>
 
       <OperationsKpiCards kpis={data?.kpis} />
+
+      {data?.branchStats?.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-subtle bg-surface/80 p-5"
+        >
+          <h3 className="font-bold text-content-primary mb-4">Branch-wise Statistics</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {data.branchStats.map((b) => (
+              <div key={String(b._id)} className="p-4 rounded-xl border border-subtle bg-surface-elevated/40">
+                <p className="text-xs text-content-muted uppercase">Branch</p>
+                <p className="text-lg font-bold text-content-primary mt-1 tabular-nums">{b.count}</p>
+                <p className="text-[10px] text-content-muted mt-0.5">bookings</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       <OperationsDashboardPanels data={data} />
     </div>
   );

@@ -14,6 +14,8 @@ import {
   Calendar,
   BarChart3,
   User,
+  MapPin,
+  ListTodo,
 } from 'lucide-react';
 
 export const operationsManagerNavItems = [
@@ -30,7 +32,9 @@ export const operationsManagerNavItems = [
       { path: '/operations-manager/bookings/completed', label: 'Completed Trips', icon: CircleCheck, countKey: 'bookings.completed' },
     ],
   },
-  { section: 'Trip Execution', path: '/operations-manager/hotels', label: 'Hotels', icon: Hotel },
+  { section: 'Trip Execution', path: '/operations-manager/trip-tracker', label: 'Trip Tracker', icon: MapPin },
+  { path: '/operations-manager/tasks', label: 'Tasks', icon: ListTodo, badgeKey: 'tasks.pending' },
+  { path: '/operations-manager/hotels', label: 'Hotels', icon: Hotel },
   { path: '/operations-manager/transport', label: 'Transport', icon: Car },
   { path: '/operations-manager/activities', label: 'Activities', icon: Compass },
   { section: 'Resources', path: '/operations-manager/vendors', label: 'Vendors', icon: Building2 },

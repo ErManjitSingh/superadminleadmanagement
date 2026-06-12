@@ -8,91 +8,76 @@ const Cab = require('../models/Cab');
 const Flight = require('../models/Flight');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
-const { notifyBookingConfirmed } = require('../services/notificationService');
+const ops = require('../services/operationsService');
+const cacheService = require('../services/cacheService');
+const { generateVoucherDocument, generateItineraryDocument } = require('../services/operationsVoucherService');
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const [bookings, openTickets, pendingBookings, confirmedBookings] = await Promise.all([
-    Booking.countDocuments(),
-    SupportTicket.countDocuments({ status: { $in: ['open', 'in_progress'] } }),
-    Booking.countDocuments({ status: 'pending' }),
-    Booking.countDocuments({ status: 'confirmed' }),
-  ]);
-
-  res.json({
-    kpis: {
-      totalBookings: bookings,
-      openTickets,
-      pendingBookings,
-      confirmedBookings,
-    },
-    recentBookings: await Booking.find().sort({ createdAt: -1 }).limit(5).lean(),
-  });
+  const data = await ops.getDashboard(req.branchId);
+  res.json(data);
 });
 
 const listBookings = asyncHandler(async (req, res) => {
-  const { status, search } = req.query;
-  const filter = {};
-  if (status) filter.status = status;
-  if (search) {
-    filter.$or = [
-      { customerName: { $regex: search, $options: 'i' } },
-      { bookingNumber: { $regex: search, $options: 'i' } },
-      { destination: { $regex: search, $options: 'i' } },
-    ];
-  }
+  const result = await ops.listBookings(req.query, { branchId: req.branchId });
+  res.json(result);
+});
 
-  const bookings = await Booking.find(filter).sort({ createdAt: -1 }).lean();
-  res.json(bookings);
+const createBooking = asyncHandler(async (req, res) => {
+  const booking = await ops.createBooking({ ...req.body, branchId: req.branchId || req.body.branchId }, req.user);
+  res.status(201).json(booking);
 });
 
 const getBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id).lean();
   if (!booking) throw new ApiError(404, 'Booking not found');
-  res.json(booking);
+  const [tasks, documents] = await Promise.all([
+    ops.listTasks({ bookingId: req.params.id }),
+    ops.listDocuments(req.params.id),
+  ]);
+  res.json({ ...booking, tasks, documents });
 });
 
 const updateBooking = asyncHandler(async (req, res) => {
-  const prev = await Booking.findById(req.params.id).lean();
-  const booking = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const booking = await ops.updateBooking(req.params.id, req.body, req.user);
   if (!booking) throw new ApiError(404, 'Booking not found');
-  if (prev?.status !== 'confirmed' && booking.status === 'confirmed') {
-    notifyBookingConfirmed(booking.toObject ? booking.toObject() : booking).catch(() => {});
-  }
   res.json(booking);
 });
 
 const confirmHotel = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id);
   if (!booking) throw new ApiError(404, 'Booking not found');
-
   booking.hotelConfirmation = 'confirmed';
-  booking.hotels = (booking.hotels || []).map((h) => ({ ...h, status: 'confirmed' }));
-  const wasPending = booking.status === 'pending';
-  if (booking.status === 'pending') booking.status = 'confirmed';
-  await booking.save();
-  if (wasPending) {
-    notifyBookingConfirmed(booking.toObject ? booking.toObject() : booking).catch(() => {});
+  booking.hotels = (booking.hotels || []).map((h) => ({ ...h.toObject?.() || h, status: 'confirmed' }));
+  if (['booking_received', 'pending_verification', 'pending'].includes(booking.status)) {
+    booking.status = 'confirmed';
   }
+  await booking.save();
+  await cacheService.invalidate('ops:');
   res.json(booking);
 });
 
 const confirmCab = asyncHandler(async (req, res) => {
   const booking = await Booking.findById(req.params.id);
   if (!booking) throw new ApiError(404, 'Booking not found');
-
   booking.cabConfirmation = 'confirmed';
-  booking.transport = (booking.transport || []).map((t) => ({ ...t, status: 'confirmed' }));
+  booking.transport = (booking.transport || []).map((t) => ({ ...t.toObject?.() || t, status: 'confirmed' }));
   await booking.save();
+  await cacheService.invalidate('ops:');
   res.json(booking);
 });
 
 const listHotels = asyncHandler(async (req, res) => {
-  const hotels = await Hotel.find().sort({ createdAt: -1 }).lean();
+  const filter = {};
+  if (req.query.search) {
+    filter.$text = { $search: req.query.search };
+  }
+  if (req.query.destination) filter.destination = new RegExp(req.query.destination, 'i');
+  const hotels = await Hotel.find(filter).sort({ name: 1 }).lean();
   res.json(hotels);
 });
 
 const createHotel = asyncHandler(async (req, res) => {
-  const hotel = await Hotel.create(req.body);
+  const hotel = await Hotel.create({ ...req.body, branchId: req.branchId });
   res.status(201).json(hotel);
 });
 
@@ -100,6 +85,12 @@ const updateHotel = asyncHandler(async (req, res) => {
   const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, { new: true });
   if (!hotel) throw new ApiError(404, 'Hotel not found');
   res.json(hotel);
+});
+
+const deleteHotel = asyncHandler(async (req, res) => {
+  const hotel = await Hotel.findByIdAndDelete(req.params.id);
+  if (!hotel) throw new ApiError(404, 'Hotel not found');
+  res.json({ message: 'Hotel deleted' });
 });
 
 const getTransport = asyncHandler(async (req, res) => {
@@ -151,7 +142,13 @@ const deleteActivity = asyncHandler(async (req, res) => {
 
 const listVendors = asyncHandler(async (req, res) => {
   const filter = {};
-  if (req.query.type) filter.type = req.query.type;
+  if (req.query.type) filter.type = req.query.type === 'cab' ? 'transport' : req.query.type;
+  if (req.query.search) {
+    filter.$or = [
+      { name: { $regex: req.query.search, $options: 'i' } },
+      { destination: { $regex: req.query.search, $options: 'i' } },
+    ];
+  }
   const vendors = await Vendor.find(filter).sort({ name: 1 }).lean();
   res.json(vendors);
 });
@@ -163,12 +160,16 @@ const getVendor = asyncHandler(async (req, res) => {
 });
 
 const createVendor = asyncHandler(async (req, res) => {
-  const vendor = await Vendor.create({ status: 'active', rating: 4.0, ...req.body });
+  const body = { ...req.body, branchId: req.branchId };
+  if (body.type === 'cab') body.type = 'transport';
+  const vendor = await Vendor.create({ status: 'active', rating: 4.0, ...body });
   res.status(201).json(vendor);
 });
 
 const updateVendor = asyncHandler(async (req, res) => {
-  const vendor = await Vendor.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const body = { ...req.body };
+  if (body.type === 'cab') body.type = 'transport';
+  const vendor = await Vendor.findByIdAndUpdate(req.params.id, body, { new: true });
   if (!vendor) throw new ApiError(404, 'Vendor not found');
   res.json(vendor);
 });
@@ -181,26 +182,64 @@ const deleteVendor = asyncHandler(async (req, res) => {
 });
 
 const listVouchers = asyncHandler(async (req, res) => {
-  const vouchers = await Voucher.find().populate('booking', 'bookingNumber customerName').sort({ createdAt: -1 }).lean();
+  const vouchers = await Voucher.find()
+    .populate('booking', 'bookingNumber customerName destination')
+    .sort({ createdAt: -1 })
+    .lean();
   res.json(vouchers);
 });
 
 const createVoucher = asyncHandler(async (req, res) => {
-  const booking = req.body.bookingId ? await Booking.findById(req.body.bookingId) : null;
+  const booking = req.body.bookingId ? await Booking.findById(req.body.bookingId).lean() : null;
+  if (!booking) throw new ApiError(400, 'Valid booking is required');
+
+  const type = req.body.type === 'cab' ? 'transport' : req.body.type;
   const count = await Voucher.countDocuments();
-  const voucher = await Voucher.create({
-    ...req.body,
-    booking: req.body.bookingId,
-    voucherNumber: `VCH-${(req.body.type?.[0] || 'X').toUpperCase()}-2026-${String(count + 91).padStart(4, '0')}`,
-    bookingNumber: booking?.bookingNumber,
-    customerName: booking?.customerName,
-    status: 'draft',
-  });
+  const voucherNumber = `VCH-${(type?.[0] || 'M').toUpperCase()}-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+
+  const details = {
+    title: req.body.title || `${booking.destination} ${type} voucher`,
+    validFrom: req.body.validFrom || booking.travelDate,
+    validUntil: req.body.validUntil || booking.returnDate,
+  };
+
+  const voucherDoc = {
+    type,
+    booking: booking._id,
+    voucherNumber,
+    bookingNumber: booking.bookingNumber,
+    customerName: booking.customerName,
+    branchId: booking.branchId || req.branchId,
+    status: 'issued',
+    issuedAt: new Date(),
+    issuedBy: req.user._id,
+    details,
+  };
+
+  const pdfUrl = generateVoucherDocument(voucherDoc, booking);
+  voucherDoc.pdfUrl = pdfUrl;
+
+  const voucher = await Voucher.create(voucherDoc);
+
+  if (type === 'master' || req.body.type === 'master') {
+    await Booking.findByIdAndUpdate(booking._id, { voucherStatus: 'issued' });
+  }
+
+  await cacheService.invalidate('ops:');
   res.status(201).json(voucher);
 });
 
+const generateItineraryPdf = asyncHandler(async (req, res) => {
+  const booking = await Booking.findById(req.params.id).lean();
+  if (!booking) throw new ApiError(404, 'Booking not found');
+  const pdfUrl = generateItineraryDocument(booking);
+  res.json({ pdfUrl });
+});
+
 const updateVoucher = asyncHandler(async (req, res) => {
-  const voucher = await Voucher.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  const body = { ...req.body };
+  if (body.type === 'cab') body.type = 'transport';
+  const voucher = await Voucher.findByIdAndUpdate(req.params.id, body, { new: true });
   if (!voucher) throw new ApiError(404, 'Voucher not found');
   res.json(voucher);
 });
@@ -212,22 +251,61 @@ const listTickets = asyncHandler(async (req, res) => {
   res.json(tickets);
 });
 
+const createTicket = asyncHandler(async (req, res) => {
+  const count = await SupportTicket.countDocuments();
+  const ticket = await SupportTicket.create({
+    ...req.body,
+    branchId: req.branchId,
+    ticketNumber: `TKT-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`,
+    lastUpdate: new Date(),
+  });
+  res.status(201).json(ticket);
+});
+
 const updateTicket = asyncHandler(async (req, res) => {
-  const ticket = await SupportTicket.findByIdAndUpdate(
-    req.params.id,
-    { ...req.body, lastUpdate: new Date() },
-    { new: true }
-  );
+  const patch = { ...req.body, lastUpdate: new Date() };
+  if (req.body.status === 'resolved' || req.body.status === 'closed') {
+    patch.resolvedAt = new Date();
+  }
+  const ticket = await SupportTicket.findByIdAndUpdate(req.params.id, patch, { new: true });
   if (!ticket) throw new ApiError(404, 'Ticket not found');
   res.json(ticket);
 });
 
+const listTasks = asyncHandler(async (req, res) => {
+  const tasks = await ops.listTasks(req.query, { branchId: req.branchId });
+  res.json(tasks);
+});
+
+const createTask = asyncHandler(async (req, res) => {
+  const task = await ops.createTask({ ...req.body, branchId: req.branchId }, req.user);
+  res.status(201).json(task);
+});
+
+const updateTask = asyncHandler(async (req, res) => {
+  const task = await ops.updateTask(req.params.id, req.body);
+  if (!task) throw new ApiError(404, 'Task not found');
+  res.json(task);
+});
+
+const listDocuments = asyncHandler(async (req, res) => {
+  const docs = await ops.listDocuments(req.params.id);
+  res.json(docs);
+});
+
+const addDocument = asyncHandler(async (req, res) => {
+  const doc = await ops.addDocument(req.params.id, req.body, req.user);
+  res.status(201).json(doc);
+});
+
+const getTripTracker = asyncHandler(async (req, res) => {
+  const data = await ops.getTripTracker(req.branchId);
+  res.json(data);
+});
+
 const getReports = asyncHandler(async (req, res) => {
-  const [bookings, vendors] = await Promise.all([
-    Booking.countDocuments(),
-    Vendor.countDocuments({ status: 'active' }),
-  ]);
-  res.json({ bookings, vendors, revenue: 0 });
+  const data = await ops.buildReports(req.branchId);
+  res.json(data);
 });
 
 const getProfile = asyncHandler(async (req, res) => {
@@ -243,12 +321,14 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const getCalendar = asyncHandler(async (req, res) => {
-  const bookings = await Booking.find({ travelDate: { $exists: true } }).lean();
+  const bookings = await Booking.find({ travelDate: { $exists: true }, archivedAt: { $exists: false } }).lean();
   const events = bookings.map((b) => ({
     _id: b._id,
     title: `${b.customerName} — ${b.destination}`,
     start: b.travelDate,
+    end: b.returnDate || b.travelDate,
     type: 'travel',
+    status: b.status,
   }));
   res.json(events);
 });
@@ -256,6 +336,8 @@ const getCalendar = asyncHandler(async (req, res) => {
 module.exports = {
   getDashboard,
   listBookings,
+  createBooking,
+  generateItineraryPdf,
   getBooking,
   updateBooking,
   confirmHotel,
@@ -263,6 +345,7 @@ module.exports = {
   listHotels,
   createHotel,
   updateHotel,
+  deleteHotel,
   getTransport,
   listActivities,
   getActivity,
@@ -278,7 +361,14 @@ module.exports = {
   createVoucher,
   updateVoucher,
   listTickets,
+  createTicket,
   updateTicket,
+  listTasks,
+  createTask,
+  updateTask,
+  listDocuments,
+  addDocument,
+  getTripTracker,
   getReports,
   getProfile,
   getCalendar,

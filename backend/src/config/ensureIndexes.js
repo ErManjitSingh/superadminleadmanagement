@@ -17,6 +17,10 @@ const EmailReply = require('../models/EmailReply');
 const WhatsAppMessage = require('../models/WhatsAppMessage');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
+const TripTask = require('../models/TripTask');
+const TripDocument = require('../models/TripDocument');
+const SupportTicket = require('../models/SupportTicket');
+const Voucher = require('../models/Voucher');
 
 async function ensureIndexes() {
   await Promise.all([
@@ -66,6 +70,13 @@ async function ensureIndexes() {
     Booking.collection.createIndex({ travelDate: 1, status: 1 }, { background: true }),
     Booking.collection.createIndex({ branchId: 1, status: 1, createdAt: -1 }, { background: true }),
     Booking.collection.createIndex({ status: 1, createdAt: -1 }, { background: true }),
+    Booking.collection.createIndex({ branchId: 1, status: 1, travelDate: 1 }, { background: true }),
+    Booking.collection.createIndex({ branchId: 1, archivedAt: 1, createdAt: -1 }, { background: true }),
+    TripTask.collection.createIndex({ booking: 1, status: 1 }, { background: true }),
+    TripTask.collection.createIndex({ branchId: 1, status: 1, dueDate: 1 }, { background: true }),
+    TripDocument.collection.createIndex({ booking: 1, type: 1 }, { background: true }),
+    SupportTicket.collection.createIndex({ status: 1, updatedAt: -1 }, { background: true }),
+    Voucher.collection.createIndex({ booking: 1, type: 1 }, { background: true }),
 
     Attendance.collection.createIndex({ userId: 1, date: 1 }, { unique: true, background: true }),
     ActivityLog.collection.createIndex({ branchId: 1, createdAt: -1 }, { background: true }),

@@ -85,7 +85,17 @@ async function seed() {
     branchId: shimlaBranch._id,
   });
 
-  // Only admin user — add managers, executives, etc. via Team Management
+  const operationsManager = await User.create({
+    name: 'Operations Manager',
+    email: 'ops@crm.com',
+    password: PASSWORD,
+    role: 'operations_manager',
+    roleId: roleMap.operations_manager,
+    department: 'Operations',
+    branchId: shimlaBranch._id,
+  });
+
+  // Sales roles — add via Team Management
 
   const pkg = await Package.create({
     name: 'Goa Beach Bliss 5D/4N',
@@ -188,11 +198,29 @@ async function seed() {
     bookingNumber: 'BK-2026-001',
     lead: leads[2]._id,
     customerName: 'Sample Lead',
+    customerPhone: '+91 76543 21098',
+    customerEmail: 'sample@email.com',
     destination: 'Dubai',
+    packageName: 'Dubai Explorer 6D/5N',
     travelDate: new Date('2026-08-20'),
-    status: 'pending',
+    returnDate: new Date('2026-08-25'),
+    adults: 3,
+    children: 0,
+    status: 'booking_received',
+    paymentStatus: 'partial',
     totalAmount: 250000,
-    assignedTo: admin._id,
+    advanceReceived: 50000,
+    pendingAmount: 200000,
+    executiveName: 'Admin User',
+    quotationReference: 'Q-2026-1001',
+    hotelConfirmation: 'pending',
+    cabConfirmation: 'pending',
+    voucherStatus: 'pending',
+    itinerary: [
+      { day: 1, title: 'Arrival Dubai', description: 'Airport pickup & hotel check-in', meals: 'Dinner' },
+      { day: 2, title: 'City Tour', description: 'Burj Khalifa & Dubai Mall', meals: 'Breakfast' },
+    ],
+    assignedTo: operationsManager._id,
     branchId: shimlaBranch._id,
   });
 
@@ -231,8 +259,9 @@ async function seed() {
 
   console.log('\n✅ Seed complete.\n');
   console.log('Login credentials (password for all):', PASSWORD);
-  console.log('  admin@crm.com          — Admin only');
-  console.log('\n  Add all other roles via Team Management → Add User.\n');
+  console.log('  admin@crm.com          — Admin');
+  console.log('  ops@crm.com            — Operations Manager');
+  console.log('\n  Add sales roles via Team Management → Add User.\n');
 
   await mongoose.disconnect();
 }

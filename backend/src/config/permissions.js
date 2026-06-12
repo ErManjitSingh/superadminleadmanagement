@@ -67,8 +67,20 @@ const ROLE_PERMISSIONS = {
   operations_manager: {
     ...noPerms(),
     packages: { view: true, create: true, edit: true, delete: true },
-    operations: { view: true, create: true, edit: true, delete: true },
+    operations: {
+      view: true,
+      create: true,
+      edit: true,
+      delete: true,
+      manage_hotels: true,
+      manage_vendors: true,
+      manage_transport: true,
+      generate_voucher: true,
+      manage_payments: true,
+      view_reports: true,
+    },
     leads: { view: true, create: false, edit: false, delete: false },
+    reports: { view: true, export: true },
   },
 };
 

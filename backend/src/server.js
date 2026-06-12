@@ -1,4 +1,5 @@
 const http = require('http');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { port, corsOrigins } = require('./config/env');
@@ -13,6 +14,7 @@ const { initializeSocket } = require('./socket');
 const { startNotificationScheduler } = require('./services/notificationScheduler');
 const { purgeOldActivityLogs } = require('./services/activityService');
 const { startEmailInboxPoller } = require('./services/emailInboxService');
+const { archiveOldTrips } = require('./services/operationsArchiveService');
 
 const app = express();
 
@@ -36,6 +38,7 @@ app.use(
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/api/health', (req, res) => {
   const db = getDbStatus();
@@ -64,6 +67,9 @@ async function start() {
   initializeSocket(httpServer);
   startNotificationScheduler();
   startEmailInboxPoller();
+
+  archiveOldTrips().catch(() => {});
+  setInterval(() => archiveOldTrips().catch(() => {}), 24 * 60 * 60 * 1000);
 
   httpServer.listen(port, () => {
     console.log(`[API] Running on http://127.0.0.1:${port}`);

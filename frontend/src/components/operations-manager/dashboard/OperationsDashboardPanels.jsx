@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Hotel, Car, Headphones } from 'lucide-react';
 import BookingStatusBadge from '../bookings/BookingStatusBadge';
 import { CONFIRMATION_CONFIG } from '../constants';
+import { formatDate } from '../operationsUtils';
 import { cn } from '../../../lib/utils';
 
 function ConfirmBadge({ status }) {
@@ -101,7 +102,7 @@ export default function OperationsDashboardPanels({ data }) {
                   </td>
                   <td className="px-4 py-3 text-sm">{b.customerName}</td>
                   <td className="px-4 py-3 text-sm text-content-secondary">{b.destination}</td>
-                  <td className="px-4 py-3 text-xs text-content-muted">{b.travelStart} → {b.travelEnd}</td>
+                  <td className="px-4 py-3 text-xs text-content-muted">{formatDate(b.travelDate || b.travelStart)} → {formatDate(b.returnDate || b.travelEnd)}</td>
                   <td className="px-4 py-3"><BookingStatusBadge status={b.status} /></td>
                 </tr>
               ))}

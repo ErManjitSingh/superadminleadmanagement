@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Headphones, CheckCircle2 } from 'lucide-react';
+import { Headphones, CheckCircle2, Plus } from 'lucide-react';
 import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
 import { Button } from '../../ui/button';
-import { TICKET_STATUS_CONFIG } from '../constants';
+import { TICKET_STATUS_CONFIG, ISSUE_CATEGORIES } from '../constants';
 import { formatDate } from '../operationsUtils';
 import { cn } from '../../../lib/utils';
+
+const EMPTY_FORM = {
+  subject: '',
+  customerName: '',
+  bookingNumber: '',
+  category: 'general',
+  priority: 'medium',
+  description: '',
+};
 
 export default function SupportTicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [filter, setFilter] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchTickets = () => {
     setLoading(true);
@@ -26,9 +38,45 @@ export default function SupportTicketsPage() {
     fetchTickets();
   };
 
+  const createTicket = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    await API.post('/operations-manager/tickets', { ...form, status: 'open' });
+    setForm(EMPTY_FORM);
+    setShowForm(false);
+    fetchTickets();
+    setSubmitting(false);
+  };
+
   return (
     <div className="space-y-6 pb-8">
-      <PageHeader title="Support Tickets" description="Customer support during trip execution" breadcrumbs={['Operations', 'Support']} />
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <PageHeader title="Support Tickets" description="Customer support during trip execution" breadcrumbs={['Operations', 'Support']} />
+        <Button variant="teal" className="rounded-xl gap-2 shrink-0" onClick={() => setShowForm((v) => !v)}>
+          <Plus className="w-4 h-4" /> Raise Issue
+        </Button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={createTicket} className="rounded-2xl border border-subtle bg-surface/80 p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <input required value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} placeholder="Issue subject" className="input-premium h-10 rounded-xl text-sm sm:col-span-2" />
+          <input required value={form.customerName} onChange={(e) => setForm((f) => ({ ...f, customerName: e.target.value }))} placeholder="Customer name" className="input-premium h-10 rounded-xl text-sm" />
+          <input value={form.bookingNumber} onChange={(e) => setForm((f) => ({ ...f, bookingNumber: e.target.value }))} placeholder="Booking number" className="input-premium h-10 rounded-xl text-sm" />
+          <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className="input-premium h-10 rounded-xl text-sm">
+            {Object.entries(ISSUE_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))} className="input-premium h-10 rounded-xl text-sm">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="Describe the issue..." rows={3} className="input-premium rounded-xl text-sm resize-none sm:col-span-2" />
+          <div className="sm:col-span-2 flex gap-2 justify-end">
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="submit" variant="teal" className="rounded-xl" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit Issue'}</Button>
+          </div>
+        </form>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {['', 'open', 'in_progress', 'resolved'].map((s) => (

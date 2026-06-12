@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Send, Ticket } from 'lucide-react';
+import { Plus, Send, Ticket, ExternalLink } from 'lucide-react';
 import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
 import { Button } from '../../ui/button';
@@ -20,8 +20,8 @@ export default function VouchersPage() {
       API.get('/operations-manager/vouchers'),
       API.get('/operations-manager/bookings'),
     ]).then(([v, b]) => {
-      setVouchers(v.data);
-      setBookings(b.data);
+      setVouchers(v.data || []);
+      setBookings(b.data?.data || b.data || []);
     }).finally(() => setLoading(false));
   };
 
@@ -73,19 +73,28 @@ export default function VouchersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3.5 text-sm capitalize">{v.type}</td>
-                  <td className="px-4 py-3.5 text-sm max-w-[200px] truncate">{v.title}</td>
+                  <td className="px-4 py-3.5 text-sm max-w-[200px] truncate">{v.details?.title || v.title || '—'}</td>
                   <td className="px-4 py-3.5 text-sm">{v.customerName}</td>
                   <td className="px-4 py-3.5 font-mono text-xs">{v.bookingNumber}</td>
-                  <td className="px-4 py-3.5 text-xs text-content-muted">{formatDate(v.validFrom)} – {formatDate(v.validUntil)}</td>
+                  <td className="px-4 py-3.5 text-xs text-content-muted">{formatDate(v.details?.validFrom || v.validFrom)} – {formatDate(v.details?.validUntil || v.validUntil)}</td>
                   <td className="px-4 py-3.5">
                     <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-lg', VOUCHER_STATUS_CONFIG[v.status]?.className)}>{VOUCHER_STATUS_CONFIG[v.status]?.label}</span>
                   </td>
                   <td className="px-4 py-3.5">
-                    {v.status === 'draft' && (
-                      <Button size="sm" variant="outline" className="h-8 gap-1 rounded-lg" onClick={() => markSent(v._id)}>
-                        <Send className="w-3.5 h-3.5" /> Send
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {v.pdfUrl && (
+                        <a href={v.pdfUrl} target="_blank" rel="noreferrer">
+                          <Button size="sm" variant="outline" className="h-8 gap-1 rounded-lg">
+                            <ExternalLink className="w-3.5 h-3.5" /> PDF
+                          </Button>
+                        </a>
+                      )}
+                      {v.status !== 'sent' && v.status !== 'redeemed' && (
+                        <Button size="sm" variant="outline" className="h-8 gap-1 rounded-lg" onClick={() => markSent(v._id)}>
+                          <Send className="w-3.5 h-3.5" /> Send
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

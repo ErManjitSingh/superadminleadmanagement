@@ -32,6 +32,7 @@ export default function VoucherGenerateModal({ open, onClose, onGenerate, bookin
             <option value="hotel">Hotel</option>
             <option value="cab">Cab / Transport</option>
             <option value="activity">Activity</option>
+            <option value="master">Master Travel Voucher</option>
           </select>
         </div>
         <div>

@@ -87,3 +87,5 @@ export const SupportTicketsPage = lazy(() => import('../components/operations-ma
 export const OperationsReportsPage = lazy(() => import('../components/operations-manager/OperationsReportsPage'));
 export const OperationsCalendarPage = lazy(() => import('../components/operations-manager/OperationsCalendarPage'));
 export const OperationsProfilePage = lazy(() => import('../components/operations-manager/OperationsProfilePage'));
+export const TripTrackerPage = lazy(() => import('../components/operations-manager/trips/TripTrackerPage'));
+export const OperationsTasksPage = lazy(() => import('../components/operations-manager/tasks/TasksPage'));

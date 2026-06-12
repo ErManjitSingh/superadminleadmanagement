@@ -2,6 +2,7 @@ const Payment = require('../models/Payment');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { notifyPaymentReceived } = require('../services/notificationService');
+const { createBookingFromPayment } = require('../services/operationsService');
 
 const PAYMENT_POPULATE = [
   { path: 'lead', select: 'name email phone destination' },
@@ -50,7 +51,11 @@ const createPayment = asyncHandler(async (req, res) => {
       notifyUserIds: [populated.lead?.assignedTo, populated.createdBy].filter(Boolean),
     }).catch(() => {});
   }
-  res.status(201).json(populated);
+  if (['paid', 'partial'].includes(populated.status)) {
+    await createBookingFromPayment(payment._id, req.user).catch(() => {});
+  }
+  const refreshed = await Payment.findById(payment._id).populate(PAYMENT_POPULATE).lean();
+  res.status(201).json(refreshed);
 });
 
 const updatePayment = asyncHandler(async (req, res) => {
@@ -73,7 +78,11 @@ const updatePayment = asyncHandler(async (req, res) => {
       notifyUserIds: [populated.lead?.assignedTo, populated.createdBy].filter(Boolean),
     }).catch(() => {});
   }
-  res.json(populated);
+  if (['paid', 'partial'].includes(populated.status)) {
+    await createBookingFromPayment(payment._id, req.user).catch(() => {});
+  }
+  const refreshed = await Payment.findById(payment._id).populate(PAYMENT_POPULATE).lean();
+  res.json(refreshed);
 });
 
 const deletePayment = asyncHandler(async (req, res) => {

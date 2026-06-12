@@ -6,7 +6,7 @@ import API from '../../../api/axios';
 import PageHeader from '../../ui/PageHeader';
 import { Button } from '../../ui/button';
 import BookingStatusBadge from './BookingStatusBadge';
-import { formatINR, formatDate } from '../operationsUtils';
+import { formatINR, formatDate, formatPax } from '../operationsUtils';
 import { CONFIRMATION_CONFIG } from '../constants';
 import { cn } from '../../../lib/utils';
 
@@ -26,8 +26,8 @@ export default function BookingsListPage() {
 
   const fetchBookings = useCallback(() => {
     setLoading(true);
-    API.get('/operations-manager/bookings', { params: { status, search: search || undefined } })
-      .then((r) => setBookings(r.data))
+    API.get('/operations-manager/bookings', { params: { status, search: search || undefined, limit: 50 } })
+      .then((r) => setBookings(r.data?.data || r.data || []))
       .finally(() => setLoading(false));
   }, [status, search]);
 
@@ -78,9 +78,9 @@ export default function BookingsListPage() {
                     </td>
                     <td className="px-4 py-3.5 text-sm">{b.destination}</td>
                     <td className="px-4 py-3.5 text-sm text-content-secondary max-w-[160px] truncate">{b.packageName}</td>
-                    <td className="px-4 py-3.5 text-xs text-content-muted whitespace-nowrap">{formatDate(b.travelStart)}</td>
-                    <td className="px-4 py-3.5 text-sm text-center">{b.pax}</td>
-                    <td className="px-4 py-3.5 text-sm font-bold tabular-nums">{formatINR(b.amount)}</td>
+                    <td className="px-4 py-3.5 text-xs text-content-muted whitespace-nowrap">{formatDate(b.travelDate || b.travelStart)}</td>
+                    <td className="px-4 py-3.5 text-sm text-center">{formatPax(b)}</td>
+                    <td className="px-4 py-3.5 text-sm font-bold tabular-nums">{formatINR(b.totalAmount ?? b.amount)}</td>
                     <td className="px-4 py-3.5">
                       <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-md', CONFIRMATION_CONFIG[b.hotelConfirmation]?.className)}>{CONFIRMATION_CONFIG[b.hotelConfirmation]?.label}</span>
                     </td>

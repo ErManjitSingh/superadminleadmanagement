@@ -92,6 +92,8 @@ import {
   OperationsReportsPage,
   OperationsCalendarPage,
   OperationsProfilePage,
+  TripTrackerPage,
+  OperationsTasksPage,
 } from './routes/lazyRoutes';
 
 function App() {
@@ -187,7 +189,7 @@ function App() {
             <Route
               path="/operations-manager"
               element={
-                <ProtectedRoute allowedRoles={['operations_manager']}>
+                <ProtectedRoute allowedRoles={['operations_manager', 'admin']}>
                   <OperationsManagerLayout />
                 </ProtectedRoute>
               }
@@ -196,6 +198,8 @@ function App() {
               <Route path="dashboard" element={<OperationsDashboard />} />
               <Route path="bookings/:status" element={<BookingsListPage />} />
               <Route path="booking/:id" element={<BookingDetailPage />} />
+              <Route path="trip-tracker" element={<TripTrackerPage />} />
+              <Route path="tasks" element={<OperationsTasksPage />} />
               <Route path="hotels" element={<OperationsHotelsPage />} />
               <Route path="transport" element={<OperationsTransportPage />} />
               <Route path="activities" element={<OperationsActivitiesPage />} />
