@@ -22,6 +22,7 @@ const { normalizeLeadInput, computeLeadScoreByBudget } = require('../utils/norma
 const { ROLE_LABELS } = require('../config/roles');
 const { findLeadsPaginated } = require('../repositories/leadRepository');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
+const { onLeadConverted, isLeadStatusLocked } = require('../services/leadConversionService');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { runLeadAutoAssignment } = require('../services/leadAutoAssignmentService');
 const { LEAD_AUTO_ASSIGNMENT_ENABLED } = require('../config/assignment');
@@ -398,6 +399,9 @@ const updateLead = asyncHandler(async (req, res) => {
   if (data.status && LOST_LEAD_STATUSES.includes(data.status) && !data.statusReason?.trim() && !lead.statusReason?.trim()) {
     throw new ApiError(400, 'Reason is required when marking lead as lost');
   }
+  if (data.status && data.status !== prevStatus && isLeadStatusLocked(prevStatus)) {
+    throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
+  }
 
   Object.assign(lead, data);
   if (!lead.firstContactAt && (data.status === 'contacted' || ['contacted', 'working_progress', 'follow_up'].includes(nextStatus))) {
@@ -455,6 +459,18 @@ const updateLead = asyncHandler(async (req, res) => {
     if (nextStage) {
       notifyReactivationProgress({ lead, actor: req.user, stage: nextStage }).catch(() => {});
     }
+  }
+
+  if (data.status === 'converted' && prevStatus !== 'converted') {
+    await onLeadConverted(lead, req.user).catch((err) => {
+      console.error('[LeadConversion]', err.message);
+    });
+  } else if (data.status && data.status !== prevStatus) {
+    invalidateDashboardCache('admin');
+    invalidateDashboardCache('sales_manager');
+    invalidateDashboardCache('team_leader');
+    invalidateDashboardCache('sales_executive');
+    invalidateDashboardCache('nav:');
   }
 
   const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();

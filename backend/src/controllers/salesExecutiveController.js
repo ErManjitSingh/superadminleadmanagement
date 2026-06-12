@@ -11,6 +11,8 @@ const { buildExecutiveDashboard } = require('../services/dashboardService');
 const { getTeamLeaderForExecutive } = require('../services/teamScopeService');
 const { logActivity, getClientIp } = require('../services/activityService');
 const { logLeadActivity } = require('../services/leadActivityService');
+const { onLeadConverted, isLeadStatusLocked } = require('../services/leadConversionService');
+const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { notifyQuotationCreated } = require('../services/notificationService');
 const {
   LEAD_POPULATE,
@@ -149,6 +151,9 @@ const updateLead = asyncHandler(async (req, res) => {
   if (['lost', 'booked_from_another_company'].includes(status) && !trimmedReason) {
     throw new ApiError(400, 'Reason is required for this status');
   }
+  if (isLeadStatusLocked(lead.status)) {
+    throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
+  }
 
   const prevStatus = lead.status;
   lead.status = status;
@@ -173,6 +178,18 @@ const updateLead = asyncHandler(async (req, res) => {
       actor: req.user,
       meta: { from: prevStatus, to: status, reason: trimmedReason || undefined },
     });
+  }
+
+  if (status === 'converted' && prevStatus !== 'converted') {
+    await onLeadConverted(lead, req.user).catch((err) => {
+      console.error('[LeadConversion]', err.message);
+    });
+  } else if (status !== prevStatus) {
+    invalidateDashboardCache('sales_executive');
+    invalidateDashboardCache('sales_manager');
+    invalidateDashboardCache('team_leader');
+    invalidateDashboardCache('admin');
+    invalidateDashboardCache('nav:');
   }
 
   const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
@@ -252,7 +269,7 @@ const updateFollowUp = asyncHandler(async (req, res) => {
   });
   if (!followup) throw new ApiError(404, 'Follow-up not found');
 
-  const populated = await updateFollowUpRecord({ followup, body: req.body });
+  const populated = await updateFollowUpRecord({ followup, body: req.body, user: req.user });
   res.json(populated);
 });
 

@@ -11,6 +11,7 @@ const {
   applyCategoryToLead,
   FOLLOWUP_CATEGORIES,
 } = require('../utils/followUpHelpers');
+const { onLeadConverted } = require('./leadConversionService');
 
 async function resolveMissedAlertsForLead(leadId, followUpId) {
   const leadIdStr = leadId?.toString?.() || `${leadId}`;
@@ -55,7 +56,7 @@ async function createFollowUpForLead({ body, user, leadFilter = null }) {
   return FollowUp.findById(followup._id).populate(FOLLOWUP_POPULATE).lean();
 }
 
-async function updateFollowUpRecord({ followup, body }) {
+async function updateFollowUpRecord({ followup, body, user } = {}) {
   const { action, remarks, scheduledAt, category, ...rest } = body;
 
   if (category && FOLLOWUP_CATEGORIES.includes(category)) {
@@ -94,6 +95,11 @@ async function updateFollowUpRecord({ followup, body }) {
     }
     if (action === 'complete') {
       notifyFollowUpOutcome(followup, lead).catch(() => {});
+      if (followup.category === 'converted' && lead.status === 'converted') {
+        await onLeadConverted(lead, user).catch((err) => {
+          console.error('[LeadConversion]', err.message);
+        });
+      }
     }
   }
 

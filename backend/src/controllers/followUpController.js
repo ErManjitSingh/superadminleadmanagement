@@ -52,7 +52,7 @@ const updateFollowUp = asyncHandler(async (req, res) => {
   const followup = await FollowUp.findById(req.params.id);
   if (!followup) throw new ApiError(404, 'Follow-up not found');
 
-  const populated = await updateFollowUpRecord({ followup, body: req.body });
+  const populated = await updateFollowUpRecord({ followup, body: req.body, user: req.user });
   res.json(populated);
 });
 

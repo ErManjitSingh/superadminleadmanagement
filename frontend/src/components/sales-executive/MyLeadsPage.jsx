@@ -10,6 +10,7 @@ import {
   createColumnHelper,
 } from '@tanstack/react-table';
 import API from '../../api/axios';
+import { isLeadStatusLocked } from '../../utils/leadUtils';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useRoleLeadsQuery } from '../../hooks/useRoleLeadsQuery';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -172,6 +173,7 @@ export default function MyLeadsPage() {
       cell: ({ row }) => (
         <LeadActionsMenu
           lead={row.original}
+          canChangeStatus={!isLeadStatusLocked(row.original.status)}
           onScheduleFollowUp={(lead) => { setModal({ type: 'followup', lead }); }}
           onChangeStatus={(lead) => {
             setModal({ type: 'status', lead });

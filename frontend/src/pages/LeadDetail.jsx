@@ -132,6 +132,13 @@ export default function LeadDetail() {
         <LeadStatusPipeline status={lead.status} />
       </div>
 
+      {lead.status === 'converted' && (
+        <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-200">
+          <p className="font-semibold">Converted — Operations team will fulfill this trip</p>
+          <p className="mt-1">Status is locked. Revenue is counted on dashboards. Hotel, cab & voucher work happens in Operations Manager.</p>
+        </div>
+      )}
+
       <LeadContactActions
         lead={lead}
         leadId={id}

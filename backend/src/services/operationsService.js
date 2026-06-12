@@ -316,7 +316,7 @@ async function buildBookingPayloadFromPayment(payment) {
     packageName: snap.name || snap.title || '',
     travelDate,
     returnDate,
-    adults: lead?.adults || lead?.pax || 2,
+    adults: lead?.adults || lead?.travelers || lead?.pax || 2,
     children: lead?.children || 0,
     status: payment.status === 'paid' ? 'confirmed' : 'booking_received',
     paymentStatus: payment.status === 'paid' ? 'paid' : payment.status === 'partial' ? 'partial' : 'pending',

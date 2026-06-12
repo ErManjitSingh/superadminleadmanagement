@@ -18,6 +18,7 @@ import {
 import LeadContactActions from '../whatsapp-contact/LeadContactActions';
 import LeadEmailHistory from '../email/LeadEmailHistory';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
+import { isLeadStatusLocked } from '../../utils/leadUtils';
 
 const STATUSES = [
   'new',
@@ -120,6 +121,13 @@ export default function ExecutiveLeadDetailPage() {
         <LeadStatusPipeline status={lead.status} />
       </div>
 
+      {lead.status === 'converted' && (
+        <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-200">
+          <p className="font-semibold">Lead converted — handed to Operations</p>
+          <p className="mt-1 text-emerald-700/90 dark:text-emerald-300/90">Status is locked. Booking, hotel, cab & vouchers are fulfilled by the operations team.</p>
+        </div>
+      )}
+
       <LeadContactActions
         lead={lead}
         leadId={id}
@@ -175,7 +183,7 @@ export default function ExecutiveLeadDetailPage() {
             lead={lead}
             leadId={id}
             canEditLead={false}
-            canChangeStatus
+            canChangeStatus={!isLeadStatusLocked(lead.status)}
             onAddFollowUp={() => setFollowUpModalOpen(true)}
             onChangeStatus={() => {
               setModalStatus(lead.status || 'new');
