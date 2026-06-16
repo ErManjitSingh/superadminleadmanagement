@@ -1,13 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Bell, Sun, Moon, Menu, X, LogOut, User, LogIn, ChevronDown, RefreshCw } from 'lucide-react';
+import { Plus, Bell, Sun, Moon, Menu, X, LogOut, User, LogIn, ChevronDown, RefreshCw, Search, Command } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
-import { useTimeGreeting } from '../lib/greeting';
 import { getTopBarAccent } from './topbarAccent';
 import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { cn } from '../lib/utils';
@@ -85,7 +84,6 @@ export default function TopBar({ onMenuClick }) {
   const { selectedBranchId, availableBranches } = useSelector((s) => s.branch);
   const navigate = useNavigate();
   const location = useLocation();
-  const greeting = useTimeGreeting();
   const accent = getTopBarAccent(location.pathname);
   const profilePath = getProfilePath(location.pathname);
   const isAdmin = user?.role === 'admin';
@@ -96,6 +94,7 @@ export default function TopBar({ onMenuClick }) {
     : (user?.roleName || user?.role);
   const [isBranchSwitching, setIsBranchSwitching] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const refreshTimerRef = useRef(null);
   const failSafeTimerRef = useRef(null);
 
@@ -176,12 +175,14 @@ export default function TopBar({ onMenuClick }) {
     });
   };
 
-  return (
-    <header className={cn('sticky top-0 z-30 border-b backdrop-blur-xl bg-white/80 dark:bg-slate-900/85', accent.border)}>
-      {/* Accent stripe */}
-      <div className={cn('h-[2px] bg-gradient-to-r opacity-90', accent.stripe)} />
-      <div className={cn('absolute inset-0 bg-gradient-to-r pointer-events-none', accent.wash)} />
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) navigate(`/leads?search=${encodeURIComponent(q)}`);
+  };
 
+  return (
+    <header className="sticky top-0 z-30 border-b border-subtle bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-sm">
       <div className="relative flex items-center gap-3 sm:gap-4 px-4 lg:px-6 h-[68px]">
         {/* Mobile menu */}
         <button
@@ -200,15 +201,25 @@ export default function TopBar({ onMenuClick }) {
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
 
-        {/* Greeting — desktop */}
-        <div className="hidden xl:block shrink-0 min-w-[140px]">
-          <p className="text-[11px] font-medium text-content-muted leading-none">{greeting}</p>
-          <p className="text-sm font-bold text-content-primary truncate mt-1 max-w-[160px]">
-            {user?.name?.split(' ')[0] || 'User'}
-          </p>
-        </div>
+        {/* Search bar */}
+        <form onSubmit={handleSearchSubmit} className="hidden sm:flex flex-1 max-w-xl">
+          <div className="relative w-full group">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search leads, customers, bookings..."
+              className="w-full h-10 pl-10 pr-20 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-subtle text-sm text-content-primary placeholder:text-content-muted outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-500/40 transition-all"
+            />
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-700 border border-subtle text-[10px] font-semibold text-content-muted pointer-events-none">
+              <Command className="w-2.5 h-2.5" />
+              <span>K</span>
+            </div>
+          </div>
+        </form>
 
-        <div className="flex-1" />
+        <div className="flex-1 sm:hidden" />
 
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
@@ -271,15 +282,11 @@ export default function TopBar({ onMenuClick }) {
           {isAdmin && (
             <Link
               to="/leads/new"
-              className={cn(
-                'inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold text-white',
-                'bg-gradient-to-r shadow-md transition-all active:scale-[0.98]',
-                accent.addBtn,
-                'hidden sm:inline-flex'
-              )}
+              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 shadow-md shadow-blue-500/25 transition-all active:scale-[0.98] hidden sm:inline-flex"
             >
               <Plus className="w-4 h-4" />
               Add Lead
+              <ChevronDown className="w-3.5 h-3.5 opacity-80" />
             </Link>
           )}
 
@@ -288,10 +295,7 @@ export default function TopBar({ onMenuClick }) {
           {isAdmin && (
             <Link
               to="/leads/new"
-              className={cn(
-                'sm:hidden flex items-center justify-center w-10 h-10 rounded-xl text-white',
-                'bg-gradient-to-r shadow-md', accent.addBtn
-              )}
+              className="sm:hidden flex items-center justify-center w-10 h-10 rounded-xl text-white bg-blue-500 shadow-md"
               aria-label="Add Lead"
             >
               <Plus className="w-5 h-5" />

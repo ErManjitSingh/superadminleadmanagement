@@ -1,75 +1,81 @@
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowUpRight, IndianRupee, TrendingUp, Users } from 'lucide-react';
+import { Users, IndianRupee, TrendingUp, CheckCircle2, AlertTriangle } from 'lucide-react';
+import KpiCard from './KpiCard';
 
 function formatCurrency(n) {
   if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
-  return `₹${n?.toLocaleString('en-IN')}`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
+  return `₹${n?.toLocaleString('en-IN') || 0}`;
+}
+
+const KPI_CONFIG = [
+  { key: 'totalLeads', label: 'Total Leads', icon: Users, color: 'bg-blue-500', sparkColor: '#3B82F6' },
+  { key: 'revenue', label: 'Total Revenue', icon: IndianRupee, color: 'bg-emerald-500', sparkColor: '#22C55E', format: formatCurrency },
+  { key: 'conversionRate', label: 'Conversion Rate', icon: TrendingUp, color: 'bg-orange-500', sparkColor: '#F97316', suffix: '%' },
+  { key: 'convertedLeads', label: 'Converted Leads', icon: CheckCircle2, color: 'bg-violet-500', sparkColor: '#8B5CF6' },
+];
+
+const QUALITY_CONFIG = [
+  { key: 'leadsWithoutBudget', label: 'Leads Without Budget', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-500/10', border: 'border-red-100 dark:border-red-500/20' },
+  { key: 'leadsWithoutFollowup', label: 'Leads Without Follow-up', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-100 dark:border-amber-500/20' },
+  { key: 'hotLeads', label: 'Hot Leads', color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-500/10', border: 'border-orange-100 dark:border-orange-500/20' },
+  { key: 'highBudgetLeads', label: 'High Budget Leads', color: 'text-violet-500', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-100 dark:border-violet-500/20' },
+];
+
+function buildSparkline(base, points = 8) {
+  if (!base || base <= 0) return Array(points).fill(0);
+  const result = [];
+  for (let i = 0; i < points; i++) {
+    const variance = 0.6 + (i / points) * 0.8 + Math.sin(i * 1.2) * 0.15;
+    result.push(Math.round((base / points) * variance));
+  }
+  return result;
 }
 
 export default function DashboardHero({ stats }) {
-  const items = [
-    { label: 'Total Leads', value: stats.totalLeads, icon: Users },
-    { label: 'Revenue', value: formatCurrency(stats.revenue), icon: IndianRupee },
-    { label: 'Conversion', value: `${stats.conversionRate}%`, icon: TrendingUp },
-    { label: 'Converted', value: stats.convertedLeads, icon: TrendingUp },
-  ];
   const q = stats.qualificationWidgets || {};
-  const qualityItems = [
-    { label: 'Leads Without Budget', value: q.leadsWithoutBudget || 0 },
-    { label: 'Leads Without Follow-up', value: q.leadsWithoutFollowup || 0 },
-    { label: 'Hot Leads', value: q.hotLeads || 0 },
-    { label: 'High Budget Leads', value: q.highBudgetLeads || 0 },
-  ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-[#0f172a] to-blue-950 p-6 sm:p-8 mb-6 border border-slate-800 shadow-xl shadow-slate-900/25"
-    >
-      <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-1/4 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <div>
-          <p className="text-blue-300/80 text-sm font-medium mb-2">Performance Overview</p>
-          <p className="text-3xl sm:text-4xl font-bold text-white metric-tabular tracking-tight">
-            {formatCurrency(stats.revenue)}
-          </p>
-          <p className="text-slate-400 text-sm mt-1">Total revenue generated this month</p>
-          <Link
-            to="/reports"
-            className="inline-flex items-center gap-1 mt-4 text-sm text-blue-400 hover:text-blue-300 transition-colors"
-          >
-            View full report <ArrowUpRight className="w-4 h-4" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
-          {items.map((item) => (
-            <div
-              key={item.label}
-              className="rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm px-4 py-3 hover:bg-white/10 transition-colors"
-            >
-              <item.icon className="w-4 h-4 text-blue-400 mb-2" />
-              <p className="text-lg font-bold text-white metric-tabular">{item.value}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{item.label}</p>
-            </div>
-          ))}
-        </div>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {KPI_CONFIG.map((cfg, i) => {
+          const raw = stats[cfg.key];
+          const value = cfg.format ? cfg.format(raw) : `${raw ?? 0}${cfg.suffix || ''}`;
+          const sparkData = buildSparkline(typeof raw === 'number' ? raw : 0);
+          return (
+            <KpiCard
+              key={cfg.key}
+              label={cfg.label}
+              value={value}
+              change="+18.5%"
+              changeType="up"
+              icon={cfg.icon}
+              iconColor={cfg.color}
+              sparkColor={cfg.sparkColor}
+              sparkData={sparkData}
+              index={i}
+            />
+          );
+        })}
       </div>
-      <div className="relative mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {qualityItems.map((item) => (
-          <div key={item.label} className="rounded-xl border border-amber-400/20 bg-amber-500/5 px-3 py-2">
-            <div className="flex items-center gap-1.5 text-amber-300 text-[11px]">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              {item.label}
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {QUALITY_CONFIG.map((item, i) => (
+          <motion.div
+            key={item.key}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${item.bg} ${item.border}`}
+          >
+            <AlertTriangle className={`w-4 h-4 shrink-0 ${item.color}`} />
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium text-content-secondary truncate">{item.label}</p>
+              <p className="text-lg font-bold text-content-primary metric-tabular">{q[item.key] || 0}</p>
             </div>
-            <p className="text-white text-lg font-bold mt-1">{item.value}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --color-bg-app: #eef1f6;
+    --color-bg-app: #f8fafc;
     --color-surface: #ffffff;
     --color-surface-elevated: #ffffff;
     --color-glass: rgba(255, 255, 255, 0.72);
@@ -13,13 +13,13 @@
     --color-text-muted: #94a3b8;
     --color-border-subtle: #e2e8f0;
     --color-border-strong: #cbd5e1;
-    --sidebar-bg: rgba(255, 255, 255, 0.92);
-    --sidebar-border: rgba(226, 232, 240, 0.95);
-    --sidebar-text: #0f172a;
-    --sidebar-muted: #64748b;
-    --sidebar-hover: rgba(241, 245, 249, 0.95);
-    --sidebar-active: rgba(37, 99, 235, 0.08);
-    --sidebar-active-text: #1d4ed8;
+    --sidebar-bg: #0f172a;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #94a3b8;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: #3b82f6;
+    --sidebar-active-text: #ffffff;
 
     /* Sidebar with decorative background image */
     --sidebar-image-text: #1e293b;
@@ -292,29 +292,19 @@
     background-color: var(--sidebar-hover);
   }
 
-  /* Sidebar decorative background */
-  .sidebar-with-image {
-    --sidebar-text: var(--sidebar-image-text);
-    --sidebar-muted: var(--sidebar-image-muted);
-    --sidebar-hover: var(--sidebar-image-hover);
-    --sidebar-active: var(--sidebar-image-active);
-    --sidebar-border: var(--sidebar-image-border);
-    --sidebar-active-text: var(--sidebar-image-active-text);
-    --sidebar-bg: transparent;
+  /* Dark navy sidebar */
+  .sidebar-dark {
+    --sidebar-text: #f8fafc;
+    --sidebar-muted: #94a3b8;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: #3b82f6;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-active-text: #ffffff;
+    background: linear-gradient(180deg, #0f172a 0%, #0c1222 50%, #070b14 100%);
   }
 
-  .sidebar-bg-image {
-    background-image: url('/sidebar-bg.jpg');
-    background-size: cover;
-    background-position: center top;
-    background-repeat: no-repeat;
-    opacity: 0.5;
-  }
-
-  .sidebar-bg-scrim {
-    background-color: var(--sidebar-image-scrim);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+  .dark .sidebar-dark {
+    background: linear-gradient(180deg, #0f172a 0%, #0a0f1a 50%, #050810 100%);
   }
 
   /* FullCalendar v6 — premium follow-up calendar */

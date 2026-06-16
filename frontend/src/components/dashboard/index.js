@@ -15,4 +15,6 @@ export { default as EnterpriseKpiStrip } from './EnterpriseKpiStrip';
 export { default as SourceAnalyticsPanel } from './SourceAnalyticsPanel';
 export { default as ExecutivePerformancePanel } from './ExecutivePerformancePanel';
 export { default as AgingChartPanel } from './AgingChartPanel';
+export { default as RemindersAlertsPanel } from './RemindersAlertsPanel';
+export { default as LeadTrendChart } from './LeadTrendChart';
 export { default as EmailStatsPanel } from './EmailStatsPanel';

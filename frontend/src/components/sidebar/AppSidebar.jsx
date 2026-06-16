@@ -10,11 +10,10 @@ import { useSidebarCounts } from '../../hooks/useSidebarCounts';
 import { TooltipProvider } from '../ui/tooltip';
 import SidebarBrand from './SidebarBrand';
 import { APP_BRAND_NAME } from '../../config/branding';
-import SidebarSearch from './SidebarSearch';
 import SidebarNavItem from './SidebarNavItem';
 import SidebarNavGroup from './SidebarNavGroup';
 import SidebarNavSection from './SidebarNavSection';
-import SidebarUserCard from './SidebarUserCard';
+import SidebarQuickActions from './SidebarQuickActions';
 import { SidebarThemeProvider } from './SidebarThemeContext';
 import { mainNavItems } from './sidebar-config';
 import { filterNavItemsBySearch, injectSectionHeaders, isNavItemActive } from './sidebar-utils';
@@ -50,7 +49,7 @@ export default function AppSidebar({
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
   const { user: authUser } = useAuth();
   const { selectedBranchId, availableBranches } = useSelector((s) => s.branch);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const width = collapsed ? collapsedWidth : expandedWidth;
 
   const sidebarCounts = useSidebarCounts();
@@ -88,24 +87,16 @@ export default function AppSidebar({
           animate={{ width }}
           transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
           className={cn(
-            'sidebar-with-image relative flex flex-col h-full shrink-0 overflow-hidden',
-            'border-r border-sidebar-border',
-            'shadow-[4px_0_32px_-8px_rgba(15,23,42,0.12)]',
-            'dark:shadow-[4px_0_40px_-12px_rgba(0,0,0,0.55)]',
+            'sidebar-dark relative flex flex-col h-full shrink-0 overflow-hidden',
+            'border-r border-white/[0.06]',
+            'shadow-[4px_0_32px_-8px_rgba(0,0,0,0.4)]',
             className
           )}
         >
-          {/* Background image at 50% opacity */}
-          <div className="absolute inset-0 sidebar-bg-image pointer-events-none" aria-hidden />
-          {/* Frosted scrim for readable text */}
-          <div className="absolute inset-0 sidebar-bg-scrim pointer-events-none" aria-hidden />
-
           <div className="relative z-10 flex flex-col h-full min-h-0">
             <SidebarBrand title={resolvedBrandTitle} subtitle={resolvedBrandSubtitle} />
 
-            <SidebarSearch value={searchQuery} onChange={setSearchQuery} />
-
-            <nav className="relative flex-1 px-2.5 py-1 space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
+            <nav className="relative flex-1 px-3 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
               {navItems.length === 0 && searchQuery && !collapsed && (
                 <p className="px-3 py-6 text-center text-xs text-sidebar-muted">No menu items match your search.</p>
               )}
@@ -126,7 +117,7 @@ export default function AppSidebar({
               })}
             </nav>
 
-            <SidebarUserCard user={user} />
+            <SidebarQuickActions />
           </div>
         </motion.aside>
       </TooltipProvider>

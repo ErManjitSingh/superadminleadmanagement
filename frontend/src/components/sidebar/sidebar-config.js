@@ -24,8 +24,52 @@ import {
   Archive,
   Timer,
   Briefcase,
+  Plane,
+  CreditCard,
+  ListTodo,
 } from 'lucide-react';
 import { operationsAdminMenuChildren } from '../operations-manager/operations-nav-config';
+
+export const reportsAnalyticsItems = [
+  { path: '/reports', label: 'Reports', icon: BarChart3, permission: { module: 'reports', action: 'view' } },
+  {
+    path: '/leads/analytics',
+    label: 'Lead Analytics',
+    icon: BarChart2,
+    roles: ['admin', 'sales_manager', 'team_leader'],
+    permission: { module: 'leads', action: 'view' },
+  },
+  {
+    path: '/leads/sla',
+    label: 'SLA Monitor',
+    icon: Timer,
+    roles: ['admin', 'sales_manager', 'team_leader'],
+    permission: { module: 'leads', action: 'view' },
+  },
+];
+
+export const settingsMenuItems = [
+  { path: '/settings', label: 'General Settings', icon: Settings },
+  {
+    path: '/settings/email-templates',
+    label: 'Email Templates',
+    icon: Mail,
+    permission: { module: 'email', action: 'manage' },
+  },
+  {
+    path: '/settings/whatsapp-templates',
+    label: 'WhatsApp Templates',
+    icon: MessageCircle,
+    permission: { module: 'whatsapp', action: 'manage' },
+  },
+  {
+    path: '/notifications',
+    label: 'Notifications',
+    icon: Bell,
+    badgeKey: 'notifications.unread',
+    permission: { module: 'leads', action: 'view' },
+  },
+];
 
 export const teamManagementItems = [
   {
@@ -72,11 +116,12 @@ export const leadManagementItems = [
 ];
 
 export const mainNavItems = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   {
     id: 'lead-management',
     label: 'Lead Management',
     icon: Users,
+    countKey: 'leads.all',
     children: leadManagementItems,
   },
   {
@@ -85,7 +130,36 @@ export const mainNavItems = [
     icon: Briefcase,
     roles: ['admin'],
     permission: { module: 'operations', action: 'view' },
+    countKey: 'bookings.pending',
     children: operationsAdminMenuChildren,
+  },
+  {
+    path: '/quotations',
+    label: 'Quotations',
+    icon: FileText,
+    badgeKey: 'quotations.pending',
+    permission: { module: 'quotations', action: 'view' },
+  },
+  {
+    path: '/packages',
+    label: 'Packages',
+    icon: Globe2,
+    countKey: 'packages',
+    permission: { module: 'packages', action: 'view' },
+  },
+  {
+    path: '/operations-manager/bookings/pending',
+    label: 'Bookings',
+    icon: Plane,
+    roles: ['admin'],
+    countKey: 'bookings.pending',
+    permission: { module: 'operations', action: 'view' },
+  },
+  {
+    path: '/payments',
+    label: 'Payments',
+    icon: CreditCard,
+    roles: ['admin', 'accountant'],
   },
   {
     path: '/email-activity',
@@ -93,16 +167,32 @@ export const mainNavItems = [
     icon: Mail,
     permission: { module: 'email', action: 'send' },
   },
-  { path: '/quotations', label: 'Quotations', icon: FileText, badgeKey: 'quotations.pending', permission: { module: 'quotations', action: 'view' } },
-  { path: '/packages', label: 'Packages', icon: Globe2, countKey: 'packages', permission: { module: 'packages', action: 'view' } },
+  {
+    path: '/followups',
+    label: 'Tasks & Follow-ups',
+    icon: ListTodo,
+    badgeKey: 'followups.due',
+    countKey: 'followups.total',
+    permission: { module: 'leads', action: 'view' },
+  },
+  { path: '/calendar', label: 'Calendar', icon: Calendar, badgeKey: 'calendar.today' },
+  {
+    id: 'reports-analytics',
+    label: 'Reports & Analytics',
+    icon: BarChart3,
+    children: reportsAnalyticsItems,
+    permission: { module: 'reports', action: 'view' },
+  },
   {
     id: 'team-management',
     label: 'Team Management',
     icon: UsersRound,
     children: teamManagementItems,
   },
-  { path: '/reports', label: 'Reports', icon: BarChart3, permission: { module: 'reports', action: 'view' } },
-  { path: '/calendar', label: 'Calendar', icon: Calendar, badgeKey: 'calendar.today' },
-  { path: '/notifications', label: 'Notifications', icon: Bell, badgeKey: 'notifications.unread' },
-  { path: '/settings', label: 'Settings', icon: Settings },
+  {
+    id: 'settings',
+    label: 'Settings',
+    icon: Settings,
+    children: settingsMenuItems,
+  },
 ];

@@ -6,30 +6,27 @@ import { invalidateDashboard } from '../lib/queryInvalidation';
 import {
   DashboardHeader,
   DashboardHero,
-  DashboardLeadsTabs,
-  TodayFollowUps,
   ActivityTimeline,
   DashboardSkeleton,
+  TodayFollowUps,
+  ExecutivePerformancePanel,
+  LeadSourceChart,
 } from '../components/dashboard';
-import DashboardPanel from '../components/dashboard/DashboardPanel';
-
-const RevenueChart = lazy(() => import('../components/dashboard/RevenueChart'));
-const SalesFunnel = lazy(() => import('../components/dashboard/SalesFunnel'));
-const SourceAnalyticsPanel = lazy(() => import('../components/dashboard/SourceAnalyticsPanel'));
-const ExecutivePerformancePanel = lazy(() => import('../components/dashboard/ExecutivePerformancePanel'));
-const AgingChartPanel = lazy(() => import('../components/dashboard/AgingChartPanel'));
+import LeadTrendChart from '../components/dashboard/LeadTrendChart';
+import RemindersAlertsPanel from '../components/dashboard/RemindersAlertsPanel';
 
 function PanelSkeleton() {
-  return <div className="h-56 rounded-2xl bg-surface-elevated/60 animate-pulse" />;
+  return <div className="h-56 rounded-2xl bg-surface border border-subtle animate-pulse" />;
 }
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
-  const { data: stats, isLoading, isFetching } = useDashboardQuery();
+  const { data: stats, isLoading, isFetching, refetch } = useDashboardQuery();
 
   const refreshDashboard = useCallback(() => {
     invalidateDashboard(queryClient);
-  }, [queryClient]);
+    refetch();
+  }, [queryClient, refetch]);
 
   useDataRefresh(['dashboard'], refreshDashboard);
 
@@ -39,66 +36,37 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 pb-6">
       {isFetching && (
-        <div className="h-0.5 w-full bg-brand-500/30 rounded-full overflow-hidden">
-          <div className="h-full w-1/3 bg-brand-500 animate-pulse" />
+        <div className="h-0.5 w-full bg-blue-500/30 rounded-full overflow-hidden">
+          <div className="h-full w-1/3 bg-blue-500 animate-pulse" />
         </div>
       )}
-      <DashboardHeader />
+
+      <DashboardHeader onRefresh={refreshDashboard} isRefreshing={isFetching} />
       <DashboardHero stats={stats} />
 
-      <DashboardLeadsTabs
-        newLeads={stats.newLeads || []}
-        newLeadsTotal={stats.newLeadsTotal ?? stats.todayLeads}
-        unassignedLeads={stats.unassignedLeads || []}
-        unassignedLeadsTotal={stats.unassignedLeadsTotal ?? 0}
-        maxRows={5}
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-8">
-          <Suspense fallback={<PanelSkeleton />}>
-            <RevenueChart data={stats.monthlyRevenue || []} />
-          </Suspense>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <div className="xl:col-span-8">
+          <LeadTrendChart stats={stats} />
         </div>
-        <div className="lg:col-span-4">
+        <div className="xl:col-span-4 space-y-4">
           <Suspense fallback={<PanelSkeleton />}>
-            <SourceAnalyticsPanel data={stats.sourceAnalytics} />
+            <LeadSourceChart data={stats.leadSourceAnalytics || []} />
           </Suspense>
+          <ActivityTimeline activities={stats.activityTimeline || []} stats={stats} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Suspense fallback={<PanelSkeleton />}>
-          <AgingChartPanel aging={stats.enterpriseKpis?.aging || []} />
+          <ExecutivePerformancePanel data={stats.executivePerformance} />
         </Suspense>
         <Suspense fallback={<PanelSkeleton />}>
-          <ExecutivePerformancePanel data={stats.executivePerformance} compact />
+          <TodayFollowUps followups={stats.todayFollowUps || []} />
+        </Suspense>
+        <Suspense fallback={<PanelSkeleton />}>
+          <RemindersAlertsPanel stats={stats} />
         </Suspense>
       </div>
-
-      <Suspense fallback={<PanelSkeleton />}>
-        <SalesFunnel data={stats.salesFunnel || []} />
-      </Suspense>
-
-      <TodayFollowUps followups={stats.todayFollowUps || []} />
-
-      <DashboardPanel title="Reactivated Lead Tracker" subtitle="Live progress across all reactivated leads">
-        <div className="space-y-2">
-          {stats.reactivationWidget?.liveProgress?.length ? stats.reactivationWidget.liveProgress.map((lead) => (
-            <div key={lead._id} className="p-3 rounded-xl border border-subtle bg-surface-elevated/40">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-content-primary truncate">{lead.name}</p>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-teal-500/10 text-teal-700 dark:text-teal-300">
-                  {lead.stage?.replace(/_/g, ' ')}
-                </span>
-              </div>
-              <p className="text-xs text-content-muted mt-1">{lead.executive}</p>
-            </div>
-          )) : <p className="text-sm text-content-muted">No reactivated leads yet.</p>}
-        </div>
-      </DashboardPanel>
-
-      <ActivityTimeline activities={stats.activityTimeline || []} />
     </div>
   );
 }

@@ -1,5 +1,7 @@
 export function isNavItemActive(pathname, path) {
-  if (path === '/') return pathname === '/';
+  if (path === '/' || path === '/admin/dashboard') {
+    return pathname === '/' || pathname === '/admin/dashboard';
+  }
   if (path === '/leads') return pathname === '/leads';
   return pathname === path || pathname.startsWith(`${path}/`);
 }
