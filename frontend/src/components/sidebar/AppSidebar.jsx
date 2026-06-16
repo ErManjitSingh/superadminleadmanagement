@@ -96,7 +96,7 @@ export default function AppSidebar({
           <div className="relative z-10 flex flex-col h-full min-h-0">
             <SidebarBrand title={resolvedBrandTitle} subtitle={resolvedBrandSubtitle} />
 
-            <nav className="relative flex-1 px-3 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
+            <nav className="relative flex-1 px-2 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
               {navItems.length === 0 && searchQuery && !collapsed && (
                 <p className="px-3 py-6 text-center text-xs text-sidebar-muted">No menu items match your search.</p>
               )}

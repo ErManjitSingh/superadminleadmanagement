@@ -25,7 +25,7 @@ export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DE
   }
 
   return (
-    <div className="px-4 pt-5 pb-4">
+    <div className="px-3 pt-4 pb-3">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 shrink-0">
           <Plane className="w-[17px] h-[17px] text-white" strokeWidth={2.25} />

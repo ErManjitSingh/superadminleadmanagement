@@ -26,8 +26,8 @@ export function SidebarProvider({ children }) {
         toggleCollapsed,
         mobileOpen,
         setMobileOpen,
-        expandedWidth: 288,
-        collapsedWidth: 80,
+        expandedWidth: 240,
+        collapsedWidth: 72,
       }}
     >
       {children}

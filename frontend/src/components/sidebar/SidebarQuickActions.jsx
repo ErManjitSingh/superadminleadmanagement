@@ -21,7 +21,7 @@ export default function SidebarQuickActions() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="px-3 pb-4"
+        className="px-2 pb-3"
       >
         <div
           className={cn(

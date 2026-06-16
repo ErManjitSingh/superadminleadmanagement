@@ -28,9 +28,9 @@ function LayoutShell() {
               onClick={() => setMobileOpen(false)}
             />
             <motion.div
-              initial={{ x: -280 }}
+              initial={{ x: -240 }}
               animate={{ x: 0 }}
-              exit={{ x: -280 }}
+              exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 380, damping: 36 }}
               className="lg:hidden fixed inset-y-0 left-0 z-50"
             >
