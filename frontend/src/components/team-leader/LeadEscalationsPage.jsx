@@ -6,6 +6,7 @@ import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import { BudgetBadge, DestinationChip, ExecutiveBadge, ManagerStatusBadge, CustomerCell } from '../sales-manager/LeadListBadges';
 import { formatCurrency } from './leaderUtils';
+import VirtualizedList from '../ui/VirtualizedList';
 import { toast } from '../../context/ToastContext';
 
 const SECTION_META = {
@@ -53,52 +54,59 @@ export default function LeadEscalationsPage() {
               <span className="ml-auto text-sm font-bold tabular-nums text-content-secondary">{items.length}</span>
             </div>
 
-            <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl divide-y divide-subtle">
+            <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
               {items.length === 0 ? (
                 <div className="p-8 text-center text-content-muted text-sm">No cases</div>
-              ) : items.map((item, i) => (
-                <div key={item._id || i} className="p-5 flex flex-col lg:flex-row lg:items-center gap-4">
-                  <div className="flex-1 min-w-0 space-y-2">
-                    {key === 'complaints' ? (
-                      <>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-semibold text-content-primary">{item.name}</p>
-                          <ManagerStatusBadge status={item.status === 'open' ? 'follow_up' : 'converted'} />
-                        </div>
-                        <p className="text-sm text-content-secondary">{item.destination} · {item.executive}</p>
-                        <p className="text-xs text-rose-600 font-medium">{item.reason}</p>
-                        <p className="text-xs text-content-muted">{formatCurrency(item.budget)}</p>
-                      </>
-                    ) : (
-                      <>
-                        <CustomerCell name={item.name} lead={item} />
-                        <div className="flex flex-wrap gap-2">
-                          <DestinationChip name={item.destination} />
-                          <BudgetBadge amount={item.budget} />
-                          <ExecutiveBadge name={item.assignedTo?.name} />
-                          {item.status && <ManagerStatusBadge status={item.status} />}
-                        </div>
-                        <p className="text-xs text-amber-600 font-medium">{item.reason}{item.daysStuck ? ` · ${item.daysStuck} days stuck` : ''}</p>
-                      </>
-                    )}
-                  </div>
-                  <div className="shrink-0">
-                    {item.escalated ? (
-                      <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full">Escalated</span>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={escalating === item._id}
-                        onClick={() => handleEscalate(item, key)}
-                        className="border-amber-500/30 text-amber-700 hover:bg-amber-500/10"
-                      >
-                        <ArrowUpCircle className="w-3.5 h-3.5 mr-1" /> Escalate to Manager
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+              ) : (
+                <VirtualizedList
+                  items={items}
+                  estimateSize={key === 'complaints' ? 100 : 120}
+                  maxHeight="min(60vh, 480px)"
+                  renderItem={(item) => (
+                    <div className="p-5 flex flex-col lg:flex-row lg:items-center gap-4 border-b border-subtle last:border-0">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {key === 'complaints' ? (
+                          <>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold text-content-primary">{item.name}</p>
+                              <ManagerStatusBadge status={item.status === 'open' ? 'follow_up' : 'converted'} />
+                            </div>
+                            <p className="text-sm text-content-secondary">{item.destination} · {item.executive}</p>
+                            <p className="text-xs text-rose-600 font-medium">{item.reason}</p>
+                            <p className="text-xs text-content-muted">{formatCurrency(item.budget)}</p>
+                          </>
+                        ) : (
+                          <>
+                            <CustomerCell name={item.name} lead={item} />
+                            <div className="flex flex-wrap gap-2">
+                              <DestinationChip name={item.destination} />
+                              <BudgetBadge amount={item.budget} />
+                              <ExecutiveBadge name={item.assignedTo?.name} />
+                              {item.status && <ManagerStatusBadge status={item.status} />}
+                            </div>
+                            <p className="text-xs text-amber-600 font-medium">{item.reason}{item.daysStuck ? ` · ${item.daysStuck} days stuck` : ''}</p>
+                          </>
+                        )}
+                      </div>
+                      <div className="shrink-0">
+                        {item.escalated ? (
+                          <span className="text-xs font-semibold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full">Escalated</span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={escalating === item._id}
+                            onClick={() => handleEscalate(item, key)}
+                            className="border-amber-500/30 text-amber-700 hover:bg-amber-500/10"
+                          >
+                            <ArrowUpCircle className="w-3.5 h-3.5 mr-1" /> Escalate to Manager
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                />
+              )}
             </div>
           </motion.section>
         );

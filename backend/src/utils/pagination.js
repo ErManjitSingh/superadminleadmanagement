@@ -1,4 +1,4 @@
-const DEFAULT_LIMIT = 25;
+const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
 const DETAIL_MAX_LIMIT = 50;
 

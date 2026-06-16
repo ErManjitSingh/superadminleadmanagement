@@ -16,7 +16,8 @@ const {
   notifyReactivationProgress,
   parseAndNotifyMentions,
 } = require('../services/notificationService');
-const { LEAD_POPULATE, FOLLOWUP_POPULATE, QUOTATION_POPULATE, enrichLead } = require('../utils/queryHelpers');
+const { loadLeadCore, loadLeadFollowups, loadLeadQuotations, loadLeadNotes, loadLeadRelated } = require('../services/leadDetailService');
+const { LEAD_POPULATE, enrichLead } = require('../utils/queryHelpers');
 const { createFollowUpForLead } = require('../services/followUpService');
 const { normalizeLeadInput, computeLeadScoreByBudget } = require('../utils/normalizeLeadInput');
 const { ROLE_LABELS } = require('../config/roles');
@@ -133,36 +134,41 @@ const listLeads = asyncHandler(async (req, res) => {
 });
 
 const getLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({
-    _id: req.params.id,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-    isDeleted: { $ne: true },
-  })
-    .populate(LEAD_POPULATE)
-    .lean();
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
-  const followUpLimit = Math.min(Number(req.query.followupsLimit) || 20, 50);
-  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
-  const branchFilter = req.branchId ? { branchId: req.branchId } : {};
-  const leadFilter = { lead: lead._id, ...branchFilter };
+  const includeRelated = req.query.includeRelated === '1' || req.query.includeRelated === 'true';
+  if (!includeRelated) {
+    res.json(enrichLead(lead));
+    return;
+  }
 
-  const [followups, quotations, followUpTotal, quotationTotal] = await Promise.all([
-    FollowUp.find(leadFilter)
-      .populate(FOLLOWUP_POPULATE)
-      .sort({ scheduledAt: -1 })
-      .limit(followUpLimit)
-      .lean(),
-    Quotation.find(leadFilter)
-      .populate(QUOTATION_POPULATE)
-      .sort({ createdAt: -1 })
-      .limit(DETAIL_RELATED_LIMIT)
-      .lean(),
-    FollowUp.countDocuments(leadFilter),
-    Quotation.countDocuments(leadFilter),
-  ]);
+  const related = await loadLeadRelated(lead._id, {
+    branchId: req.branchId,
+    followupsLimit: req.query.followupsLimit,
+  });
+  res.json({ ...enrichLead(lead), ...related });
+});
 
-  res.json({ ...enrichLead(lead), followups, followUpTotal, quotations, quotationTotal });
+const getLeadFollowups = asyncHandler(async (req, res) => {
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadFollowups(lead._id, { branchId: req.branchId, query: req.query });
+  res.json(result);
+});
+
+const getLeadQuotations = asyncHandler(async (req, res) => {
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadQuotations(lead._id, { branchId: req.branchId, query: req.query });
+  res.json(result);
+});
+
+const getLeadNotesList = asyncHandler(async (req, res) => {
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadNotes(lead._id, { query: req.query });
+  res.json(result);
 });
 
 const listLostLeads = asyncHandler(async (req, res) => {
@@ -816,6 +822,9 @@ module.exports = {
   listLeads,
   listLostLeads,
   getLead,
+  getLeadFollowups,
+  getLeadQuotations,
+  getLeadNotesList,
   createLead,
   seedDemoLeads,
   clearAllLeads,

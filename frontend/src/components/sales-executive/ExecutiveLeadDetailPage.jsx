@@ -108,6 +108,7 @@ export default function ExecutiveLeadDetailPage() {
         leadId={id}
         activities={activities}
         timelineLoading={timelineLoading}
+        relatedBasePath="/sales-executive/leads"
         backHref="/sales-executive/leads/all"
         backLabel="Back to Leads"
         contactEndpoint="/sales-executive/leads"

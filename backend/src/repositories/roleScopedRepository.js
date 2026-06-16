@@ -1,4 +1,5 @@
 const Lead = require('../models/Lead');
+const { LEAD_LIST_SELECT } = require('../utils/leadQueryFields');
 const FollowUp = require('../models/FollowUp');
 const Quotation = require('../models/Quotation');
 const {
@@ -75,7 +76,7 @@ async function findManagerLeadsPaginated(query = {}, options = {}) {
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
-      .select('-notes')
+      .select(LEAD_LIST_SELECT)
       .populate(LEAD_LIST_POPULATE)
       .sort(sort)
       .skip(skip)
@@ -113,7 +114,7 @@ async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
-      .select('-notes')
+      .select(LEAD_LIST_SELECT)
       .populate(LEAD_LIST_POPULATE)
       .sort(sort)
       .skip(skip)
@@ -144,7 +145,7 @@ async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
-      .select('-notes')
+      .select(LEAD_LIST_SELECT)
       .populate(LEAD_LIST_POPULATE)
       .sort(sort)
       .skip(skip)

@@ -97,6 +97,7 @@ export default function ManagerLeadDetailPage() {
         leadId={id}
         activities={activities}
         timelineLoading={timelineLoading}
+        relatedBasePath="/sales-manager/leads"
         backHref="/sales-manager/leads/all"
         backLabel="Back to Leads"
         contactEndpoint="/leads"

@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink, SkipForward, Sparkles, Map, CheckCircle2, CircleOff } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, FileText, ExternalLink, SkipForward, Sparkles, Map, CheckCircle2, CircleOff, Search } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
+import VirtualizedList from '../ui/VirtualizedList';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { buildListParams, unwrapPagination } from '../../utils/apiHelpers';
 import ItineraryBuilder from '../packages/ItineraryBuilder';
 import InclusionExclusionEditor, { cleanInclusionExclusionLines } from './InclusionExclusionEditor';
 import QuotePricingPanel from './QuotePricingPanel';
@@ -50,7 +53,7 @@ const EXECUTIVE_CONFIG = {
 const TEAM_LEADER_CONFIG = {
   leadsPath: '/team-leader/leads',
   leadViewPath: (id) => `/team-leader/leads/${id}/view`,
-  leadsParams: { filter: 'all', page: 1, limit: 500 },
+  leadsParams: { filter: 'all', page: 1, limit: 50 },
   savePath: '/team-leader/quotations',
   backPath: '/team-leader/quotations/pending',
   successPath: '/team-leader/quotations/approved',
@@ -66,7 +69,7 @@ const TEAM_LEADER_CONFIG = {
 const MANAGER_CONFIG = {
   leadsPath: '/sales-manager/leads',
   leadViewPath: (id) => `/sales-manager/leads/${id}/view`,
-  leadsParams: { filter: 'all', page: 1, limit: 500 },
+  leadsParams: { filter: 'all', page: 1, limit: 50 },
   savePath: '/sales-manager/quotations',
   backPath: '/sales-manager/quotations/pending',
   successPath: '/sales-manager/quotations/approved',
@@ -93,6 +96,9 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   const initialLeadId = searchParams.get('leadId');
   const [step, setStep] = useState(1);
   const [leads, setLeads] = useState([]);
+  const [leadSearch, setLeadSearch] = useState('');
+  const debouncedLeadSearch = useDebouncedValue(leadSearch, 500);
+  const [loadingLeads, setLoadingLeads] = useState(false);
   const [packages, setPackages] = useState([]);
   const [cabs, setCabs] = useState([]);
   const [flights, setFlights] = useState([]);
@@ -111,9 +117,8 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
   useEffect(() => {
     let cancelled = false;
 
-    const loadBuilderData = async () => {
+    const loadResources = async () => {
       const requests = [
-        API.get(config.leadsPath, { params: config.leadsParams || { page: 1, limit: 500 }, skipErrorToast: true }),
         API.get('/cabs', { skipErrorToast: true }),
         API.get('/flights', { skipErrorToast: true }),
         API.get('/activities', { skipErrorToast: true }),
@@ -124,15 +129,13 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
 
       const pick = (index) => (results[index].status === 'fulfilled' ? results[index].value.data : []);
 
-      setLeads(unwrapList(pick(0)));
-      setCabs(unwrapList(pick(1)));
-      setFlights(unwrapList(pick(2)));
-      setActivities(unwrapList(pick(3)));
+      setCabs(unwrapList(pick(0)));
+      setFlights(unwrapList(pick(1)));
+      setActivities(unwrapList(pick(2)));
     };
 
-    loadBuilderData().catch(() => {
+    loadResources().catch(() => {
       if (!cancelled) {
-        setLeads([]);
         setCabs([]);
         setFlights([]);
         setActivities([]);
@@ -142,7 +145,45 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
     return () => {
       cancelled = true;
     };
-  }, [config.leadsPath]);
+  }, []);
+
+  const fetchLeads = useCallback(async (searchTerm) => {
+    setLoadingLeads(true);
+    try {
+      const baseParams = config.leadsParams || { page: 1, limit: 50 };
+      const params = buildListParams({
+        page: 1,
+        limit: 50,
+        filters: {
+          ...baseParams,
+          filter: baseParams.filter,
+          search: searchTerm?.trim() || undefined,
+        },
+      });
+      const { data } = await API.get(config.leadsPath, { params, skipErrorToast: true });
+      const rows = unwrapPagination(data).data || unwrapList(data);
+      setLeads(rows);
+      return rows;
+    } catch {
+      setLeads([]);
+      return [];
+    } finally {
+      setLoadingLeads(false);
+    }
+  }, [config.leadsPath, config.leadsParams]);
+
+  useEffect(() => {
+    if (step !== 1) return;
+    if (initialLeadId && !debouncedLeadSearch.trim()) {
+      fetchLeads('');
+      return;
+    }
+    if (debouncedLeadSearch.trim().length >= 2) {
+      fetchLeads(debouncedLeadSearch);
+    } else if (!initialLeadId) {
+      setLeads([]);
+    }
+  }, [step, debouncedLeadSearch, initialLeadId, fetchLeads]);
 
   useEffect(() => {
     if (initialLeadId) {
@@ -394,14 +435,34 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
                     <p className="text-xs text-content-muted mt-0.5">{selectedLead.destination} · {formatINR(selectedLead.budget)}</p>
                   </div>
                 )}
-                <div className="grid gap-2 max-h-[400px] overflow-y-auto">
-                  {leads.map((l) => (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted" />
+                  <input
+                    type="search"
+                    value={leadSearch}
+                    onChange={(e) => setLeadSearch(e.target.value)}
+                    placeholder="Search leads by name, phone, destination (min 2 chars)…"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-surface text-sm outline-none focus:ring-2 focus:ring-sky-500/30"
+                  />
+                </div>
+                {loadingLeads ? (
+                  <p className="text-sm text-content-muted py-8 text-center">Searching leads…</p>
+                ) : leads.length === 0 ? (
+                  <p className="text-sm text-content-muted py-8 text-center">
+                    {debouncedLeadSearch.trim().length >= 2 || initialLeadId ? 'No leads found' : 'Type at least 2 characters to search leads'}
+                  </p>
+                ) : (
+                <VirtualizedList
+                  items={leads}
+                  estimateSize={76}
+                  maxHeight="400px"
+                  className="grid gap-2"
+                  renderItem={(l) => (
                     <button
-                      key={l._id}
                       type="button"
                       onClick={() => selectLead(l)}
                       className={cn(
-                        'flex items-center gap-3 p-4 rounded-xl border text-left transition-all',
+                        'flex items-center gap-3 p-4 rounded-xl border text-left transition-all w-full',
                         state.leadId === l._id
                           ? 'border-sky-500/50 bg-sky-500/10 ring-2 ring-sky-500/20'
                           : 'border-subtle hover:bg-surface-elevated'
@@ -413,8 +474,9 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
                         <p className="text-xs text-content-muted">{l.destination} · {formatINR(l.budget)}</p>
                       </div>
                     </button>
-                  ))}
-                </div>
+                  )}
+                />
+                )}
               </div>
             )}
             {step === 2 && (

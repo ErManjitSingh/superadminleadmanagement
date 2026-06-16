@@ -3,12 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Sparkles, Phone, CalendarClock, Flame, Trophy, XCircle, TrendingUp, RefreshCw, Users } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
-  createColumnHelper,
-} from '@tanstack/react-table';
+import { createColumnHelper } from '@tanstack/react-table';
 import API from '../../api/axios';
 import { isLeadStatusLocked } from '../../utils/leadUtils';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
@@ -33,8 +28,8 @@ import {
 } from '../sales-manager/LeadListBadges';
 import { LEAD_FILTERS, EXEC_FILTER_THEMES, formatTravelDate, formatFollowUpDate } from './executiveUtils';
 import LeadActionsMenu, { ActionModal } from './LeadActionsMenu';
-import { compactTable, compactTh, compactTd } from '../ui/compactTable';
-import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
+import VirtualizedRoleTable from '../ui/VirtualizedRoleTable';
+import { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import AddFollowUpModal from '../followups/AddFollowUpModal';
 import { createExecutiveFollowUp, buildFollowUpPayload } from '../followups/followupApi';
 import { LEAD_STATUSES, DESTINATIONS } from '../leads/constants';
@@ -68,7 +63,7 @@ export default function MyLeadsPage() {
   const queryClient = useQueryClient();
   const { filter = 'new' } = useParams();
   const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 350);
+  const debouncedSearch = useDebouncedValue(search, 500);
   const [statusFilter, setStatusFilter] = useState('');
   const [destinationFilter, setDestinationFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
@@ -192,16 +187,6 @@ export default function MyLeadsPage() {
     }),
   ], []);
 
-  const table = useReactTable({
-    data: leads,
-    columns,
-    state: { pagination },
-    onPaginationChange: setPagination,
-    manualPagination: true,
-    pageCount,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
   return (
     <ExecutivePageShell title={meta.title} description={meta.desc} showDate={false}>
       <motion.div
@@ -289,44 +274,16 @@ export default function MyLeadsPage() {
         )}
       </div>
 
-      <div className={`${executiveCard} overflow-hidden`}>
-        <div className="overflow-x-auto">
-          <table className={compactTable}>
-            <thead>
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-subtle bg-violet-50/50 dark:bg-violet-950/20">
-                  {hg.headers.map((h) => (
-                    <th key={h.id} className="text-left px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted whitespace-nowrap">
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-subtle">
-              {isLoading ? (
-                <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">Loading…</td></tr>
-              ) : leads.length === 0 ? (
-                <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">No leads in this view</td></tr>
-              ) : table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={executiveCardHover}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={compactTd}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {!isLoading && leads.length > 0 && (
-          <TablePagination table={table} totalLabel="leads" totalCount={total} />
-        )}
-      </div>
+      <VirtualizedRoleTable
+        data={leads}
+        columns={columns}
+        isLoading={isLoading}
+        pagination={pagination}
+        pageCount={pageCount}
+        total={total}
+        onPaginationChange={setPagination}
+        rowClassName={executiveCardHover}
+      />
 
       <ActionModal open={modal?.type === 'status'} title="Change Status" onClose={() => setModal(null)}>
         <select

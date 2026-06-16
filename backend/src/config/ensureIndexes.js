@@ -12,6 +12,7 @@ const CallNote = require('../models/CallNote');
 const LeadEscalation = require('../models/LeadEscalation');
 const LeadMergeLog = require('../models/LeadMergeLog');
 const LeadTransferLog = require('../models/LeadTransferLog');
+const LeadNote = require('../models/LeadNote');
 const EmailLog = require('../models/EmailLog');
 const EmailReply = require('../models/EmailReply');
 const WhatsAppMessage = require('../models/WhatsAppMessage');
@@ -49,8 +50,12 @@ async function ensureIndexes() {
     Lead.collection.createIndex({ branchId: 1, assignedTo: 1, status: 1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, assignedTo: 1, isHot: 1, status: 1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, channel: 1, updatedAt: -1 }, { background: true }),
-    Lead.collection.createIndex({ branchId: 1, source: 1 }, { background: true }),
+    Lead.collection.createIndex({ budget: -1 }, { background: true }),
+    Lead.collection.createIndex({ branchId: 1, isDeleted: 1, budget: -1 }, { background: true }),
+    Lead.collection.createIndex({ nextFollowUp: 1 }, { background: true, sparse: true }),
+    Lead.collection.createIndex({ branchId: 1, isDeleted: 1, nextFollowUp: 1 }, { background: true, sparse: true }),
     Lead.collection.createIndex({ email: 1 }, { background: true, sparse: true }),
+    LeadNote.collection.createIndex({ lead: 1, createdAt: -1 }, { background: true }),
     LeadActivity.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),
     AuditLog.collection.createIndex({ entityType: 1, entityId: 1, createdAt: -1 }, { background: true }),
     CallNote.collection.createIndex({ leadId: 1, createdAt: -1 }, { background: true }),

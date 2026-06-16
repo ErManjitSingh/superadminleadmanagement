@@ -96,6 +96,7 @@ export default function LeaderLeadDetailPage() {
         leadId={id}
         activities={activities}
         timelineLoading={timelineLoading}
+        relatedBasePath="/team-leader/leads"
         backHref="/team-leader/leads"
         backLabel="Back to Team Leads"
         contactEndpoint="/leads"

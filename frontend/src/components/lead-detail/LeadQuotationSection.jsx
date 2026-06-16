@@ -14,9 +14,20 @@ const statusConfig = {
   draft: { label: 'Draft', icon: Clock, class: 'text-slate-600 bg-slate-50 border-slate-100' },
 };
 
-export default function LeadQuotationSection({ quotations = [], compact = false }) {
+export default function LeadQuotationSection({ quotations = [], compact = false, loading = false }) {
   const [pdfQuote, setPdfQuote] = useState(null);
   const pdfRef = useRef(null);
+
+  if (loading) {
+    return (
+      <div className={`${DETAIL_CARD} overflow-hidden`}>
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Quotations</h3>
+        </div>
+        <p className="p-8 text-center text-sm text-slate-400">Loading quotations…</p>
+      </div>
+    );
+  }
 
   if (!quotations.length) {
     return (

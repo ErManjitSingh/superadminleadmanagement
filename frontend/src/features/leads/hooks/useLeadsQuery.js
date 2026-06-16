@@ -4,7 +4,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { LIST_STALE_MS, GC_TIME_MS } from '../../../lib/queryConfig';
 
 export function useLeadsQuery({ filters, page, limit, sortBy, sortOrder, cursor, enabled = true }) {
-  const debouncedSearch = useDebouncedValue(filters.search, 350);
+  const debouncedSearch = useDebouncedValue(filters.search, 500);
 
   const queryFilters = {
     ...filters,

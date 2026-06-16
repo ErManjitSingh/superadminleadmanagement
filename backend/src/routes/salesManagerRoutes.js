@@ -4,6 +4,8 @@ const {
   getDashboard,
   listLeads,
   getLeadDetail,
+  getLeadQuotationsList,
+  getLeadNotesList,
   assignLeads,
   listExecutives,
   listFollowUps,
@@ -34,6 +36,8 @@ router.use(protect, authorize('sales_manager', 'admin'));
 
 router.get('/dashboard', getDashboard);
 router.get('/leads', listLeads);
+router.get('/leads/:id/quotations', getLeadQuotationsList);
+router.get('/leads/:id/notes-list', getLeadNotesList);
 router.get('/leads/:id', getLeadDetail);
 router.post('/assign', assignLeads);
 router.get('/executives', listExecutives);

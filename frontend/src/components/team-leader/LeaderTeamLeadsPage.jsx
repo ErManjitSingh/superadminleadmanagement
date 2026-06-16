@@ -3,15 +3,14 @@ import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { Search, Users, MoreHorizontal, Eye, MessageSquare, AlertTriangle, UserPlus, RefreshCw, XCircle, Flame } from 'lucide-react';
-import {
-  useReactTable, getCoreRowModel, flexRender, createColumnHelper,
-} from '@tanstack/react-table';
+import { createColumnHelper } from '@tanstack/react-table';
 import API from '../../api/axios';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useRoleLeadsQuery } from '../../hooks/useRoleLeadsQuery';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import PageHeader from '../ui/PageHeader';
-import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
+import { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
+import VirtualizedRoleTable from '../ui/VirtualizedRoleTable';
 import { Button } from '../ui/button';
 import PriorityBadge from '../sales-manager/PriorityBadge';
 import {
@@ -199,9 +198,7 @@ export default function LeaderTeamLeadsPage() {
         </div>
       ),
     }),
-  ], []);
-
-  const table = useReactTable({ data: leads, columns, getCoreRowModel: getCoreRowModel() });
+  ], [reactivate, openAssign, setReactivateLeadRow, setModal, setText]);
 
   return (
     <div className="space-y-6">
@@ -252,44 +249,18 @@ export default function LeaderTeamLeadsPage() {
           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30"
         />
       </div>
-      <div className={`rounded-2xl border ${showRecoveryUi ? 'border-teal-500/25 shadow-lg shadow-teal-500/5' : 'border-subtle'} bg-surface/80 backdrop-blur-xl overflow-hidden`}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className={`border-b ${showRecoveryUi ? `bg-gradient-to-r ${theme.header} ${theme.border}` : 'border-subtle bg-surface-elevated/50'}`}>
-                  {hg.headers.map((h) => (
-                    <th key={h.id} className="text-left px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted whitespace-nowrap">
-                      {flexRender(h.column.columnDef.header, h.getContext())}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-subtle">
-              {isLoading ? (
-                <tr><td colSpan={columns.length} className="p-12 text-center text-content-muted">Loading…</td></tr>
-              ) : leads.length === 0 ? (
-                <tr><td colSpan={columns.length}><ReactivationEmptyState isLost={filter === 'lost'} /></td></tr>
-              ) : table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-amber-500/[0.03]">
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3.5 align-middle">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <TablePagination
-          pageIndex={pagination.pageIndex}
-          pageSize={pagination.pageSize}
-          pageCount={pageCount}
-          total={total}
-          onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
-          onPageSizeChange={(pageSize) => setPagination({ pageIndex: 0, pageSize })}
-        />
-      </div>
+      <VirtualizedRoleTable
+        data={leads}
+        columns={columns}
+        isLoading={isLoading}
+        pagination={pagination}
+        pageCount={pageCount}
+        total={total}
+        onPaginationChange={setPagination}
+        emptyMessage={filter === 'lost' ? 'No lost leads' : 'No leads in this view'}
+        containerClassName={`rounded-2xl border ${showRecoveryUi ? 'border-teal-500/25 shadow-lg shadow-teal-500/5' : 'border-subtle'} bg-surface/80 backdrop-blur-xl`}
+        headerRowClassName={showRecoveryUi ? `border-b bg-gradient-to-r ${theme.header} ${theme.border}` : 'border-b border-subtle bg-surface-elevated/50'}
+      />
 
       <ActionModal open={modal?.type === 'comment'} title="Add Comment" onClose={() => setModal(null)}>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="Team leader note…" className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4" />

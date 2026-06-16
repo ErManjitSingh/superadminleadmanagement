@@ -44,8 +44,12 @@ function formatSourceName(source) {
   return SOURCE_LABELS[source] || String(source).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function activeLeadScope(extra = {}, branchId) {
+  return withBranch({ ...extra, isDeleted: { $ne: true } }, branchId);
+}
+
 async function buildReactivationWidget(branchId, assigneeIds = null) {
-  const base = withBranch({ 'reactivation.isReactivated': true }, branchId);
+  const base = activeLeadScope({ 'reactivation.isReactivated': true }, branchId);
   if (Array.isArray(assigneeIds)) {
     base.assignedTo = assigneeIds.length ? { $in: assigneeIds } : null;
   }
@@ -128,34 +132,37 @@ async function buildAdminDashboard(options = {}) {
     hotLeadsCount,
     highBudgetLeadsCount,
   ] = await Promise.all([
-    Lead.countDocuments(withBranch({}, branchId)),
-    Lead.countDocuments(withBranch({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId)),
-    Lead.countDocuments(withBranch({ status: 'converted' }, branchId)),
-    Lead.countDocuments(withBranch({ status: { $in: ['lost', 'booked_from_another_company'] } }, branchId)),
+    Lead.countDocuments(activeLeadScope({}, branchId)),
+    Lead.countDocuments(activeLeadScope({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId)),
+    Lead.countDocuments(activeLeadScope({ status: 'converted' }, branchId)),
+    Lead.countDocuments(activeLeadScope({ status: { $in: ['lost', 'booked_from_another_company'] } }, branchId)),
     FollowUp.countDocuments(withBranch({ status: 'pending' }, branchId)),
     FollowUp.countDocuments({
       ...(branchId ? { branchId } : {}),
       $or: [{ status: 'missed' }, { status: 'pending', scheduledAt: { $lt: todayStart } }],
     }),
-    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
-    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: '$source', count: { $sum: 1 } } }]),
-    Lead.aggregate([{ $match: withBranch({}, branchId) }, { $group: { _id: null, total: { $sum: '$budget' } } }]),
+    Lead.aggregate([{ $match: activeLeadScope({}, branchId) }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Lead.aggregate([{ $match: activeLeadScope({}, branchId) }, { $group: { _id: '$source', count: { $sum: 1 } } }]),
+    Lead.aggregate([{ $match: activeLeadScope({}, branchId) }, { $group: { _id: null, total: { $sum: '$budget' } } }]),
     Payment.aggregate([
       { $match: withBranch({ status: { $in: ['paid', 'partial'] } }, branchId) },
       { $group: { _id: null, total: { $sum: '$paidAmount' } } },
     ]),
-    Lead.find(withBranch({}, branchId))
+    Lead.find(activeLeadScope({}, branchId))
+      .select('leadId name phone destination status budget assignedTo createdAt')
       .populate('assignedTo', 'name email')
       .sort({ createdAt: -1 })
       .limit(10)
       .lean(),
-    Lead.find(withBranch({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId))
+    Lead.find(activeLeadScope({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId))
+      .select('leadId name phone destination status budget assignedTo createdAt')
       .populate('assignedTo', 'name email')
       .sort({ createdAt: -1 })
       .limit(DASHBOARD_NEW_LEADS_LIMIT)
       .lean(),
-    Lead.countDocuments(withBranch({ assignedTo: null, isDeleted: { $ne: true } }, branchId)),
-    Lead.find(withBranch({ assignedTo: null, isDeleted: { $ne: true } }, branchId))
+    Lead.countDocuments(activeLeadScope({ assignedTo: null }, branchId)),
+    Lead.find(activeLeadScope({ assignedTo: null }, branchId))
+      .select('leadId name phone destination status budget createdAt')
       .populate('assignedTo', 'name email')
       .sort({ createdAt: -1 })
       .limit(DASHBOARD_NEW_LEADS_LIMIT)
@@ -177,10 +184,10 @@ async function buildAdminDashboard(options = {}) {
       { $sort: { conversions: -1 } },
       { $limit: 5 },
     ]),
-    Lead.countDocuments(withBranch({ $or: [{ budget: { $exists: false } }, { budget: { $lte: 0 } }] }, branchId)),
-    Lead.countDocuments(withBranch({ $or: [{ nextFollowUp: { $exists: false } }, { nextFollowUp: null }] }, branchId)),
-    Lead.countDocuments(withBranch({ $or: [{ isHot: true }, { leadScore: 'hot' }] }, branchId)),
-    Lead.countDocuments(withBranch({ budget: { $gte: 60000 } }, branchId)),
+    Lead.countDocuments(activeLeadScope({ $or: [{ budget: { $exists: false } }, { budget: { $lte: 0 } }] }, branchId)),
+    Lead.countDocuments(activeLeadScope({ $or: [{ nextFollowUp: { $exists: false } }, { nextFollowUp: null }] }, branchId)),
+    Lead.countDocuments(activeLeadScope({ $or: [{ isHot: true }, { leadScore: 'hot' }] }, branchId)),
+    Lead.countDocuments(activeLeadScope({ budget: { $gte: 60000 } }, branchId)),
   ]);
 
   const agentIds = topAgents.map((a) => a._id);

@@ -10,6 +10,7 @@ import LeadUpcomingFollowUp from './LeadUpcomingFollowUp';
 import LeadTagsPanel from './LeadTagsPanel';
 import LeadQuotationSection from './LeadQuotationSection';
 import LeadScoreBreakdown from './LeadScoreBreakdown';
+import { useLeadQuotationsQuery, useLeadNotesQuery } from '../../features/leads/hooks/useLeadRelatedQueries';
 import { getLeadDetailData } from './leadDetailData';
 
 export default function LeadDetailLayout({
@@ -17,6 +18,7 @@ export default function LeadDetailLayout({
   leadId,
   activities,
   timelineLoading,
+  relatedBasePath = '/leads',
   backHref,
   backLabel,
   contactEndpoint,
@@ -37,6 +39,20 @@ export default function LeadDetailLayout({
 }) {
   const detail = getLeadDetailData(lead);
   const followups = lead.followups || lead.followUps || detail.followUps || [];
+  const embeddedQuotations = lead.quotations || detail.quotations || [];
+  const embeddedNotes = detail.notes?.length ? detail.notes : null;
+
+  const { data: quotationsData, isLoading: quotationsLoading } = useLeadQuotationsQuery(leadId, {
+    basePath: relatedBasePath,
+    enabled: !embeddedQuotations.length,
+  });
+  const { data: notesData, isLoading: notesLoading } = useLeadNotesQuery(leadId, {
+    basePath: relatedBasePath,
+    enabled: !embeddedNotes && !lead.notes,
+  });
+
+  const quotations = embeddedQuotations.length ? embeddedQuotations : (quotationsData?.items || []);
+  const notes = embeddedNotes || notesData?.items || [];
 
   return (
     <>
@@ -65,7 +81,7 @@ export default function LeadDetailLayout({
           <LeadActivityTimeline
             activities={activities}
             loading={timelineLoading}
-            quotations={lead.quotations || []}
+            quotations={quotations}
           />
         </main>
 
@@ -80,14 +96,14 @@ export default function LeadDetailLayout({
             editHref={editHref}
           />
           {sidebarExtra}
-          <LeadNotesPanel notes={detail.notes} legacyNote={lead.notes} />
+          <LeadNotesPanel notes={notes} legacyNote={lead.notes} loading={notesLoading} />
           <LeadUpcomingFollowUp followups={followups} lead={lead} />
           <LeadTagsPanel lead={lead} />
         </aside>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <LeadQuotationSection quotations={lead.quotations || detail.quotations || []} />
+        <LeadQuotationSection quotations={quotations} loading={quotationsLoading} />
         <LeadScoreBreakdown lead={lead} />
       </div>
 

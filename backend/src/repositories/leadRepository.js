@@ -1,4 +1,5 @@
 const Lead = require('../models/Lead');
+const { LEAD_LIST_SELECT } = require('../utils/leadQueryFields');
 const { buildLeadSearchFilter, LEAD_LIST_POPULATE, enrichLead } = require('../utils/queryHelpers');
 const {
   parsePagination,
@@ -94,7 +95,7 @@ async function findLeadsPaginated(query = {}, { branchId } = {}) {
 
   let [rows, total] = await Promise.all([
     Lead.find(listFilter)
-      .select('-notes')
+      .select(LEAD_LIST_SELECT)
       .populate(LEAD_LIST_POPULATE)
       .sort(sort)
       .skip(useCursor ? 0 : skip)

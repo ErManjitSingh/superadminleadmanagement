@@ -91,16 +91,22 @@ function enrichLead(lead) {
 function buildLeadSearchFilter(search) {
   if (!search?.trim()) return {};
   const q = search.trim();
-  return {
-    $or: [
-      { name: { $regex: q, $options: 'i' } },
-      { email: { $regex: q, $options: 'i' } },
-      { phone: { $regex: q, $options: 'i' } },
-      { whatsapp: { $regex: q, $options: 'i' } },
-      { alternatePhone: { $regex: q, $options: 'i' } },
-      { destination: { $regex: q, $options: 'i' } },
-    ],
-  };
+  const digitsOnly = q.replace(/\D/g, '');
+
+  if (digitsOnly.length >= 4 && /^[\d\s+\-()]+$/.test(q)) {
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return {
+      $or: [
+        { phone: { $regex: escaped, $options: 'i' } },
+        { alternatePhone: { $regex: escaped, $options: 'i' } },
+        { whatsapp: { $regex: escaped, $options: 'i' } },
+      ],
+    };
+  }
+
+  const textQuery = q.replace(/[^\w\s@.-]/g, ' ').trim();
+  if (!textQuery) return {};
+  return { $text: { $search: textQuery } };
 }
 
 function buildFollowUpTabFilter(tab) {

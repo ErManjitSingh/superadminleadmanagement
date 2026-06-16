@@ -28,7 +28,14 @@ const {
   notifyQuotationRejected,
 } = require('../services/notificationService');
 const {
+  loadLeadCore,
+  loadLeadRelated,
+  loadLeadQuotations,
+  loadLeadNotes,
+} = require('../services/leadDetailService');
+const {
   LEAD_POPULATE,
+  LEAD_LIST_POPULATE,
   FOLLOWUP_POPULATE,
   QUOTATION_POPULATE,
   enrichLead,
@@ -86,42 +93,36 @@ const listLeads = asyncHandler(async (req, res) => {
 
 const getLeadDetail = asyncHandler(async (req, res) => {
   const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
-  const lead = await Lead.findOne({
-    _id: req.params.id,
-    ...squadFilter,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  })
-    .populate(LEAD_POPULATE)
-    .lean();
-
+  const lead = await loadLeadCore(req.params.id, {
+    branchId: req.branchId,
+    extraFilter: squadFilter,
+  });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
-  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
-  const branchFilter = req.branchId ? { branchId: req.branchId } : {};
-  const leadFilter = { lead: lead._id, ...branchFilter };
+  const includeRelated = req.query.includeRelated === '1' || req.query.includeRelated === 'true';
+  if (!includeRelated) {
+    res.json(enrichLead(lead));
+    return;
+  }
 
-  const [followups, quotations, followupTotal, quotationTotal] = await Promise.all([
-    FollowUp.find(leadFilter)
-      .populate(FOLLOWUP_POPULATE)
-      .sort({ scheduledAt: -1 })
-      .limit(DETAIL_RELATED_LIMIT)
-      .lean(),
-    Quotation.find(leadFilter)
-      .populate(QUOTATION_POPULATE)
-      .sort({ createdAt: -1 })
-      .limit(DETAIL_RELATED_LIMIT)
-      .lean(),
-    FollowUp.countDocuments(leadFilter),
-    Quotation.countDocuments(leadFilter),
-  ]);
+  const related = await loadLeadRelated(lead._id, { branchId: req.branchId });
+  res.json({ ...enrichLead(lead), ...related });
+});
 
-  res.json({
-    ...enrichLead(lead),
-    followups,
-    followupTotal,
-    quotations,
-    quotationTotal,
-  });
+const getLeadQuotationsList = asyncHandler(async (req, res) => {
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId, extraFilter: squadFilter });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadQuotations(lead._id, { branchId: req.branchId, query: req.query });
+  res.json(result);
+});
+
+const getLeadNotesList = asyncHandler(async (req, res) => {
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId, extraFilter: squadFilter });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadNotes(lead._id, { query: req.query });
+  res.json(result);
 });
 
 /** Team leaders: reassign within squad only — no editing lead fields. */
@@ -373,9 +374,11 @@ const getEscalations = asyncHandler(async (req, res) => {
     ...(req.branchId ? { branchId: req.branchId } : {}),
     status: { $in: ['follow_up', 'negotiation', 'quotation_sent'] },
     updatedAt: { $lt: fiveDaysAgo },
+    isDeleted: { $ne: true },
   })
-    .populate(LEAD_POPULATE)
-    .limit(4)
+    .select('-notes')
+    .populate(LEAD_LIST_POPULATE)
+    .limit(50)
     .lean();
 
   const highValue = await Lead.find({
@@ -383,8 +386,12 @@ const getEscalations = asyncHandler(async (req, res) => {
     ...(req.branchId ? { branchId: req.branchId } : {}),
     budget: { $gte: 200000 },
     status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
+    isDeleted: { $ne: true },
   })
-    .populate(LEAD_POPULATE)
+    .select('-notes')
+    .populate(LEAD_LIST_POPULATE)
+    .sort({ budget: -1, updatedAt: -1 })
+    .limit(50)
     .lean();
 
   res.json({
@@ -605,6 +612,8 @@ module.exports = {
   getMyTeam,
   listLeads,
   getLeadDetail,
+  getLeadQuotationsList,
+  getLeadNotesList,
   updateLead,
   addLeadComment,
   listFollowUps,

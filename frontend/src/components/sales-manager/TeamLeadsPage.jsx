@@ -9,9 +9,6 @@ import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import { useLeadAssign } from '../../hooks/useLeadAssign';
 import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import {
-  useReactTable,
-  getCoreRowModel,
-  flexRender,
   createColumnHelper,
 } from '@tanstack/react-table';
 import API from '../../api/axios';
@@ -19,8 +16,8 @@ import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useRoleLeadsQuery } from '../../hooks/useRoleLeadsQuery';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import PageHeader from '../ui/PageHeader';
-import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
-import { compactTable, compactTh, compactTd } from '../ui/compactTable';
+import { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
+import VirtualizedRoleTable from '../ui/VirtualizedRoleTable';
 import PriorityBadge from './PriorityBadge';
 import {
   LeadIdPill,
@@ -170,17 +167,7 @@ export default function TeamLeadsPage() {
         </div>
       ),
     }),
-  ], []);
-
-  const table = useReactTable({
-    data: leads,
-    columns,
-    state: { pagination },
-    onPaginationChange: setPagination,
-    manualPagination: true,
-    pageCount,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  ], [reactivate, setReactivateLead, setAssignLead]);
 
   return (
     <div className="space-y-6">
@@ -226,68 +213,21 @@ export default function TeamLeadsPage() {
         />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`rounded-2xl border ${theme.border} bg-surface/80 backdrop-blur-xl overflow-hidden shadow-lg shadow-violet-500/5`}
-      >
-        {isLoading ? (
-          <div className="p-16 text-center">
-            <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-content-muted">Loading leads…</p>
-          </div>
-        ) : leads.length === 0 ? (
-          isLostView ? <ReactivationEmptyState isLost /> : (
-            <div className="p-16 text-center">
-              <Icon className={`w-12 h-12 mx-auto mb-3 opacity-40 ${theme.icon}`} />
-              <p className="text-content-muted font-medium">No leads in this view</p>
-            </div>
-          )
-        ) : (
-          <div className="overflow-x-auto">
-            <table className={compactTable}>
-              <colgroup>
-                <col className="w-[88px]" />
-                <col className="w-[min(150px,16vw)]" />
-                <col className="w-[110px]" />
-                <col className="w-[90px]" />
-                <col className="w-[95px]" />
-                <col className="w-[120px]" />
-                <col className="w-[100px]" />
-                <col className="w-[128px]" />
-              </colgroup>
-              <thead>
-                {table.getHeaderGroups().map((hg) => (
-                  <tr key={hg.id} className={`border-b ${theme.border} bg-gradient-to-r ${theme.header}`}>
-                    {hg.headers.map((h) => (
-                      <th key={h.id} className={compactTh}>
-                        {flexRender(h.column.columnDef.header, h.getContext())}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map((row, i) => (
-                  <tr
-                    key={row.id}
-                    className={`group border-b border-subtle/60 last:border-0 transition-colors hover:bg-violet-500/[0.05] ${row.original.isHot ? 'bg-rose-500/[0.03]' : i % 2 === 1 ? 'bg-surface/40' : ''}`}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className={compactTd}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {!isLoading && leads.length > 0 && (
-          <TablePagination table={table} totalLabel="leads" totalCount={total} className={`${theme.border} bg-surface/50`} />
-        )}
-      </motion.div>
+      {!isLoading && leads.length === 0 && isLostView ? (
+        <ReactivationEmptyState isLost />
+      ) : (
+        <VirtualizedRoleTable
+          data={leads}
+          columns={columns}
+          isLoading={isLoading}
+          pagination={pagination}
+          pageCount={pageCount}
+          total={total}
+          onPaginationChange={setPagination}
+          containerClassName={`rounded-2xl border ${theme.border} bg-surface/80 backdrop-blur-xl shadow-lg shadow-violet-500/5`}
+          headerRowClassName={`border-b ${theme.border} bg-gradient-to-r ${theme.header}`}
+        />
+      )}
 
       <AdminAssignLeadModal
         open={!!assignLead}

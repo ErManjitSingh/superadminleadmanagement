@@ -5,6 +5,8 @@ const {
   getMyTeam,
   listLeads,
   getLeadDetail,
+  getLeadQuotationsList,
+  getLeadNotesList,
   updateLead,
   addLeadComment,
   listFollowUps,
@@ -27,6 +29,8 @@ router.use(protect, authorize('team_leader'));
 router.get('/dashboard', getDashboard);
 router.get('/my-team', getMyTeam);
 router.get('/leads', listLeads);
+router.get('/leads/:id/quotations', getLeadQuotationsList);
+router.get('/leads/:id/notes-list', getLeadNotesList);
 router.get('/leads/:id', getLeadDetail);
 router.put('/leads/:id', updateLead);
 router.post('/leads/:id/comment', addLeadComment);

@@ -5,6 +5,8 @@ const {
   getDashboard,
   listLeads,
   getLeadDetail,
+  getLeadQuotationsList,
+  getLeadNotesList,
   updateLead,
   addLeadNote,
   listFollowUps,
@@ -43,6 +45,8 @@ router.post('/quotations', createQuotation);
 router.put('/quotations/:id', updateQuotation);
 
 router.get('/leads', listLeads);
+router.get('/leads/:id/quotations', getLeadQuotationsList);
+router.get('/leads/:id/notes-list', getLeadNotesList);
 router.get('/leads/:idOrFilter', (req, res, next) => {
   const seg = req.params.idOrFilter;
   if (LEAD_FILTER_KEYS.includes(seg)) {

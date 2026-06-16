@@ -15,6 +15,12 @@ const { onLeadConverted, isLeadStatusLocked } = require('../services/leadConvers
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { notifyQuotationCreated } = require('../services/notificationService');
 const {
+  loadLeadCore,
+  loadLeadRelated,
+  loadLeadQuotations,
+  loadLeadNotes,
+} = require('../services/leadDetailService');
+const {
   LEAD_POPULATE,
   FOLLOWUP_POPULATE,
   QUOTATION_POPULATE,
@@ -93,42 +99,40 @@ const listLeads = asyncHandler(async (req, res) => {
 });
 
 const getLeadDetail = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({
-    _id: req.params.id,
-    assignedTo: req.user._id,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  })
-    .populate(LEAD_POPULATE)
-    .lean();
+  const lead = await loadLeadCore(req.params.id, {
+    branchId: req.branchId,
+    extraFilter: { assignedTo: req.user._id },
+  });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
-  const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
-  const leadIds = [lead._id];
-  const followupFilter = {
-    lead: lead._id,
-    $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
-  };
-  const quotationFilter = {
-    lead: lead._id,
-    $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
-  };
+  const includeRelated = req.query.includeRelated === '1' || req.query.includeRelated === 'true';
+  if (!includeRelated) {
+    res.json(enrichLead(lead));
+    return;
+  }
 
-  const [followups, quotations, followupTotal, quotationTotal] = await Promise.all([
-    FollowUp.find(followupFilter)
-      .populate(FOLLOWUP_POPULATE)
-      .sort({ scheduledAt: -1 })
-      .limit(DETAIL_RELATED_LIMIT)
-      .lean(),
-    Quotation.find(quotationFilter)
-      .populate(QUOTATION_POPULATE)
-      .sort({ createdAt: -1 })
-      .limit(DETAIL_RELATED_LIMIT)
-      .lean(),
-    FollowUp.countDocuments(followupFilter),
-    Quotation.countDocuments(quotationFilter),
-  ]);
+  const related = await loadLeadRelated(lead._id, { branchId: req.branchId });
+  res.json({ ...enrichLead(lead), ...related });
+});
 
-  res.json({ ...enrichLead(lead), followups, followupTotal, quotations, quotationTotal });
+const getLeadQuotationsList = asyncHandler(async (req, res) => {
+  const lead = await loadLeadCore(req.params.id, {
+    branchId: req.branchId,
+    extraFilter: { assignedTo: req.user._id },
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadQuotations(lead._id, { branchId: req.branchId, query: req.query });
+  res.json(result);
+});
+
+const getLeadNotesList = asyncHandler(async (req, res) => {
+  const lead = await loadLeadCore(req.params.id, {
+    branchId: req.branchId,
+    extraFilter: { assignedTo: req.user._id },
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found');
+  const result = await loadLeadNotes(lead._id, { query: req.query });
+  res.json(result);
 });
 
 /** Executives may only update pipeline status — not edit lead details. */
@@ -564,6 +568,8 @@ module.exports = {
   getDashboard,
   listLeads,
   getLeadDetail,
+  getLeadQuotationsList,
+  getLeadNotesList,
   updateLead,
   addLeadNote,
   listFollowUps,

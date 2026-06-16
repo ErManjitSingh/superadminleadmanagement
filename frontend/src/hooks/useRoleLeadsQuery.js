@@ -29,7 +29,7 @@ export function useRoleLeadsQuery({
   destination = '',
   priority = '',
   page = 1,
-  limit = 25,
+  limit = 50,
   enabled = true,
   skipDebounce = false,
 }) {

@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
 import { UserPlus, Zap, Search, CheckSquare, Square, Inbox, Eye } from 'lucide-react';
 import API from '../../api/axios';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { unwrapPagination } from '../../utils/apiHelpers';
+import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import PageHeader from '../ui/PageHeader';
 import { Button } from '../ui/button';
 import PriorityBadge from './PriorityBadge';
@@ -33,26 +37,39 @@ const columns = ['Lead ID', 'Customer', 'Destination', 'Budget', 'Source', 'Prio
 
 export default function LeadAssignmentPage() {
   const [leads, setLeads] = useState([]);
+  const [total, setTotal] = useState(0);
   const [teams, setTeams] = useState([]);
   const [selected, setSelected] = useState([]);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 500);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
   const [modalLead, setModalLead] = useState(null);
   const [assignMode, setAssignMode] = useState('quick');
   const [loading, setLoading] = useState(true);
 
-  const fetchData = () => {
+  const fetchData = useCallback(() => {
     setLoading(true);
     Promise.all([
-      API.get('/sales-manager/leads', { params: { filter: 'unassigned', search } }),
-      API.get('/sales-manager/teams'),
+      API.get('/sales-manager/leads', {
+        params: {
+          filter: 'unassigned',
+          search: debouncedSearch || undefined,
+          page: pagination.pageIndex + 1,
+          limit: pagination.pageSize,
+        },
+        skipSuccessToast: true,
+      }),
+      API.get('/sales-manager/teams', { skipSuccessToast: true }),
     ])
       .then(([l, t]) => {
-        setLeads(l.data);
+        const parsed = unwrapPagination(l.data);
+        setLeads(parsed.data);
+        setTotal(parsed.pagination?.total ?? parsed.data.length);
         setTeams(t.data);
         if (!t.data?.length) setAssignMode('quick');
       })
       .finally(() => setLoading(false));
-  };
+  }, [debouncedSearch, pagination.pageIndex, pagination.pageSize]);
 
   const {
     assignees,
@@ -62,8 +79,12 @@ export default function LeadAssignmentPage() {
   } = useLeadAssign({ onAssigned: fetchData });
 
   useEffect(() => {
+    setPagination((p) => ({ ...p, pageIndex: 0 }));
+  }, [debouncedSearch]);
+
+  useEffect(() => {
     fetchData();
-  }, [search]);
+  }, [fetchData]);
 
   useDataRefresh(['leads'], fetchData);
 
@@ -84,6 +105,19 @@ export default function LeadAssignmentPage() {
     setAssignMode(teams.length ? 'team' : 'quick');
     setModalLead(lead);
   };
+
+  const pageCount = Math.max(1, Math.ceil(total / pagination.pageSize) || 1);
+  const scrollRef = useRef(null);
+  const rowVirtualizer = useVirtualizer({
+    count: leads.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 56,
+    overscan: 8,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
     <div className="space-y-6">
@@ -107,7 +141,7 @@ export default function LeadAssignmentPage() {
       >
         <div className="p-3 rounded-2xl bg-surface/80 text-amber-600"><Inbox className="w-6 h-6" /></div>
         <div>
-          <p className="text-2xl font-bold text-content-primary tabular-nums">{leads.length}</p>
+          <p className="text-2xl font-bold text-content-primary tabular-nums">{loading ? '—' : total}</p>
           <p className="text-sm text-content-secondary">Unassigned leads waiting for assignment</p>
         </div>
       </motion.div>
@@ -160,9 +194,9 @@ export default function LeadAssignmentPage() {
       </div>
 
       <div className={`rounded-2xl border ${theme.border} bg-surface/80 backdrop-blur-xl overflow-hidden shadow-lg shadow-amber-500/5`}>
-        <div className="overflow-x-auto">
+        <div ref={scrollRef} className="overflow-auto max-h-[min(70vh,680px)]">
           <table className={compactTable}>
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className={`border-b ${theme.border} bg-gradient-to-r ${theme.header}`}>
                 <th className={`${compactTh} w-8`}>
                   <button type="button" onClick={toggleAll} className="text-amber-600 hover:text-amber-500">
@@ -179,41 +213,65 @@ export default function LeadAssignmentPage() {
                 <tr><td colSpan={9} className="p-12 text-center text-content-muted">Loading…</td></tr>
               ) : leads.length === 0 ? (
                 <tr><td colSpan={9} className="p-12 text-center text-content-muted">No unassigned leads</td></tr>
-              ) : leads.map((lead, i) => (
-                <tr
-                  key={lead._id}
-                  className={`group border-b border-subtle/60 last:border-0 hover:bg-gradient-to-r hover:from-amber-500/[0.06] hover:to-orange-500/[0.04] ${selected.includes(lead._id) ? 'bg-amber-500/[0.08]' : lead.isHot ? 'bg-rose-500/[0.04]' : i % 2 === 0 ? 'bg-surface/40' : ''}`}
-                >
-                  <td className={compactTd}>
-                    <button type="button" onClick={() => toggle(lead._id)} className="text-content-muted hover:text-amber-600">
-                      {selected.includes(lead._id) ? <CheckSquare className="w-3.5 h-3.5 text-amber-600" /> : <Square className="w-3.5 h-3.5" />}
-                    </button>
-                  </td>
-                  <td className={compactTd}><LeadIdPill id={lead.leadId} /></td>
-                  <td className={compactTd}><div className="flex items-center gap-1 min-w-0 flex-wrap"><CustomerCell name={lead.name} lead={lead} /><PriorityBadge lead={lead} /></div></td>
-                  <td className={compactTd}><DestinationChip name={lead.destination} /></td>
-                  <td className={compactTd}><BudgetBadge amount={lead.budget} /></td>
-                  <td className={compactTd}><SourceBadge source={lead.source} label={lead.sourceLabel} /></td>
-                  <td className={compactTd}><PriorityBadge lead={lead} /></td>
-                  <td className={compactTd}><ManagerStatusBadge status={lead.status} /></td>
-                  <td className={compactTd}>
-                    <div className="flex items-center gap-1">
-                      <Link
-                        to={`/sales-manager/leads/${lead._id}/view`}
-                        className="inline-flex items-center h-7 px-2 rounded-md border border-subtle text-[11px] font-medium hover:bg-surface-elevated"
+              ) : (
+                <>
+                  {paddingTop > 0 && (
+                    <tr aria-hidden><td colSpan={9} style={{ height: paddingTop, padding: 0, border: 0 }} /></tr>
+                  )}
+                  {virtualRows.map((virtualRow) => {
+                    const lead = leads[virtualRow.index];
+                    const i = virtualRow.index;
+                    return (
+                      <tr
+                        key={lead._id}
+                        className={`group border-b border-subtle/60 last:border-0 hover:bg-gradient-to-r hover:from-amber-500/[0.06] hover:to-orange-500/[0.04] ${selected.includes(lead._id) ? 'bg-amber-500/[0.08]' : lead.isHot ? 'bg-rose-500/[0.04]' : i % 2 === 0 ? 'bg-surface/40' : ''}`}
                       >
-                        <Eye className="w-3 h-3 mr-0.5" /> View
-                      </Link>
-                      <Button size="sm" variant="gradient" onClick={() => openAssign(lead)} className="h-7 px-2 text-[11px]">
-                        <UserPlus className="w-3 h-3 mr-0.5" /> Assign
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                        <td className={compactTd}>
+                          <button type="button" onClick={() => toggle(lead._id)} className="text-content-muted hover:text-amber-600">
+                            {selected.includes(lead._id) ? <CheckSquare className="w-3.5 h-3.5 text-amber-600" /> : <Square className="w-3.5 h-3.5" />}
+                          </button>
+                        </td>
+                        <td className={compactTd}><LeadIdPill id={lead.leadId} /></td>
+                        <td className={compactTd}><div className="flex items-center gap-1 min-w-0 flex-wrap"><CustomerCell name={lead.name} lead={lead} /><PriorityBadge lead={lead} /></div></td>
+                        <td className={compactTd}><DestinationChip name={lead.destination} /></td>
+                        <td className={compactTd}><BudgetBadge amount={lead.budget} /></td>
+                        <td className={compactTd}><SourceBadge source={lead.source} label={lead.sourceLabel} /></td>
+                        <td className={compactTd}><PriorityBadge lead={lead} /></td>
+                        <td className={compactTd}><ManagerStatusBadge status={lead.status} /></td>
+                        <td className={compactTd}>
+                          <div className="flex items-center gap-1">
+                            <Link to={`/sales-manager/leads/${lead._id}/view`} className="inline-flex items-center h-7 px-2 rounded-md border border-subtle text-[11px] font-medium hover:bg-surface-elevated">
+                              <Eye className="w-3 h-3 mr-0.5" /> View
+                            </Link>
+                            <Button size="sm" variant="gradient" onClick={() => openAssign(lead)} className="h-7 px-2 text-[11px]">
+                              <UserPlus className="w-3 h-3 mr-0.5" /> Assign
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {paddingBottom > 0 && (
+                    <tr aria-hidden><td colSpan={9} style={{ height: paddingBottom, padding: 0, border: 0 }} /></tr>
+                  )}
+                </>
+              )}
             </tbody>
           </table>
         </div>
+        {!loading && leads.length > 0 && (
+          <TablePagination
+            pageIndex={pagination.pageIndex}
+            pageSize={pagination.pageSize}
+            pageCount={pageCount}
+            total={total}
+            onPageChange={(pageIndex) => setPagination((p) => ({ ...p, pageIndex }))}
+            onPageSizeChange={(pageSize) => setPagination({ pageIndex: 0, pageSize })}
+            totalLabel="leads"
+            showPageNumbers
+            className="border-t border-subtle bg-surface/50"
+          />
+        )}
       </div>
 
       {(assignMode === 'quick' || !teams.length) && (

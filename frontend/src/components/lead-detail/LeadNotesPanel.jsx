@@ -1,7 +1,7 @@
 import { Send } from 'lucide-react';
 import { DETAIL_CARD } from './leadDetailUtils';
 
-export default function LeadNotesPanel({ notes = [], legacyNote = '' }) {
+export default function LeadNotesPanel({ notes = [], legacyNote = '', loading = false }) {
   const items = notes.length ? notes : legacyNote ? [{ message: legacyNote, user: 'Team', date: null }] : [];
 
   return (
@@ -10,7 +10,9 @@ export default function LeadNotesPanel({ notes = [], legacyNote = '' }) {
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lead Notes</h3>
       </div>
       <div className="p-4 space-y-3">
-        {items.length ? items.slice(0, 3).map((n) => (
+        {loading ? (
+          <p className="text-sm text-slate-400 text-center py-2">Loading notes…</p>
+        ) : items.length ? items.slice(0, 3).map((n) => (
           <div key={n.id || n.message} className="rounded-xl border border-amber-100 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-900/30 p-3">
             <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{n.message}</p>
             {n.user && (

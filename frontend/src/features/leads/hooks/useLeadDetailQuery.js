@@ -8,7 +8,6 @@ export function useLeadQuery(leadId, { enabled = true } = {}) {
     queryKey: ['lead', leadId],
     queryFn: async () => {
       const { data } = await API.get(`/leads/${leadId}`, {
-        params: { followupsLimit: 20 },
         skipSuccessToast: true,
       });
       return data;

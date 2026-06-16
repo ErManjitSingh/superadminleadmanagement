@@ -4,6 +4,9 @@ const {
   listLeads,
   listLostLeads,
   getLead,
+  getLeadFollowups,
+  getLeadQuotations,
+  getLeadNotesList,
   createLead,
   seedDemoLeads,
   clearAllLeads,
@@ -57,6 +60,9 @@ router.get('/audit-log', listAuditLog);
 router.post('/bulk-status', requirePermission('leads', 'edit'), bulkUpdateStatus);
 router.post('/bulk-export', requirePermission('leads', 'view'), bulkExportLeads);
 router.post('/merge', authorize('admin', 'sales_manager'), mergeDuplicateLeads);
+router.get('/:id/followups', getLeadFollowups);
+router.get('/:id/quotations', getLeadQuotations);
+router.get('/:id/notes-list', getLeadNotesList);
 router.get('/:id/timeline', getTimeline);
 router.get('/:id/transfer-history', getTransferHistory);
 router.get('/:id/audit', getAudit);
