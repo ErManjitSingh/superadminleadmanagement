@@ -31,7 +31,10 @@ function exec(conn, cmd) {
 }
 
 const script = `set -e
-cd ${APP_ROOT}/backend
+cd ${APP_ROOT}
+git fetch origin main
+git reset --hard origin/main
+cd backend
 echo "==> Seeding ${COUNT} load-test leads..."
 npm run seed:load-test-leads -- --clear --count=${COUNT}
 echo "SEED_LOAD_TEST_OK"
