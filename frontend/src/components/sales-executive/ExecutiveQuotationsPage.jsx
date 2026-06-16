@@ -4,8 +4,15 @@ import { motion } from 'framer-motion';
 import { Send, FileText, CheckCircle2 } from 'lucide-react';
 import API from '../../api/axios';
 import { unwrapList } from '../../utils/apiHelpers';
-import PageHeader from '../ui/PageHeader';
+import ExecutivePageShell from './ExecutivePageShell';
 import { Button } from '../ui/button';
+import {
+  executiveCard,
+  executiveCardHover,
+  executiveTabActive,
+  executiveTabInactive,
+  executiveLink,
+} from './executivePageStyles';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
@@ -91,12 +98,17 @@ export default function ExecutiveQuotationsPage() {
   const hasActiveFilters = countQuotationActiveFilters(appliedFilters) > 0;
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Quotations"
-        description="Your quotes — submitted to Team Leader for approval before sending to customers"
-        breadcrumbs={['Sales Executive', 'Quotations']}
-      />
+    <ExecutivePageShell
+      title="Quotations"
+      description="Your quotes — submitted to Team Leader for approval before sending to customers"
+      action={(
+        <Link to="/sales-executive/quotations/new">
+          <Button size="sm" className="rounded-xl bg-violet-600 hover:bg-violet-700">
+            <FileText className="w-3.5 h-3.5 mr-1" /> Create Quotation
+          </Button>
+        </Link>
+      )}
+    >
 
       {flash && (
         <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-800 flex items-center gap-2">
@@ -116,19 +128,12 @@ export default function ExecutiveQuotationsPage() {
             onClick={() => setStatusTab(s)}
             className={cn(
               'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
-              statusTab === s
-                ? 'bg-sky-500/15 text-sky-700 ring-1 ring-sky-400/30'
-                : 'text-content-muted hover:text-content-primary hover:bg-surface-elevated'
+              statusTab === s ? executiveTabActive : executiveTabInactive
             )}
           >
             {STATUS_LABELS[s] || s}
           </button>
         ))}
-        <Link to="/sales-executive/quotations/new">
-          <Button size="sm" className="ml-auto">
-            <FileText className="w-3.5 h-3.5 mr-1" /> Create Quotation
-          </Button>
-        </Link>
       </div>
 
       <QuotationFiltersPanel
@@ -144,11 +149,11 @@ export default function ExecutiveQuotationsPage() {
         segmentLabel={STATUS_LABELS[statusTab]}
       />
 
-      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
+      <div className={`${executiveCard} overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-subtle bg-surface-elevated/50">
+              <tr className="border-b border-subtle bg-violet-50/50 dark:bg-violet-950/20">
                 {['Quote #', 'Customer', 'Destination', 'Amount', 'Status', 'Created by', 'Actions'].map((h) => (
                   <th
                     key={h}
@@ -176,10 +181,10 @@ export default function ExecutiveQuotationsPage() {
                 quotes.map((q) => (
                   <tr
                     key={q._id}
-                    className="hover:bg-sky-500/[0.03] cursor-pointer"
+                    className={`${executiveCardHover} cursor-pointer`}
                     onClick={() => setSelected(q)}
                   >
-                    <td className="px-4 py-3.5 font-mono text-xs font-medium text-sky-600">{q.quoteNumber}</td>
+                    <td className={`px-4 py-3.5 font-mono text-xs font-medium ${executiveLink}`}>{q.quoteNumber}</td>
                     <td className="px-4 py-3.5 font-medium text-content-primary">{q.lead?.name}</td>
                     <td className="px-4 py-3.5 text-content-secondary">{q.lead?.destination}</td>
                     <td className="px-4 py-3.5 font-semibold tabular-nums">{formatCurrency(q.pricing?.total)}</td>
@@ -243,6 +248,6 @@ export default function ExecutiveQuotationsPage() {
         onClose={() => setShowPdf(false)}
         pdfRef={pdfRef}
       />
-    </div>
+    </ExecutivePageShell>
   );
 }

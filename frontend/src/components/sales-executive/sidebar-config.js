@@ -12,7 +12,6 @@ import {
   FileText,
   UserCircle,
   Calendar,
-  User,
   RefreshCw,
   Mail,
 } from 'lucide-react';
@@ -39,6 +38,4 @@ export const salesExecutiveNavItems = [
   { path: '/sales-executive/quotations', label: 'Quotations', icon: FileText, countKey: 'quotations.total' },
   { path: '/sales-executive/customers', label: 'Customers', icon: UserCircle, countKey: 'customers' },
   { path: '/sales-executive/calendar', label: 'Calendar', icon: Calendar },
-  { path: '/sales-executive/notifications', label: 'Notifications', icon: Bell, badgeKey: 'notifications.unread' },
-  { path: '/sales-executive/profile', label: 'Profile', icon: User },
 ];

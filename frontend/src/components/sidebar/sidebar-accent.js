@@ -29,6 +29,7 @@ export const SIDEBAR_ACCENTS = {
   },
   violet: {
     ...DARK_NAVY,
+    itemActive: 'bg-violet-600 text-white shadow-md shadow-violet-500/30',
     headerBg: 'from-transparent to-transparent',
     headerBorder: 'border-white/10',
     titleGradient: 'text-white',

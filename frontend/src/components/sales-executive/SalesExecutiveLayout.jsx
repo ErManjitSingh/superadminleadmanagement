@@ -6,7 +6,12 @@ import AppSidebar from '../sidebar/AppSidebar';
 import TopBar from '../TopBar';
 import MissedFollowUpAlert from '../notifications/MissedFollowUpAlert';
 import SalesExecutiveMobileNav from './SalesExecutiveMobileNav';
+import { FileText } from 'lucide-react';
 import { salesExecutiveNavItems } from './sidebar-config';
+
+const salesExecutiveQuickActions = [
+  { path: '/sales-executive/quotations/new', label: 'Create Quotation', icon: FileText },
+];
 
 function SalesExecutiveShell() {
   const { user } = useAuth();
@@ -21,9 +26,9 @@ function SalesExecutiveShell() {
   };
 
   return (
-    <div className="flex h-dvh max-h-dvh overflow-hidden bg-surface-app">
+    <div className="flex h-dvh max-h-dvh overflow-hidden bg-[#F8F9FB] dark:bg-surface-app">
       <div className="hidden lg:block shrink-0">
-        <AppSidebar {...sidebarProps} className="h-dvh border-r-sky-500/10" />
+        <AppSidebar {...sidebarProps} className="h-dvh border-r-violet-500/10" />
       </div>
 
       <AnimatePresence>

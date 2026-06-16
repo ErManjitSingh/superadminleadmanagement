@@ -4,10 +4,11 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import API from '../../api/axios';
-import PageHeader from '../ui/PageHeader';
+import ExecutivePageShell from './ExecutivePageShell';
+import { executiveCard } from './executivePageStyles';
 
 const TYPE_COLORS = {
-  followup: '#0EA5E9',
+  followup: '#7C3AED',
   travel: '#10B981',
   meeting: '#8B5CF6',
 };
@@ -29,10 +30,11 @@ export default function ExecutiveCalendarPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Calendar" description="Follow-ups, travel dates, and meetings" breadcrumbs={['Sales Executive', 'Calendar']} />
-
-      <div className="flex flex-wrap gap-3 mb-2">
+    <ExecutivePageShell
+      title="Calendar"
+      description="Follow-ups, travel dates, and meetings"
+    >
+      <div className="flex flex-wrap gap-3">
         {Object.entries(TYPE_COLORS).map(([type, color]) => (
           <span key={type} className="inline-flex items-center gap-1.5 text-xs font-medium text-content-secondary">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
@@ -41,7 +43,7 @@ export default function ExecutiveCalendarPage() {
         ))}
       </div>
 
-      <div className="rounded-2xl border border-subtle bg-surface p-4 sm:p-6 followup-calendar shadow-sm">
+      <div className={`${executiveCard} p-4 sm:p-6 followup-calendar`}>
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
@@ -55,6 +57,6 @@ export default function ExecutiveCalendarPage() {
           )}
         />
       </div>
-    </div>
+    </ExecutivePageShell>
   );
 }

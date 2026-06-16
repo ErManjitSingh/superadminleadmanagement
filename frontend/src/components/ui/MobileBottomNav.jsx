@@ -9,6 +9,10 @@ const ACCENT_STYLES = {
     active: 'text-sky-600',
     primary: 'from-sky-600 to-sky-700 shadow-sky-600/40',
   },
+  violet: {
+    active: 'text-violet-600',
+    primary: 'from-violet-600 to-purple-700 shadow-violet-600/40',
+  },
 };
 
 export default function MobileBottomNav({ tabs, isActive, accent = 'brand' }) {

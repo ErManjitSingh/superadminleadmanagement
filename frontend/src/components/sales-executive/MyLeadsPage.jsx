@@ -14,8 +14,15 @@ import { isLeadStatusLocked } from '../../utils/leadUtils';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useRoleLeadsQuery } from '../../hooks/useRoleLeadsQuery';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
-import PageHeader from '../ui/PageHeader';
+import ExecutivePageShell from './ExecutivePageShell';
 import { Button } from '../ui/button';
+import {
+  executiveCard,
+  executiveCardHover,
+  executiveInput,
+  executiveBanner,
+  executiveIconAccent,
+} from './executivePageStyles';
 import PriorityBadge from '../sales-manager/PriorityBadge';
 import {
   LeadIdPill,
@@ -196,17 +203,15 @@ export default function MyLeadsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <PageHeader title={meta.title} description={meta.desc} breadcrumbs={['Sales Executive', 'My Leads', meta.title]} />
-
+    <ExecutivePageShell title={meta.title} description={meta.desc} showDate={false}>
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`relative overflow-hidden rounded-2xl border ${theme.border} bg-gradient-to-r ${theme.gradient} p-5 backdrop-blur-xl`}
+        className={`${executiveBanner} backdrop-blur-xl`}
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-2xl bg-surface/80 shadow-sm ${theme.icon}`}>
+            <div className={`p-3 rounded-2xl bg-white/80 dark:bg-slate-900/60 shadow-sm ${theme.icon}`}>
               <Icon className="w-6 h-6" />
             </div>
             <div>
@@ -219,7 +224,7 @@ export default function MyLeadsPage() {
               Auto-highlighted: budget &gt; ₹50K · travel within 30 days · repeat customers
             </div>
           )}
-          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-500/10 px-3 py-1.5 rounded-full ring-1 ring-emerald-500/20">
+          <div className="flex items-center gap-2 text-sm font-semibold text-violet-600 bg-violet-500/10 px-3 py-1.5 rounded-full ring-1 ring-violet-500/20">
             <TrendingUp className="w-4 h-4" /> Your pipeline
           </div>
         </div>
@@ -227,12 +232,12 @@ export default function MyLeadsPage() {
 
       <div className={`flex flex-col gap-3 ${isAllView ? '' : 'max-w-md'}`}>
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-500" />
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${executiveIconAccent}`} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, destination, phone…"
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+            className={`w-full pl-10 pr-4 py-2.5 ${executiveInput}`}
           />
         </div>
         {isAllView && (
@@ -240,7 +245,7 @@ export default function MyLeadsPage() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-10 px-3 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+              className={`h-10 px-3 ${executiveInput}`}
             >
               <option value="">All statuses</option>
               {LEAD_STATUSES.map((s) => (
@@ -250,7 +255,7 @@ export default function MyLeadsPage() {
             <select
               value={destinationFilter}
               onChange={(e) => setDestinationFilter(e.target.value)}
-              className="h-10 px-3 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+              className={`h-10 px-3 ${executiveInput}`}
             >
               <option value="">All destinations</option>
               {DESTINATIONS.map((d) => (
@@ -260,7 +265,7 @@ export default function MyLeadsPage() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="h-10 px-3 rounded-xl border border-subtle bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+              className={`h-10 px-3 ${executiveInput}`}
             >
               {PRIORITY_OPTIONS.map((p) => (
                 <option key={p.value || 'all'} value={p.value}>{p.label}</option>
@@ -284,12 +289,12 @@ export default function MyLeadsPage() {
         )}
       </div>
 
-      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl overflow-hidden">
+      <div className={`${executiveCard} overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className={compactTable}>
             <thead>
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="border-b border-subtle bg-surface-elevated/50">
+                <tr key={hg.id} className="border-b border-subtle bg-violet-50/50 dark:bg-violet-950/20">
                   {hg.headers.map((h) => (
                     <th key={h.id} className="text-left px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-content-muted whitespace-nowrap">
                       {flexRender(h.column.columnDef.header, h.getContext())}
@@ -306,7 +311,7 @@ export default function MyLeadsPage() {
               ) : table.getRowModel().rows.map((row) => (
                 <tr
                   key={row.id}
-                  className="hover:bg-sky-500/[0.03]"
+                  className={executiveCardHover}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className={compactTd}>
@@ -338,7 +343,7 @@ export default function MyLeadsPage() {
           onChange={(e) => setModalStatusReason(e.target.value)}
           rows={3}
           placeholder="Reason for status change"
-          className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-sky-500/30"
+          className="w-full rounded-xl border border-subtle bg-white dark:bg-slate-900 p-3 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-violet-500/30"
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => { setModal(null); setModalStatusReason(''); }}>Cancel</Button>
@@ -357,6 +362,6 @@ export default function MyLeadsPage() {
           fetchLeads();
         }}
       />
-    </div>
+    </ExecutivePageShell>
   );
 }

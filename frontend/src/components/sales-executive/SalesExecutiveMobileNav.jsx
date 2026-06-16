@@ -21,5 +21,5 @@ export default function SalesExecutiveMobileNav() {
     return pathname.startsWith(path);
   };
 
-  return <MobileBottomNav tabs={tabs} isActive={isActive} accent="sky" />;
+  return <MobileBottomNav tabs={tabs} isActive={isActive} accent="violet" />;
 }

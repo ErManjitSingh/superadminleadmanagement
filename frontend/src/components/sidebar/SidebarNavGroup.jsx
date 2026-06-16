@@ -8,8 +8,11 @@ import SidebarNavItem from './SidebarNavItem';
 import { isNavItemActive } from './sidebar-utils';
 import { cn } from '../../lib/utils';
 
+import { useSidebarTheme } from './SidebarThemeContext';
+
 export default function SidebarNavGroup({ group, defaultOpen = false }) {
   const { collapsed } = useSidebar();
+  const { accent } = useSidebarTheme();
   const location = useLocation();
   const Icon = group.icon;
 
@@ -38,7 +41,7 @@ export default function SidebarNavGroup({ group, defaultOpen = false }) {
               className={cn(
                 'w-full flex items-center justify-center py-2.5 rounded-xl transition-colors relative',
                 isChildActive
-                  ? 'bg-blue-500 text-white'
+                  ? cn(accent.itemActive)
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.06]'
               )}
             >

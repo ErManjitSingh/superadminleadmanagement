@@ -56,6 +56,6 @@ export function getTopBarAccent(pathname) {
   if (pathname.startsWith('/operations-manager')) return TOPBAR_ACCENTS.teal;
   if (pathname.startsWith('/sales-manager')) return TOPBAR_ACCENTS.violet;
   if (pathname.startsWith('/team-leader')) return TOPBAR_ACCENTS.amber;
-  if (pathname.startsWith('/sales-executive')) return TOPBAR_ACCENTS.sky;
+  if (pathname.startsWith('/sales-executive')) return TOPBAR_ACCENTS.violet;
   return TOPBAR_ACCENTS.brand;
 }

@@ -19,6 +19,31 @@ const { withBranch } = require('../utils/branchScope');
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DASHBOARD_NEW_LEADS_LIMIT = 5;
 
+const SOURCE_LABELS = {
+  website: 'Website',
+  whatsapp: 'WhatsApp',
+  referral: 'Referral',
+  'walk-in': 'Walk-in',
+  social: 'Social',
+  phone: 'Phone',
+  other: 'Other',
+  google_ads: 'Google Ads',
+  facebook_ads: 'Facebook Ads',
+  organic: 'Organic',
+};
+
+const SOURCE_COLORS = ['#3B82F6', '#22C55E', '#8B5CF6', '#F59E0B', '#64748B', '#EC4899', '#06B6D4'];
+
+function pctChange(current, previous) {
+  if (!previous) return current > 0 ? 100 : 0;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function formatSourceName(source) {
+  if (!source) return 'Other';
+  return SOURCE_LABELS[source] || String(source).replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 async function buildReactivationWidget(branchId, assigneeIds = null) {
   const base = withBranch({ 'reactivation.isReactivated': true }, branchId);
   if (Array.isArray(assigneeIds)) {
@@ -270,6 +295,11 @@ async function buildExecutiveDashboard(userId, options = {}) {
   const todayStart = startOfDay();
   const todayEnd = endOfDay();
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const lastMonthStart = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+  const lastMonthEnd = new Date(monthStart.getTime() - 1);
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const yesterdayEnd = new Date(todayStart.getTime() - 1);
 
   const leadScope = withBranch({ assignedTo: execId }, branchId);
   const leadIds = await Lead.find(leadScope).distinct('_id');
@@ -287,6 +317,13 @@ async function buildExecutiveDashboard(userId, options = {}) {
     myFollowups,
     statusAgg,
     emailStats,
+    sourceAgg,
+    lastMonthLeads,
+    yesterdayFollowups,
+    yesterdayHotLeads,
+    lastMonthQuotes,
+    lastMonthConverted,
+    lastMonthRevenueAgg,
   ] = await Promise.all([
     Lead.countDocuments({ ...leadScope, status: { $nin: ['lost', 'booked_from_another_company'] } }),
     Lead.countDocuments({ ...leadScope, isHot: true, status: { $nin: ['converted', 'lost', 'booked_from_another_company'] } }),
@@ -317,14 +354,66 @@ async function buildExecutiveDashboard(userId, options = {}) {
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
     getEmailDashboardStats({ branchId, userId: execId }),
+    Lead.aggregate([{ $match: leadScope }, { $group: { _id: '$source', count: { $sum: 1 } } }]),
+    Lead.countDocuments({
+      ...leadScope,
+      status: { $nin: ['lost', 'booked_from_another_company'] },
+      createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+    }),
+    FollowUp.countDocuments({
+      ...followScope,
+      scheduledAt: { $gte: yesterdayStart, $lte: yesterdayEnd },
+      status: 'pending',
+    }),
+    Lead.countDocuments({
+      ...leadScope,
+      isHot: true,
+      status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
+      updatedAt: { $gte: yesterdayStart, $lte: yesterdayEnd },
+    }),
+    Quotation.countDocuments({
+      ...quoteScope,
+      status: { $in: ['sent', 'negotiation', 'approved', 'viewed', 'pending_approval'] },
+      createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+    }),
+    Lead.countDocuments({
+      ...leadScope,
+      status: 'converted',
+      updatedAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+    }),
+    Payment.aggregate([
+      { $match: withBranch({ status: { $in: ['paid', 'partial'] }, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } }, branchId) },
+      { $group: { _id: null, total: { $sum: '$paidAmount' } } },
+    ]),
   ]);
 
   const statusCounts = Object.fromEntries(statusAgg.map((s) => [s._id, s.count]));
   const enrichedRecent = recentLeadsRaw.map(enrichLead);
   const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
+  const lastMonthRevenue = lastMonthRevenueAgg[0]?.total || 0;
   const totalAssigned = Object.values(statusCounts).reduce((s, n) => s + n, 0);
   const monthlyTarget = await getMonthlyTarget(execId);
   const targetStats = buildTargetProgress(monthlyRevenue, monthlyTarget);
+
+  const pipelineOverview = [
+    { name: 'New Leads', value: statusCounts.new || 0, color: '#3B82F6' },
+    { name: 'Contacted', value: statusCounts.contacted || 0, color: '#8B5CF6' },
+    {
+      name: 'Follow-up',
+      value: (statusCounts.follow_up || 0) + (statusCounts.negotiation || 0),
+      color: '#F59E0B',
+    },
+    { name: 'Hot Leads', value: hotLeads, color: '#F97316' },
+    { name: 'Converted', value: convertedCount, color: '#10B981' },
+  ].filter((item) => item.value > 0);
+
+  const leadSources = sourceAgg
+    .map((s, i) => ({
+      name: formatSourceName(s._id),
+      value: s.count,
+      color: SOURCE_COLORS[i % SOURCE_COLORS.length],
+    }))
+    .sort((a, b) => b.value - a.value);
 
   return {
     emailStats,
@@ -336,6 +425,16 @@ async function buildExecutiveDashboard(userId, options = {}) {
       convertedLeads: convertedCount,
       monthlyRevenue,
     },
+    kpiTrends: {
+      myLeads: { change: pctChange(myLeads, lastMonthLeads), period: 'from last month' },
+      todayFollowups: { change: pctChange(todayFollowups.length, yesterdayFollowups), period: 'from yesterday' },
+      hotLeads: { change: pctChange(hotLeads, yesterdayHotLeads), period: 'from yesterday' },
+      quotationsSent: { change: pctChange(quotesSentCount, lastMonthQuotes), period: 'from last month' },
+      convertedLeads: { change: pctChange(convertedCount, lastMonthConverted), period: 'from last month' },
+      monthlyRevenue: { change: pctChange(monthlyRevenue, lastMonthRevenue), period: 'from last month' },
+    },
+    pipelineOverview,
+    leadSources,
     todayTasks: todayFollowups.slice(0, 5).map((f) => ({
       _id: f._id,
       title: `Follow up with ${f.lead?.name}`,

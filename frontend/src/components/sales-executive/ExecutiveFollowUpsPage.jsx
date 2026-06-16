@@ -4,8 +4,9 @@ import { Plus, CalendarClock, AlertTriangle, Clock, CheckCircle2, RefreshCw } fr
 import API from '../../api/axios';
 import { unwrapList } from '../../utils/apiHelpers';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
-import PageHeader from '../ui/PageHeader';
+import ExecutivePageShell from './ExecutivePageShell';
 import { Button } from '../ui/button';
+import { executiveCard, executiveCardHover, executiveInput } from './executivePageStyles';
 import FollowUpPriorityBadge from '../followups/FollowUpPriorityBadge';
 import FollowUpCategoryBadge from '../followups/FollowUpCategoryBadge';
 import FollowUpCategoryTabs from '../followups/FollowUpCategoryTabs';
@@ -78,35 +79,33 @@ export default function ExecutiveFollowUpsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <PageHeader
-          title="Follow-ups"
-          description="Add and manage warm, cold, converted & expected conversion follow-ups"
-          breadcrumbs={['Sales Executive', 'Follow-ups']}
-        />
+    <ExecutivePageShell
+      title="Follow-ups"
+      description="Add and manage warm, cold, converted & expected conversion follow-ups"
+      action={(
         <Button variant="violet" className="rounded-xl shrink-0" onClick={() => setAddOpen(true)}>
           <Plus className="w-4 h-4 mr-1" /> Add Follow-up
         </Button>
-      </div>
+      )}
+    >
 
       <FollowUpCategoryTabs value={category} onChange={setCategory} layoutId="exec-fu-cat" />
 
-      <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-surface-elevated/50 border border-subtle w-fit">
+      <div className="flex flex-wrap gap-2 p-1 rounded-xl bg-white dark:bg-slate-900 border border-subtle shadow-sm w-fit">
         {TIME_TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === id ? 'text-sky-600' : 'text-content-muted hover:text-content-primary'}`}
+            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${tab === id ? 'text-violet-600' : 'text-content-muted hover:text-content-primary'}`}
           >
-            {tab === id && <motion.div layoutId="exec-fu-tab" className="absolute inset-0 bg-surface rounded-lg shadow-sm border border-subtle" />}
+            {tab === id && <motion.div layoutId="exec-fu-tab" className="absolute inset-0 bg-violet-50 dark:bg-violet-950/40 rounded-lg shadow-sm border border-violet-200/50 dark:border-violet-800/30" />}
             <span className="relative flex items-center gap-2"><Icon className="w-4 h-4" /> {label}</span>
           </button>
         ))}
       </div>
 
-      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl divide-y divide-subtle">
+      <div className={`${executiveCard} divide-y divide-subtle`}>
         {loading ? (
           <div className="p-12 text-center text-content-muted">Loading…</div>
         ) : followups.length === 0 ? (
@@ -115,7 +114,7 @@ export default function ExecutiveFollowUpsPage() {
           const f = enrichFollowUp(raw);
           const lead = f.lead || {};
           return (
-            <div key={f._id} className="p-5 flex flex-col lg:flex-row lg:items-center gap-4 hover:bg-sky-500/[0.02]">
+            <div key={f._id} className={`p-5 flex flex-col lg:flex-row lg:items-center gap-4 ${executiveCardHover}`}>
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <p className="font-semibold text-content-primary">{lead.name}</p>
@@ -154,7 +153,7 @@ export default function ExecutiveFollowUpsPage() {
             type="datetime-local"
             value={rescheduleAt}
             onChange={(e) => setRescheduleAt(e.target.value)}
-            className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-3"
+            className={`w-full ${executiveInput} p-3 mb-3`}
           />
         )}
         <textarea
@@ -162,7 +161,7 @@ export default function ExecutiveFollowUpsPage() {
           onChange={(e) => setRemarks(e.target.value)}
           rows={3}
           placeholder="Remarks…"
-          className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4"
+          className={`w-full ${executiveInput} p-3 mb-4`}
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setModal(null)}>Cancel</Button>
@@ -171,6 +170,6 @@ export default function ExecutiveFollowUpsPage() {
           </Button>
         </div>
       </ActionModal>
-    </div>
+    </ExecutivePageShell>
   );
 }
