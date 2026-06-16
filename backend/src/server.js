@@ -18,8 +18,8 @@ const { archiveOldTrips } = require('./services/operationsArchiveService');
 
 const app = express();
 
-// Behind Nginx — required for rate-limit + correct client IP
-app.set('trust proxy', 1);
+// Behind Nginx — trust first proxy hop for correct per-client rate limits
+app.set('trust proxy', true);
 
 applySecurityMiddleware(app);
 
