@@ -1,4 +1,5 @@
 export { default as LeadPageHeader } from './LeadPageHeader';
+export { default as LeadKpiStrip } from './LeadKpiStrip';
 export { default as LeadFilterBar } from './LeadFilterBar';
 export { default as LeadBulkActionsBar } from './LeadBulkActionsBar';
 export { default as LeadDataTable } from './LeadDataTable';

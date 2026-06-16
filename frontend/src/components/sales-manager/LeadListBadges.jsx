@@ -1,4 +1,4 @@
-import { MapPin, User, Sparkles, Users } from 'lucide-react';
+import { MapPin, User, Users, MessageCircle, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getLeadSourceShortLabel } from '../../lib/leadSourceLabels';
 import Avatar from '../ui/Avatar';
@@ -34,8 +34,7 @@ function destStyle(name = '') {
 
 export function LeadIdPill({ id }) {
   return (
-    <span className="inline-flex items-center gap-0.5 font-mono text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-gradient-to-r from-brand-500/15 to-indigo-500/15 text-brand-700 dark:text-brand-300 ring-1 ring-brand-400/30">
-      <Sparkles className="w-3 h-3 text-brand-500" />
+    <span className="text-sm font-semibold text-blue-600 whitespace-nowrap">
       {id}
     </span>
   );
@@ -44,21 +43,21 @@ export function LeadIdPill({ id }) {
 export function SourceBadge({ source, label, sourceShort }) {
   const display = sourceShort || label || getLeadSourceShortLabel(source, label);
   const styleKey = (source || display || '').toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
-  const style =
-    SOURCE_STYLES[styleKey] ||
-    (display === 'FB Lead' ? SOURCE_STYLES['fb-lead'] : null) ||
-    (display === 'WA' ? SOURCE_STYLES.wa : null) ||
-    SOURCE_STYLES.website;
+  const isWa = styleKey.includes('whatsapp') || display === 'WA';
   return (
-    <span className={cn('inline-flex px-1.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ring-1 ring-inset whitespace-nowrap', style)}>
+    <span className={cn(
+      'text-sm font-medium whitespace-nowrap',
+      isWa ? 'text-green-600' : 'text-content-secondary'
+    )}>
       {display}
     </span>
   );
 }
 
 export function DestinationChip({ name }) {
+  if (!name) return <span className="text-sm text-content-muted">—</span>;
   return (
-    <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-normal ring-1 ring-inset bg-gradient-to-r max-w-[120px] truncate', destStyle(name))}>
+    <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-inset bg-gradient-to-r max-w-[130px] truncate', destStyle(name))}>
       <MapPin className="w-3 h-3 shrink-0 opacity-70" />
       {name}
     </span>
@@ -68,26 +67,22 @@ export function DestinationChip({ name }) {
 export function TravelersBadge({ travelers, adults, children }) {
   const count = travelers ?? adults ?? null;
   if (count == null || count === '') {
-    return <span className="text-xs text-content-muted">—</span>;
+    return <span className="text-sm text-content-muted">—</span>;
   }
-  const detail = children > 0 ? `${count} (${children} child${children > 1 ? 'ren' : ''})` : String(count);
+  const childCount = children ?? 0;
+  const detail = childCount > 0 ? `${count} (${childCount} child${childCount > 1 ? 'ren' : ''})` : String(count);
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-indigo-500/10 text-indigo-700 ring-1 ring-indigo-400/25 whitespace-nowrap">
-      <Users className="w-3 h-3 shrink-0" />
+    <span className="inline-flex items-center gap-1.5 text-sm text-content-secondary whitespace-nowrap">
+      <Users className="w-3.5 h-3.5 text-content-muted shrink-0" />
       {detail}
     </span>
   );
 }
 
 export function BudgetBadge({ amount }) {
-  const tier =
-    amount >= 300000 ? 'bg-gradient-to-r from-rose-500/20 via-amber-500/15 to-orange-500/20 text-rose-700 ring-amber-400/40' :
-    amount >= 150000 ? 'bg-gradient-to-r from-violet-500/20 to-purple-500/15 text-violet-700 ring-violet-400/40' :
-    amount >= 75000 ? 'bg-gradient-to-r from-emerald-500/20 to-teal-500/15 text-emerald-700 ring-emerald-400/40' :
-    'bg-gradient-to-r from-sky-500/15 to-blue-500/10 text-sky-700 ring-sky-400/30';
-
+  if (!amount) return <span className="text-sm text-content-muted">—</span>;
   return (
-    <span className={cn('inline-flex px-1.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums ring-1 ring-inset whitespace-nowrap', tier)}>
+    <span className="text-sm font-semibold text-blue-600 tabular-nums whitespace-nowrap">
       {formatBudget(amount)}
     </span>
   );
@@ -96,15 +91,18 @@ export function BudgetBadge({ amount }) {
 export function ExecutiveBadge({ name, unassigned }) {
   if (unassigned || !name) {
     return (
-      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[11px] font-medium bg-gradient-to-r from-amber-500/20 to-orange-500/15 text-amber-700 ring-1 ring-amber-400/40">
-        <User className="w-3 h-3" /> Unassigned
+      <span className="inline-flex items-center gap-1.5 text-sm text-content-muted">
+        <span className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+          <User className="w-3.5 h-3.5" />
+        </span>
+        Unassigned
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 max-w-[130px]">
-      <Avatar name={name} size="sm" className="!w-6 !h-6 !text-[9px] ring-1 ring-violet-500/20 shrink-0" />
-      <span className="text-[11px] font-normal text-content-primary truncate">{name}</span>
+    <span className="inline-flex items-center gap-2 max-w-[150px]">
+      <Avatar name={name} size="sm" className="!w-7 !h-7 !text-[10px] shrink-0" />
+      <span className="text-sm text-content-primary truncate">{name}</span>
     </span>
   );
 }
@@ -134,12 +132,56 @@ export function ManagerStatusBadge({ status, lead }) {
   );
 }
 
-export function CustomerCell({ name }) {
+export function CustomerCell({ name, lead }) {
+  const isReturning = lead?.isRepeatCustomer || lead?.isVip;
   return (
-    <div className="flex items-center gap-2 min-w-0 max-w-[150px]">
-      <Avatar name={name} size="sm" className="!w-7 !h-7 !text-[10px] ring-1 ring-violet-500/25 shrink-0" />
-      <p className="font-semibold text-[13px] text-content-primary truncate">{name}</p>
+    <div className="flex items-center gap-2.5 min-w-0 max-w-[180px]">
+      <Avatar name={name} size="sm" className="!w-8 !h-8 !text-[11px] shrink-0" />
+      <div className="min-w-0">
+        <p className="font-semibold text-sm text-content-primary truncate">{name}</p>
+        <span className={cn('text-[11px] font-medium', isReturning ? 'text-emerald-600' : 'text-blue-600')}>
+          {isReturning ? 'Returning' : 'New'}
+        </span>
+      </div>
     </div>
+  );
+}
+
+export function PhoneCell({ phone }) {
+  if (!phone) return <span className="text-sm text-content-muted">—</span>;
+  const digits = String(phone).replace(/\D/g, '');
+  const waUrl = digits ? `https://wa.me/${digits.length === 10 ? `91${digits}` : digits}` : null;
+  return (
+    <div className="flex items-center gap-2 whitespace-nowrap">
+      <span className="text-sm text-content-secondary">{phone}</span>
+      {waUrl && (
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors"
+          aria-label="Open WhatsApp"
+        >
+          <MessageCircle className="w-3.5 h-3.5" />
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function TravelDateCell({ date }) {
+  if (!date) return <span className="text-sm text-content-muted">—</span>;
+  const formatted = new Date(date).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm text-content-secondary whitespace-nowrap">
+      <Calendar className="w-3.5 h-3.5 text-content-muted shrink-0" />
+      {formatted}
+    </span>
   );
 }
 

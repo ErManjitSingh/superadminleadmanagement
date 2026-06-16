@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, Download, Plus, Sparkles } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
-import { Button } from '../ui/button';
 
 export default function LeadPageHeader({ title, total, onSeedDemo, seedingDemo }) {
   const { can } = usePermissions();
@@ -12,45 +11,55 @@ export default function LeadPageHeader({ title, total, onSeedDemo, seedingDemo }
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6"
+      className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5"
     >
       <div>
-        <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-2xl font-bold text-content-primary tracking-tight">{title}</h1>
+        <div className="flex items-center gap-2.5 mb-1">
+          <h1 className="text-2xl sm:text-[26px] font-bold text-content-primary tracking-tight">{title}</h1>
           {total != null && (
-            <span className="px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-600 text-sm font-bold metric-tabular">
-              {total}
+            <span className="px-2.5 py-0.5 rounded-lg bg-blue-500 text-white text-sm font-bold metric-tabular shadow-sm">
+              {total.toLocaleString('en-IN')}
             </span>
           )}
         </div>
-        <p className="text-sm text-content-muted">Manage, assign, and convert travel leads</p>
+        <p className="text-sm text-content-secondary">
+          Manage, assign, and convert travel leads efficiently.
+        </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" className="rounded-xl gap-2 hidden sm:inline-flex">
-          <Upload className="w-4 h-4" /> Import
-        </Button>
-        <Button variant="outline" size="sm" className="rounded-xl gap-2 hidden sm:inline-flex">
-          <Download className="w-4 h-4" /> Export
-        </Button>
+      <div className="flex flex-wrap items-center gap-2 shrink-0">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-subtle bg-white text-sm font-medium text-content-primary hover:bg-slate-50 transition-colors shadow-sm"
+        >
+          <Upload className="w-4 h-4 text-content-muted" />
+          Import
+        </button>
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-subtle bg-white text-sm font-medium text-content-primary hover:bg-slate-50 transition-colors shadow-sm"
+        >
+          <Download className="w-4 h-4 text-content-muted" />
+          Export
+        </button>
         {onSeedDemo && (
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="sm"
-            className="rounded-xl gap-2 border-amber-400/50 text-amber-700 hover:bg-amber-500/10 dark:text-amber-400"
             onClick={onSeedDemo}
             disabled={seedingDemo}
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-amber-200 bg-amber-50 text-sm font-medium text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-70"
           >
             <Sparkles className="w-4 h-4" />
             {seedingDemo ? 'Adding…' : 'Add 10 Demo Leads'}
-          </Button>
+          </button>
         )}
         {canCreateLead && (
-          <Link to="/leads/new">
-            <Button size="sm" className="rounded-xl gap-2 shadow-md shadow-brand-600/20">
-              <Plus className="w-4 h-4" /> Add Lead
-            </Button>
+          <Link
+            to="/leads/new"
+            className="inline-flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold shadow-md shadow-blue-500/25 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Lead
           </Link>
         )}
       </div>

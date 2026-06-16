@@ -10,6 +10,7 @@ import { useLeadAssign } from '../hooks/useLeadAssign';
 import API from '../api/axios';
 import { toast } from '../context/ToastContext';
 import LeadPageHeader from '../components/leads/LeadPageHeader';
+import LeadKpiStrip from '../components/leads/LeadKpiStrip';
 import LeadFilterBar from '../components/leads/LeadFilterBar';
 import LeadBulkActionsBar from '../components/leads/LeadBulkActionsBar';
 import LeadDataTable from '../components/leads/LeadDataTable';
@@ -54,7 +55,7 @@ export default function Leads() {
   const [bulkStatusOpen, setBulkStatusOpen] = useState(false);
   const [pageCursors, setPageCursors] = useState({});
   const { confirm, dialogNode } = useConfirmDialog();
-  const isNewLeadsPage = location.pathname === '/leads/new-leads';
+  const isAllLeadsPage = location.pathname === '/leads';
   const DEEP_PAGE_INDEX = 9;
 
   const apiFilters = useMemo(() => {
@@ -236,9 +237,11 @@ export default function Leads() {
       <LeadPageHeader
         title={config.title}
         total={totalLeads ?? undefined}
-        onSeedDemo={isAdmin && isNewLeadsPage ? handleSeedDemoLeads : undefined}
+        onSeedDemo={isAdmin && location.pathname === '/leads/new-leads' ? handleSeedDemoLeads : undefined}
         seedingDemo={seedingDemo}
       />
+
+      {isAllLeadsPage && <LeadKpiStrip />}
 
       <LeadFilterBar
         filters={filters}
@@ -258,7 +261,7 @@ export default function Leads() {
       />
 
       {loading ? (
-        <div className="rounded-2xl border border-subtle bg-surface p-16 text-center text-content-muted">
+        <div className="rounded-2xl border border-subtle bg-white p-16 text-center text-content-muted shadow-sm">
           Loading leads...
         </div>
       ) : (

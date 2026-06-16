@@ -8,7 +8,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import LeadStatusBadge from './LeadStatusBadge';
-import LeadTemperatureBadge from './LeadTemperatureBadge';
 import LeadRowActions from './LeadRowActions';
 import { formatLeadId } from './constants';
 import {
@@ -19,26 +18,11 @@ import {
   LeadIdPill,
   CustomerCell,
   ExecutiveBadge,
+  PhoneCell,
+  TravelDateCell,
 } from '../sales-manager/LeadListBadges';
 import TablePagination, { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import { cn } from '../../lib/utils';
-import {
-  compactTable,
-  compactTh,
-  compactTd,
-  stickyRowActionsTh,
-  stickyRowActionsTd,
-} from '../ui/compactTable';
-
-function formatDate(d) {
-  if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-function formatDateTime(d) {
-  if (!d) return '—';
-  return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-}
 
 const defaultMenuActions = {
   view: true,
@@ -47,6 +31,9 @@ const defaultMenuActions = {
   transferBranch: true,
   delete: true,
 };
+
+const leadsTh = 'text-left px-3 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap bg-slate-50 border-b border-subtle';
+const leadsTd = 'px-3 py-3.5 align-middle text-sm border-b border-slate-100';
 
 export default function LeadDataTable({
   leads,
@@ -85,7 +72,7 @@ export default function LeadDataTable({
             type="checkbox"
             checked={table.getIsAllPageRowsSelected()}
             onChange={table.getToggleAllPageRowsSelectedHandler()}
-            className="rounded border-brand-400/40 accent-brand-600"
+            className="rounded border-slate-300 accent-blue-600 w-4 h-4"
           />
         ),
         cell: ({ row }) => (
@@ -94,10 +81,10 @@ export default function LeadDataTable({
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
             onClick={(e) => e.stopPropagation()}
-            className="rounded border-brand-400/40 accent-brand-600"
+            className="rounded border-slate-300 accent-blue-600 w-4 h-4"
           />
         ),
-        size: 40,
+        size: 44,
       },
       {
         accessorKey: 'id',
@@ -107,12 +94,12 @@ export default function LeadDataTable({
       {
         accessorKey: 'name',
         header: 'Customer',
-        cell: ({ row }) => <CustomerCell name={row.original.name} />,
+        cell: ({ row }) => <CustomerCell name={row.original.name} lead={row.original} />,
       },
       {
         accessorKey: 'phone',
         header: 'Phone',
-        cell: ({ getValue }) => <span className="text-sm text-content-secondary whitespace-nowrap">{getValue()}</span>,
+        cell: ({ row }) => <PhoneCell phone={row.original.phone} />,
       },
       {
         accessorKey: 'destination',
@@ -122,11 +109,7 @@ export default function LeadDataTable({
       {
         accessorKey: 'travelDate',
         header: 'Travel Date',
-        cell: ({ getValue }) => (
-          <span className="text-xs px-2 py-1 rounded-lg bg-indigo-500/10 text-indigo-700 ring-1 ring-indigo-400/25 whitespace-nowrap">
-            {formatDate(getValue())}
-          </span>
-        ),
+        cell: ({ getValue }) => <TravelDateCell date={getValue()} />,
       },
       {
         accessorKey: 'budget',
@@ -158,25 +141,8 @@ export default function LeadDataTable({
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ row, getValue }) => (
-          <div className="flex flex-wrap items-center gap-1">
-            <LeadStatusBadge status={getValue()} pulse={getValue() === 'new'} size="sm" />
-            <LeadTemperatureBadge temperature={row.original.temperature} />
-          </div>
-        ),
-      },
-      {
-        accessorKey: 'lastFollowUp',
-        header: 'Last Follow Up',
-        cell: ({ getValue }) => <span className="text-xs text-violet-600/80 whitespace-nowrap">{formatDateTime(getValue())}</span>,
-      },
-      {
-        accessorKey: 'nextFollowUp',
-        header: 'Next Follow Up',
         cell: ({ getValue }) => (
-          <span className={`text-xs whitespace-nowrap px-2 py-0.5 rounded-md ${getValue() ? 'font-medium bg-amber-500/10 text-amber-700' : 'text-content-muted'}`}>
-            {formatDateTime(getValue())}
-          </span>
+          <LeadStatusBadge status={getValue()} pulse={getValue() === 'new'} size="sm" />
         ),
       },
       {
@@ -188,13 +154,8 @@ export default function LeadDataTable({
         ),
       },
       {
-        accessorKey: 'createdAt',
-        header: 'Created',
-        cell: ({ getValue }) => <span className="text-xs text-content-muted whitespace-nowrap">{formatDate(getValue())}</span>,
-      },
-      {
         id: 'rowActions',
-        header: '',
+        header: 'Actions',
         cell: ({ row }) => (
           <LeadRowActions
             lead={row.original}
@@ -231,7 +192,7 @@ export default function LeadDataTable({
   const rowVirtualizer = useVirtualizer({
     count: tableRows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 52,
+    estimateSize: () => 64,
     overscan: 6,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -241,35 +202,32 @@ export default function LeadDataTable({
 
   if (leads.length === 0) {
     return (
-      <div className="rounded-2xl border border-brand-500/20 bg-gradient-to-br from-brand-500/5 to-violet-500/5 p-16 text-center backdrop-blur-xl">
-        <p className="text-content-muted font-medium">No leads match your filters</p>
+      <div className="rounded-2xl border border-subtle bg-white p-16 text-center shadow-sm">
+        <p className="text-content-primary font-semibold">No leads match your filters</p>
         <p className="text-sm text-content-muted mt-1">Try adjusting filters or add a new lead</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-brand-500/20 bg-surface/90 backdrop-blur-xl shadow-lg shadow-brand-500/5 overflow-hidden">
-      <div ref={scrollRef} className="overflow-auto max-h-[min(70vh,640px)]">
-        <table className={`${compactTable} min-w-[1040px]`}>
+    <div className="rounded-2xl border border-subtle bg-white shadow-sm overflow-hidden">
+      <div ref={scrollRef} className="overflow-auto max-h-[min(70vh,680px)]">
+        <table className="w-full text-sm table-auto border-collapse min-w-[1100px]">
           <thead className="sticky top-0 z-20">
             {table.getHeaderGroups().map((hg) => (
-              <tr
-                key={hg.id}
-                className="border-b border-brand-500/15 bg-surface dark:bg-slate-900 shadow-[0_1px_0_0_rgba(124,58,237,0.12)]"
-              >
+              <tr key={hg.id}>
                 {hg.headers.map((header) => {
                   const colId = header.column.id;
                   const thClass = cn(
-                    colId === 'rowActions' ? stickyRowActionsTh : compactTh,
-                    'bg-surface dark:bg-slate-900',
-                    colId !== 'rowActions' && 'cursor-pointer select-none hover:text-brand-600 transition-colors'
+                    leadsTh,
+                    colId === 'rowActions' && 'text-right sticky right-0 z-30 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.06)]',
+                    colId !== 'rowActions' && 'cursor-pointer select-none hover:text-slate-700'
                   );
                   return (
                     <th
                       key={header.id}
                       className={thClass}
-                      onClick={colId !== 'rowActions' ? header.column.getToggleSortingHandler() : undefined}
+                      onClick={colId !== 'rowActions' && colId !== 'select' ? header.column.getToggleSortingHandler() : undefined}
                     >
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </th>
@@ -278,7 +236,7 @@ export default function LeadDataTable({
               </tr>
             ))}
           </thead>
-          <tbody className="isolate">
+          <tbody>
             {paddingTop > 0 && (
               <tr aria-hidden>
                 <td colSpan={columns.length} style={{ height: paddingTop, padding: 0, border: 0 }} />
@@ -286,21 +244,18 @@ export default function LeadDataTable({
             )}
             {virtualRows.map((virtualRow) => {
               const row = tableRows[virtualRow.index];
-              const i = virtualRow.index;
-              const even = i % 2 === 0;
-              const rowBg = even ? 'bg-surface' : 'bg-white dark:bg-slate-800';
-              const rowHover = even
-                ? 'hover:bg-slate-50 dark:hover:bg-slate-800'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-700';
               return (
                 <tr
                   key={row.id}
                   onClick={() => onRowClick(row.original)}
-                  className={`group relative z-0 hover:z-[5] border-b border-subtle/50 last:border-0 cursor-pointer transition-colors ${rowBg} ${rowHover}`}
+                  className="group cursor-pointer transition-colors hover:bg-blue-50/40 bg-white"
                 >
                   {row.getVisibleCells().map((cell) => {
                     const colId = cell.column.id;
-                    const tdClass = colId === 'rowActions' ? stickyRowActionsTd(i) : compactTd;
+                    const tdClass = cn(
+                      leadsTd,
+                      colId === 'rowActions' && 'text-right sticky right-0 bg-white group-hover:bg-blue-50/40 z-10 shadow-[-4px_0_8px_-4px_rgba(0,0,0,0.04)]'
+                    );
                     return (
                       <td key={cell.id} className={tdClass}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -328,14 +283,19 @@ export default function LeadDataTable({
           onPageChange={(pageIndex) =>
             serverPagination.onPaginationChange((prev) => ({ ...prev, pageIndex }))
           }
+          onPageSizeChange={(pageSize) =>
+            serverPagination.onPaginationChange({ pageIndex: 0, pageSize })
+          }
           totalLabel="leads"
-          className="border-brand-500/15 bg-gradient-to-r from-brand-500/[0.03] to-violet-500/[0.03]"
+          showPageNumbers
+          className="border-t border-subtle bg-slate-50/50"
         />
       ) : (
         <TablePagination
           table={table}
           totalLabel="leads"
-          className="border-brand-500/15 bg-gradient-to-r from-brand-500/[0.03] to-violet-500/[0.03]"
+          showPageNumbers
+          className="border-t border-subtle bg-slate-50/50"
         />
       )}
     </div>
