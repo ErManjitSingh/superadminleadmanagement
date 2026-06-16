@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Mail, Plus, FileText, CalendarClock } from 'lucide-react';
+import { ChevronRight, Plus, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSidebar } from '../../context/SidebarContext';
 import { cn } from '../../lib/utils';
@@ -7,8 +7,6 @@ import { cn } from '../../lib/utils';
 const QUICK_ACTIONS = [
   { path: '/leads/new', label: 'Add New Lead', icon: Plus },
   { path: '/quotations/new', label: 'Create Quotation', icon: FileText },
-  { path: '/email-activity', label: 'Send Email', icon: Mail },
-  { path: '/followups', label: 'Schedule Follow-up', icon: CalendarClock },
 ];
 
 export default function SidebarQuickActions() {
