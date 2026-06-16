@@ -24,9 +24,9 @@ const SOURCE_LABELS = {
   whatsapp: 'WhatsApp',
   referral: 'Referral',
   'walk-in': 'Walk-in',
-  social: 'Social',
+  social: 'Facebook Ads',
   phone: 'Phone',
-  other: 'Other',
+  other: 'Organic',
   google_ads: 'Google Ads',
   facebook_ads: 'Facebook Ads',
   organic: 'Organic',
@@ -732,16 +732,6 @@ async function buildTeamLeaderDashboard(leaderId, options = {}) {
     reactivationWidget,
   };
 }
-
-const SOURCE_LABELS = {
-  website: 'Website',
-  referral: 'Referral',
-  social: 'Facebook Ads',
-  'walk-in': 'Walk-in',
-  phone: 'Phone',
-  whatsapp: 'WhatsApp',
-  other: 'Organic',
-};
 
 async function buildReportsAnalytics(options = {}) {
   const { branchId } = options;
