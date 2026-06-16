@@ -1,4 +1,10 @@
+export { default as LeadDetailLayout } from './LeadDetailLayout';
 export { default as LeadDetailHeader } from './LeadDetailHeader';
+export { default as LeadConvertedBanner } from './LeadConvertedBanner';
+export { default as LeadNotesPanel } from './LeadNotesPanel';
+export { default as LeadTagsPanel } from './LeadTagsPanel';
+export { default as LeadUpcomingFollowUp } from './LeadUpcomingFollowUp';
+export { default as LeadScoreBreakdown } from './LeadScoreBreakdown';
 export { default as LeadStatusPipeline } from './LeadStatusPipeline';
 export { default as LeadCustomerPanel } from './LeadCustomerPanel';
 export { default as LeadActivityTimeline } from './LeadActivityTimeline';

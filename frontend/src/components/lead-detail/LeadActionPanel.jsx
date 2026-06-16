@@ -1,68 +1,16 @@
 import { Link } from 'react-router-dom';
-import {
-  Phone,
-  CalendarPlus,
-  UserCheck,
-  RefreshCw,
-  Pencil,
-} from 'lucide-react';
+import { Phone, CalendarPlus, UserCheck, Pencil } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
+import { DETAIL_CARD } from './leadDetailUtils';
 
 const actions = [
-  {
-    icon: Phone,
-    label: 'Log Call Note',
-    action: 'callnote',
-    className: 'text-emerald-700 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-400',
-  },
-  {
-    icon: CalendarPlus,
-    label: 'Add Follow Up',
-    action: 'followup',
-    className: 'text-violet-700 border-violet-500/40 bg-violet-500/10 hover:bg-violet-500/20 dark:text-violet-400',
-  },
-  {
-    icon: UserCheck,
-    label: 'Assign Lead',
-    action: 'assign',
-    className: 'text-indigo-700 border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 dark:text-indigo-400',
-  },
-  {
-    icon: RefreshCw,
-    label: 'Change Status',
-    action: 'status',
-    className: 'text-orange-700 border-orange-500/40 bg-orange-500/10 hover:bg-orange-500/20 dark:text-orange-400',
-  },
+  { icon: Phone, label: 'Log Call Note', action: 'callnote', tone: 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100' },
+  { icon: UserCheck, label: 'Assign Lead', action: 'assign', tone: 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100' },
+  { icon: Pencil, label: 'Edit Lead', action: 'edit', tone: 'bg-violet-50 text-violet-700 border-violet-100 hover:bg-violet-100' },
 ];
 
-function ActionButton({ action, lead, onAddFollowUp, onLogCallNote, onAssign, onChangeStatus }) {
-  const Icon = action.icon;
-  const baseClass = cn(
-    'w-full rounded-xl justify-start gap-3 h-10 border',
-    action.className
-  );
-
-  return (
-    <Button
-      variant="outline"
-      onClick={() => {
-        if (action.action === 'followup') onAddFollowUp?.();
-        if (action.action === 'callnote') onLogCallNote?.();
-        if (action.action === 'assign') onAssign?.();
-        if (action.action === 'status') onChangeStatus?.();
-      }}
-      className={baseClass}
-    >
-      <Icon className="w-4 h-4" /> {action.label}
-    </Button>
-  );
-}
-
 export default function LeadActionPanel({
-  lead,
-  leadId,
-  onAddFollowUp,
   onLogCallNote,
   onAssign,
   onChangeStatus,
@@ -72,39 +20,54 @@ export default function LeadActionPanel({
   editHref,
 }) {
   return (
-    <div className="space-y-4 xl:sticky xl:top-20">
-      <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-sm p-5 shadow-sm">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-content-muted mb-4">Quick Actions</h3>
-        <div className="space-y-2">
-          {actions.map((action) => {
-            if (action.action === 'assign' && !onAssign) return null;
-            if (action.action === 'followup' && (!onAddFollowUp || !canCreateFollowUp)) return null;
-            if (action.action === 'status' && (!onChangeStatus || !canChangeStatus)) return null;
-            return (
-              <ActionButton
-                key={action.label}
-                action={action}
-                lead={lead}
-                onAddFollowUp={onAddFollowUp}
-                onLogCallNote={onLogCallNote}
-                onAssign={onAssign}
-                onChangeStatus={onChangeStatus}
-              />
-            );
-          })}
-        </div>
+    <div className={DETAIL_CARD}>
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">Quick Actions</h3>
       </div>
+      <div className="p-4 grid grid-cols-1 gap-2">
+        {actions.map((action) => {
+          const Icon = action.icon;
+          if (action.action === 'assign' && !onAssign) return null;
+          if (action.action === 'callnote' && !onLogCallNote) return null;
+          if (action.action === 'edit' && (!canEditLead || !editHref)) return null;
 
-      {canEditLead && editHref && (
-        <Link to={editHref}>
+          if (action.action === 'edit' && editHref) {
+            return (
+              <Link
+                key={action.label}
+                to={editHref}
+                className={cn('flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors', action.tone)}
+              >
+                <Icon className="w-4 h-4" /> {action.label}
+              </Link>
+            );
+          }
+
+          return (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => {
+                if (action.action === 'callnote') onLogCallNote?.();
+                if (action.action === 'assign') onAssign?.();
+              }}
+              className={cn('flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-colors text-left', action.tone)}
+            >
+              <Icon className="w-4 h-4" /> {action.label}
+            </button>
+          );
+        })}
+        {canChangeStatus && onChangeStatus && (
           <Button
+            type="button"
             variant="outline"
-            className="w-full rounded-xl gap-2 h-10 text-brand-700 border-brand-500/40 bg-brand-500/10 hover:bg-brand-500/20 dark:text-brand-400"
+            onClick={onChangeStatus}
+            className="w-full rounded-xl justify-start gap-2.5 h-auto py-2.5 bg-orange-50 text-orange-700 border-orange-100 hover:bg-orange-100 font-semibold"
           >
-            <Pencil className="w-4 h-4" /> Edit Lead
+            <CalendarPlus className="w-4 h-4" /> Change Status
           </Button>
-        </Link>
-      )}
+        )}
+      </div>
     </div>
   );
 }

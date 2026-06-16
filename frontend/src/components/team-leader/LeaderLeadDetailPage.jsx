@@ -2,20 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { UserPlus, RefreshCw } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import { useLeadAssign } from '../../hooks/useLeadAssign';
 import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
-import { UserPlus, RefreshCw } from 'lucide-react';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
-import {
-  LeadDetailHeader, LeadStatusPipeline, LeadCustomerPanel, LeadActivityTimeline,
-  LeadFollowUpSection, LeadQuotationSection,
-} from '../lead-detail';
+import { LeadDetailLayout } from '../lead-detail';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
-import LeadContactActions from '../whatsapp-contact/LeadContactActions';
 import LeadEmailHistory from '../email/LeadEmailHistory';
 
 export default function LeaderLeadDetailPage() {
@@ -25,6 +20,7 @@ export default function LeaderLeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
   const [executives, setExecutives] = useState([]);
+
   const loadLead = useCallback(() => {
     setLoading(true);
     return API.get(`/team-leader/leads/${id}`, { skipSuccessToast: true })
@@ -50,11 +46,8 @@ export default function LeaderLeadDetailPage() {
   });
 
   const reactivate = useLeadReactivate({ leadId: id, onSuccess: loadLead });
-
-  const { activities, timelineLoading, detail } = useLeadActivities(
-    lead
-      ? { ...lead, followUps: lead.followups || [], quotations: lead.quotations || [] }
-      : null,
+  const { activities, timelineLoading } = useLeadActivities(
+    lead ? { ...lead, followUps: lead.followups || [], quotations: lead.quotations || [] } : null,
     id
   );
 
@@ -64,67 +57,59 @@ export default function LeaderLeadDetailPage() {
 
   if (!lead) {
     return (
-      <div className="rounded-2xl border border-subtle bg-surface p-12 text-center">
+      <div className="rounded-2xl border border-subtle bg-white p-12 text-center shadow-sm">
         <p className="text-content-muted">Lead not found in your team</p>
         <Link to="/team-leader/leads" className="text-amber-600 text-sm mt-2 inline-block hover:underline">← Back to Team Leads</Link>
       </div>
     );
   }
 
+  const headerExtra = (
+    <div className="mb-4 flex flex-wrap gap-2 justify-end">
+      {reactivate.isLost(lead) ? (
+        <Button variant="teal" className="gap-2 rounded-xl" onClick={reactivate.openReactivate}>
+          <RefreshCw className="w-4 h-4" /> Reactivate Lead
+        </Button>
+      ) : (
+        <Button variant="gradient" className="gap-2 rounded-xl" onClick={() => setAssignOpen(true)}>
+          <UserPlus className="w-4 h-4" /> Assign to Executive
+        </Button>
+      )}
+    </div>
+  );
+
+  const sidebarExtra = (
+    <div className="space-y-2">
+      {lead.status === 'reactivated' && (
+        <Button variant="outline" className="w-full rounded-xl" onClick={reactivate.openReassign}>Reassign Reactivated Lead</Button>
+      )}
+      {lead?.reactivation?.isReactivated && (
+        <Button variant="outline" className="w-full rounded-xl" onClick={reactivate.openStage}>Update Reactivation Stage</Button>
+      )}
+    </div>
+  );
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
-      <Link to="/team-leader/leads" className="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-500 mb-4">
-        <ArrowLeft className="w-4 h-4" /> Back to Team Leads
-      </Link>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {reactivate.isLost(lead) ? (
-          <Button variant="teal" className="gap-2" onClick={reactivate.openReactivate}>
-            <RefreshCw className="w-4 h-4" /> Reactivate Lead
-          </Button>
-        ) : (
-          <Button variant="gradient" className="gap-2" onClick={() => setAssignOpen(true)}>
-            <UserPlus className="w-4 h-4" /> Assign to Executive
-          </Button>
-        )}
-        {lead.status === 'reactivated' && (
-          <Button variant="outline" onClick={reactivate.openReassign}>Reassign Reactivated Lead</Button>
-        )}
-        {lead?.reactivation?.isReactivated && (
-          <Button variant="outline" onClick={reactivate.openStage}>Update Reactivation Stage</Button>
-        )}
-      </div>
-      <LeadDetailHeader lead={lead} />
-      <div className="mb-6"><LeadStatusPipeline status={lead.status} /></div>
-      <LeadContactActions
+      <LeadDetailLayout
         lead={lead}
         leadId={id}
+        activities={activities}
+        timelineLoading={timelineLoading}
+        backHref="/team-leader/leads"
+        backLabel="Back to Team Leads"
         contactEndpoint="/leads"
         onCreateQuote={() => navigate(`/team-leader/quotations/new?leadId=${id}`)}
         onContactLogged={loadLead}
         onEmailSent={loadLead}
-        className="mb-6"
-      />
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        <aside className="xl:col-span-3 xl:sticky xl:top-20 order-2 xl:order-1">
-          <LeadCustomerPanel lead={lead} />
+        onAssign={() => setAssignOpen(true)}
+        headerExtra={headerExtra}
+        sidebarExtra={sidebarExtra}
+        bottomExtra={(
           <LeadEmailHistory leadId={id} emailEndpoint="/leads" refreshKey={lead?.lastContactedAt || lead?.updatedAt} />
-        </aside>
-        <main className="xl:col-span-9 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline
-            activities={activities}
-            loading={timelineLoading}
-            quotations={lead.quotations || []}
-          />
-          <LeadFollowUpSection followUps={lead.followups || detail.followUps} lead={lead} />
-          <LeadQuotationSection
-            quotations={lead.quotations || detail.quotations}
-            lead={lead}
-            leadId={id}
-            emailEndpoint="/leads"
-            onEmailSent={loadLead}
-          />
-        </main>
-      </div>
+        )}
+      />
+
       <AdminAssignLeadModal
         open={assignOpen}
         lead={lead}

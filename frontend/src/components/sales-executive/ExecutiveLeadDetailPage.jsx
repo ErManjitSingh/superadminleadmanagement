@@ -2,21 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
 import { ActionModal } from './LeadActionsMenu';
-import {
-  LeadDetailHeader,
-  LeadStatusPipeline,
-  LeadCustomerPanel,
-  LeadActivityTimeline,
-  LeadFollowUpSection,
-  LeadQuotationSection,
-  LeadActionPanel,
-} from '../lead-detail';
-import LeadContactActions from '../whatsapp-contact/LeadContactActions';
-import LeadEmailHistory from '../email/LeadEmailHistory';
+import { LeadDetailLayout } from '../lead-detail';
+import AddFollowUpModal from '../followups/AddFollowUpModal';
+import { createExecutiveFollowUp, buildFollowUpPayload } from '../followups/followupApi';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 import { isLeadStatusLocked } from '../../utils/leadUtils';
 
@@ -41,6 +32,7 @@ export default function ExecutiveLeadDetailPage() {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('contacted');
   const [modalStatusReason, setModalStatusReason] = useState('');
+
   const loadLead = useCallback(({ silent = false } = {}) => {
     if (!silent) setLoading(true);
     return API.get(`/sales-executive/leads/${id}`, { skipSuccessToast: true })
@@ -61,7 +53,7 @@ export default function ExecutiveLeadDetailPage() {
 
   useDataRefresh(['leads'], loadLead);
 
-  const { activities, timelineLoading, detail } = useLeadActivities(
+  const { activities, timelineLoading } = useLeadActivities(
     lead
       ? {
           ...lead,
@@ -75,12 +67,12 @@ export default function ExecutiveLeadDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-16 rounded-2xl bg-surface-elevated" />
-        <div className="h-20 rounded-2xl bg-surface-elevated" />
+        <div className="h-32 rounded-2xl bg-slate-100" />
+        <div className="h-20 rounded-2xl bg-slate-100" />
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="xl:col-span-3 h-[600px] rounded-2xl bg-surface-elevated" />
-          <div className="xl:col-span-6 h-[600px] rounded-2xl bg-surface-elevated" />
-          <div className="xl:col-span-3 h-[400px] rounded-2xl bg-surface-elevated" />
+          <div className="xl:col-span-3 h-[500px] rounded-2xl bg-slate-100" />
+          <div className="xl:col-span-6 h-[500px] rounded-2xl bg-slate-100" />
+          <div className="xl:col-span-3 h-[400px] rounded-2xl bg-slate-100" />
         </div>
       </div>
     );
@@ -88,9 +80,9 @@ export default function ExecutiveLeadDetailPage() {
 
   if (!lead) {
     return (
-      <div className="rounded-2xl border border-subtle bg-surface p-12 text-center">
+      <div className="rounded-2xl border border-subtle bg-white p-12 text-center shadow-sm">
         <p className="text-content-muted">Lead not found or not assigned to you</p>
-        <Link to="/sales-executive/leads" className="text-sky-600 text-sm mt-2 inline-block hover:underline">
+        <Link to="/sales-executive/leads/all" className="text-violet-600 text-sm mt-2 inline-block hover:underline">
           ← Back to My Leads
         </Link>
       </div>
@@ -111,94 +103,43 @@ export default function ExecutiveLeadDetailPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
-      <Link to="/sales-executive/leads" className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-500 mb-4">
-        <ArrowLeft className="w-4 h-4" /> Back to My Leads
-      </Link>
-
-      <LeadDetailHeader lead={lead} />
-
-      <div className="mb-6">
-        <LeadStatusPipeline status={lead.status} />
-      </div>
-
-      {lead.status === 'converted' && (
-        <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-200">
-          <p className="font-semibold">Lead converted — handed to Operations</p>
-          <p className="mt-1 text-emerald-700/90 dark:text-emerald-300/90">Status is locked. Booking, hotel, cab & vouchers are fulfilled by the operations team.</p>
-        </div>
-      )}
-
-      <LeadContactActions
+      <LeadDetailLayout
         lead={lead}
         leadId={id}
+        activities={activities}
+        timelineLoading={timelineLoading}
+        backHref="/sales-executive/leads/all"
+        backLabel="Back to Leads"
         contactEndpoint="/sales-executive/leads"
         onCreateQuote={() => navigate(`/sales-executive/quotations/new?leadId=${id}`)}
+        onScheduleFollowUp={() => setFollowUpModalOpen(true)}
         onContactLogged={loadLead}
         onEmailSent={loadLead}
-        className="mb-6"
+        onChangeStatus={!isLeadStatusLocked(lead.status) ? () => {
+          setModalStatus(lead.status || 'new');
+          setModalStatusReason(lead.statusReason || '');
+          setStatusModalOpen(true);
+        } : undefined}
+        canChangeStatus={!isLeadStatusLocked(lead.status)}
       />
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
-          <LeadCustomerPanel lead={lead} />
-          <LeadEmailHistory
-            leadId={id}
-            emailEndpoint="/sales-executive/leads"
-            refreshKey={lead?.lastContactedAt || lead?.updatedAt}
-          />
-        </aside>
-
-        <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline
-            activities={activities}
-            loading={timelineLoading}
-            quotations={lead.quotations || []}
-          />
-          <LeadFollowUpSection
-            followUps={lead.followups || detail.followUps}
-            lead={lead}
-            canCreate
-            onRefresh={loadLead}
-            onFollowUpAdded={(created) => {
-              setLead((prev) =>
-                prev
-                  ? { ...prev, followups: [created, ...(prev.followups || [])] }
-                  : prev
-              );
-            }}
-            modalOpen={followUpModalOpen}
-            onModalOpenChange={setFollowUpModalOpen}
-          />
-          <LeadQuotationSection
-            quotations={lead.quotations || detail.quotations || []}
-            lead={lead}
-            leadId={id}
-            emailEndpoint="/sales-executive/leads"
-            onEmailSent={loadLead}
-          />
-        </main>
-
-        <aside className="xl:col-span-3 order-3">
-          <LeadActionPanel
-            lead={lead}
-            leadId={id}
-            canEditLead={false}
-            canChangeStatus={!isLeadStatusLocked(lead.status)}
-            onAddFollowUp={() => setFollowUpModalOpen(true)}
-            onChangeStatus={() => {
-              setModalStatus(lead.status || 'new');
-              setModalStatusReason(lead.statusReason || '');
-              setStatusModalOpen(true);
-            }}
-          />
-        </aside>
-      </div>
+      <AddFollowUpModal
+        open={followUpModalOpen}
+        onClose={() => setFollowUpModalOpen(false)}
+        fixedLeadId={lead._id}
+        fixedLeadName={lead.name}
+        onSubmit={async (data) => {
+          await createExecutiveFollowUp(buildFollowUpPayload({ ...data, lead: lead._id }));
+          setFollowUpModalOpen(false);
+          await loadLead();
+        }}
+      />
 
       <ActionModal open={statusModalOpen} title="Change Status" onClose={() => setStatusModalOpen(false)}>
         <select
           value={modalStatus}
           onChange={(e) => setModalStatus(e.target.value)}
-          className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4"
+          className="w-full rounded-xl border border-subtle bg-white p-3 text-sm mb-4"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -209,7 +150,7 @@ export default function ExecutiveLeadDetailPage() {
           onChange={(e) => setModalStatusReason(e.target.value)}
           rows={3}
           placeholder="Reason for status change"
-          className="w-full rounded-xl border border-subtle bg-surface-elevated p-3 text-sm mb-4"
+          className="w-full rounded-xl border border-subtle bg-white p-3 text-sm mb-4"
         />
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={() => { setStatusModalOpen(false); setModalStatusReason(''); }}>Cancel</Button>

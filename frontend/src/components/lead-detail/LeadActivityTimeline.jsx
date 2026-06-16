@@ -4,6 +4,7 @@ import { Download } from 'lucide-react';
 import { ACTIVITY_CONFIG, findQuotationForActivity } from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import { Button } from '../ui/button';
+import { DETAIL_CARD } from './leadDetailUtils';
 
 function formatActivityDate(iso) {
   const d = new Date(iso);
@@ -20,21 +21,20 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
 
   return (
     <>
-      <div className="rounded-2xl border border-subtle bg-surface shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-subtle bg-surface-elevated/40">
-          <h3 className="text-[15px] font-semibold text-content-primary">Activity Timeline</h3>
-          <p className="text-xs text-content-muted mt-0.5">HubSpot-style activity feed</p>
+      <div className={`${DETAIL_CARD} overflow-hidden`}>
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Activity Timeline</h3>
         </div>
         <div className="p-5">
           {loading && (
-            <p className="text-sm text-content-muted text-center py-6">Loading timeline...</p>
+            <p className="text-sm text-slate-400 text-center py-6">Loading timeline...</p>
           )}
           {!loading && sorted.length === 0 && (
-            <p className="text-sm text-content-muted text-center py-6">No activity yet</p>
+            <p className="text-sm text-slate-400 text-center py-6">No activity yet</p>
           )}
           {!loading && sorted.length > 0 && (
             <div className="relative">
-              <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-brand-500/30 via-subtle to-transparent" />
+              <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-violet-300 via-slate-200 to-transparent dark:from-violet-800 dark:via-slate-700" />
               <div className="space-y-1">
                 {sorted.map((item, i) => {
                   const cfg = ACTIVITY_CONFIG[item.type] || ACTIVITY_CONFIG.status_changed;
@@ -53,15 +53,15 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                       transition={{ delay: i * 0.04 }}
                       className="relative flex gap-4 py-3 group"
                     >
-                      <div className={`relative z-10 w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cfg.color}`}>
+                      <div className={`relative z-10 w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-slate-100 ${cfg.color}`}>
                         <Icon className="w-4 h-4" />
                       </div>
-                      <div className="flex-1 min-w-0 pb-1">
+                      <div className="flex-1 min-w-0 pb-1 border-b border-slate-50 dark:border-slate-800 last:border-0">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                           <div>
-                            <p className="text-sm font-semibold text-content-primary">{item.title || cfg.label}</p>
-                            <p className="text-xs text-content-muted mt-0.5">
-                              <span className="font-medium text-content-secondary">{item.user}</span>
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">{item.title || cfg.label}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                              <span className="font-medium text-slate-600 dark:text-slate-300">{item.user}</span>
                               {' · '}{date} at {time}
                             </p>
                           </div>
@@ -71,14 +71,14 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                               variant="outline"
                               size="sm"
                               onClick={() => setPdfQuote(quote)}
-                              className="rounded-lg h-7 gap-1 text-[11px] text-sky-700 border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/20"
+                              className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
                             >
                               <Download className="w-3 h-3" /> PDF
                             </Button>
                           )}
                         </div>
                         {item.notes && (
-                          <p className="text-sm text-content-secondary mt-2 p-3 rounded-xl bg-surface-elevated/60 border border-subtle">
+                          <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
                             {item.notes}
                           </p>
                         )}

@@ -12,13 +12,7 @@ import { Button } from '../components/ui/button';
 import { useLeadAssign } from '../hooks/useLeadAssign';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import {
-  LeadDetailHeader,
-  LeadStatusPipeline,
-  LeadCustomerPanel,
-  LeadActivityTimeline,
-  LeadFollowUpSection,
-  LeadQuotationSection,
-  LeadActionPanel,
+  LeadDetailLayout,
   LeadTransferHistory,
   LeadAuditPanel,
   ReactivationActionsModal,
@@ -29,8 +23,9 @@ import { invalidateLeadDetail } from '../lib/queryInvalidation';
 import CallNoteModal from '../components/leads/CallNoteModal';
 import MergeLeadModal from '../components/leads/MergeLeadModal';
 import { checkLeadDuplicate } from '../services/leadEnterpriseApi';
-import LeadContactActions from '../components/whatsapp-contact/LeadContactActions';
 import LeadEmailHistory from '../components/email/LeadEmailHistory';
+import AddFollowUpModal from '../components/followups/AddFollowUpModal';
+import { createExecutiveFollowUp, buildFollowUpPayload } from '../components/followups/followupApi';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -83,17 +78,17 @@ export default function LeadDetail() {
 
   const lead = leadQuery.data;
   const loading = leadQuery.isLoading && !lead;
-  const { activities, timelineLoading, detail } = useLeadActivities(lead, id);
+  const { activities, timelineLoading } = useLeadActivities(lead, id);
 
   if (loading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-16 rounded-2xl bg-surface-elevated" />
-        <div className="h-20 rounded-2xl bg-surface-elevated" />
+        <div className="h-32 rounded-2xl bg-slate-100" />
+        <div className="h-20 rounded-2xl bg-slate-100" />
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="xl:col-span-3 h-[600px] rounded-2xl bg-surface-elevated" />
-          <div className="xl:col-span-6 h-[600px] rounded-2xl bg-surface-elevated" />
-          <div className="xl:col-span-3 h-[400px] rounded-2xl bg-surface-elevated" />
+          <div className="xl:col-span-3 h-[500px] rounded-2xl bg-slate-100" />
+          <div className="xl:col-span-6 h-[500px] rounded-2xl bg-slate-100" />
+          <div className="xl:col-span-3 h-[400px] rounded-2xl bg-slate-100" />
         </div>
       </div>
     );
@@ -101,9 +96,9 @@ export default function LeadDetail() {
 
   if (!lead) {
     return (
-      <div className="rounded-2xl border border-subtle bg-surface p-12 text-center">
+      <div className="rounded-2xl border border-subtle bg-white p-12 text-center shadow-sm">
         <p className="text-content-muted">Lead not found</p>
-        <Link to="/leads" className="text-brand-600 text-sm mt-2 inline-block hover:underline">
+        <Link to="/leads" className="text-violet-600 text-sm mt-2 inline-block hover:underline">
           ← Back to leads
         </Link>
       </div>
@@ -124,108 +119,63 @@ export default function LeadDetail() {
     await refreshLead();
   };
 
+  const reactivationBlock = ['admin', 'sales_manager', 'team_leader'].includes(user?.role) ? (
+    <div className="mb-4 space-y-2">
+      {['lost', 'booked_from_another_company'].includes(lead.status) && (
+        <Button type="button" variant="teal" className="w-full rounded-xl" onClick={() => setReactivationMode('reactivate')}>
+          Reactivate Lead
+        </Button>
+      )}
+      {lead.status === 'reactivated' && (
+        <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setReactivationMode('reassign')}>
+          Reassign Reactivated Lead
+        </Button>
+      )}
+      {lead?.reactivation?.isReactivated && (
+        <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setReactivationMode('stage')}>
+          Update Reactivation Stage
+        </Button>
+      )}
+      {hasDuplicates && (isAdmin || user?.role === 'sales_manager') && (
+        <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setMergeOpen(true)}>
+          Merge Duplicate Lead
+        </Button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
-      <LeadDetailHeader lead={lead} />
-
-      <div className="mb-6">
-        <LeadStatusPipeline status={lead.status} />
-      </div>
-
-      {lead.status === 'converted' && (
-        <div className="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-200">
-          <p className="font-semibold">Converted — Operations team will fulfill this trip</p>
-          <p className="mt-1">Status is locked. Revenue is counted on dashboards. Hotel, cab & voucher work happens in Operations Manager.</p>
-        </div>
-      )}
-
-      <LeadContactActions
+      <LeadDetailLayout
         lead={lead}
         leadId={id}
+        activities={activities}
+        timelineLoading={timelineLoading}
+        backHref="/leads"
+        backLabel="Back to Leads"
         contactEndpoint="/leads"
         onCreateQuote={
           can('quotations', 'create')
             ? () => navigate(`/quotations/new?leadId=${id}`)
             : undefined
         }
+        onScheduleFollowUp={canCreateFollowUp ? () => setFollowUpModalOpen(true) : undefined}
         onContactLogged={refreshLead}
         onEmailSent={refreshLead}
-        className="mb-6"
+        onLogCallNote={() => setCallNoteOpen(true)}
+        onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
+        canCreateFollowUp={canCreateFollowUp}
+        canEditLead={canEditLead}
+        editHref={canEditLead ? `/leads/${id}/edit` : undefined}
+        sidebarExtra={reactivationBlock}
+        bottomExtra={(
+          <div className="mt-5 space-y-5">
+            <LeadEmailHistory leadId={id} emailEndpoint="/leads" refreshKey={lead?.lastContactedAt || lead?.updatedAt} />
+            <LeadTransferHistory leadId={id} />
+            <LeadAuditPanel leadId={id} canView={isAdmin || user?.role === 'sales_manager'} />
+          </div>
+        )}
       />
-
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        <aside className="xl:col-span-3 xl:sticky xl:top-20 space-y-4 order-2 xl:order-1">
-          <LeadCustomerPanel lead={lead} />
-          <LeadEmailHistory leadId={id} emailEndpoint="/leads" refreshKey={lead?.lastContactedAt || lead?.updatedAt} />
-        </aside>
-
-        <main className="xl:col-span-6 space-y-6 order-1 xl:order-2">
-          <LeadActivityTimeline
-            activities={activities}
-            loading={timelineLoading}
-            quotations={lead.quotations || []}
-          />
-          <LeadFollowUpSection
-            followUps={lead.followups || detail.followUps}
-            lead={lead}
-            canCreate={canCreateFollowUp}
-            onRefresh={refreshLead}
-            onFollowUpAdded={() => refreshLead()}
-            modalOpen={followUpModalOpen}
-            onModalOpenChange={setFollowUpModalOpen}
-          />
-          <LeadQuotationSection
-            quotations={detail.quotations}
-            lead={lead}
-            leadId={id}
-            emailEndpoint="/leads"
-            onEmailSent={refreshLead}
-          />
-          <LeadTransferHistory leadId={id} />
-          <LeadAuditPanel leadId={id} canView={isAdmin || user?.role === 'sales_manager'} />
-        </main>
-
-        <aside className="xl:col-span-3 order-3">
-          {['admin', 'sales_manager', 'team_leader'].includes(user?.role) && (
-            <div className="mb-4 rounded-xl border border-subtle bg-surface/80 p-3 space-y-2">
-              {['lost', 'booked_from_another_company'].includes(lead.status) && (
-                <Button type="button" variant="teal" className="w-full" onClick={() => setReactivationMode('reactivate')}>
-                  Reactivate Lead
-                </Button>
-              )}
-              {lead.status === 'reactivated' && (
-                <Button type="button" variant="outline" className="w-full" onClick={() => setReactivationMode('reassign')}>
-                  Reassign Reactivated Lead
-                </Button>
-              )}
-            </div>
-          )}
-          {['admin', 'sales_manager', 'team_leader'].includes(user?.role) && lead?.reactivation?.isReactivated && (
-            <div className="mb-4 rounded-xl border border-subtle bg-surface/80 p-3">
-              <Button type="button" variant="outline" className="w-full" onClick={() => setReactivationMode('stage')}>
-                Update Reactivation Stage
-              </Button>
-            </div>
-          )}
-          {hasDuplicates && (isAdmin || user?.role === 'sales_manager') ? (
-            <div className="mb-4">
-              <Button type="button" variant="outline" className="w-full rounded-xl" onClick={() => setMergeOpen(true)}>
-                Merge Duplicate Lead
-              </Button>
-            </div>
-          ) : null}
-          <LeadActionPanel
-            lead={lead}
-            leadId={id}
-            onAddFollowUp={canCreateFollowUp ? () => setFollowUpModalOpen(true) : undefined}
-            canCreateFollowUp={canCreateFollowUp}
-            canEditLead={canEditLead}
-            editHref={canEditLead ? `/leads/${id}/edit` : undefined}
-            onLogCallNote={() => setCallNoteOpen(true)}
-            onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
-          />
-        </aside>
-      </div>
 
       {userCanAssignLeads && (
         <AdminAssignLeadModal
@@ -236,6 +186,20 @@ export default function LeadDetail() {
           onClose={closeAssign}
           onAssign={handleAssign}
           allowedRoles={assignAllowedRoles(user?.role)}
+        />
+      )}
+
+      {canCreateFollowUp && (
+        <AddFollowUpModal
+          open={followUpModalOpen}
+          onClose={() => setFollowUpModalOpen(false)}
+          fixedLeadId={lead._id}
+          fixedLeadName={lead.name}
+          onSubmit={async (data) => {
+            await createExecutiveFollowUp(buildFollowUpPayload({ ...data, lead: lead._id }));
+            setFollowUpModalOpen(false);
+            refreshLead();
+          }}
         />
       )}
 
