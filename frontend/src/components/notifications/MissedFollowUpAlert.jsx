@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { NOTIFICATIONS_ENABLED } from '../../config/notifications';
 
 const MISSED_ALERT_ROLES = new Set(['sales_executive', 'sales_manager', 'team_leader']);
 
@@ -30,7 +31,7 @@ export default function MissedFollowUpAlert() {
     });
   }, [notifications, user?.role]);
 
-  if (!MISSED_ALERT_ROLES.has(user?.role) || !unresolved.length || !isLeadSectionPath(pathname)) return null;
+  if (!NOTIFICATIONS_ENABLED || !MISSED_ALERT_ROLES.has(user?.role) || !unresolved.length || !isLeadSectionPath(pathname)) return null;
 
   const latest = unresolved[0];
 

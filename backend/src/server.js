@@ -11,6 +11,7 @@ const errorHandler = require('./middleware/errorHandler');
 const { applySecurityMiddleware } = require('./middleware/security');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { initializeSocket } = require('./socket');
+const { NOTIFICATIONS_ENABLED } = require('./config/notifications');
 const { startNotificationScheduler } = require('./services/notificationScheduler');
 const { purgeOldActivityLogs } = require('./services/activityService');
 const { startEmailInboxPoller } = require('./services/emailInboxService');
@@ -65,7 +66,11 @@ async function start() {
 
   const httpServer = http.createServer(app);
   initializeSocket(httpServer);
-  startNotificationScheduler();
+  if (NOTIFICATIONS_ENABLED) {
+    startNotificationScheduler();
+  } else {
+    console.log('[NotificationScheduler] Disabled (set NOTIFICATIONS_ENABLED=true to enable)');
+  }
   startEmailInboxPoller();
 
   archiveOldTrips().catch(() => {});

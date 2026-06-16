@@ -1,5 +1,6 @@
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { NOTIFICATIONS_ENABLED } = require('../config/notifications');
 const { getIO } = require('../config/socket');
 const { formatNotification } = require('../utils/queryHelpers');
 const { NOTIFICATION_TYPES: T } = require('../constants/notificationTypes');
@@ -12,7 +13,7 @@ async function emitUnreadCount(userId) {
 }
 
 async function notifyUser(userId, payload) {
-  if (!userId) return null;
+  if (!NOTIFICATIONS_ENABLED || !userId) return null;
   const id = userId._id || userId;
 
   const doc = await Notification.create({

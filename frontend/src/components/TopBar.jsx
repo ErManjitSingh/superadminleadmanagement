@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
+import { NOTIFICATIONS_ENABLED } from '../config/notifications';
 import { getTopBarAccent } from './topbarAccent';
 import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { cn } from '../lib/utils';
@@ -302,18 +303,20 @@ export default function TopBar({ onMenuClick }) {
             </Link>
           )}
 
-          <IconButton
-            accent={accent}
-            aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
-            onClick={openDrawer}
-          >
-            <Bell className="w-[18px] h-[18px]" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
-          </IconButton>
+          {NOTIFICATIONS_ENABLED && (
+            <IconButton
+              accent={accent}
+              aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+              onClick={openDrawer}
+            >
+              <Bell className="w-[18px] h-[18px]" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </IconButton>
+          )}
 
           <IconButton accent={accent} onClick={toggleTheme} aria-label="Toggle theme">
             {isDark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}

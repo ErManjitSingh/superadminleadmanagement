@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import { authStorage } from '../auth/authStorage';
+import { NOTIFICATIONS_ENABLED } from '../config/notifications';
 import { toast } from './ToastContext';
 import {
   fetchNotifications,
@@ -73,8 +74,10 @@ export function NotificationProvider({ children }) {
       });
     }
 
-    toast.info(`${notification.title}\n${notification.message}`, 6000);
-    showBrowserNotification(notification);
+    if (NOTIFICATIONS_ENABLED) {
+      toast.info(`${notification.title}\n${notification.message}`, 6000);
+      showBrowserNotification(notification);
+    }
   }, []);
 
   const loadUnreadOnly = useCallback(async () => {
@@ -232,12 +235,16 @@ export function NotificationProvider({ children }) {
       }}
     >
       {children}
-      <NotificationDrawer />
-      <NotificationDetailModal
-        notification={detailNotification}
-        onClose={() => setDetailNotification(null)}
-        onViewLead={navigateToNotification}
-      />
+      {NOTIFICATIONS_ENABLED && (
+        <>
+          <NotificationDrawer />
+          <NotificationDetailModal
+            notification={detailNotification}
+            onClose={() => setDetailNotification(null)}
+            onViewLead={navigateToNotification}
+          />
+        </>
+      )}
     </NotificationContext.Provider>
   );
 }
