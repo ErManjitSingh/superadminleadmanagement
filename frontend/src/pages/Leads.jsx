@@ -291,6 +291,8 @@ export default function Leads() {
         lead={previewLead}
         onClose={() => setPreviewLead(null)}
         onAssign={userCanAssignLeads ? openAssign : undefined}
+        onDelete={isManagerRole ? handleDelete : undefined}
+        onTransferBranch={isAdmin ? setTransferLead : undefined}
         canEditLead={canEditLead}
       />
 
