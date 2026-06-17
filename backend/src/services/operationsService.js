@@ -776,32 +776,179 @@ async function buildReports(branchId) {
   };
 }
 
+function enrichTripRow(booking, category, now = new Date()) {
+  const travel = booking.travelDate ? new Date(booking.travelDate) : null;
+  const returnDate = booking.returnDate ? new Date(booking.returnDate) : null;
+  const startsInDays = travel ? Math.ceil((travel - now) / 86400000) : null;
+  const endsInDays = returnDate ? Math.ceil((returnDate - now) / 86400000) : null;
+
+  let durationDays = 0;
+  let durationNights = 0;
+  if (travel && returnDate) {
+    durationDays = Math.max(1, Math.ceil((returnDate - travel) / 86400000));
+    durationNights = Math.max(0, durationDays - 1);
+  }
+
+  const activities = booking.activities || [];
+  const activitiesBooked = activities.filter((a) => ['booked', 'completed'].includes(a.status)).length
+    || activities.length;
+
+  const displayStatusMap = {
+    confirmed: { label: 'Confirmed', tone: 'green' },
+    booking_received: { label: 'Booking Received', tone: 'blue' },
+    pending_verification: { label: 'Pending Verification', tone: 'amber' },
+    pending: { label: 'Pending', tone: 'amber' },
+    in_progress: { label: 'On Trip', tone: 'emerald' },
+    completed: { label: 'Completed', tone: 'slate' },
+    cancelled: { label: 'Cancelled', tone: 'rose' },
+    refund_pending: { label: 'Refund Pending', tone: 'orange' },
+    refund_completed: { label: 'Refunded', tone: 'slate' },
+  };
+
+  const displayStatus = displayStatusMap[booking.status] || { label: booking.status, tone: 'slate' };
+
+  let footerMessage = '';
+  let footerDateLabel = '';
+  if (category === 'upcoming' && startsInDays != null) {
+    footerMessage = startsInDays === 0 ? 'Trip starts today' : `Trip starts in ${startsInDays} Day${startsInDays === 1 ? '' : 's'}`;
+    footerDateLabel = travel
+      ? `On ${travel.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : '';
+  } else if (category === 'ongoing') {
+    footerMessage = 'Currently traveling';
+    footerDateLabel = travel
+      ? `Started ${travel.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : '';
+  } else if (category === 'completed') {
+    footerMessage = 'Trip completed successfully';
+    footerDateLabel = returnDate
+      ? `Returned ${returnDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : '';
+  } else if (category === 'cancelled') {
+    footerMessage = 'Trip cancelled';
+    footerDateLabel = '';
+  }
+
+  return {
+    ...booking,
+    startsInDays,
+    endsInDays,
+    durationDays,
+    durationNights,
+    durationLabel: durationDays ? `${durationDays} Days / ${durationNights} Nights` : null,
+    activitiesBooked,
+    hotelStatus: booking.hotelConfirmation === 'confirmed' ? 'confirmed' : 'pending',
+    transportStatus: booking.cabConfirmation === 'confirmed' ? 'confirmed' : 'pending',
+    displayStatus,
+    footerMessage,
+    footerDateLabel,
+    footerTone: displayStatus.tone,
+  };
+}
+
+const TRIP_TRACKER_SELECT = [
+  'bookingNumber',
+  'customerName',
+  'customerPhone',
+  'destination',
+  'packageName',
+  'travelDate',
+  'returnDate',
+  'adults',
+  'children',
+  'status',
+  'hotelConfirmation',
+  'cabConfirmation',
+  'activities',
+  'hotels',
+  'transport',
+  'voucherStatus',
+  'createdAt',
+].join(' ');
+
 async function getTripTracker(branchId) {
   const base = withBranch(notArchivedFilter(), branchId);
   const now = new Date();
+  const weekEnd = endOfDay(new Date(Date.now() + 7 * 86400000));
 
-  const [upcoming, ongoing, completed, cancelled] = await Promise.all([
-    Booking.find({ ...base, travelDate: { $gt: now }, status: { $in: ['confirmed', 'booking_received', 'pending_verification'] } })
-      .sort({ travelDate: 1 }).limit(20).lean(),
-    Booking.find({ ...base, status: 'in_progress' }).sort({ travelDate: 1 }).limit(20).lean(),
-    Booking.find({ ...base, status: 'completed' }).sort({ returnDate: -1 }).limit(20).lean(),
+  const [upcoming, ongoing, completed, cancelled, upcomingDepartures] = await Promise.all([
+    Booking.find({
+      ...base,
+      travelDate: { $gt: now },
+      status: { $in: ['confirmed', 'booking_received', 'pending_verification', 'pending'] },
+    })
+      .sort({ travelDate: 1 })
+      .limit(50)
+      .select(TRIP_TRACKER_SELECT)
+      .lean(),
+    Booking.find({ ...base, status: 'in_progress' })
+      .sort({ travelDate: 1 })
+      .limit(50)
+      .select(TRIP_TRACKER_SELECT)
+      .lean(),
+    Booking.find({ ...base, status: 'completed' })
+      .sort({ returnDate: -1 })
+      .limit(50)
+      .select(TRIP_TRACKER_SELECT)
+      .lean(),
     Booking.find({ ...base, status: { $in: ['cancelled', 'refund_pending', 'refund_completed'] } })
-      .sort({ updatedAt: -1 }).limit(20).lean(),
+      .sort({ updatedAt: -1 })
+      .limit(50)
+      .select(TRIP_TRACKER_SELECT)
+      .lean(),
+    Booking.find({
+      ...base,
+      travelDate: { $gte: startOfDay(now), $lte: weekEnd },
+      status: { $nin: ['cancelled', 'completed', 'refund_completed'] },
+    })
+      .sort({ travelDate: 1 })
+      .limit(8)
+      .select(TRIP_TRACKER_SELECT)
+      .lean(),
   ]);
 
-  const withCountdown = (rows) =>
-    rows.map((b) => {
-      const startsInDays = b.travelDate
-        ? Math.ceil((new Date(b.travelDate) - now) / 86400000)
-        : null;
-      return { ...b, startsInDays, tripLabel: startsInDays != null && startsInDays >= 0 ? `Trip starts in ${startsInDays} day(s)` : null };
-    });
+  const enrichedUpcoming = upcoming.map((b) => enrichTripRow(b, 'upcoming', now));
+  const enrichedOngoing = ongoing.map((b) => enrichTripRow(b, 'ongoing', now));
+  const enrichedCompleted = completed.map((b) => enrichTripRow(b, 'completed', now));
+  const enrichedCancelled = cancelled.map((b) => enrichTripRow(b, 'cancelled', now));
+
+  const summary = {
+    upcoming: enrichedUpcoming.length,
+    ongoing: enrichedOngoing.length,
+    completed: enrichedCompleted.length,
+    cancelled: enrichedCancelled.length,
+  };
+
+  const statusOverview = [
+    { status: 'upcoming', label: 'Upcoming', count: summary.upcoming, color: '#22C55E' },
+    { status: 'ongoing', label: 'Ongoing', count: summary.ongoing, color: '#3B82F6' },
+    { status: 'completed', label: 'Completed', count: summary.completed, color: '#8B5CF6' },
+    { status: 'cancelled', label: 'Cancelled', count: summary.cancelled, color: '#EF4444' },
+  ];
+
+  const departures = upcomingDepartures.map((b) => {
+    const startsInDays = b.travelDate
+      ? Math.ceil((new Date(b.travelDate) - now) / 86400000)
+      : null;
+    return {
+      _id: b._id,
+      bookingNumber: b.bookingNumber,
+      customerName: b.customerName,
+      destination: b.destination,
+      travelDate: b.travelDate,
+      daysLeft: startsInDays,
+      daysLeftLabel: startsInDays === 0 ? 'Today' : `${startsInDays} Day${startsInDays === 1 ? '' : 's'} Left`,
+    };
+  });
 
   return {
-    upcoming: withCountdown(upcoming),
-    ongoing,
-    completed,
-    cancelled,
+    summary,
+    upcoming: enrichedUpcoming,
+    ongoing: enrichedOngoing,
+    completed: enrichedCompleted,
+    cancelled: enrichedCancelled,
+    statusOverview,
+    upcomingDepartures: departures,
   };
 }
 

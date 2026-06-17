@@ -1,94 +1,139 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Plane, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { LayoutGrid, List } from 'lucide-react';
 import API from '../../../api/axios';
-import PageHeader from '../../ui/PageHeader';
-import BookingStatusBadge from '../bookings/BookingStatusBadge';
-import { formatDate, formatTravelRange } from '../operationsUtils';
+import { cn } from '../../../lib/utils';
+import TripTrackerHeader from './TripTrackerHeader';
+import TripTrackerKpiStrip from './TripTrackerKpiStrip';
+import TripTrackerCard from './TripTrackerCard';
+import TripTrackerBottomPanels from './TripTrackerBottomPanels';
+import { sortTrips } from './tripTrackerUtils';
 
 const TABS = [
-  { key: 'upcoming', label: 'Upcoming', icon: Clock, color: 'text-sky-600' },
-  { key: 'ongoing', label: 'Ongoing', icon: Plane, color: 'text-emerald-600' },
-  { key: 'completed', label: 'Completed', icon: CheckCircle2, color: 'text-slate-600' },
-  { key: 'cancelled', label: 'Cancelled', icon: XCircle, color: 'text-rose-600' },
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'ongoing', label: 'Ongoing' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'cancelled', label: 'Cancelled' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'departure', label: 'Departure Date' },
+  { value: 'customer', label: 'Customer Name' },
+  { value: 'destination', label: 'Destination' },
 ];
 
 export default function TripTrackerPage() {
   const [data, setData] = useState(null);
   const [tab, setTab] = useState('upcoming');
+  const [sortBy, setSortBy] = useState('departure');
+  const [viewMode, setViewMode] = useState('grid');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    API.get('/operations-manager/trip-tracker')
+    API.get('/operations-manager/trip-tracker', { skipSuccessToast: true })
       .then((r) => setData(r.data))
       .finally(() => setLoading(false));
   }, []);
 
-  const trips = data?.[tab] || [];
+  const trips = useMemo(
+    () => sortTrips(data?.[tab], sortBy),
+    [data, tab, sortBy]
+  );
+
+  const tabCount = (key) => data?.summary?.[key] ?? data?.[key]?.length ?? 0;
 
   return (
-    <div className="space-y-6 pb-8">
-      <PageHeader
-        title="Trip Tracker"
-        description="Upcoming, ongoing, and completed trips with countdown"
-        breadcrumbs={['Operations', 'Trip Tracker']}
-      />
+    <div className="space-y-1 pb-8">
+      <TripTrackerHeader />
 
-      <div className="flex flex-wrap gap-2">
-        {TABS.map(({ key, label, icon: Icon, color }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-              tab === key ? 'bg-teal-600 text-white border-teal-600' : 'border-subtle text-content-muted hover:bg-surface-elevated'
-            }`}
+      <TripTrackerKpiStrip summary={data?.summary} loading={loading} />
+
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+        <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-slate-100/80 border border-subtle">
+          {TABS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={cn(
+                'px-4 py-2 rounded-lg text-sm font-semibold transition-all',
+                tab === key
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-content-muted hover:text-content-primary'
+              )}
+            >
+              {label}
+              <span className="ml-1.5 text-xs opacity-80">({tabCount(key)})</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="h-10 rounded-xl border border-subtle bg-white px-3 text-sm text-content-primary outline-none focus:ring-2 focus:ring-blue-500/25"
           >
-            <Icon className={`w-4 h-4 ${tab === key ? 'text-white' : color}`} />
-            {label}
-            <span className="text-xs opacity-80">({data?.[key]?.length ?? 0})</span>
-          </button>
-        ))}
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                Sort by: {opt.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex rounded-xl border border-subtle bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={cn(
+                'h-8 w-8 rounded-lg flex items-center justify-center transition-colors',
+                viewMode === 'grid' ? 'bg-blue-500 text-white' : 'text-content-muted hover:bg-slate-50'
+              )}
+              aria-label="Grid view"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={cn(
+                'h-8 w-8 rounded-lg flex items-center justify-center transition-colors',
+                viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-content-muted hover:bg-slate-50'
+              )}
+              aria-label="List view"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-content-muted animate-pulse">Loading trips…</div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="rounded-2xl bg-white border border-subtle animate-pulse h-[340px]" />
+          ))}
+        </div>
+      ) : trips.length === 0 ? (
+        <div className="rounded-2xl border border-subtle bg-white py-20 text-center text-content-muted">
+          No trips in this category
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {trips.length === 0 && (
-            <p className="col-span-full text-center py-16 text-content-muted">No trips in this category</p>
+        <div
+          className={cn(
+            'gap-5',
+            viewMode === 'grid' ? 'grid grid-cols-1 xl:grid-cols-2' : 'flex flex-col'
           )}
+        >
           {trips.map((trip, i) => (
-            <motion.div
-              key={trip._id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className="rounded-2xl border border-subtle bg-surface/80 p-5 hover:border-teal-500/20 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <Link to={`/operations-manager/booking/${trip._id}`} className="font-mono text-sm font-bold text-teal-600 hover:underline">
-                  {trip.bookingNumber}
-                </Link>
-                <BookingStatusBadge status={trip.status} />
-              </div>
-              <h3 className="font-bold text-content-primary">{trip.customerName}</h3>
-              <p className="text-sm text-content-secondary mt-0.5">{trip.destination}</p>
-              <p className="text-xs text-content-muted mt-2">{formatTravelRange(trip)}</p>
-              {trip.tripLabel && tab === 'upcoming' && (
-                <div className="mt-3 px-3 py-2 rounded-lg bg-sky-500/10 text-sky-700 text-xs font-semibold">
-                  {trip.tripLabel}
-                </div>
-              )}
-              {tab === 'ongoing' && trip.travelDate && (
-                <p className="mt-3 text-xs font-semibold text-emerald-600">Started {formatDate(trip.travelDate)}</p>
-              )}
-            </motion.div>
+            <TripTrackerCard key={trip._id} trip={trip} index={i} compact={viewMode === 'list'} />
           ))}
         </div>
       )}
+
+      <TripTrackerBottomPanels
+        statusOverview={data?.statusOverview}
+        upcomingDepartures={data?.upcomingDepartures}
+      />
     </div>
   );
 }

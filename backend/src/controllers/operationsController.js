@@ -324,7 +324,7 @@ const addDocument = asyncHandler(async (req, res) => {
 });
 
 const getTripTracker = asyncHandler(async (req, res) => {
-  const data = await ops.getTripTracker(req.branchId);
+  const data = await ops.getTripTracker(null);
   res.json(data);
 });
 
