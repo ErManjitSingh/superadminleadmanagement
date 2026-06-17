@@ -9,6 +9,9 @@ import {
   Plane,
   Hotel,
   MapPin,
+  CircleCheck,
+  Ticket,
+  BadgeCheck,
 } from 'lucide-react';
 import KpiCard from '../../dashboard/KpiCard';
 import { buildSparkline, formatINRCompact, formatPercent } from './bookingListUtils';
@@ -48,9 +51,25 @@ const KPI_CONFIG = {
   ],
 };
 
+function buildCompletedKpis(summary) {
+  const count = summary?.count || 0;
+  const vouchersIssued = summary?.vouchersIssued || 0;
+  const paidInFull = summary?.paidInFull || 0;
+
+  return [
+    { key: 'count', label: 'Total Completed', icon: CircleCheck, iconColor: 'bg-slate-600', sparkColor: '#64748B', change: '↑ 8.4%', changeLabel: 'vs last 30 days', format: (v) => v?.toLocaleString('en-IN') ?? '0' },
+    { key: 'totalAmount', label: 'Total Revenue', icon: IndianRupee, iconColor: 'bg-emerald-500', sparkColor: '#22C55E', change: '↑ 15.2%', changeLabel: 'vs last 30 days', format: (v) => formatINRCompact(v) },
+    { key: 'totalPax', label: 'Guests Served', icon: Users, iconColor: 'bg-violet-500', sparkColor: '#8B5CF6', change: '↑ 10.1%', changeLabel: 'vs last 30 days', format: (v) => v?.toLocaleString('en-IN') ?? '0' },
+    { key: 'completedThisMonth', label: 'Completed This Month', icon: CalendarDays, iconColor: 'bg-blue-500', sparkColor: '#3B82F6', change: 'This month', changeType: 'up', changeLabel: '', format: (v) => v?.toLocaleString('en-IN') ?? '0' },
+    { key: 'vouchersIssued', label: 'Vouchers Issued', icon: Ticket, iconColor: 'bg-purple-500', sparkColor: '#A855F7', change: `${formatPercent(vouchersIssued, count)} issued`, changeType: 'up', changeLabel: '', format: (v) => v?.toLocaleString('en-IN') ?? '0' },
+    { key: 'paidInFull', label: 'Paid in Full', icon: BadgeCheck, iconColor: 'bg-teal-500', sparkColor: '#14B8A6', change: `${formatPercent(paidInFull, count)} collected`, changeType: 'up', changeLabel: '', format: (v) => v?.toLocaleString('en-IN') ?? '0' },
+  ];
+}
+
 function resolveItems(status, summary) {
   if (status === 'confirmed') return buildConfirmedKpis(summary);
   if (status === 'active') return buildActiveKpis(summary);
+  if (status === 'completed') return buildCompletedKpis(summary);
   return KPI_CONFIG[status] || KPI_CONFIG.pending;
 }
 
@@ -58,7 +77,7 @@ export default function BookingKpiStrip({ summary, status = 'pending', loading }
   const items = resolveItems(status, summary);
   const colClass =
     items.length >= 6 ? 'xl:grid-cols-6' : items.length >= 5 ? 'xl:grid-cols-5' : 'xl:grid-cols-4';
-  const compact = status === 'active';
+  const compact = status === 'active' || status === 'completed';
 
   if (loading && !summary) {
     return (

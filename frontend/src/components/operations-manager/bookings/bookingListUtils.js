@@ -86,6 +86,16 @@ export function resolveListStatus(booking, listStatus = 'pending') {
     return resolveActiveTripStatus(booking);
   }
 
+  if (listStatus === 'completed') {
+    if (booking.voucherStatus === 'redeemed') {
+      return { label: 'Fulfilled', className: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' };
+    }
+    if (booking.paymentStatus === 'paid') {
+      return { label: 'Completed', className: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200' };
+    }
+    return { label: 'Closed', className: 'bg-violet-50 text-violet-700 ring-1 ring-violet-200' };
+  }
+
   if (listStatus === 'confirmed' || booking.status === 'confirmed') {
     return { label: 'Confirmed', className: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-300' };
   }
@@ -173,6 +183,14 @@ export function resolveActiveTripStatus(booking) {
     return { label: 'Traveling', className: 'bg-sky-100 text-sky-700' };
   }
   return { label: 'In Progress', className: 'bg-emerald-100 text-emerald-700' };
+}
+
+export function formatCompletedReturnDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  const date = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
+  return `${date} (${day})`;
 }
 
 export function formatActiveTravelDate(dateStr) {

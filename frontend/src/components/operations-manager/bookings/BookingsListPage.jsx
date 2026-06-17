@@ -15,6 +15,7 @@ import BookingRowActions from './BookingRowActions';
 import {
   countActiveBookingFilters,
   formatActiveTravelDate,
+  formatCompletedReturnDate,
   formatTravelDateWithDay,
   getAvatarColor,
   getCabDisplayDetail,
@@ -48,9 +49,9 @@ const PAGE_META = {
   },
   completed: {
     title: 'Completed Trips',
-    desc: 'Successfully fulfilled travel bookings',
-    searchPlaceholder: 'Search bookings...',
-    paginationLabel: 'bookings',
+    desc: 'Successfully fulfilled bookings — review trip closure & voucher status',
+    searchPlaceholder: 'Search by booking #, customer, destination, hotel...',
+    paginationLabel: 'completed trips',
   },
 };
 
@@ -81,8 +82,8 @@ function ConfirmationCell({ value, detail, listStatus, icon: Icon }) {
 }
 
 function buildColumns(listStatus, selection) {
-  const travelDateStyle = listStatus === 'confirmed' ? 'parentheses' : 'default';
-  const showDetail = listStatus === 'confirmed' || listStatus === 'active';
+  const travelDateStyle = listStatus === 'confirmed' || listStatus === 'completed' ? 'parentheses' : 'default';
+  const showDetail = listStatus === 'confirmed' || listStatus === 'active' || listStatus === 'completed';
   const cols = [];
 
   if (listStatus === 'active') {
@@ -185,6 +186,13 @@ function buildColumns(listStatus, selection) {
             </span>
           );
         }
+        if (listStatus === 'completed') {
+          return (
+            <span className="text-content-secondary">
+              {formatTravelDateWithDay(dateStr, travelDateStyle)}
+            </span>
+          );
+        }
         return (
           <span className="text-content-secondary">
             {formatTravelDateWithDay(dateStr, travelDateStyle)}
@@ -250,6 +258,20 @@ function buildColumns(listStatus, selection) {
     }
   );
 
+  if (listStatus === 'completed') {
+    const returnIdx = cols.findIndex((c) => c.key === 'travel') + 1;
+    cols.splice(returnIdx, 0, {
+      key: 'return',
+      header: 'Return Date',
+      className: 'whitespace-nowrap text-sm',
+      render: (b) => (
+        <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-100">
+          {formatCompletedReturnDate(b.returnDate || b.travelEnd)}
+        </span>
+      ),
+    });
+  }
+
   return cols;
 }
 
@@ -257,7 +279,7 @@ export default function BookingsListPage() {
   const navigate = useNavigate();
   const { status } = useParams();
   const meta = PAGE_META[status] || PAGE_META.pending;
-  const showKpis = ['pending', 'confirmed', 'active'].includes(status);
+  const showKpis = ['pending', 'confirmed', 'active', 'completed'].includes(status);
 
   const [bookings, setBookings] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -349,7 +371,13 @@ export default function BookingsListPage() {
         dateFrom={appliedFilters.dateFrom}
         dateTo={appliedFilters.dateTo}
         status={status}
-        badgeClassName={status === 'confirmed' || status === 'active' ? 'bg-sky-100 text-sky-700' : undefined}
+        badgeClassName={
+          status === 'confirmed' || status === 'active'
+            ? 'bg-sky-100 text-sky-700'
+            : status === 'completed'
+              ? 'bg-slate-100 text-slate-700'
+              : undefined
+        }
       />
 
       {showKpis && <BookingKpiStrip summary={summary} status={status} loading={loading} />}
@@ -378,8 +406,12 @@ export default function BookingsListPage() {
           data={bookings}
           loading={loading}
           emptyIcon={ClipboardList}
-          emptyTitle="No bookings in this list"
-          emptyDescription="Bookings will appear here once leads are converted and payments confirmed."
+          emptyTitle={status === 'completed' ? 'No completed trips yet' : 'No bookings in this list'}
+          emptyDescription={
+            status === 'completed'
+              ? 'Trips appear here once bookings are marked completed after successful travel.'
+              : 'Bookings will appear here once leads are converted and payments confirmed.'
+          }
           onRowClick={(b) => navigate(`/operations-manager/booking/${b._id}`)}
           className="border-0 shadow-none rounded-none"
         />

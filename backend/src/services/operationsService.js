@@ -453,19 +453,34 @@ async function aggregateBookingSummary(filter) {
             ],
           },
         },
-        todayPending: {
+        completedThisMonth: {
           $sum: {
             $cond: [
               {
                 $and: [
-                  { $gte: ['$createdAt', todayStart] },
-                  { $lte: ['$createdAt', todayEnd] },
+                  { $gte: ['$returnDate', new Date(new Date().getFullYear(), new Date().getMonth(), 1)] },
+                  { $lte: ['$returnDate', todayEnd] },
                 ],
               },
               1,
               0,
             ],
           },
+        },
+        vouchersIssued: {
+          $sum: {
+            $cond: [
+              { $in: ['$voucherStatus', ['issued', 'sent', 'redeemed']] },
+              1,
+              0,
+            ],
+          },
+        },
+        vouchersRedeemed: {
+          $sum: { $cond: [{ $eq: ['$voucherStatus', 'redeemed'] }, 1, 0] },
+        },
+        paidInFull: {
+          $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] },
         },
       },
     },
@@ -482,6 +497,10 @@ async function aggregateBookingSummary(filter) {
     cabsPending: 0,
     todayOnTrip: 0,
     returningToday: 0,
+    completedThisMonth: 0,
+    vouchersIssued: 0,
+    vouchersRedeemed: 0,
+    paidInFull: 0,
   };
 }
 
