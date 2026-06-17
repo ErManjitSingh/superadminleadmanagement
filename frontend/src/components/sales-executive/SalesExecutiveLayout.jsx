@@ -6,12 +6,7 @@ import AppSidebar from '../sidebar/AppSidebar';
 import TopBar from '../TopBar';
 import MissedFollowUpAlert from '../notifications/MissedFollowUpAlert';
 import SalesExecutiveMobileNav from './SalesExecutiveMobileNav';
-import { FileText } from 'lucide-react';
 import { salesExecutiveNavItems } from './sidebar-config';
-
-const salesExecutiveQuickActions = [
-  { path: '/sales-executive/quotations/new', label: 'Create Quotation', icon: FileText },
-];
 
 function SalesExecutiveShell() {
   const { user } = useAuth();
@@ -23,6 +18,7 @@ function SalesExecutiveShell() {
     brandSubtitle: 'Sales Executive',
     accent: 'sky',
     profilePath: '/sales-executive/profile',
+    quickActions: [],
   };
 
   return (

@@ -17,6 +17,7 @@ function TeamLeaderShell() {
     brandSubtitle: 'Team Leader',
     accent: 'amber',
     profilePath: '/team-leader/profile',
+    quickActions: [],
   };
 
   return (

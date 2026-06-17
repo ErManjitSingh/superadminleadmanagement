@@ -53,7 +53,7 @@ export default function LeadContactActions({
           size="lg"
           showLabel
           label="Send Email"
-          className="!rounded-xl !h-11 !px-5 !bg-blue-600 hover:!bg-blue-500 !text-white !border-0 !shadow-sm !font-semibold"
+          className="!rounded-xl !h-11 !px-5 !bg-green-800 hover:!bg-green-700 !text-white !border-0 !shadow-sm !font-semibold"
         />
 
         {onCreateQuote && (

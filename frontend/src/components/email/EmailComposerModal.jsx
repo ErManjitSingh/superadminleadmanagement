@@ -395,8 +395,7 @@ export default function EmailComposerModal({
             type="button"
             onClick={handleSend}
             disabled={submitting || !to.trim() || !subject.trim() || !message.trim()}
-            className="gap-2 rounded-xl px-5 text-white shadow-lg shadow-sky-600/25 border-0"
-            style={{ background: `linear-gradient(135deg, ${accent.primary}, ${accent.secondary})` }}
+            className="gap-2 rounded-xl px-5 text-white bg-green-800 hover:bg-green-700 shadow-lg shadow-green-900/25 border-0"
           >
             <Send className="w-4 h-4" />
             {submitting ? 'Sending…' : 'Send Email'}

@@ -32,8 +32,8 @@ export default function EmailActionButton({
         disabled={disabled}
         title={disabled ? 'No email on lead' : 'Send Email'}
         onClick={() => setOpen(true)}
-        variant="outline"
-        className={`rounded-xl gap-2 font-semibold text-sky-800 border-sky-400/50 bg-gradient-to-r from-sky-50 to-indigo-50 hover:from-sky-100 hover:to-indigo-100 shadow-sm shadow-sky-500/10 ${sizeClass} ${className}`}
+        variant="default"
+        className={`rounded-xl gap-2 font-semibold text-white border-0 bg-green-800 hover:bg-green-700 shadow-sm shadow-green-900/20 ${sizeClass} ${className}`}
       >
         <Mail className="w-4 h-4" />
         {showLabel ? label : null}
