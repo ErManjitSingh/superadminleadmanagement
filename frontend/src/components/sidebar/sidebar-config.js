@@ -7,7 +7,6 @@ import {
   Globe2,
   UsersRound,
   BarChart3,
-  Calendar,
   Bell,
   Settings,
   Clock,
@@ -18,7 +17,6 @@ import {
   Briefcase,
   Plane,
   CreditCard,
-  ListTodo,
 } from 'lucide-react';
 import { operationsAdminMenuChildren } from '../operations-manager/operations-nav-config';
 import { leadManagementSections } from './lead-management-config';
@@ -143,15 +141,6 @@ export const mainNavItems = [
     icon: Mail,
     permission: { module: 'email', action: 'send' },
   },
-  {
-    path: '/followups',
-    label: 'Tasks & Follow-ups',
-    icon: ListTodo,
-    badgeKey: 'followups.due',
-    countKey: 'followups.total',
-    permission: { module: 'leads', action: 'view' },
-  },
-  { path: '/calendar', label: 'Calendar', icon: Calendar, badgeKey: 'calendar.today' },
   {
     id: 'reports-analytics',
     label: 'Reports & Analytics',

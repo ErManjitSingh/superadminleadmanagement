@@ -193,12 +193,122 @@ async function getDashboard(branchId) {
   return cacheService.getOrSet(key, () => buildDashboard(branchId), OPS_DASHBOARD_TTL);
 }
 
+async function aggregateBookingSummary(filter) {
+  const todayStart = startOfDay();
+  const todayEnd = endOfDay();
+
+  const [row] = await Booking.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        totalAmount: { $sum: { $ifNull: ['$totalAmount', 0] } },
+        totalPax: {
+          $sum: {
+            $add: [{ $ifNull: ['$adults', 0] }, { $ifNull: ['$children', 0] }],
+          },
+        },
+        hotelsConfirmed: {
+          $sum: { $cond: [{ $eq: ['$hotelConfirmation', 'confirmed'] }, 1, 0] },
+        },
+        cabsConfirmed: {
+          $sum: { $cond: [{ $eq: ['$cabConfirmation', 'confirmed'] }, 1, 0] },
+        },
+        hotelsPending: {
+          $sum: { $cond: [{ $eq: ['$hotelConfirmation', 'pending'] }, 1, 0] },
+        },
+        cabsPending: {
+          $sum: { $cond: [{ $eq: ['$cabConfirmation', 'pending'] }, 1, 0] },
+        },
+        todayOnTrip: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gte: ['$travelDate', todayStart] },
+                  { $lte: ['$travelDate', todayEnd] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        returningToday: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gte: ['$returnDate', todayStart] },
+                  { $lte: ['$returnDate', todayEnd] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        todayPending: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gte: ['$createdAt', todayStart] },
+                  { $lte: ['$createdAt', todayEnd] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+      },
+    },
+  ]);
+
+  return row || {
+    count: 0,
+    totalAmount: 0,
+    totalPax: 0,
+    todayPending: 0,
+    hotelsConfirmed: 0,
+    cabsConfirmed: 0,
+    hotelsPending: 0,
+    cabsPending: 0,
+    todayOnTrip: 0,
+    returningToday: 0,
+  };
+}
+
 async function listBookings(query = {}, { branchId } = {}) {
-  const { page, limit, skip } = parsePagination(query, { defaultLimit: 20, maxLimit: 100 });
+  const { page, limit, skip } = parsePagination(query, { defaultLimit: 10, maxLimit: 100 });
   const filter = withBranch(notArchivedFilter(), branchId);
 
   const statusList = resolveStatusFilter(query.status);
   if (statusList) filter.status = { $in: statusList };
+
+  if (query.bookingStatus) {
+    filter.status = query.bookingStatus;
+  }
+
+  if (query.destination?.trim()) {
+    filter.destination = { $regex: query.destination.trim(), $options: 'i' };
+  }
+
+  if (query.package?.trim()) {
+    filter.packageName = { $regex: query.package.trim(), $options: 'i' };
+  }
+
+  if (query.dateFrom || query.dateTo) {
+    filter.travelDate = {};
+    if (query.dateFrom) filter.travelDate.$gte = new Date(query.dateFrom);
+    if (query.dateTo) {
+      const end = new Date(query.dateTo);
+      end.setHours(23, 59, 59, 999);
+      filter.travelDate.$lte = end;
+    }
+  }
 
   if (query.search?.trim()) {
     const q = query.search.trim();
@@ -207,15 +317,26 @@ async function listBookings(query = {}, { branchId } = {}) {
       { bookingNumber: { $regex: q, $options: 'i' } },
       { destination: { $regex: q, $options: 'i' } },
       { customerPhone: { $regex: q, $options: 'i' } },
+      { packageName: { $regex: q, $options: 'i' } },
     ];
   }
 
-  const [rows, total] = await Promise.all([
+  const [rows, total, summary, destinations, packages] = await Promise.all([
     Booking.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
     Booking.countDocuments(filter),
+    aggregateBookingSummary(filter),
+    Booking.distinct('destination', filter),
+    Booking.distinct('packageName', { ...filter, packageName: { $nin: [null, ''] } }),
   ]);
 
-  return paginatedResponse(rows, { page, limit, total });
+  return {
+    ...paginatedResponse(rows, { page, limit, total }),
+    summary,
+    filters: {
+      destinations: destinations.filter(Boolean).sort(),
+      packages: packages.filter(Boolean).sort(),
+    },
+  };
 }
 
 async function createBooking(payload, actor) {
