@@ -39,9 +39,11 @@ async function ensureBranch(name, code) {
 }
 
 async function ensureBooking(data) {
-  const exists = await Booking.findOne({ bookingNumber: data.bookingNumber });
-  if (exists) return exists;
-  return Booking.create(data);
+  return Booking.findOneAndUpdate(
+    { bookingNumber: data.bookingNumber },
+    { $set: data },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 }
 
 async function ensureLead(leadData, branchId, assignedTo) {
