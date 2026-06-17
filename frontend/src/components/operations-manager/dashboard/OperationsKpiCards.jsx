@@ -1,44 +1,66 @@
-import { motion } from 'framer-motion';
 import {
-  Clock, Hotel, Car, Plane, CircleCheck, Calendar, Ticket, Compass,
+  Calendar,
+  Car,
+  CircleCheck,
+  Clock,
+  Compass,
+  Hotel,
+  Plane,
+  Ticket,
 } from 'lucide-react';
+import KpiCard from '../../dashboard/KpiCard';
+import { buildSparkline } from '../bookings/bookingListUtils';
 
-const cards = [
-  { key: 'todaysArrivals', label: "Today's Arrivals", icon: Calendar, gradient: 'from-sky-500 to-blue-600' },
-  { key: 'todaysDepartures', label: "Today's Departures", icon: Plane, gradient: 'from-indigo-500 to-violet-600' },
-  { key: 'upcomingTours', label: 'Upcoming Tours', icon: Compass, gradient: 'from-cyan-500 to-teal-600' },
-  { key: 'pendingBookings', label: 'Pending Bookings', icon: Clock, gradient: 'from-amber-500 to-orange-600' },
-  { key: 'hotelPending', label: 'Hotel Pending', icon: Hotel, gradient: 'from-teal-500 to-cyan-600' },
-  { key: 'cabPending', label: 'Cab Pending', icon: Car, gradient: 'from-violet-500 to-purple-600' },
-  { key: 'activityPending', label: 'Activity Pending', icon: Compass, gradient: 'from-pink-500 to-rose-600' },
-  { key: 'voucherPending', label: 'Voucher Pending', icon: Ticket, gradient: 'from-fuchsia-500 to-purple-600' },
-  { key: 'activeTrips', label: 'Active Trips', icon: Plane, gradient: 'from-emerald-500 to-green-600' },
-  { key: 'completedTrips', label: 'Completed', icon: CircleCheck, gradient: 'from-slate-500 to-zinc-600' },
+const KPI_CONFIG = [
+  { key: 'todaysArrivals', label: "Today's Arrivals", icon: Calendar, iconColor: 'bg-blue-500', sparkColor: '#3B82F6' },
+  { key: 'todaysDepartures', label: "Today's Departures", icon: Plane, iconColor: 'bg-violet-500', sparkColor: '#8B5CF6' },
+  { key: 'upcomingTours', label: 'Upcoming Tours', icon: Compass, iconColor: 'bg-teal-500', sparkColor: '#14B8A6' },
+  { key: 'pendingBookings', label: 'Pending Bookings', icon: Clock, iconColor: 'bg-orange-500', sparkColor: '#F97316' },
+  { key: 'hotelPending', label: 'Hotel Pending', icon: Hotel, iconColor: 'bg-sky-500', sparkColor: '#0EA5E9' },
+  { key: 'cabPending', label: 'Cab Pending', icon: Car, iconColor: 'bg-pink-500', sparkColor: '#EC4899' },
+  { key: 'activityPending', label: 'Activity Pending', icon: Compass, iconColor: 'bg-red-500', sparkColor: '#EF4444' },
+  { key: 'voucherPending', label: 'Voucher Pending', icon: Ticket, iconColor: 'bg-purple-500', sparkColor: '#A855F7' },
+  { key: 'activeTrips', label: 'Active Trips', icon: Plane, iconColor: 'bg-emerald-500', sparkColor: '#22C55E' },
+  { key: 'completedTrips', label: 'Completed', icon: CircleCheck, iconColor: 'bg-slate-500', sparkColor: '#64748B' },
 ];
 
-export default function OperationsKpiCards({ kpis }) {
+export default function OperationsKpiCards({ kpis, kpiTrends, sparklines, loading }) {
+  if (loading && !kpis) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        {[...Array(10)].map((_, i) => (
+          <div key={i} className="rounded-2xl bg-white border border-subtle animate-pulse h-[148px]" />
+        ))}
+      </div>
+    );
+  }
+
   if (!kpis) return null;
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
-      {cards.map(({ key, label, icon: Icon, gradient }, i) => (
-        <motion.div
-          key={key}
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.03 }}
-          className="relative overflow-hidden rounded-2xl border border-subtle bg-surface/80 backdrop-blur-xl p-4 min-h-[110px]"
-        >
-          <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-[0.07]`} />
-          <div className="relative">
-            <div className={`inline-flex p-2 rounded-xl bg-gradient-to-br ${gradient} text-white shadow-md mb-2`}>
-              <Icon className="w-4 h-4" />
-            </div>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-content-muted leading-tight">{label}</p>
-            <p className="text-2xl font-bold text-content-primary mt-1 tabular-nums">{kpis[key] ?? 0}</p>
-          </div>
-        </motion.div>
-      ))}
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+      {KPI_CONFIG.map((item, i) => {
+        const trend = kpiTrends?.[item.key] || { change: 'No change', changeType: 'neutral' };
+        const sparkData = sparklines?.[item.key]?.length
+          ? sparklines[item.key]
+          : buildSparkline(kpis[item.key]);
+
+        return (
+          <KpiCard
+            key={item.key}
+            label={item.label}
+            value={(kpis[item.key] ?? 0).toLocaleString('en-IN')}
+            change={trend.change}
+            changeType={trend.changeType || 'neutral'}
+            changeLabel={trend.changeType === 'neutral' ? '' : 'vs last 7 days'}
+            icon={item.icon}
+            iconColor={item.iconColor}
+            sparkColor={item.sparkColor}
+            sparkData={sparkData}
+            index={i}
+          />
+        );
+      })}
     </div>
   );
 }

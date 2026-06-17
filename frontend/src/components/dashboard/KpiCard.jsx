@@ -18,6 +18,7 @@ export default function KpiCard({
 }) {
   const chartData = sparkData.map((v, i) => ({ i, v }));
   const isUp = changeType === 'up';
+  const isNeutral = changeType === 'neutral';
 
   return (
     <motion.div
@@ -38,10 +39,10 @@ export default function KpiCard({
           <span
             className={cn(
               'inline-flex items-center gap-0.5 text-[11px] font-semibold shrink-0',
-              isUp ? 'text-emerald-600' : 'text-red-500'
+              isNeutral ? 'text-content-muted' : isUp ? 'text-emerald-600' : 'text-red-500'
             )}
           >
-            {isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {!isNeutral && (isUp ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
             {change}
           </span>
         )}

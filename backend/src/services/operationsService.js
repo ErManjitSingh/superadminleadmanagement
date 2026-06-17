@@ -1,4 +1,5 @@
 const Booking = require('../models/Booking');
+const Branch = require('../models/Branch');
 const Vendor = require('../models/Vendor');
 const Activity = require('../models/Activity');
 const Voucher = require('../models/Voucher');
@@ -54,6 +55,42 @@ function resolveStatusFilter(statusKey) {
 
 function notArchivedFilter() {
   return { archivedAt: { $exists: false } };
+}
+
+function pctChangeLabel(current, previous) {
+  if (!previous && !current) return { change: 'No change', changeType: 'neutral' };
+  if (!previous && current) return { change: '↑ 100%', changeType: 'up' };
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct === 0) return { change: 'No change', changeType: 'neutral' };
+  return pct > 0
+    ? { change: `↑ ${Math.abs(pct)}%`, changeType: 'up' }
+    : { change: `↓ ${Math.abs(pct)}%`, changeType: 'down' };
+}
+
+function rollingWeekRange(weeksAgo = 0) {
+  const end = endOfDay();
+  end.setDate(end.getDate() - weeksAgo * 7);
+  const start = startOfDay(end);
+  start.setDate(start.getDate() - 6);
+  return { start, end };
+}
+
+async function dailyBookingCounts(filterBuilder, days = 7) {
+  const series = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    series.push(await Booking.countDocuments(filterBuilder(startOfDay(d), endOfDay(d))));
+  }
+  return series;
+}
+
+function mapStatusToCategory(status) {
+  if (STATUS_ROUTE_MAP.pending.includes(status)) return 'pending';
+  if (STATUS_ROUTE_MAP.confirmed.includes(status)) return 'confirmed';
+  if (STATUS_ROUTE_MAP.active.includes(status)) return 'active';
+  if (STATUS_ROUTE_MAP.completed.includes(status)) return 'completed';
+  return null;
 }
 
 async function nextBookingNumber() {
@@ -151,6 +188,148 @@ async function buildDashboard(branchId) {
     status: { $in: ['confirmed', 'in_progress', 'booking_received'] },
   });
 
+  const thisWeek = rollingWeekRange(0);
+  const lastWeek = rollingWeekRange(1);
+
+  const [
+    statusBreakdown,
+    guestsOnTripAgg,
+    branchDocs,
+    trendUpcomingThis,
+    trendUpcomingLast,
+    trendPendingThis,
+    trendPendingLast,
+    trendHotelThis,
+    trendHotelLast,
+    trendCabThis,
+    trendCabLast,
+    trendActivityThis,
+    trendActivityLast,
+    trendVoucherThis,
+    trendVoucherLast,
+    trendActiveThis,
+    trendActiveLast,
+    trendCompletedThis,
+    trendCompletedLast,
+    sparklines,
+  ] = await Promise.all([
+    Booking.aggregate([{ $match: base }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Booking.aggregate([
+      { $match: { ...base, status: 'in_progress' } },
+      {
+        $group: {
+          _id: null,
+          guests: { $sum: { $add: [{ $ifNull: ['$adults', 0] }, { $ifNull: ['$children', 0] }] } },
+          bookings: { $sum: 1 },
+        },
+      },
+    ]),
+    Branch.find({}).select('name code').lean(),
+    Booking.countDocuments({
+      ...base,
+      travelDate: { $gt: todayEnd, $lte: thisWeek.end },
+      status: { $in: ['confirmed', 'in_progress', 'booking_received', 'pending_verification'] },
+    }),
+    Booking.countDocuments({
+      ...base,
+      travelDate: { $gt: lastWeek.end, $lte: lastWeek.end },
+      status: { $in: ['confirmed', 'in_progress', 'booking_received', 'pending_verification'] },
+    }),
+    Booking.countDocuments({ ...base, status: { $in: STATUS_ROUTE_MAP.pending }, createdAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...base, status: { $in: STATUS_ROUTE_MAP.pending }, createdAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...pendingHotel, updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...pendingHotel, updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...pendingCab, updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...pendingCab, updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...pendingActivity, updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...pendingActivity, updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...pendingVoucher, updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...pendingVoucher, updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'in_progress', updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'in_progress', updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'completed', updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'completed', updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Promise.all({
+      todaysArrivals: dailyBookingCounts(
+        (start, end) => ({ ...base, travelDate: { $gte: start, $lte: end } })
+      ),
+      todaysDepartures: dailyBookingCounts(
+        (start, end) => ({ ...base, returnDate: { $gte: start, $lte: end } })
+      ),
+      upcomingTours: dailyBookingCounts(
+        (start, end) => ({
+          ...base,
+          createdAt: { $gte: start, $lte: end },
+          travelDate: { $gt: end },
+          status: { $in: ['confirmed', 'in_progress', 'booking_received', 'pending_verification'] },
+        })
+      ),
+      pendingBookings: dailyBookingCounts(
+        (start, end) => ({
+          ...base,
+          createdAt: { $gte: start, $lte: end },
+          status: { $in: STATUS_ROUTE_MAP.pending },
+        })
+      ),
+      hotelPending: dailyBookingCounts(
+        (start, end) => ({ ...pendingHotel, updatedAt: { $gte: start, $lte: end } })
+      ),
+      cabPending: dailyBookingCounts(
+        (start, end) => ({ ...pendingCab, updatedAt: { $gte: start, $lte: end } })
+      ),
+      activityPending: dailyBookingCounts(
+        (start, end) => ({ ...pendingActivity, updatedAt: { $gte: start, $lte: end } })
+      ),
+      voucherPending: dailyBookingCounts(
+        (start, end) => ({ ...pendingVoucher, updatedAt: { $gte: start, $lte: end } })
+      ),
+      activeTrips: dailyBookingCounts(
+        (start, end) => ({
+          ...base,
+          status: 'in_progress',
+          updatedAt: { $gte: start, $lte: end },
+        })
+      ),
+      completedTrips: dailyBookingCounts(
+        (start, end) => ({
+          ...base,
+          status: 'completed',
+          updatedAt: { $gte: start, $lte: end },
+        })
+      ),
+    }),
+  ]);
+
+  const branchMap = Object.fromEntries(branchDocs.map((b) => [String(b._id), b.name]));
+  const enrichedBranchStats = branchStats
+    .map((b) => ({
+      id: b._id,
+      name: branchMap[String(b._id)] || 'Unassigned',
+      count: b.count,
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  const bookingsByStatus = { pending: 0, confirmed: 0, active: 0, completed: 0 };
+  statusBreakdown.forEach((row) => {
+    const cat = mapStatusToCategory(row._id);
+    if (cat) bookingsByStatus[cat] += row.count;
+  });
+
+  const guestsOnTrip = guestsOnTripAgg[0] || { guests: 0, bookings: 0 };
+
+  const kpiTrends = {
+    todaysArrivals: pctChangeLabel(todaysArrivals, 0),
+    todaysDepartures: pctChangeLabel(todaysDepartures, 0),
+    upcomingTours: pctChangeLabel(trendUpcomingThis, trendUpcomingLast),
+    pendingBookings: pctChangeLabel(trendPendingThis, trendPendingLast),
+    hotelPending: pctChangeLabel(trendHotelThis, trendHotelLast),
+    cabPending: pctChangeLabel(trendCabThis, trendCabLast),
+    activityPending: pctChangeLabel(trendActivityThis, trendActivityLast),
+    voucherPending: pctChangeLabel(trendVoucherThis, trendVoucherLast),
+    activeTrips: pctChangeLabel(trendActiveThis, trendActiveLast),
+    completedTrips: pctChangeLabel(trendCompletedThis, trendCompletedLast),
+  };
+
   return {
     kpis: {
       todaysArrivals,
@@ -171,8 +350,46 @@ async function buildDashboard(branchId) {
       pendingConfirmations: hotelPending + cabPending,
       pendingTasks,
       tripsStartingTomorrow,
+      guestsOnTrip: guestsOnTrip.guests,
+      onTripBookings: guestsOnTrip.bookings,
     },
-    branchStats,
+    hubStats: {
+      onTrip: activeTrips,
+      onTripGuests: guestsOnTrip.guests,
+      onTripBookings: guestsOnTrip.bookings,
+      departuresToday: todaysDepartures,
+      arrivalsToday: todaysArrivals,
+    },
+    kpiTrends,
+    sparklines,
+    branchStats: enrichedBranchStats,
+    bookingsByStatus: [
+      { status: 'confirmed', label: 'Confirmed', count: bookingsByStatus.confirmed },
+      { status: 'pending', label: 'Pending', count: bookingsByStatus.pending },
+      { status: 'active', label: 'Active', count: bookingsByStatus.active },
+      { status: 'completed', label: 'Completed', count: bookingsByStatus.completed },
+    ],
+    todaySchedule: {
+      arrivals: {
+        count: todaysArrivals,
+        subtitle: todaysArrivals ? `${todaysArrivals} arrival${todaysArrivals === 1 ? '' : 's'} today` : 'No arrivals today',
+      },
+      departures: {
+        count: todaysDepartures,
+        subtitle: todaysDepartures ? `${todaysDepartures} departure${todaysDepartures === 1 ? '' : 's'} today` : 'No departures today',
+      },
+      guestsOnTrip: {
+        count: guestsOnTrip.guests,
+        bookings: guestsOnTrip.bookings,
+        subtitle: guestsOnTrip.bookings
+          ? `Across ${guestsOnTrip.bookings} booking${guestsOnTrip.bookings === 1 ? '' : 's'}`
+          : 'No guests on trip',
+      },
+      pendingTasks: {
+        count: pendingTasks,
+        subtitle: pendingTasks ? 'Need immediate attention' : 'All tasks clear',
+      },
+    },
     recentBookings,
     pendingConfirmations,
     openTickets: openTicketsList,
