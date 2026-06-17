@@ -85,6 +85,41 @@ async function dailyBookingCounts(filterBuilder, days = 7) {
   return series;
 }
 
+async function buildOpsSparklines(base, pendingHotel, pendingCab, pendingActivity, pendingVoucher) {
+  const defs = {
+    todaysArrivals: (start, end) => ({ ...base, travelDate: { $gte: start, $lte: end } }),
+    todaysDepartures: (start, end) => ({ ...base, returnDate: { $gte: start, $lte: end } }),
+    upcomingTours: (start, end) => ({
+      ...base,
+      createdAt: { $gte: start, $lte: end },
+      travelDate: { $gt: end },
+      status: { $in: ['confirmed', 'in_progress', 'booking_received', 'pending_verification'] },
+    }),
+    pendingBookings: (start, end) => ({
+      ...base,
+      createdAt: { $gte: start, $lte: end },
+      status: { $in: STATUS_ROUTE_MAP.pending },
+    }),
+    hotelPending: (start, end) => ({ ...pendingHotel, updatedAt: { $gte: start, $lte: end } }),
+    cabPending: (start, end) => ({ ...pendingCab, updatedAt: { $gte: start, $lte: end } }),
+    activityPending: (start, end) => ({ ...pendingActivity, updatedAt: { $gte: start, $lte: end } }),
+    voucherPending: (start, end) => ({ ...pendingVoucher, updatedAt: { $gte: start, $lte: end } }),
+    activeTrips: (start, end) => ({
+      ...base,
+      status: 'in_progress',
+      updatedAt: { $gte: start, $lte: end },
+    }),
+    completedTrips: (start, end) => ({
+      ...base,
+      status: 'completed',
+      updatedAt: { $gte: start, $lte: end },
+    }),
+  };
+  const keys = Object.keys(defs);
+  const series = await Promise.all(keys.map((key) => dailyBookingCounts(defs[key])));
+  return Object.fromEntries(keys.map((key, i) => [key, series[i]]));
+}
+
 function mapStatusToCategory(status) {
   if (STATUS_ROUTE_MAP.pending.includes(status)) return 'pending';
   if (STATUS_ROUTE_MAP.confirmed.includes(status)) return 'confirmed';
@@ -249,55 +284,7 @@ async function buildDashboard(branchId) {
     Booking.countDocuments({ ...base, status: 'in_progress', updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
     Booking.countDocuments({ ...base, status: 'completed', updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
     Booking.countDocuments({ ...base, status: 'completed', updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
-    Promise.all({
-      todaysArrivals: dailyBookingCounts(
-        (start, end) => ({ ...base, travelDate: { $gte: start, $lte: end } })
-      ),
-      todaysDepartures: dailyBookingCounts(
-        (start, end) => ({ ...base, returnDate: { $gte: start, $lte: end } })
-      ),
-      upcomingTours: dailyBookingCounts(
-        (start, end) => ({
-          ...base,
-          createdAt: { $gte: start, $lte: end },
-          travelDate: { $gt: end },
-          status: { $in: ['confirmed', 'in_progress', 'booking_received', 'pending_verification'] },
-        })
-      ),
-      pendingBookings: dailyBookingCounts(
-        (start, end) => ({
-          ...base,
-          createdAt: { $gte: start, $lte: end },
-          status: { $in: STATUS_ROUTE_MAP.pending },
-        })
-      ),
-      hotelPending: dailyBookingCounts(
-        (start, end) => ({ ...pendingHotel, updatedAt: { $gte: start, $lte: end } })
-      ),
-      cabPending: dailyBookingCounts(
-        (start, end) => ({ ...pendingCab, updatedAt: { $gte: start, $lte: end } })
-      ),
-      activityPending: dailyBookingCounts(
-        (start, end) => ({ ...pendingActivity, updatedAt: { $gte: start, $lte: end } })
-      ),
-      voucherPending: dailyBookingCounts(
-        (start, end) => ({ ...pendingVoucher, updatedAt: { $gte: start, $lte: end } })
-      ),
-      activeTrips: dailyBookingCounts(
-        (start, end) => ({
-          ...base,
-          status: 'in_progress',
-          updatedAt: { $gte: start, $lte: end },
-        })
-      ),
-      completedTrips: dailyBookingCounts(
-        (start, end) => ({
-          ...base,
-          status: 'completed',
-          updatedAt: { $gte: start, $lte: end },
-        })
-      ),
-    }),
+    buildOpsSparklines(base, pendingHotel, pendingCab, pendingActivity, pendingVoucher),
   ]);
 
   const branchMap = Object.fromEntries(branchDocs.map((b) => [String(b._id), b.name]));

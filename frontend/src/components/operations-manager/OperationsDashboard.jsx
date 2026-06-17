@@ -5,12 +5,28 @@ import OperationsKpiCards from './dashboard/OperationsKpiCards';
 import OperationsDashboardCharts from './dashboard/OperationsDashboardCharts';
 
 export default function OperationsDashboard() {
-  const { data, isLoading, isFetching } = useDashboardQuery('/operations-manager/dashboard');
+  const { data, isLoading, isFetching, isError, error, refetch } = useDashboardQuery('/operations-manager/dashboard');
 
   if (isLoading && !data) {
     return (
       <div className="flex justify-center py-32">
         <div className="w-9 h-9 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError && !data) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center max-w-lg mx-auto mt-16">
+        <p className="font-semibold text-rose-800 mb-1">Dashboard could not load</p>
+        <p className="text-sm text-rose-600 mb-4">{error?.response?.data?.message || error?.message || 'Please try again.'}</p>
+        <button
+          type="button"
+          onClick={() => refetch()}
+          className="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }

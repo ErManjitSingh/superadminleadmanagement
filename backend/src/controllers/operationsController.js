@@ -17,7 +17,8 @@ const {
 } = require('../services/operationsQuotationSyncService');
 
 const getDashboard = asyncHandler(async (req, res) => {
-  const data = await ops.getDashboard(req.branchId);
+  // Command center shows org-wide metrics across all branches.
+  const data = await ops.getDashboard(null);
   res.json(data);
 });
 
