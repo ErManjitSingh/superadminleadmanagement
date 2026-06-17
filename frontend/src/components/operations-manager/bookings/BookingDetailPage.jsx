@@ -75,10 +75,10 @@ export default function BookingDetailPage() {
 
   useEffect(() => {
     Promise.all([
-      API.get('/operations-manager/hotels'),
+      API.get('/operations-manager/hotels', { params: { limit: 500 }, skipSuccessToast: true }),
       API.get('/operations-manager/transport'),
     ]).then(([hotelsRes, transportRes]) => {
-      setCatalogHotels(hotelsRes.data || []);
+      setCatalogHotels(hotelsRes.data?.data ?? hotelsRes.data ?? []);
       setCatalogCabs(transportRes.data?.cabs || []);
     }).catch(() => {});
   }, []);

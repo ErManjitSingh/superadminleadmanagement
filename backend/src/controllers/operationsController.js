@@ -92,13 +92,8 @@ const confirmCab = asyncHandler(async (req, res) => {
 });
 
 const listHotels = asyncHandler(async (req, res) => {
-  const filter = {};
-  if (req.query.search) {
-    filter.$text = { $search: req.query.search };
-  }
-  if (req.query.destination) filter.destination = new RegExp(req.query.destination, 'i');
-  const hotels = await Hotel.find(filter).sort({ name: 1 }).lean();
-  res.json(hotels);
+  const result = await ops.listHotels(req.query, { branchId: null });
+  res.json(result);
 });
 
 const createHotel = asyncHandler(async (req, res) => {

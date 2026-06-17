@@ -504,6 +504,107 @@ async function aggregateBookingSummary(filter) {
   };
 }
 
+async function aggregateHotelSummary(filter = {}) {
+  const [row] = await Hotel.aggregate([
+    { $match: filter },
+    {
+      $group: {
+        _id: null,
+        count: { $sum: 1 },
+        partnerHotels: { $sum: { $cond: [{ $eq: ['$status', 'active'] }, 1, 0] } },
+        categories: { $addToSet: '$category' },
+        destinations: { $addToSet: '$destination' },
+      },
+    },
+  ]);
+
+  return {
+    count: row?.count || 0,
+    partnerHotels: row?.partnerHotels || 0,
+    topCategories: (row?.categories || []).filter(Boolean).length,
+    destinations: (row?.destinations || []).filter(Boolean).length,
+  };
+}
+
+function mapHotelRow(hotel) {
+  const room = hotel.roomTypes?.[0];
+  const contract = hotel.contractRates?.[0];
+  const idSuffix = String(hotel._id || '').slice(-4);
+  const codeNum = Number.parseInt(idSuffix, 16) % 10000;
+
+  return {
+    ...hotel,
+    displayCode: `HTL-${String(Number.isNaN(codeNum) ? 0 : codeNum).padStart(4, '0')}`,
+    displayRoomType: hotel.roomType || room?.name || 'Standard',
+    displayMealPlan: hotel.mealPlan || contract?.mealPlan || 'CP (Breakfast)',
+    displayPrice: hotel.price ?? room?.baseRate ?? contract?.rate ?? 0,
+    displayCity: hotel.destination || hotel.location?.split(',')[0] || hotel.location,
+  };
+}
+
+async function listHotels(query = {}, { branchId } = {}) {
+  const { page, limit, skip } = parsePagination(query, { defaultLimit: 10, maxLimit: 100 });
+  const filter = withBranch({}, branchId);
+
+  if (query.category?.trim()) {
+    filter.category = { $regex: query.category.trim(), $options: 'i' };
+  }
+  if (query.location?.trim()) {
+    filter.location = { $regex: query.location.trim(), $options: 'i' };
+  }
+  if (query.roomType?.trim()) {
+    filter.$or = [
+      { roomType: { $regex: query.roomType.trim(), $options: 'i' } },
+      { 'roomTypes.name': { $regex: query.roomType.trim(), $options: 'i' } },
+    ];
+  }
+  if (query.mealPlan?.trim()) {
+    filter.mealPlan = { $regex: query.mealPlan.trim(), $options: 'i' };
+  }
+  if (query.destination?.trim()) {
+    filter.destination = { $regex: query.destination.trim(), $options: 'i' };
+  }
+  if (query.status?.trim()) {
+    filter.status = query.status.trim();
+  }
+
+  if (query.search?.trim()) {
+    const q = query.search.trim();
+    filter.$or = [
+      { name: { $regex: q, $options: 'i' } },
+      { location: { $regex: q, $options: 'i' } },
+      { destination: { $regex: q, $options: 'i' } },
+      { category: { $regex: q, $options: 'i' } },
+      { roomType: { $regex: q, $options: 'i' } },
+      { mealPlan: { $regex: q, $options: 'i' } },
+    ];
+  }
+
+  const baseFilter = withBranch({}, branchId);
+  const [rows, total, summary, categories, locations, roomTypes, mealPlans] = await Promise.all([
+    Hotel.find(filter).sort({ name: 1 }).skip(skip).limit(limit).lean(),
+    Hotel.countDocuments(filter),
+    aggregateHotelSummary(filter),
+    Hotel.distinct('category', baseFilter),
+    Hotel.distinct('location', baseFilter),
+    Hotel.distinct('roomType', { ...baseFilter, roomType: { $nin: [null, ''] } }),
+    Hotel.distinct('mealPlan', { ...baseFilter, mealPlan: { $nin: [null, ''] } }),
+  ]);
+
+  const roomTypeNames = await Hotel.distinct('roomTypes.name', baseFilter);
+
+  return {
+    ...paginatedResponse(rows.map(mapHotelRow), { page, limit, total }),
+    summary,
+    filters: {
+      categories: categories.filter(Boolean).sort(),
+      locations: locations.filter(Boolean).sort(),
+      roomTypes: [...new Set([...roomTypes, ...roomTypeNames].filter(Boolean))].sort(),
+      mealPlans: mealPlans.filter(Boolean).sort(),
+    },
+  };
+}
+
 async function listBookings(query = {}, { branchId } = {}) {
   const { page, limit, skip } = parsePagination(query, { defaultLimit: 10, maxLimit: 100 });
   const filter = withBranch(notArchivedFilter(), branchId);
@@ -967,5 +1068,6 @@ module.exports = {
   addDocument,
   buildReports,
   getTripTracker,
+  listHotels,
   nextBookingNumber,
 };
