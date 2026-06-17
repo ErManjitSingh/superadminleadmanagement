@@ -12,24 +12,35 @@ export function canAccess(user, module, action = 'view') {
   if (!perms) return false;
   return !!perms[module]?.[action];
 }
-function matchesRole(item, user) {
-  if (!item.roles?.length) return true;
-  return item.roles.includes(user?.role);
+function filterSectionItems(items, user) {
+  return items.filter((child) => {
+    if (child.roles?.length && !child.roles.includes(user?.role)) return false;
+    if (child.permission && !canAccess(user, child.permission.module, child.permission.action)) return false;
+    return true;
+  });
 }
 
 export function filterNavItems(items, user) {
   return items.reduce((acc, item) => {
+    if (item.sections) {
+      const sections = item.sections
+        .map((section) => ({
+          ...section,
+          items: filterSectionItems(section.items, user),
+        }))
+        .filter((section) => section.items.length);
+      if (!sections.length) return acc;
+      acc.push({ ...item, sections });
+      return acc;
+    }
+
     if (item.children) {
-      const children = item.children.filter((child) => {
-        if (!matchesRole(child, user)) return false;
-        if (child.permission && !canAccess(user, child.permission.module, child.permission.action)) return false;
-        return true;
-      });
+      const children = filterSectionItems(item.children, user);
       if (!children.length) return acc;
       acc.push({ ...item, children });
       return acc;
     }
-    if (!matchesRole(item, user)) return acc;
+    if (item.roles?.length && !item.roles.includes(user?.role)) return acc;
     if (item.permission && !canAccess(user, item.permission.module, item.permission.action)) return acc;
     acc.push(item);
     return acc;

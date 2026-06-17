@@ -1,12 +1,6 @@
 import {
   LayoutDashboard,
   Users,
-  Inbox,
-  UserCheck,
-  CalendarClock,
-  Trophy,
-  XCircle,
-  RefreshCw,
   MessageCircle,
   FileText,
   Mail,
@@ -20,8 +14,6 @@ import {
   MapPin,
   Award,
   BarChart2,
-  Shield,
-  Archive,
   Timer,
   Briefcase,
   Plane,
@@ -29,6 +21,7 @@ import {
   ListTodo,
 } from 'lucide-react';
 import { operationsAdminMenuChildren } from '../operations-manager/operations-nav-config';
+import { leadManagementSections } from './lead-management-config';
 
 export const reportsAnalyticsItems = [
   { path: '/reports', label: 'Reports', icon: BarChart3, permission: { module: 'reports', action: 'view' } },
@@ -98,31 +91,14 @@ export const teamManagementItems = [
   },
 ];
 
-export const leadManagementItems = [
-  { path: '/leads', label: 'All Leads', icon: Users, countKey: 'leads.all', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/new-leads', label: "Today's Leads", icon: Inbox, badgeKey: 'leads.new', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/unassigned', label: 'Unassigned Leads', icon: Inbox, badgeKey: 'leads.unassigned', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/assigned', label: 'Assigned Leads', icon: UserCheck, countKey: 'leads.assigned', permission: { module: 'leads', action: 'view' } },
-  { path: '/followups', label: 'Follow Ups', icon: CalendarClock, badgeKey: 'followups.due', countKey: 'followups.total', permission: { module: 'leads', action: 'view' } },
-  { path: '/reminders', label: 'Reminder Center', icon: Bell, badgeKey: 'reminders.overdue', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/analytics', label: 'Lead Analytics', icon: BarChart2, roles: ['admin', 'sales_manager', 'team_leader'], permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/sla', label: 'SLA Monitor', icon: Timer, roles: ['admin', 'sales_manager', 'team_leader'], permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/recycle-bin', label: 'Recycle Bin', icon: Archive, roles: ['admin', 'sales_manager'], permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/audit-log', label: 'Audit Log', icon: Shield, roles: ['admin', 'sales_manager'], permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/converted', label: 'Converted Leads', icon: Trophy, countKey: 'leads.converted', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost', permission: { module: 'leads', action: 'view' } },
-  { path: '/leads/reactivated', label: 'Reactivated Leads', icon: RefreshCw, permission: { module: 'leads', action: 'view' } },
-  { path: '/whatsapp', label: 'WhatsApp Leads', icon: MessageCircle, countKey: 'leads.whatsapp', permission: { module: 'leads', action: 'view' } },
-];
-
 export const mainNavItems = [
   { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   {
     id: 'lead-management',
     label: 'Lead Management',
     icon: Users,
-    countKey: 'leads.all',
-    children: leadManagementItems,
+    badgeKey: 'leads.unassigned',
+    sections: leadManagementSections,
   },
   {
     id: 'operations-management',

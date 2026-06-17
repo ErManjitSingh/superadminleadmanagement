@@ -27,6 +27,13 @@ function applyToItem(item, counts) {
     else delete next.badge;
   }
 
+  if (item.sections) {
+    next.sections = item.sections.map((section) => ({
+      ...section,
+      items: section.items.map((child) => applyToItem(child, counts)),
+    }));
+  }
+
   if (item.children) {
     next.children = item.children.map((child) => applyToItem(child, counts));
   }

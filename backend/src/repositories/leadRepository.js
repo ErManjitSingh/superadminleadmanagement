@@ -50,6 +50,10 @@ function buildLeadListFilter(query = {}) {
   }
   if (listFilter === 'unassigned') mongoFilter.assignedTo = null;
   else if (listFilter === 'assigned') mongoFilter.assignedTo = { $ne: null };
+  else if (listFilter === 'hot') {
+    mongoFilter.isHot = true;
+    mongoFilter.status = { $nin: ['converted', 'lost', 'booked_from_another_company'] };
+  }
   if (destination) mongoFilter.destination = destination;
   if (source) mongoFilter.source = source;
   if (agent) mongoFilter.assignedTo = agent;

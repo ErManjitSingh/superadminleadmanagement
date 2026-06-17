@@ -63,13 +63,14 @@ export default function Leads() {
     if (config.status && !base.status) base.status = config.status;
     if (config.assignee === 'unassigned') base.filter = 'unassigned';
     else if (config.assignee === 'assigned') base.filter = 'assigned';
+    else if (config.listFilter) base.filter = config.listFilter;
     if (config.todayOnly) {
       const { dateFrom, dateTo } = getTodayDateRange();
       base.dateFrom = dateFrom;
       base.dateTo = dateTo;
     }
     return base;
-  }, [appliedFilters, config.status, config.assignee, config.todayOnly]);
+  }, [appliedFilters, config.status, config.assignee, config.todayOnly, config.listFilter]);
 
   const activeCursor = pagination.pageIndex > DEEP_PAGE_INDEX ? pageCursors[pagination.pageIndex] : null;
 

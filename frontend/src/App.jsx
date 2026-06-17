@@ -224,7 +224,9 @@ function App() {
               <Route path="accountant/dashboard" element={<RoleRoute roles={['accountant']}><RoleDashboard roleKey="accountant" description="Financial reports and quotation approvals" /></RoleRoute>} />
               <Route path="operations/dashboard" element={<RoleRoute roles={['operations_manager']}><RoleDashboard roleKey="operations_manager" description="Packages, inventory, and operations" /></RoleRoute>} />
               <Route path="leads" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
+              <Route path="leads/inbox/new" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
               <Route path="leads/new-leads" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
+              <Route path="leads/hot" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
               <Route path="leads/unassigned" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
               <Route path="leads/assigned" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />
               <Route path="leads/converted" element={<PermissionRoute module="leads"><Leads /></PermissionRoute>} />

@@ -105,7 +105,7 @@ export default function AppSidebar({
                 if (item.type === 'section') {
                   return <SidebarNavSection key={`section-${item.label}`} label={item.label} />;
                 }
-                if (item.children) {
+                if (item.children || item.sections) {
                   return <SidebarNavGroup key={item.id} group={item} defaultOpen={!!searchQuery} />;
                 }
                 return (

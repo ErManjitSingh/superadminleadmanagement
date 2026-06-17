@@ -10,12 +10,38 @@ function matchesQuery(text, query) {
   return text?.toLowerCase().includes(query);
 }
 
+function filterSectionItems(items, q, groupMatch) {
+  if (groupMatch) return items;
+  return items.filter((c) => matchesQuery(c.label, q));
+}
+
 export function filterNavItemsBySearch(items, query) {
   const q = query?.trim().toLowerCase();
   if (!q) return items;
 
   return items.reduce((acc, item) => {
     if (item.section) {
+      return acc;
+    }
+
+    if (item.sections) {
+      const groupMatch = matchesQuery(item.label, q);
+      const sections = item.sections
+        .map((section) => {
+          const sectionMatch = matchesQuery(section.label, q);
+          const filteredItems = filterSectionItems(section.items, q, groupMatch || sectionMatch);
+          if (groupMatch || sectionMatch || filteredItems.length) {
+            return {
+              ...section,
+              items: groupMatch || sectionMatch ? section.items : filteredItems,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+      if (sections.length) {
+        acc.push({ ...item, sections });
+      }
       return acc;
     }
 

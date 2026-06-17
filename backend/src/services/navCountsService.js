@@ -69,6 +69,16 @@ async function aggregateAdminLeadCounts(branchId) {
         converted: [{ $match: { status: 'converted' } }, { $count: 'n' }],
         lost: [{ $match: { status: { $in: ['lost', 'booked_from_another_company'] } } }, { $count: 'n' }],
         whatsapp: [{ $match: { source: 'whatsapp' } }, { $count: 'n' }],
+        statusNew: [{ $match: { status: 'new' } }, { $count: 'n' }],
+        hot: [
+          {
+            $match: {
+              isHot: true,
+              status: { $nin: ['converted', 'lost', 'booked_from_another_company'] },
+            },
+          },
+          { $count: 'n' },
+        ],
       },
     },
   ]);
@@ -81,6 +91,8 @@ async function aggregateAdminLeadCounts(branchId) {
     converted: facetCount(row, 'converted'),
     lost: facetCount(row, 'lost'),
     whatsapp: facetCount(row, 'whatsapp'),
+    statusNew: facetCount(row, 'statusNew'),
+    hot: facetCount(row, 'hot'),
   };
 }
 
