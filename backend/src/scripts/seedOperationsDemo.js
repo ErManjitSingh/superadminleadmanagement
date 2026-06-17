@@ -14,6 +14,7 @@ const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
 const Vendor = require('../models/Vendor');
 const Hotel = require('../models/Hotel');
+const Cab = require('../models/Cab');
 const TripTask = require('../models/TripTask');
 const Voucher = require('../models/Voucher');
 const SupportTicket = require('../models/SupportTicket');
@@ -160,6 +161,31 @@ async function run() {
       },
     },
   ]);
+
+  await Cab.updateOne(
+    { registrationNumber: 'KA 01 AB 1234' },
+    {
+      $set: {
+        vehicleName: 'Innova',
+        vehicleType: 'suv',
+        registrationNumber: 'KA 01 AB 1234',
+        color: 'White',
+        fuelType: 'Diesel',
+        capacity: 6,
+        pickupLocation: 'Airport',
+        dropLocation: 'Hotel',
+        pickupAddress: 'Dabolim International Airport',
+        dropAddress: 'Taj Resort Calangute',
+        pickupDate: new Date('2026-06-16T10:30:00'),
+        dropDate: new Date('2026-06-16T11:30:00'),
+        tripType: 'One Way',
+        cost: 3500,
+        status: 'available',
+        branchId: headOffice?._id,
+      },
+    },
+    { upsert: true }
+  );
 
   await Vendor.bulkWrite([
     {

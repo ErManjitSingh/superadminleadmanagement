@@ -605,6 +605,238 @@ async function listHotels(query = {}, { branchId } = {}) {
   };
 }
 
+const FLEET_STATUS_META = {
+  available: { label: 'Available', color: '#22C55E' },
+  on_trip: { label: 'On Trip', color: '#3B82F6' },
+  maintenance: { label: 'Maintenance', color: '#F97316' },
+  unavailable: { label: 'Unavailable', color: '#94A3B8' },
+};
+
+function formatCabTypeLabel(vehicleType = '') {
+  const lower = String(vehicleType).toLowerCase();
+  if (lower.includes('suv') || lower.includes('innova') || lower.includes('ertiga') || lower.includes('crysta')) {
+    return 'SUV';
+  }
+  if (lower.includes('sedan')) return 'Sedan';
+  if (lower.includes('hatch')) return 'Hatchback';
+  if (lower.includes('tempo') || lower.includes('traveller')) return 'Tempo Traveller';
+  return vehicleType ? vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1) : 'SUV';
+}
+
+function mapCabRow(cab) {
+  const vehicleName = cab.vehicleName
+    || (cab.vehicleType
+      ? cab.vehicleType.charAt(0).toUpperCase() + cab.vehicleType.slice(1)
+      : 'Vehicle');
+  const idSuffix = String(cab._id || '').slice(-6);
+  const regNum = Number.parseInt(idSuffix, 16) % 10000;
+  const registrationNumber = cab.registrationNumber
+    || `KA 01 AB ${String(Number.isNaN(regNum) ? 1234 : regNum).padStart(4, '0')}`;
+
+  return {
+    ...cab,
+    displayName: vehicleName,
+    displayType: formatCabTypeLabel(cab.vehicleType),
+    displayRegistration: registrationNumber,
+    displaySubtitle: [cab.color, cab.fuelType].filter(Boolean).join(' • ') || 'White • Diesel',
+    displayCapacity: cab.capacity ? `${cab.capacity} Seats + Driver` : '6 Seats + Driver',
+    displayPickup: cab.pickupLocation,
+    displayDrop: cab.dropLocation,
+    displayPickupAddress: cab.pickupAddress || '',
+    displayDropAddress: cab.dropAddress || '',
+    displayTripType: cab.tripType || 'One Way',
+    displayCost: cab.cost ?? 0,
+    displayStatus: cab.status || 'available',
+  };
+}
+
+function mapFlightRow(flight) {
+  return {
+    ...flight,
+    displayRoute: `${flight.departure || '—'} → ${flight.arrival || '—'}`,
+    displayCost: flight.cost ?? 0,
+    displayStatus: flight.status || 'available',
+  };
+}
+
+async function aggregateTransportSummary({ branchId } = {}) {
+  const cabFilter = withBranch({}, branchId);
+  const flightFilter = withBranch({}, branchId);
+  const bookingFilter = withBranch(notArchivedFilter(), branchId);
+  const todayStart = startOfDay();
+  const todayEnd = endOfDay();
+
+  const [
+    totalVehicles,
+    totalFlights,
+    todaysBookings,
+    weekCostRow,
+    fleetRows,
+    mostUsedRows,
+  ] = await Promise.all([
+    Cab.countDocuments(cabFilter),
+    Flight.countDocuments(flightFilter),
+    Booking.countDocuments({
+      ...bookingFilter,
+      travelDate: { $gte: todayStart, $lte: todayEnd },
+      transport: { $exists: true, $not: { $size: 0 } },
+    }),
+    Cab.aggregate([
+      { $match: cabFilter },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$cost', 0] } } } },
+    ]),
+    Cab.aggregate([
+      { $match: cabFilter },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]),
+    Booking.aggregate([
+      { $match: bookingFilter },
+      { $unwind: { path: '$transport', preserveNullAndEmptyArrays: false } },
+      {
+        $group: {
+          _id: { $ifNull: ['$transport.vehicleType', '$transport.vendorName'] },
+          trips: { $sum: 1 },
+        },
+      },
+      { $sort: { trips: -1 } },
+      { $limit: 5 },
+    ]),
+  ]);
+
+  const fleetOverview = Object.entries(FLEET_STATUS_META).map(([key, meta]) => {
+    const row = fleetRows.find((r) => r._id === key);
+    return { key, label: meta.label, color: meta.color, count: row?.count || 0 };
+  });
+
+  const mostUsed = mostUsedRows.map((row) => ({
+    name: row._id ? String(row._id).charAt(0).toUpperCase() + String(row._id).slice(1) : 'Vehicle',
+    trips: row.trips,
+    vehicleType: formatCabTypeLabel(row._id),
+  }));
+
+  return {
+    totalVehicles,
+    totalFlights,
+    todaysBookings,
+    totalCostWeek: weekCostRow[0]?.total || 0,
+    fleetOverview,
+    mostUsed,
+  };
+}
+
+async function listCabs(query = {}, { branchId, summary } = {}) {
+  const { page, limit, skip } = parsePagination(query, { defaultLimit: 10, maxLimit: 100 });
+  const filter = withBranch({}, branchId);
+
+  if (query.vehicleType?.trim()) {
+    filter.vehicleType = { $regex: query.vehicleType.trim(), $options: 'i' };
+  }
+  if (query.pickup?.trim()) {
+    filter.pickupLocation = { $regex: query.pickup.trim(), $options: 'i' };
+  }
+  if (query.drop?.trim()) {
+    filter.dropLocation = { $regex: query.drop.trim(), $options: 'i' };
+  }
+  if (query.status?.trim()) {
+    filter.status = query.status.trim();
+  }
+  if (query.search?.trim()) {
+    const q = query.search.trim();
+    filter.$or = [
+      { vehicleName: { $regex: q, $options: 'i' } },
+      { vehicleType: { $regex: q, $options: 'i' } },
+      { registrationNumber: { $regex: q, $options: 'i' } },
+      { pickupLocation: { $regex: q, $options: 'i' } },
+      { dropLocation: { $regex: q, $options: 'i' } },
+      { pickupAddress: { $regex: q, $options: 'i' } },
+      { dropAddress: { $regex: q, $options: 'i' } },
+    ];
+  }
+
+  const baseFilter = withBranch({}, branchId);
+  const [rows, total, vehicleTypes, pickups, drops, statuses] = await Promise.all([
+    Cab.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Cab.countDocuments(filter),
+    Cab.distinct('vehicleType', baseFilter),
+    Cab.distinct('pickupLocation', baseFilter),
+    Cab.distinct('dropLocation', baseFilter),
+    Cab.distinct('status', baseFilter),
+  ]);
+
+  const transportSummary = summary || await aggregateTransportSummary({ branchId });
+
+  return {
+    tab: 'cabs',
+    ...paginatedResponse(rows.map(mapCabRow), { page, limit, total }),
+    summary: transportSummary,
+    fleetOverview: transportSummary.fleetOverview,
+    mostUsed: transportSummary.mostUsed,
+    filters: {
+      vehicleTypes: vehicleTypes.filter(Boolean).sort(),
+      pickups: pickups.filter(Boolean).sort(),
+      drops: drops.filter(Boolean).sort(),
+      statuses: statuses.filter(Boolean).sort(),
+    },
+  };
+}
+
+async function listFlights(query = {}, { branchId, summary } = {}) {
+  const { page, limit, skip } = parsePagination(query, { defaultLimit: 10, maxLimit: 100 });
+  const filter = withBranch({}, branchId);
+
+  if (query.status?.trim()) {
+    filter.status = query.status.trim();
+  }
+  if (query.search?.trim()) {
+    const q = query.search.trim();
+    filter.$or = [
+      { airline: { $regex: q, $options: 'i' } },
+      { flightNumber: { $regex: q, $options: 'i' } },
+      { departure: { $regex: q, $options: 'i' } },
+      { arrival: { $regex: q, $options: 'i' } },
+    ];
+  }
+
+  const [rows, total] = await Promise.all([
+    Flight.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Flight.countDocuments(filter),
+  ]);
+
+  const transportSummary = summary || await aggregateTransportSummary({ branchId });
+
+  return {
+    tab: 'flights',
+    ...paginatedResponse(rows.map(mapFlightRow), { page, limit, total }),
+    summary: transportSummary,
+    fleetOverview: transportSummary.fleetOverview,
+    mostUsed: transportSummary.mostUsed,
+    filters: {
+      statuses: ['available', 'booked', 'cancelled'],
+    },
+  };
+}
+
+async function listTransport(query = {}, { branchId } = {}) {
+  if (query.catalog === 'true' || query.catalog === true) {
+    const [cabs, flights] = await Promise.all([
+      Cab.find(withBranch({}, branchId)).sort({ createdAt: -1 }).lean(),
+      Flight.find(withBranch({}, branchId)).sort({ createdAt: -1 }).lean(),
+    ]);
+    return {
+      cabs: cabs.map(mapCabRow),
+      flights: flights.map(mapFlightRow),
+    };
+  }
+
+  const summary = await aggregateTransportSummary({ branchId });
+  const tab = query.tab === 'flights' ? 'flights' : 'cabs';
+
+  if (tab === 'flights') {
+    return listFlights(query, { branchId, summary });
+  }
+  return listCabs(query, { branchId, summary });
+}
+
 async function listBookings(query = {}, { branchId } = {}) {
   const { page, limit, skip } = parsePagination(query, { defaultLimit: 10, maxLimit: 100 });
   const filter = withBranch(notArchivedFilter(), branchId);
@@ -1069,5 +1301,6 @@ module.exports = {
   buildReports,
   getTripTracker,
   listHotels,
+  listTransport,
   nextBookingNumber,
 };

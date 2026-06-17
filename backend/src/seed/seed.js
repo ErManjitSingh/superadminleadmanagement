@@ -113,7 +113,23 @@ async function seed() {
 
   const [hotel, cab, flight] = await Promise.all([
     Hotel.create({ name: 'Taj Resort Goa', category: '5 Star', location: 'Calangute', roomType: 'Deluxe', mealPlan: 'MAP', price: 8500 }),
-    Cab.create({ vehicleType: 'Innova', pickupLocation: 'Airport', dropLocation: 'Hotel', cost: 3500 }),
+    Cab.create({
+      vehicleName: 'Innova',
+      vehicleType: 'suv',
+      registrationNumber: 'KA 01 AB 1234',
+      color: 'White',
+      fuelType: 'Diesel',
+      capacity: 6,
+      pickupLocation: 'Airport',
+      dropLocation: 'Hotel',
+      pickupAddress: 'Dabolim International Airport',
+      dropAddress: 'Taj Resort Calangute',
+      pickupDate: new Date('2026-06-16T10:30:00'),
+      dropDate: new Date('2026-06-16T11:30:00'),
+      tripType: 'One Way',
+      cost: 3500,
+      status: 'available',
+    }),
     Flight.create({ airline: 'IndiGo', flightNumber: '6E-204', departure: 'DEL', arrival: 'GOI', cost: 6200 }),
   ]);
 

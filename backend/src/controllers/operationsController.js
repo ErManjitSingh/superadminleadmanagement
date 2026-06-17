@@ -114,11 +114,8 @@ const deleteHotel = asyncHandler(async (req, res) => {
 });
 
 const getTransport = asyncHandler(async (req, res) => {
-  const [cabs, flights] = await Promise.all([
-    Cab.find().sort({ createdAt: -1 }).lean(),
-    Flight.find().sort({ createdAt: -1 }).lean(),
-  ]);
-  res.json({ cabs, flights });
+  const result = await ops.listTransport(req.query, { branchId: null });
+  res.json(result);
 });
 
 const listActivities = asyncHandler(async (req, res) => {
