@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { SidebarProvider, useSidebar } from '../../context/SidebarContext';
 import AppSidebar from '../sidebar/AppSidebar';
 import TopBar from '../TopBar';
-import { operationsManagerNavItems } from './sidebar-config';
+import { operationsManagerNavItems, operationsQuickActions } from './sidebar-config';
 
 function OperationsManagerShell() {
   const { user } = useAuth();
@@ -13,6 +13,7 @@ function OperationsManagerShell() {
   const sidebarProps = {
     user,
     navItems: operationsManagerNavItems,
+    quickActions: operationsQuickActions,
     brandSubtitle: 'Operations Manager',
     accent: 'teal',
     profilePath: '/operations-manager/profile',

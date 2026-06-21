@@ -82,3 +82,12 @@ export const operationsManagerNavItems = [
   },
   { path: '/operations-manager/profile', label: 'Profile', icon: User },
 ];
+
+/** Sidebar quick actions — operations workflows only (no sales/quotation) */
+export const operationsQuickActions = [
+  { path: '/operations-manager/bookings/pending', label: 'Pending Bookings', icon: Clock },
+  { path: '/operations-manager/trip-tracker', label: 'Trip Tracker', icon: MapPin },
+  { path: '/operations-manager/tasks', label: 'Assign Tasks', icon: ListTodo },
+  { path: '/operations-manager/vendors', label: 'Vendor Follow-up', icon: Building2 },
+  { path: '/operations-manager/vouchers', label: 'Generate Voucher', icon: Ticket },
+];

@@ -1,1 +1,1 @@
-export { operationsManagerNavItems } from './operations-nav-config';
+export { operationsManagerNavItems, operationsQuickActions } from './operations-nav-config';
