@@ -70,9 +70,9 @@ async function seed() {
 
   const roleMap = Object.fromEntries(roles.map((r) => [r.slug, r._id]));
 
-  const [shimlaBranch, bhattakuferBranch] = await Branch.insertMany([
+  const [shimlaBranch, ptwBranch] = await Branch.insertMany([
     { name: 'Shimla', code: 'SHIMLA', status: 'active' },
-    { name: 'Bhattakufer', code: 'BHATTAKUFER', status: 'active' },
+    { name: 'PTW', code: 'PTW', status: 'active' },
   ]);
 
   const admin = await User.create({

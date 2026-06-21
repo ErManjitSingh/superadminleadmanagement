@@ -30,7 +30,7 @@ const ActivityLog = require('./src/models/ActivityLog');
   if (!branches.length) {
     await Branch.insertMany([
       { name: 'Shimla', code: 'SHIMLA', status: 'active' },
-      { name: 'Bhattakufer', code: 'BHATTAKUFER', status: 'active' },
+      { name: 'PTW', code: 'PTW', status: 'active' },
     ]);
     branches = await Branch.find({ status: 'active' }).sort({ createdAt: 1 }).lean();
   }

@@ -88,14 +88,12 @@ async function run() {
   const admin = await User.findOne({ email: 'admin@crm.com' });
   if (!ops) throw new Error('Run seed:operations-user first (ops@crm.com required)');
 
-  const [headOffice, mumbai, delhi, fallback] = await Promise.all([
-    ensureBranch('Head Office', 'HQ'),
-    ensureBranch('Mumbai', 'MUM'),
-    ensureBranch('Delhi', 'DEL'),
-    Branch.findOne({ status: 'active' }).sort({ createdAt: 1 }),
+  const [shimlaBranch, ptwBranch] = await Promise.all([
+    ensureBranch('Shimla', 'SHIMLA'),
+    ensureBranch('PTW', 'PTW'),
   ]);
 
-  const branches = [headOffice, mumbai, delhi, fallback].filter(Boolean);
+  const branches = [shimlaBranch, ptwBranch];
   const branchAt = (i) => branches[i % branches.length];
 
   const pkg = await Package.findOne() || await Package.create({
@@ -103,7 +101,7 @@ async function run() {
     destination: 'Goa',
     duration: 5,
     basePrice: 45000,
-    branchId: headOffice?._id || fallback?._id,
+    branchId: shimlaBranch._id,
   });
 
   await Hotel.bulkWrite([
@@ -120,7 +118,7 @@ async function run() {
             phone: '+91 98765 11111',
             email: 'reservations@demobeach.com',
             roomTypes: [{ name: 'Deluxe Sea View', maxOccupancy: 3, baseRate: 7500 }],
-            branchId: headOffice?._id,
+            branchId: shimlaBranch._id,
           },
         },
         upsert: true,
@@ -137,7 +135,7 @@ async function run() {
             category: 'Premium',
             contactPerson: 'Thomas Varghese',
             phone: '+91 98765 44444',
-            branchId: mumbai?._id,
+            branchId: ptwBranch._id,
           },
         },
         upsert: true,
@@ -154,7 +152,7 @@ async function run() {
             category: '3 Star',
             contactPerson: 'Rajesh Thakur',
             phone: '+91 98765 55555',
-            branchId: delhi?._id,
+            branchId: ptwBranch._id,
           },
         },
         upsert: true,
@@ -181,7 +179,7 @@ async function run() {
         tripType: 'One Way',
         cost: 3500,
         status: 'available',
-        branchId: headOffice?._id,
+        branchId: shimlaBranch._id,
       },
     },
     { upsert: true }
@@ -200,7 +198,7 @@ async function run() {
             destination: 'Goa',
             commission: 8,
             status: 'active',
-            branchId: headOffice?._id,
+            branchId: shimlaBranch._id,
           },
         },
         upsert: true,
@@ -218,7 +216,7 @@ async function run() {
             destination: 'Dubai',
             commission: 10,
             status: 'active',
-            branchId: mumbai?._id,
+            branchId: ptwBranch._id,
           },
         },
         upsert: true,
@@ -236,7 +234,7 @@ async function run() {
             destination: 'Goa',
             commission: 12,
             status: 'active',
-            branchId: headOffice?._id,
+            branchId: shimlaBranch._id,
           },
         },
         upsert: true,
