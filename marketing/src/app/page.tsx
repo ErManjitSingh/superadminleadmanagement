@@ -1,12 +1,11 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Hero } from "@/components/sections/Hero";
-import { Trust } from "@/components/sections/Trust";
-import { WhyFeatures } from "@/components/sections/WhyFeatures";
-import { ModuleShowcase } from "@/components/sections/ModuleShowcase";
-import { FeatureGrid } from "@/components/sections/FeatureGrid";
-import { Workflow } from "@/components/sections/Workflow";
-import { Comparison } from "@/components/sections/Comparison";
+import { LogoCloud } from "@/components/sections/LogoCloud";
+import { FeaturesLight } from "@/components/sections/FeaturesLight";
+import { ModuleTabs } from "@/components/sections/ModuleTabs";
+import { ComparisonSection } from "@/components/sections/ComparisonSection";
+import { StatsBar } from "@/components/sections/StatsBar";
 import { Pricing } from "@/components/sections/Pricing";
 import { Testimonials } from "@/components/sections/Testimonials";
 import { FAQ } from "@/components/sections/FAQ";
@@ -18,12 +17,11 @@ export default function HomePage() {
       <Header />
       <main>
         <Hero />
-        <Trust />
-        <WhyFeatures />
-        <ModuleShowcase />
-        <FeatureGrid />
-        <Workflow />
-        <Comparison />
+        <LogoCloud />
+        <FeaturesLight />
+        <ModuleTabs />
+        <ComparisonSection />
+        <StatsBar />
         <Pricing />
         <Testimonials />
         <FAQ />

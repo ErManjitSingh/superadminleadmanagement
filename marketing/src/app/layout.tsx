@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { GradientBackground } from "@/components/effects/GradientBackground";
-import { CursorGlow } from "@/components/effects/CursorGlow";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
@@ -25,8 +23,6 @@ export const metadata: Metadata = {
     "lead management",
     "quotation builder",
     "booking management",
-    "travel operations",
-    "WhatsApp CRM",
   ],
   openGraph: {
     title: siteConfig.name,
@@ -35,27 +31,16 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     type: "website",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: siteConfig.name,
-    description: siteConfig.tagline,
-  },
   robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className={`${GeistSans.className} ${displayFont.variable} min-h-screen antialiased`}>
-        <ThemeProvider>
-          <GradientBackground />
-          <CursorGlow />
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );

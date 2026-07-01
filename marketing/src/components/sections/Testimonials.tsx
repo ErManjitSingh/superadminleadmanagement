@@ -1,88 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { SectionHeading, FadeIn } from "@/components/effects/FadeIn";
+import { Star } from "lucide-react";
+import { SectionHeading, StaggerContainer, StaggerItem } from "@/components/effects/FadeIn";
 import { testimonials } from "@/lib/data";
 
 export function Testimonials() {
-  const [current, setCurrent] = useState(0);
-
-  const next = () => setCurrent((c) => (c + 1) % testimonials.length);
-  const prev = () => setCurrent((c) => (c - 1 + testimonials.length) % testimonials.length);
-
-  const t = testimonials[current];
-
   return (
-    <section id="testimonials" className="section-padding relative border-y border-white/10 bg-card/20">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <section id="testimonials" className="section-muted section-padding">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          badge="Testimonials"
           title="Loved by Travel Companies"
-          subtitle="See why 100+ travel companies switched from spreadsheets to Travel CRM."
+          subtitle="See what travel business owners say about Travel CRM."
+          theme="light"
         />
 
-        <FadeIn>
-          <div className="relative">
-            <Quote className="absolute -left-2 -top-4 h-12 w-12 text-primary/20" />
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={current}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="glass-card rounded-2xl p-8 sm:p-12"
-              >
-                <p className="text-lg leading-relaxed sm:text-xl">
-                  &ldquo;{t.quote}&rdquo;
-                </p>
-                <div className="mt-8 flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 text-sm font-bold text-white">
+        <StaggerContainer className="grid gap-6 md:grid-cols-3">
+          {testimonials.map((t) => (
+            <StaggerItem key={t.author}>
+              <div className="card-light flex h-full flex-col">
+                <div className="mb-4 flex gap-0.5">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <p className="flex-1 text-sm leading-relaxed text-slate-600">&ldquo;{t.quote}&rdquo;</p>
+                <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full gradient-purple text-sm font-bold text-white">
                     {t.avatar}
                   </div>
                   <div>
-                    <p className="font-semibold">{t.author}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {t.role}, {t.company}
-                    </p>
+                    <p className="font-display text-sm font-bold text-slate-900">{t.author}</p>
+                    <p className="text-xs text-slate-500">{t.role}</p>
                   </div>
                 </div>
-              </motion.div>
-            </AnimatePresence>
-
-            <div className="mt-8 flex items-center justify-center gap-4">
-              <button
-                onClick={prev}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-colors hover:bg-white/10"
-                aria-label="Previous"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <div className="flex gap-2">
-                {testimonials.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrent(i)}
-                    className={`h-2 rounded-full transition-all ${
-                      i === current ? "w-8 bg-primary" : "w-2 bg-white/20"
-                    }`}
-                    aria-label={`Go to testimonial ${i + 1}`}
-                  />
-                ))}
               </div>
-              <button
-                onClick={next}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-colors hover:bg-white/10"
-                aria-label="Next"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        </FadeIn>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
       </div>
     </section>
   );

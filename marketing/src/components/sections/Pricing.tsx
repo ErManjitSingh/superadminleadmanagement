@@ -3,9 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { SectionHeading, FadeIn, StaggerContainer, StaggerItem } from "@/components/effects/FadeIn";
 import { pricingPlans } from "@/lib/data";
 import { siteConfig } from "@/lib/config";
@@ -15,69 +12,73 @@ export function Pricing() {
   const [yearly, setYearly] = useState(false);
 
   return (
-    <section id="pricing" className="section-padding relative">
+    <section id="pricing" className="section-light section-padding">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <SectionHeading
-          badge="Pricing"
-          title="Simple, Transparent Pricing"
+          title="Simple Pricing for Every Business"
           subtitle="Start free for 14 days. Scale as your travel business grows."
+          theme="light"
         />
 
         <FadeIn className="mb-12 flex items-center justify-center gap-3">
-          <span className={cn("text-sm font-medium", !yearly && "text-foreground")}>
-            Monthly
-          </span>
-          <Switch checked={yearly} onCheckedChange={setYearly} />
-          <span className={cn("text-sm font-medium", yearly && "text-foreground")}>
-            Yearly
-          </span>
+          <span className={cn("text-sm font-semibold", !yearly ? "text-slate-900" : "text-slate-400")}>Monthly</span>
+          <button
+            onClick={() => setYearly(!yearly)}
+            className={cn(
+              "relative h-7 w-12 rounded-full transition-colors",
+              yearly ? "bg-violet-600" : "bg-slate-200"
+            )}
+          >
+            <span className={cn(
+              "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+              yearly ? "translate-x-5" : "translate-x-0.5"
+            )} />
+          </button>
+          <span className={cn("text-sm font-semibold", yearly ? "text-slate-900" : "text-slate-400")}>Yearly</span>
           {yearly && (
-            <Badge variant="default" className="ml-1">
-              Save 20%
-            </Badge>
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-600">Save 20%</span>
           )}
         </FadeIn>
 
-        <StaggerContainer className="grid gap-8 lg:grid-cols-3">
+        <StaggerContainer className="grid gap-6 lg:grid-cols-3">
           {pricingPlans.map((plan) => (
             <StaggerItem key={plan.slug}>
-              <div
-                className={cn(
-                  "glass-card relative flex h-full flex-col rounded-2xl p-8 transition-all duration-500",
-                  plan.popular
-                    ? "border-primary/40 shadow-2xl shadow-primary/10 scale-[1.02]"
-                    : "hover:border-white/20"
-                )}
-              >
+              <div className={cn(
+                "relative flex h-full flex-col rounded-2xl border bg-white p-8 transition-all",
+                plan.popular
+                  ? "border-violet-500 shadow-purple scale-[1.02]"
+                  : "border-slate-200 shadow-card hover:border-violet-200"
+              )}>
                 {plan.popular && (
-                  <Badge variant="popular" className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full gradient-purple px-4 py-1 text-xs font-bold text-white">
                     Most Popular
-                  </Badge>
+                  </span>
                 )}
-                <h3 className="text-xl font-bold">{plan.name}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
+                <h3 className="font-display text-xl font-bold text-slate-900">{plan.name}</h3>
+                <p className="mt-2 text-sm text-slate-500">{plan.description}</p>
                 <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold">
+                  <span className="font-display text-5xl font-extrabold text-slate-900">
                     ${yearly ? plan.yearly : plan.monthly}
                   </span>
-                  <span className="text-muted-foreground">/user/mo</span>
+                  <span className="text-slate-400">/mo</span>
                 </div>
                 <ul className="mt-8 flex-1 space-y-3">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                    <li key={f} className="flex items-start gap-2.5 text-sm text-slate-600">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-violet-600" />
                       {f}
                     </li>
                   ))}
                 </ul>
-                <Button
-                  variant={plan.popular ? "gradient" : "outline"}
-                  className="mt-8 w-full"
-                  size="lg"
-                  asChild
+                <Link
+                  href={siteConfig.signup}
+                  className={cn(
+                    "mt-8 w-full justify-center",
+                    plan.popular ? "btn-primary flex" : "btn-outline-dark flex"
+                  )}
                 >
-                  <Link href={siteConfig.signup}>Start Free Demo</Link>
-                </Button>
+                  Start Free Demo
+                </Link>
               </div>
             </StaggerItem>
           ))}
