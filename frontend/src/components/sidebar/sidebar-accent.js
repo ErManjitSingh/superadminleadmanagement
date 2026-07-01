@@ -1,4 +1,4 @@
-/** Dark navy sidebar with blue active states — matches UNO Trips CRM design */
+/** Dark navy sidebar with blue active states */
 const DARK_NAVY = {
   brandGradient: 'from-orange-500 to-orange-600',
   brandShadow: 'shadow-orange-500/40',

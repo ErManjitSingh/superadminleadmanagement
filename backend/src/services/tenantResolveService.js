@@ -1,6 +1,6 @@
 const Company = require('../superadmin/models/Company');
 
-const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN || 'unotrips.com';
+const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN || 'indiaholidaydestination.com';
 const RESERVED_SUBDOMAINS = new Set(['www', 'api', 'admin', 'app', 'testing', 'staging', 'mail']);
 
 function normalizeHost(host) {

@@ -8,6 +8,7 @@ const { invalidateMailboxCache } = require('./emailMailboxCache');
 const { isEmailConfigured, normalizeRecipients } = require('./emailService');
 const { enqueueEmailJob } = require('./emailQueueService');
 const { renderEmailTemplate } = require('./emailTemplateService');
+const branding = require('../config/branding');
 const { wrapEmailHtml } = require('../utils/emailHtmlLayout');
 
 async function assertCanAccessLead(req, leadId) {
@@ -60,7 +61,7 @@ function buildClientEmailHtml(bodyText, { lead, category, subject, payload, user
     quotationNumber: payload.quotationNumber,
     amount: formatAmount(payload.amount ?? lead.budget),
     travelDate: formatTravelDate(lead.travelDate),
-    executiveName: user?.name || 'UNO Trips Sales Team',
+    executiveName: user?.name || `${branding.brandName} Sales Team`,
   });
 }
 

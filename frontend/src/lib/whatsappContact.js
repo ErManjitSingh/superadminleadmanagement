@@ -1,4 +1,4 @@
-/** Build international WhatsApp number (defaults India +91 for 10-digit numbers). */
+import { APP_BRAND_NAME } from '../config/branding';
 export function normalizeWhatsAppPhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
   if (!digits) return '';
@@ -10,7 +10,7 @@ export function renderWhatsAppTemplate(body, lead = {}, user = {}) {
   return String(body || '')
     .replace(/\{\{customerName\}\}/g, lead.name || 'Customer')
     .replace(/\{\{destination\}\}/g, lead.destination || 'your destination')
-    .replace(/\{\{executiveName\}\}/g, user?.name || 'UNO Trips')
+    .replace(/\{\{executiveName\}\}/g, user?.name || APP_BRAND_NAME)
     .replace(/\{\{quoteNumber\}\}/g, lead.quoteNumber || '');
 }
 

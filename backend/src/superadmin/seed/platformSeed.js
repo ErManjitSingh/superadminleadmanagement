@@ -114,7 +114,7 @@ async function seedPlatform() {
     trialEnd.setFullYear(trialEnd.getFullYear() + 10);
 
     legacyCompany = await Company.create({
-      name: 'UNO Trips',
+      name: 'Travel CRM',
       slug: 'uno-trips',
       subdomain: 'uno-trips',
       ownerName: adminUser?.name || 'Admin User',
@@ -146,7 +146,7 @@ async function seedPlatform() {
         invoices: true,
       },
     });
-    console.log('[Platform Seed] Legacy company created: UNO Trips');
+    console.log('[Platform Seed] Legacy company created: Travel CRM');
   }
 
   if (legacyCompany && adminUser && !adminUser.companyId) {
@@ -157,7 +157,7 @@ async function seedPlatform() {
     console.log('[Platform Seed] Linked existing CRM users/branches/roles to legacy company');
   }
 
-  const superEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@unotrips.com';
+  const superEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@indiaholidaydestination.com';
   const superPassword = process.env.SUPERADMIN_PASSWORD || process.env.SEED_PASSWORD || 'SuperAdmin@123';
 
   const existingSuper = await SuperAdmin.findOne({ email: superEmail });

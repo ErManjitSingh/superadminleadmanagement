@@ -40,12 +40,14 @@ export const WIZARD_STEPS = [
 export const HOTEL_CATEGORIES = ['Budget', '3 Star', '4 Star', '5 Star', 'Luxury', 'Boutique'];
 export const MEAL_PLANS = ['EP (Room Only)', 'CP (Breakfast)', 'MAP (Breakfast + Dinner)', 'AP (All Meals)', 'All Inclusive'];
 
+import { APP_PLATFORM_DOMAIN, APP_QUOTES_EMAIL, APP_WEBSITE } from '../../config/branding';
+
 export const COMPANY_INFO = {
-  name: 'UNO TRIPS',
+  name: 'TRAVEL CRM',
   tagline: 'Travel made simple',
   logoUrl: '/homelogo.webp',
   phone: '+91 98765 43210',
-  email: 'quotes@unotrips.com',
-  website: 'unotrips.com',
+  email: APP_QUOTES_EMAIL,
+  website: APP_WEBSITE,
   address: '2nd Floor, Sheril Villa, Near East End Hotel NH-22 Bye-Pass, Panthaghati, Shimla, Himachal Pradesh 171009',
 };

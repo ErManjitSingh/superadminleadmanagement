@@ -16,6 +16,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
+import { APP_BRAND_NAME } from '../../lib/branding';
 
 const navItems = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -37,7 +38,7 @@ export default function SuperAdminLayout() {
             <Shield className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-semibold">UNO Trips</p>
+            <p className="text-sm font-semibold">{APP_BRAND_NAME}</p>
             <p className="text-xs text-slate-400">Super Admin</p>
           </div>
         </div>

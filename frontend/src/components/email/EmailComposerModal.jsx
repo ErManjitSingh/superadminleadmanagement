@@ -369,7 +369,7 @@ export default function EmailComposerModal({
                     <div className="flex flex-col items-center justify-center min-h-[380px] text-center p-8 text-content-muted">
                       <Mail className="w-10 h-10 mb-3 opacity-30" />
                       <p className="text-sm font-medium">Start typing to see the branded email</p>
-                      <p className="text-xs mt-1 opacity-70">Your customer receives a premium UNO Trips design</p>
+                      <p className="text-xs mt-1 opacity-70">Your customer receives a premium Travel CRM design</p>
                     </div>
                   )}
                 </div>

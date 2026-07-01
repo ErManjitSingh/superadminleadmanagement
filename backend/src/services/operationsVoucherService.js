@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const branding = require('../config/branding');
 
 const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
 const VOUCHER_DIR = path.join(UPLOADS_ROOT, 'vouchers');
@@ -83,7 +84,7 @@ function buildVoucherHtml(voucher, booking) {
 <style>${BASE_STYLES}</style></head><body>
 <div class="page">
   <div class="header">
-    <h1>UNO Trips — ${esc(typeLabel)}</h1>
+    <h1>${branding.brandName} — ${esc(typeLabel)}</h1>
     <p>Voucher No: ${esc(voucher.voucherNumber)} · Booking: ${esc(booking.bookingNumber)}</p>
     <span class="badge">${esc(type)}</span>
   </div>
@@ -98,7 +99,7 @@ function buildVoucherHtml(voucher, booking) {
     <div class="section"><h2>Service Details</h2><div class="grid">${serviceBlock || '<p>Details as per booking confirmation.</p>'}</div></div>
     <div class="note">Present this voucher at check-in / pickup. For support contact your travel executive.</div>
   </div>
-  <div class="footer">Generated ${fmtDate(new Date())} · UNO Trips CRM · Print this page to save as PDF</div>
+  <div class="footer">Generated ${fmtDate(new Date())} · ${branding.brandName} · Print this page to save as PDF</div>
 </div>
 <script>window.onload=()=>{if(new URLSearchParams(location.search).get('print')==='1')window.print()}</script>
 </body></html>`;
@@ -136,7 +137,7 @@ function buildItineraryHtml(booking) {
     </div>
     <div class="section"><h2>Day-wise Plan</h2>${dayBlocks}</div>
   </div>
-  <div class="footer">UNO Trips · Print this page to save as PDF</div>
+  <div class="footer">${branding.brandName} · Print this page to save as PDF</div>
 </div>
 <script>window.onload=()=>{if(new URLSearchParams(location.search).get('print')==='1')window.print()}</script>
 </body></html>`;

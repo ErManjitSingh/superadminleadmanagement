@@ -13,6 +13,7 @@ import {
   Users,
 } from 'lucide-react';
 import { superAdminApi } from '../api/superadmin';
+import { PLATFORM_DOMAIN } from '../lib/branding';
 import { Button } from '../components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -77,7 +78,7 @@ export default function CompanyDetailPage() {
               <Badge className={STATUS_COLORS[company.status]}>{company.status}</Badge>
               {company.isLegacy && <Badge className="bg-violet-500/15 text-violet-700">Legacy Tenant</Badge>}
             </div>
-            <p className="text-[var(--text-secondary)]">{company.subdomain}.unotrips.com</p>
+            <p className="text-[var(--text-secondary)]">{company.subdomain}.{PLATFORM_DOMAIN}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

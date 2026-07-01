@@ -413,7 +413,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           <div>{COMPANY_INFO.address}</div>
           <div className="quote-ht-contact-line">Phone: {COMPANY_INFO.phone}</div>
           <div className="quote-ht-contact-line">Email: {COMPANY_INFO.email}</div>
-          <div className="quote-ht-contact-line">Web: {COMPANY_INFO.website || 'unotrips.com'}</div>
+          <div className="quote-ht-contact-line">Web: {COMPANY_INFO.website}</div>
         </div>
       </div>
 

@@ -10,6 +10,7 @@ import {
   deleteEmailTemplate,
 } from '../../services/emailTemplatesApi';
 import { usePermissions } from '../../hooks/usePermissions';
+import { APP_SALES_EMAIL } from '../../config/branding';
 
 const CATEGORIES = [
   { value: 'quotation', label: 'Quotation' },
@@ -108,7 +109,7 @@ export default function EmailTemplatesPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PageHeader
           title="Email Templates"
-          description="Manage templates sent from sales@unotrips.com"
+          description={`Manage templates sent from ${APP_SALES_EMAIL}`}
           breadcrumbs={['Settings', 'Email Templates']}
         />
         <Button onClick={openCreate} className="rounded-xl gap-2 bg-sky-600 hover:bg-sky-500 text-white border-0">

@@ -50,7 +50,7 @@ export default function Login() {
           ? err.message
           : err.response?.data?.message
             || (err.message === 'Network Error'
-              ? 'Cannot reach API. Check that the backend is running and you use http://testing.unotrips.com (SSL not configured yet).'
+              ? 'Cannot reach API. Check that the backend is running and your domain is configured correctly.'
               : err.message)
             || 'Login failed. Please try again.';
       setError(msg);

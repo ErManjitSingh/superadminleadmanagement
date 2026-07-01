@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { MessageCircle, Mail, ChevronRight } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
+import { APP_SALES_EMAIL } from '../../config/branding';
 import { usePermissions } from '../../hooks/usePermissions';
 
 export default function SettingsPage() {
@@ -20,7 +21,7 @@ export default function SettingsPage() {
       to: '/settings/email-templates',
       icon: Mail,
       title: 'Email Templates',
-      description: 'Manage email templates for sales@unotrips.com',
+      description: `Manage email templates for ${APP_SALES_EMAIL}`,
       color: 'text-sky-600 bg-sky-500/10',
     },
   ].filter(Boolean);

@@ -423,7 +423,7 @@ export default function UnoHotelSelector({ destination, value, onChange, nights 
             <div className="text-center py-16 rounded-2xl border border-dashed border-subtle">
               <Building2 className="w-10 h-10 mx-auto text-content-muted/40 mb-3" />
               <p className="text-sm font-medium">No hotels found</p>
-              <p className="text-xs text-content-muted mt-1">Try a different destination or check Uno Hotels catalog.</p>
+              <p className="text-xs text-content-muted mt-1">Try a different destination or check the hotel catalog.</p>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-4 max-h-[480px] overflow-y-auto pr-1">

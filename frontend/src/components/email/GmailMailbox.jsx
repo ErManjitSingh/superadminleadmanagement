@@ -18,6 +18,7 @@ import {
   User,
 } from 'lucide-react';
 import { fetchMailbox, fetchMailboxMessage, syncEmailReplies } from '../../services/emailApi';
+import { APP_BRAND_NAME, APP_SALES_EMAIL } from '../../config/branding';
 import GmailComposeLeadPicker from './GmailComposeLeadPicker';
 
 const PAGE_SIZE = 50;
@@ -117,7 +118,7 @@ export default function GmailMailbox() {
   const [composeOpen, setComposeOpen] = useState(false);
   const [messageBody, setMessageBody] = useState(null);
   const [bodyLoading, setBodyLoading] = useState(false);
-  const [data, setData] = useState({ items: [], counts: {}, mailbox: 'sales@unotrips.com' });
+  const [data, setData] = useState({ items: [], counts: {}, mailbox: APP_SALES_EMAIL });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -129,7 +130,7 @@ export default function GmailMailbox() {
       limit: folder === 'starred' ? 200 : PAGE_SIZE,
     })
       .then(setData)
-      .catch(() => setData({ items: [], counts: {}, mailbox: 'sales@unotrips.com', total: 0 }))
+      .catch(() => setData({ items: [], counts: {}, mailbox: APP_SALES_EMAIL, total: 0 }))
       .finally(() => setLoading(false));
   }, [folder, query, page]);
 
@@ -471,7 +472,7 @@ export default function GmailMailbox() {
                     <div className="min-w-0 flex-1 text-[11px] leading-snug">
                       <div className="flex flex-wrap items-baseline gap-x-1.5">
                         <span className="font-semibold text-[#202124]">
-                          {selected.type === 'inbound' ? selected.from?.name : 'UNO Trips Sales'}
+                          {selected.type === 'inbound' ? selected.from?.name : `${APP_BRAND_NAME} Sales`}
                         </span>
                         <span className="text-[#5f6368] truncate">
                           &lt;{selected.type === 'inbound' ? selected.from?.email : selected.from?.email}&gt;

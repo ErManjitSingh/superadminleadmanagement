@@ -483,7 +483,7 @@ export default function QuotationBuilderWizard({ mode = 'executive' }) {
               <div className="space-y-3">
                 <h2 className="text-lg font-bold">Select Package</h2>
                 <p className="text-xs text-content-muted">
-                  Packages for <span className="font-medium text-content-primary">{selectedLead?.destination || 'selected lead'}</span> from Uno Hotels
+                  Packages for <span className="font-medium text-content-primary">{selectedLead?.destination || 'selected lead'}</span> from hotel catalog
                 </p>
                 {loadingPackages ? (
                   <p className="text-sm text-content-muted py-8 text-center">Loading packages...</p>

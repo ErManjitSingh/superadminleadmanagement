@@ -1,8 +1,9 @@
 require('../config/env');
 const nodemailer = require('nodemailer');
+const branding = require('../config/branding');
 
-const DEFAULT_FROM = process.env.SMTP_USER || 'sales@unotrips.com';
-const DEFAULT_FROM_NAME = process.env.SMTP_FROM_NAME || 'UNO Trips';
+const DEFAULT_FROM = branding.salesEmail;
+const DEFAULT_FROM_NAME = branding.brandName;
 
 let transporter = null;
 

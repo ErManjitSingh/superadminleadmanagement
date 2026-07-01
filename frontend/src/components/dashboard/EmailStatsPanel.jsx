@@ -1,5 +1,6 @@
 import { Mail, CheckCircle2, XCircle, FileText, Clock } from 'lucide-react';
 import DashboardPanel from './DashboardPanel';
+import { APP_SALES_EMAIL } from '../../config/branding';
 
 export default function EmailStatsPanel({ stats }) {
   if (!stats) return null;
@@ -12,7 +13,7 @@ export default function EmailStatsPanel({ stats }) {
   ];
 
   return (
-    <DashboardPanel title="Email Activity" subtitle="Today · sales@unotrips.com">
+    <DashboardPanel title="Email Activity" subtitle={`Today · ${APP_SALES_EMAIL}`}>
       {!stats.configured && (
         <p className="text-sm text-amber-700 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 mb-4">
           SMTP is not configured on the server. Set SMTP_HOST, SMTP_USER, and SMTP_PASS to enable sending.

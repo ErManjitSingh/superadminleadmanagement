@@ -1,6 +1,6 @@
-/** PTW / Himachal Tour–style quotation template defaults (UNO Trips) */
+/** Quotation template defaults */
 
-export const QUOTE_WELCOME_TEXT = `Greetings from UNO Trips. Your journey surely deserves warm hospitality, comfortable stay, hassle-free transportation and proper guidance which UNO Trips, a reliable and growing travel organization, promises to cater at the best possible rates.
+export const QUOTE_WELCOME_TEXT = `Greetings from Travel CRM. Your journey surely deserves warm hospitality, comfortable stay, hassle-free transportation and proper guidance which Travel CRM, a reliable and growing travel organization, promises to cater at the best possible rates.
 
 We are proud to offer packages that can't be more perfect and take you to such an enhanced experience that the only words you have for us are "True to their Commitment."
 
@@ -48,7 +48,7 @@ export const QUOTE_POLICIES = {
 export const QUOTE_BANK_ACCOUNTS = [
   {
     bank: 'PUNJAB NATIONAL BANK',
-    accountName: 'UNO TRIPS PVT. LTD.',
+    accountName: 'TRAVEL CRM',
     accountNo: '4193002100008190',
     ifsc: 'PUNB0419300',
     branch: 'KASUMPTI - SHIMLA',
@@ -56,7 +56,7 @@ export const QUOTE_BANK_ACCOUNTS = [
   },
   {
     bank: 'HDFC BANK',
-    accountName: 'UNO TRIPS PVT LTD',
+    accountName: 'TRAVEL CRM',
     accountNo: '50200044011800',
     ifsc: 'HDFC0003612',
     branch: 'MAHELI – SHIMLA',
@@ -64,7 +64,7 @@ export const QUOTE_BANK_ACCOUNTS = [
   },
   {
     bank: 'ICICI BANK',
-    accountName: 'UNO TRIPS PVT LTD',
+    accountName: 'TRAVEL CRM',
     accountNo: '366805500120',
     ifsc: 'ICIC0003668',
     branch: 'KASUMPATI - SHIMLA',

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Check } from 'lucide-react';
 import API from '../api/axios';
+import { APP_PLATFORM_DOMAIN } from '../config/branding';
 import { authStorage } from '../auth/authStorage';
 import { Button } from '../components/ui/button';
 import { Input, Label } from '../components/ui/input';
@@ -106,7 +107,7 @@ export default function SignupPage() {
             <div>
               <Label>Subdomain (optional)</Label>
               <Input placeholder="acme" value={form.subdomain} onChange={(e) => setForm({ ...form, subdomain: e.target.value })} />
-              <p className="mt-1 text-xs text-content-muted">acme.unotrips.com</p>
+              <p className="mt-1 text-xs text-content-muted">acme.{APP_PLATFORM_DOMAIN}</p>
             </div>
             <div>
               <Label>Plan</Label>

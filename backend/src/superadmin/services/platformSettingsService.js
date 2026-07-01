@@ -1,7 +1,7 @@
 const PlatformSettings = require('../models/PlatformSettings');
 
 const DEFAULT_SETTINGS = [
-  { key: 'platform_name', value: 'UNO Trips', category: 'general', label: 'Platform Name' },
+  { key: 'platform_name', value: 'Travel CRM', category: 'general', label: 'Platform Name' },
   { key: 'default_currency', value: 'INR', category: 'general', label: 'Default Currency' },
   { key: 'default_timezone', value: 'Asia/Kolkata', category: 'general', label: 'Default Timezone' },
   { key: 'default_trial_days', value: 14, category: 'billing', label: 'Default Trial Days' },

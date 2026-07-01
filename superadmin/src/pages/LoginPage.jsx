@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input, Label } from '../components/ui/input';
+import { PLATFORM_DOMAIN } from '../lib/branding';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -60,7 +61,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="superadmin@unotrips.com"
+                placeholder={`superadmin@${PLATFORM_DOMAIN}`}
                 required
               />
             </div>

@@ -1,8 +1,10 @@
+import { APP_BRAND_NAME, APP_PLATFORM_DOMAIN, APP_SALES_EMAIL } from '../config/branding';
+
 const BRAND = {
-  name: 'UNO Trips',
+  name: APP_BRAND_NAME,
   tagline: 'Crafting unforgettable journeys',
-  email: 'sales@unotrips.com',
-  website: 'https://unotrips.com',
+  email: APP_SALES_EMAIL,
+  website: `https://${APP_PLATFORM_DOMAIN}`,
 };
 
 const CATEGORY_ACCENT = {
@@ -90,12 +92,12 @@ export function wrapEmailHtml(bodyText, options = {}) {
           ${highlight}
           ${paragraphs}
           <div style="text-align:center;margin-top:20px;">
-            <span style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,${accent.primary},${accent.secondary});color:#fff;font-weight:700;font-size:13px;border-radius:10px;">Explore UNO Trips</span>
+            <span style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,${accent.primary},${accent.secondary});color:#fff;font-weight:700;font-size:13px;border-radius:10px;">Explore ${BRAND.name}</span>
           </div>
         </div>
         <div style="padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0f172a;">${escapeHtml(executiveName || 'UNO Trips Sales Team')}</p>
-          <p style="margin:0;font-size:12px;color:#64748b;">${BRAND.email} · unotrips.com</p>
+          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0f172a;">${escapeHtml(executiveName || `${BRAND.name} Sales Team`)}</p>
+          <p style="margin:0;font-size:12px;color:#64748b;">${BRAND.email} · ${APP_PLATFORM_DOMAIN}</p>
         </div>
       </div>
     </div>
@@ -118,7 +120,7 @@ export function buildEmailPreviewOptions(lead, category, extras = {}) {
     quotationNumber: extras.quotationNumber || extras.quoteNumber,
     amount: formattedAmount,
     travelDate,
-    executiveName: extras.executiveName || 'UNO Trips Sales Team',
+    executiveName: extras.executiveName || `${BRAND.name} Sales Team`,
   };
 }
 

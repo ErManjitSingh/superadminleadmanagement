@@ -1,4 +1,4 @@
-const PLATFORM_DOMAIN = import.meta.env.VITE_PLATFORM_DOMAIN || 'unotrips.com';
+const PLATFORM_DOMAIN = import.meta.env.VITE_PLATFORM_DOMAIN || 'indiaholidaydestination.com';
 
 export function getTenantSubdomain() {
   if (typeof window === 'undefined') return null;

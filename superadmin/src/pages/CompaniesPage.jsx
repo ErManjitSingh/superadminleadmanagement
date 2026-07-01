@@ -13,6 +13,7 @@ import { Card } from '../components/ui/card';
 import { Input, Select } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { cn, formatDate, STATUS_COLORS } from '../lib/utils';
+import { PLATFORM_DOMAIN } from '../lib/branding';
 
 export default function CompaniesPage() {
   const queryClient = useQueryClient();
@@ -66,7 +67,7 @@ export default function CompaniesPage() {
         cell: ({ row }) => (
           <div>
             <p className="font-medium">{row.original.name}</p>
-            <p className="text-xs text-[var(--text-muted)]">{row.original.subdomain}.unotrips.com</p>
+            <p className="text-xs text-[var(--text-muted)]">{row.original.subdomain}.{PLATFORM_DOMAIN}</p>
           </div>
         ),
       },
