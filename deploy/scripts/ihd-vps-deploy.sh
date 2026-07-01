@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Git-based deploy for indiaholidaydestination.com VPS
+set -euo pipefail
+
+APP_ROOT="/var/www/leadmanagement"
+WEB_ROOT="/var/www/indiaholidaydestination.com/public_html"
+ADMIN_WEB_ROOT="/var/www/admin.indiaholidaydestination.com/public_html"
+DOMAIN="indiaholidaydestination.com"
+REPO="https://github.com/ErManjitSingh/superadminleadmanagement.git"
+
+echo "==> Ensure directories..."
+mkdir -p "$APP_ROOT/logs" "$WEB_ROOT" "$ADMIN_WEB_ROOT" /var/www/certbot
+
+echo "==> Pull latest code from GitHub..."
+if [ ! -d "$APP_ROOT/.git" ]; then
+  git clone "$REPO" "$APP_ROOT"
+fi
+cd "$APP_ROOT"
+git fetch origin main
+git reset --hard origin/main
+
+echo "==> Backend .env (create only if missing)..."
+if [ ! -f "$APP_ROOT/backend/.env" ]; then
+  JWT_SECRET=$(openssl rand -base64 48)
+  SA_JWT=$(openssl rand -base64 48)
+  cat > "$APP_ROOT/backend/.env" <<EOF
+PORT=5000
+NODE_ENV=production
+MONGO_URI=mongodb://127.0.0.1:27017/indiaholidaydestination_crm
+JWT_SECRET=${JWT_SECRET}
+JWT_EXPIRES_IN=30d
+SUPERADMIN_JWT_SECRET=${SA_JWT}
+SUPERADMIN_JWT_EXPIRES_IN=8h
+SUPERADMIN_EMAIL=superadmin@${DOMAIN}
+SUPERADMIN_PASSWORD=SuperAdmin@IHD2026
+CRM_FRONTEND_URL=https://${DOMAIN}
+PLATFORM_DOMAIN=${DOMAIN}
+CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN},https://admin.${DOMAIN}
+SEED_PASSWORD=123456
+REDIS_URL=redis://127.0.0.1:6379
+EOF
+  chmod 600 "$APP_ROOT/backend/.env"
+fi
+
+echo 'VITE_API_URL=/api' > "$APP_ROOT/frontend/.env"
+cat > "$APP_ROOT/superadmin/.env" <<EOF
+VITE_API_URL=/api/superadmin
+VITE_CRM_URL=https://${DOMAIN}
+VITE_PLATFORM_DOMAIN=${DOMAIN}
+EOF
+
+systemctl start mongod 2>/dev/null || true
+systemctl start redis-server 2>/dev/null || true
+
+echo "==> Backend..."
+cd "$APP_ROOT/backend"
+npm install --omit=dev
+node -e "require('./src/config/env');const m=require('mongoose');const U=require('./src/models/User');m.connect(require('./src/config/env').mongoUri).then(async()=>{process.exit((await U.countDocuments())>0?0:1)}).catch(()=>process.exit(1))" \
+  && echo "CRM DB already seeded" || npm run seed
+npm run seed:platform 2>/dev/null || true
+
+echo "==> CRM frontend build..."
+cd "$APP_ROOT/frontend"
+npm install
+npm run build
+
+echo "==> Publish CRM to public_html..."
+rsync -a --delete "$APP_ROOT/frontend/dist/" "$WEB_ROOT/"
+
+echo "==> Super Admin build..."
+cd "$APP_ROOT/superadmin"
+npm install
+npm run build
+rsync -a --delete "$APP_ROOT/superadmin/dist/" "$ADMIN_WEB_ROOT/"
+
+echo "==> PM2..."
+cd "$APP_ROOT"
+pm2 delete ihd-crm-api 2>/dev/null || true
+pm2 start deploy/ecosystem.ihd.config.cjs
+pm2 save
+
+echo "==> Nginx..."
+if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+  cp "$APP_ROOT/deploy/nginx/indiaholidaydestination.com.conf" "/etc/nginx/sites-available/${DOMAIN}"
+else
+  cp "$APP_ROOT/deploy/nginx/indiaholidaydestination.com.http-only.conf" "/etc/nginx/sites-available/${DOMAIN}"
+fi
+ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
+rm -f /etc/nginx/sites-enabled/default
+nginx -t
+systemctl reload nginx
+
+sleep 2
+curl -sf http://127.0.0.1:5000/api/health
+echo ""
+test -f "$WEB_ROOT/index.html" && echo "public_html index.html OK"
+echo "DEPLOY_OK"
