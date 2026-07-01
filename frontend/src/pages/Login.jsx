@@ -77,7 +77,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [activePreset, setActivePreset] = useState(null);
-  const [showDemo, setShowDemo] = useState(false);
+  const [showDemo, setShowDemo] = useState(true);
+  const [demoLoading, setDemoLoading] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user, getDashboardPath } = useAuth();
@@ -99,7 +100,31 @@ export default function Login() {
     setPassword(preset.password);
     setActivePreset(preset.email);
     setError('');
-    setShowDemo(false);
+  };
+
+  const handleDemoLogin = async (preset) => {
+    fillPreset(preset);
+    setDemoLoading(preset.email);
+    setLoading(true);
+    setError('');
+    try {
+      const sessionUser = await login(preset.email, preset.password);
+      const dest = sessionUser.dashboardPath || getDashboardPath(sessionUser.role);
+      navigate(location.state?.from || dest, { replace: true });
+    } catch (err) {
+      const msg =
+        err instanceof AuthError
+          ? err.message
+          : err.response?.data?.message
+            || (err.message === 'Network Error'
+              ? 'Cannot reach API. Check that the backend is running and your domain is configured correctly.'
+              : err.message)
+            || 'Demo login failed. Please try again.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+      setDemoLoading(null);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -134,6 +159,8 @@ export default function Login() {
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-950/75 via-violet-950/55 to-indigo-900/45" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
 
         <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-12">
           <div>
@@ -341,40 +368,47 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Demo accounts — collapsible */}
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={() => setShowDemo((v) => !v)}
-              className="text-xs font-medium text-slate-500 hover:text-violet-600"
-            >
-              {showDemo ? 'Hide demo accounts' : 'Quick demo login'}
-            </button>
+          {/* Demo accounts — one-click login */}
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Demo login</p>
+              <button
+                type="button"
+                onClick={() => setShowDemo((v) => !v)}
+                className="text-xs font-medium text-slate-400 hover:text-violet-600"
+              >
+                {showDemo ? 'Hide' : 'Show'}
+              </button>
+            </div>
             {showDemo && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="overflow-hidden rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-white p-4 shadow-sm"
               >
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {LOGIN_PRESETS.map((preset) => (
                     <button
                       key={preset.email}
                       type="button"
-                      onClick={() => fillPreset(preset)}
+                      disabled={loading}
+                      onClick={() => handleDemoLogin(preset)}
                       className={cn(
-                        'rounded-xl border px-3 py-2 text-left text-xs transition-all',
+                        'rounded-xl border px-3 py-2.5 text-left text-xs transition-all disabled:opacity-60',
                         activePreset === preset.email
                           ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-400/20'
-                          : 'border-slate-200 hover:border-violet-300 hover:bg-slate-50',
+                          : 'border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/50',
                       )}
                     >
                       <span className="block font-semibold text-slate-800">{preset.roleName}</span>
                       <span className="block truncate text-slate-500">{preset.email}</span>
+                      <span className="mt-1 block text-[10px] font-medium text-violet-600">
+                        {demoLoading === preset.email ? 'Signing in…' : 'Click to sign in →'}
+                      </span>
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-[11px] text-slate-400">
+                <p className="mt-2 text-center text-[11px] text-slate-400">
                   Password: <span className="font-mono font-semibold text-slate-600">123456</span>
                 </p>
               </motion.div>
