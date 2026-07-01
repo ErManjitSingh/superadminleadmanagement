@@ -48,7 +48,7 @@ app.get('/api/health', (req, res) => {
   const db = getDbStatus();
   res.status(200).json({
     status: 'ok',
-    service: 'unotravel-crm-api',
+    service: 'travel-crm-api',
     database: db,
     time: new Date().toISOString(),
   });
