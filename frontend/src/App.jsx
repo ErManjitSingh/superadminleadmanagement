@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { TenantProvider, TenantGate } from './context/TenantContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider } from './context/ToastContext';
@@ -37,6 +38,8 @@ import {
   SkillAssignmentPage,
   Notifications,
   SettingsPage,
+  CompanyWorkspacePage,
+  VerifyEmailPage,
   WhatsAppTemplatesPage,
   EmailTemplatesPage,
   EmailActivityPage,
@@ -103,12 +106,15 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
+        <TenantProvider>
+        <TenantGate>
         <AuthProvider>
           <NotificationProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/accept-invite/:token" element={<AcceptInvite />} />
             <Route path="/auth/impersonate" element={<ImpersonationCallback />} />
@@ -260,6 +266,7 @@ function App() {
               <Route path="calendar" element={<ComingSoon title="Calendar" description="Travel dates, follow-ups, and team schedule" />} />
               <Route path="notifications" element={<PermissionRoute module="leads"><Notifications /></PermissionRoute>} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/workspace" element={<RoleRoute roles={['admin']}><CompanyWorkspacePage /></RoleRoute>} />
               <Route path="settings/whatsapp-templates" element={<PermissionRoute module="whatsapp" action="manage"><WhatsAppTemplatesPage /></PermissionRoute>} />
               <Route path="settings/email-templates" element={<PermissionRoute module="email" action="manage"><EmailTemplatesPage /></PermissionRoute>} />
               <Route path="profile" element={<ComingSoon title="My Profile" description="Personal settings and performance" />} />
@@ -268,6 +275,8 @@ function App() {
           </Routes>
           </NotificationProvider>
         </AuthProvider>
+        </TenantGate>
+        </TenantProvider>
         </BrowserRouter>
       </ToastProvider>
     </ThemeProvider>

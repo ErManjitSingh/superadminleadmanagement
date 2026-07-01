@@ -1,5 +1,7 @@
 const Company = require('../models/Company');
 const { domainPointsToPlatform, normalizeDomain } = require('../../controllers/publicDomainController');
+const { onDomainVerified } = require('../../services/sslProvisioningService');
+const { markOnboardingStep } = require('../../services/onboardingService');
 const ApiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { parsePagination, paginatedResponse } = require('../../utils/pagination');
@@ -16,6 +18,9 @@ function formatDomainRow(c) {
     primaryDomain: c.primaryDomain,
     domainType: c.domainType || 'subdomain',
     domainVerified: Boolean(c.domainVerified),
+    domainLastVerifiedAt: c.domainLastVerifiedAt,
+    sslStatus: c.sslStatus || 'not_applicable',
+    sslLastCheckedAt: c.sslLastCheckedAt,
     status: c.status,
     ownerEmail: c.ownerEmail,
     createdAt: c.createdAt,
@@ -66,8 +71,14 @@ const verifyCompanyDomain = asyncHandler(async (req, res) => {
 
   const result = await domainPointsToPlatform(company.primaryDomain);
   company.domainVerified = result.verified;
+  company.domainLastVerifiedAt = new Date();
   company.updatedBy = req.superAdmin._id;
-  await company.save();
+  if (result.verified) {
+    await markOnboardingStep(company._id, 'domainConnected', true);
+    await onDomainVerified(company);
+  } else {
+    await company.save();
+  }
 
   await logPlatformAudit({
     actor: req.superAdmin,

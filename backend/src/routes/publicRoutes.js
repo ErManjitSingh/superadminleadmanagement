@@ -4,6 +4,10 @@ const {
   publicSignup,
 } = require("../controllers/publicSignupController");
 const {
+  verifyEmail,
+  resendVerification,
+} = require("../controllers/publicEmailVerificationController");
+const {
   checkSubdomain,
   getDomainDnsInfo,
   verifyDomain,
@@ -16,6 +20,8 @@ router.get("/plans", listPublicPlans);
 router.get("/domain/dns-info", getDomainDnsInfo);
 router.get("/subdomain/:subdomain/check", checkSubdomain);
 router.post("/domain/verify", verifyDomain);
+router.post("/verify-email", verifyEmail);
+router.post("/resend-verification", authLimiter, resendVerification);
 router.post("/signup", authLimiter, publicSignup);
 
 module.exports = router;

@@ -28,6 +28,8 @@ export const DestinationAssignmentPage = lazy(() => import('../pages/Destination
 export const SkillAssignmentPage = lazy(() => import('../pages/SkillAssignmentPage'));
 export const Notifications = lazy(() => import('../pages/Notifications'));
 export const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'));
+export const CompanyWorkspacePage = lazy(() => import('../pages/settings/CompanyWorkspacePage'));
+export const VerifyEmailPage = lazy(() => import('../pages/VerifyEmailPage'));
 export const WhatsAppTemplatesPage = lazy(() => import('../pages/settings/WhatsAppTemplatesPage'));
 export const EmailTemplatesPage = lazy(() => import('../pages/settings/EmailTemplatesPage'));
 export const EmailActivityPage = lazy(() => import('../pages/EmailActivityPage'));

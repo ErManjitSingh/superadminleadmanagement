@@ -29,6 +29,7 @@ const { runLeadAutoAssignment } = require('../services/leadAutoAssignmentService
 const { LEAD_AUTO_ASSIGNMENT_ENABLED } = require('../config/assignment');
 const { detectLeadType } = require('../services/leadTypeDetectionService');
 const { DEMO_LEADS } = require('../data/demoLeads');
+const { markOnboardingStep } = require('../services/onboardingService');
 const { clearAllLeadsData } = require('../services/clearAllLeadsService');
 const {
   buildAssignmentPatch,
@@ -232,6 +233,10 @@ const createLead = asyncHandler(async (req, res) => {
 
   await applyLeadMetrics(data);
   const lead = await Lead.create(data);
+
+  if (req.companyId) {
+    await markOnboardingStep(req.companyId, 'firstLeadAdded', true).catch(() => {});
+  }
 
   await logLeadActivity({
     leadId: lead._id,

@@ -12,6 +12,18 @@ const resolveTenant = asyncHandler(async (req, res, next) => {
   next();
 });
 
+const EMAIL_VERIFICATION_EXEMPT = [
+  '/api/auth/me',
+  '/api/auth/logout',
+  '/api/auth/login',
+  '/api/company-settings',
+  '/api/public',
+];
+
+function isEmailVerificationExempt(url) {
+  return EMAIL_VERIFICATION_EXEMPT.some((p) => url.startsWith(p));
+}
+
 const attachTenantContext = asyncHandler(async (req, res, next) => {
   const companyId = req.user?.companyId || null;
 
@@ -34,6 +46,16 @@ const attachTenantContext = asyncHandler(async (req, res, next) => {
     const check = assertCompanyAccessible(loaded);
     if (!check.ok) throw new ApiError(check.code, check.message);
     req.tenantCompany = loaded;
+  }
+
+  const url = req.originalUrl || '';
+  if (
+    req.tenantCompany
+    && !req.tenantCompany.isLegacy
+    && !req.tenantCompany.ownerEmailVerified
+    && !isEmailVerificationExempt(url)
+  ) {
+    throw new ApiError(403, 'Please verify your business email to continue. Check your inbox or resend from settings.');
   }
 
   req.companyId = companyId;

@@ -6,7 +6,10 @@ const COMPANY_STATUSES = [
   "suspended",
   "trial",
   "expired",
+  "pending_verification",
 ];
+
+const SSL_STATUSES = ["not_applicable", "pending", "active", "failed"];
 
 const featureFlagsSchema = new mongoose.Schema(
   {
@@ -51,6 +54,21 @@ const companySchema = new mongoose.Schema(
       default: "subdomain",
     },
     domainVerified: { type: Boolean, default: false },
+    domainLastVerifiedAt: { type: Date, default: null },
+    sslStatus: {
+      type: String,
+      enum: SSL_STATUSES,
+      default: "not_applicable",
+    },
+    sslLastCheckedAt: { type: Date, default: null },
+    additionalDomains: [
+      {
+        domain: { type: String, trim: true },
+        verified: { type: Boolean, default: false },
+        sslStatus: { type: String, enum: SSL_STATUSES, default: "pending" },
+        addedAt: { type: Date, default: Date.now },
+      },
+    ],
     businessType: { type: String, trim: true, default: "" },
     logo: { type: String, default: null },
     ownerName: { type: String, required: true, trim: true },
@@ -61,6 +79,9 @@ const companySchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    ownerEmailVerified: { type: Boolean, default: false },
+    ownerEmailVerificationToken: { type: String, default: null, select: false },
+    ownerEmailVerificationExpires: { type: Date, default: null, select: false },
     phone: { type: String, trim: true },
     country: { type: String, trim: true, default: "India" },
     state: { type: String, trim: true },
@@ -86,6 +107,26 @@ const companySchema = new mongoose.Schema(
     storageUsedMb: { type: Number, default: 0 },
     trialEndDate: { type: Date, index: true },
     renewDate: { type: Date, index: true },
+    maintenanceMode: { type: Boolean, default: false },
+    onboarding: {
+      companyCreated: { type: Boolean, default: true },
+      emailVerified: { type: Boolean, default: false },
+      domainConnected: { type: Boolean, default: false },
+      profileCompleted: { type: Boolean, default: false },
+      logoUploaded: { type: Boolean, default: false },
+      firstUserAdded: { type: Boolean, default: false },
+      firstLeadAdded: { type: Boolean, default: false },
+      firstQuotationCreated: { type: Boolean, default: false },
+    },
+    whiteLabel: {
+      appTitle: { type: String, default: "" },
+      primaryColor: { type: String, default: "#7c3aed" },
+      secondaryColor: { type: String, default: "#4f46e5" },
+      sidebarColor: { type: String, default: "#0f172a" },
+      emailLogoUrl: { type: String, default: "" },
+      invoiceLogoUrl: { type: String, default: "" },
+      quotationLogoUrl: { type: String, default: "" },
+    },
     features: { type: featureFlagsSchema, default: () => ({}) },
     tenantSettings: {
       smtpHost: { type: String, default: "" },
@@ -124,3 +165,4 @@ companySchema.query.notDeleted = function notDeleted() {
 
 module.exports = mongoose.model("Company", companySchema);
 module.exports.COMPANY_STATUSES = COMPANY_STATUSES;
+module.exports.SSL_STATUSES = SSL_STATUSES;

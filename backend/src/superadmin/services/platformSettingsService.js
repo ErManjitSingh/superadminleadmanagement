@@ -4,7 +4,7 @@ const DEFAULT_SETTINGS = [
   { key: 'platform_name', value: 'Travel CRM', category: 'general', label: 'Platform Name' },
   { key: 'default_currency', value: 'INR', category: 'general', label: 'Default Currency' },
   { key: 'default_timezone', value: 'Asia/Kolkata', category: 'general', label: 'Default Timezone' },
-  { key: 'default_trial_days', value: 14, category: 'billing', label: 'Default Trial Days' },
+  { key: 'default_trial_days', value: 7, category: 'billing', label: 'Default Trial Days' },
   { key: 'maintenance_mode', value: false, category: 'general', label: 'Maintenance Mode' },
   { key: 'smtp_host', value: '', category: 'smtp', label: 'SMTP Host' },
   { key: 'smtp_port', value: 465, category: 'smtp', label: 'SMTP Port' },

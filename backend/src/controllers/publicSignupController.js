@@ -17,6 +17,9 @@ const {
 const { resolveUserPermissions } = require("../services/permissionsService");
 const { assertCompanyAccessible } = require("../services/tenantResolveService");
 const { platformDomain } = require("../config/branding");
+const { sendOwnerVerificationEmail } = require("../services/emailVerificationService");
+const { onDomainVerified } = require("../services/sslProvisioningService");
+const { formatOnboardingResponse } = require("../services/onboardingService");
 
 const listPublicPlans = asyncHandler(async (req, res) => {
   const plans = await SubscriptionPlan.find({
@@ -107,14 +110,20 @@ const publicSignup = asyncHandler(async (req, res) => {
       domainType: resolvedDomainType,
       domainVerified: resolvedDomainVerified,
       subscriptionPlanId: plan._id,
-      status: "trial",
-      trialDays: 14,
+      status: "pending_verification",
+      trialDays: 7,
     },
     superAdminId: null,
   });
 
+  if (result.company.domainVerified && result.company.domainType === 'custom') {
+    await onDomainVerified(result.company);
+  }
+
+  const emailResult = await sendOwnerVerificationEmail(result.company);
+
   const check = assertCompanyAccessible(result.company);
-  if (!check.ok) throw new ApiError(check.code, check.message);
+  if (!check.ok && check.code !== 503) throw new ApiError(check.code, check.message);
 
   const User = require("../models/User");
   const user = await User.findById(result.adminUser.id);
@@ -131,9 +140,16 @@ const publicSignup = asyncHandler(async (req, res) => {
       primaryDomain: result.company.primaryDomain,
       domainType: result.company.domainType,
       domainVerified: result.company.domainVerified,
+      sslStatus: result.company.sslStatus,
       status: result.company.status,
-      workspaceUrl: `https://${result.company.subdomain}.${platformDomain}`,
+      ownerEmailVerified: result.company.ownerEmailVerified,
+      workspaceUrl: `https://${result.company.subdomain}.${platformDomain}/app`,
+      trialEndDate: result.company.trialEndDate,
+      trialDaysRemaining: 7,
     },
+    onboarding: formatOnboardingResponse(result.company),
+    requiresEmailVerification: !result.company.ownerEmailVerified,
+    verificationEmailSent: emailResult.sent,
     branch: result.defaultBranch,
   });
 });

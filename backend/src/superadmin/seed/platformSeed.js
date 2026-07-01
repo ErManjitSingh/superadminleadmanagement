@@ -119,15 +119,28 @@ async function seedPlatform() {
       subdomain: 'uno-trips',
       ownerName: adminUser?.name || 'Admin User',
       ownerEmail: adminUser?.email || 'admin@crm.com',
+      ownerEmailVerified: true,
       country: 'India',
       timezone: 'Asia/Kolkata',
       currency: 'INR',
-      subscriptionPlanId: enterprisePlan?._id,
+      planId: enterprisePlan?._id,
       status: 'active',
       storageLimitGb: 200,
       trialEndDate: trialEnd,
       renewDate: trialEnd,
       isLegacy: true,
+      domainType: 'subdomain',
+      domainVerified: true,
+      onboarding: {
+        companyCreated: true,
+        emailVerified: true,
+        domainConnected: true,
+        profileCompleted: true,
+        logoUploaded: false,
+        firstUserAdded: true,
+        firstLeadAdded: false,
+        firstQuotationCreated: false,
+      },
       adminUserId: adminUser?._id,
       defaultBranchId: defaultBranch?._id,
       features: {
@@ -147,6 +160,20 @@ async function seedPlatform() {
       },
     });
     console.log('[Platform Seed] Legacy company created: Travel CRM');
+  }
+
+  if (legacyCompany) {
+    await Company.updateOne(
+      { _id: legacyCompany._id },
+      {
+        $set: {
+          ownerEmailVerified: true,
+          isLegacy: true,
+          'onboarding.emailVerified': true,
+          'onboarding.domainConnected': true,
+        },
+      },
+    );
   }
 
   if (legacyCompany && adminUser && !adminUser.companyId) {

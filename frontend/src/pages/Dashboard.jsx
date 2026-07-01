@@ -14,12 +14,15 @@ import {
 } from '../components/dashboard';
 import LeadTrendChart from '../components/dashboard/LeadTrendChart';
 import RemindersAlertsPanel from '../components/dashboard/RemindersAlertsPanel';
+import OnboardingChecklist from '../components/onboarding/OnboardingChecklist';
+import { useAuth } from '../context/AuthContext';
 
 function PanelSkeleton() {
   return <div className="h-56 rounded-2xl bg-surface border border-subtle animate-pulse" />;
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: stats, isLoading, isFetching, refetch } = useDashboardQuery();
 
@@ -43,6 +46,7 @@ export default function Dashboard() {
 
       <DashboardHeader onRefresh={refreshDashboard} isRefreshing={isFetching} />
       <DashboardHero stats={stats} />
+      {user?.role === 'admin' && <OnboardingChecklist compact />}
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <div className="xl:col-span-8">

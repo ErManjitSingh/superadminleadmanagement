@@ -1,15 +1,32 @@
 export const SIGNUP_STEPS = [
-  { id: 'account', title: 'Account', subtitle: 'Company & owner details' },
-  { id: 'business', title: 'Business', subtitle: 'Regional settings' },
-  { id: 'domain', title: 'Domain', subtitle: 'Your workspace URL' },
-  { id: 'review', title: 'Review', subtitle: 'Confirm details' },
-  { id: 'launch', title: 'Launch', subtitle: 'Create your demo' },
+  { id: 'account', title: 'Account', subtitle: 'Company & owner details', icon: 'user' },
+  { id: 'business', title: 'Business', subtitle: 'Type & regional settings', icon: 'building' },
+  { id: 'plan', title: 'Plan', subtitle: 'Choose your subscription', icon: 'credit' },
+  { id: 'domain', title: 'Domain', subtitle: 'Your workspace URL', icon: 'globe' },
+  { id: 'review', title: 'Review', subtitle: 'Confirm details', icon: 'check' },
+  { id: 'launch', title: 'Launch', subtitle: 'Create your workspace', icon: 'rocket' },
+];
+
+export const SIGNUP_BENEFITS = [
+  '7-day free trial — no credit card',
+  'Instant workspace provisioning',
+  'Head Office branch auto-created',
+  'Roles, permissions & email templates',
+  'Subdomain or custom domain',
+  'Enterprise-grade multi-tenant security',
+];
+
+export const TRUST_BADGES = [
+  '256-bit SSL',
+  'Data isolated per company',
+  '99.9% uptime SLA',
 ];
 
 export const BUSINESS_TYPES = [
   'Travel Agency',
-  'DMC',
   'Tour Operator',
+  'DMC',
+  'OTA',
   'Corporate Travel',
   'Online Travel',
   'Other',
@@ -50,7 +67,8 @@ export const PROVISION_ITEMS = [
   'Head Office branch',
   'Company admin user',
   'Roles & permissions',
-  'Default settings',
+  'Default email templates',
+  'Notification & SMTP placeholders',
   'Light theme workspace',
 ];
 
@@ -80,4 +98,11 @@ export function slugifySubdomain(value) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .slice(0, 48);
+}
+
+export function copyToClipboard(value) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    return navigator.clipboard.writeText(value);
+  }
+  return Promise.resolve();
 }

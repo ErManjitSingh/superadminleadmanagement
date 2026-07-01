@@ -57,6 +57,7 @@ async function resolveCompanyFromRequest(req) {
 function assertCompanyAccessible(company) {
   if (!company) return { ok: false, code: 404, message: 'Company not found' };
   if (company.deletedAt) return { ok: false, code: 403, message: 'Company is not available' };
+  if (company.maintenanceMode) return { ok: false, code: 503, message: 'Workspace is under maintenance' };
   if (company.status === 'suspended') return { ok: false, code: 403, message: 'Company account is suspended' };
   if (company.status === 'expired') return { ok: false, code: 403, message: 'Company subscription has expired' };
   if (company.status === 'inactive') return { ok: false, code: 403, message: 'Company account is inactive' };

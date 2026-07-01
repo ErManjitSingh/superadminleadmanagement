@@ -1,10 +1,12 @@
 const express = require('express');
 const dataSyncMiddleware = require('../middleware/dataSyncMiddleware');
 const { resolveTenant } = require('../middleware/tenantContext');
+const { checkMaintenanceMode } = require('../middleware/maintenanceMode');
 const router = express.Router();
 
 router.use(dataSyncMiddleware);
 router.use(resolveTenant);
+router.use(checkMaintenanceMode);
 
 const authRoutes = require('./authRoutes');
 const leadRoutes = require('./leadRoutes');

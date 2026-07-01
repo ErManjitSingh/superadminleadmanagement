@@ -2,11 +2,13 @@ const crypto = require("crypto");
 const User = require("../../models/User");
 const Role = require("../../models/Role");
 const Branch = require("../../models/Branch");
+const EmailTemplate = require("../../models/EmailTemplate");
 const Company = require("../models/Company");
 const SubscriptionPlan = require("../models/SubscriptionPlan");
 const { ROLES, ROLE_LABELS } = require("../../config/roles");
 const { ROLE_PERMISSIONS } = require("../../config/permissions");
 const ApiError = require("../../utils/apiError");
+const { markOnboardingStep } = require("../../services/onboardingService");
 
 const DEFAULT_FEATURES = {
   crm: true,
@@ -71,10 +73,48 @@ async function createDefaultBranch(companyId) {
   });
 }
 
+const DEFAULT_EMAIL_TEMPLATES = [
+  {
+    name: "Welcome",
+    category: "welcome",
+    subject: "Welcome to {{company_name}}",
+    body: "Hi {{name}},\n\nWelcome to our travel CRM workspace. Your account is ready.\n\nBest regards,\n{{company_name}}",
+    sortOrder: 1,
+  },
+  {
+    name: "Quotation Sent",
+    category: "quotation",
+    subject: "Your travel quotation — {{quote_number}}",
+    body: "Hi {{name}},\n\nPlease find your quotation attached.\n\nRegards,\n{{company_name}}",
+    sortOrder: 2,
+  },
+  {
+    name: "Follow-up Reminder",
+    category: "follow_up",
+    subject: "Following up on your travel inquiry",
+    body: "Hi {{name}},\n\nJust checking in regarding your travel plans.\n\nRegards,\n{{company_name}}",
+    sortOrder: 3,
+  },
+];
+
+async function seedDefaultEmailTemplates(companyId, branchId, adminUserId) {
+  const count = await EmailTemplate.countDocuments({ companyId });
+  if (count > 0) return;
+
+  await EmailTemplate.insertMany(
+    DEFAULT_EMAIL_TEMPLATES.map((t) => ({
+      ...t,
+      companyId,
+      branchId,
+      createdBy: adminUserId,
+      enabled: true,
+    })),
+  );
+}
+
 async function provisionCompany({ payload, superAdminId }) {
-  const plan = await SubscriptionPlan.findById(
-    payload.subscriptionPlanId,
-  ).notDeleted();
+  const planId = payload.subscriptionPlanId || payload.planId;
+  const plan = await SubscriptionPlan.findById(planId).notDeleted();
   if (!plan) throw new ApiError(400, "Invalid subscription plan");
 
   const baseSlug = slugify(payload.slug || payload.name);
@@ -99,17 +139,6 @@ async function provisionCompany({ payload, superAdminId }) {
   });
   if (existingUser) throw new ApiError(409, "Owner email already registered");
 
-  const trialDays = payload.trialDays ?? 14;
-  const trialEndDate = new Date();
-  trialEndDate.setDate(trialEndDate.getDate() + trialDays);
-
-  const renewDate =
-    payload.billingCycle === "yearly"
-      ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-  const features = { ...DEFAULT_FEATURES, ...(payload.features || {}) };
-
   const domainType = payload.domainType === "custom" ? "custom" : "subdomain";
   const primaryDomain =
     domainType === "custom" && payload.primaryDomain
@@ -124,6 +153,19 @@ async function provisionCompany({ payload, superAdminId }) {
     if (domainTaken) throw new ApiError(409, "Custom domain already registered");
   }
 
+  const features = { ...DEFAULT_FEATURES, ...(payload.features || {}) };
+  const trialDays = payload.trialDays ?? 7;
+  const trialEndDate = new Date();
+  trialEndDate.setDate(trialEndDate.getDate() + trialDays);
+
+  const renewDate =
+    payload.billingCycle === "yearly"
+      ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  const skipEmailVerification = Boolean(payload.skipEmailVerification || superAdminId);
+  const domainConnected = domainType === "subdomain" || Boolean(payload.domainVerified);
+
   const company = await Company.create({
     name: payload.name.trim(),
     slug,
@@ -131,10 +173,13 @@ async function provisionCompany({ payload, superAdminId }) {
     primaryDomain,
     domainType,
     domainVerified: domainType === "subdomain" ? true : Boolean(payload.domainVerified),
+    domainLastVerifiedAt: domainType === "subdomain" || payload.domainVerified ? new Date() : null,
+    sslStatus: domainType === "custom" && payload.domainVerified ? "pending" : "not_applicable",
     businessType: payload.businessType || "",
     logo: payload.logo || null,
     ownerName: payload.ownerName.trim(),
     ownerEmail,
+    ownerEmailVerified: skipEmailVerification,
     phone: payload.phone || "",
     country: payload.country || "India",
     state: payload.state || "",
@@ -143,12 +188,33 @@ async function provisionCompany({ payload, superAdminId }) {
     gst: payload.gst || "",
     timezone: payload.timezone || "Asia/Kolkata",
     currency: payload.currency || "INR",
-    subscriptionPlanId: plan._id,
-    status: payload.status || "trial",
+    billingCycle: payload.billingCycle || "monthly",
+    autoRenewal: payload.autoRenewal !== false,
+    planId: plan._id,
+    status: skipEmailVerification ? (payload.status || "trial") : "pending_verification",
     storageLimitGb: payload.storageLimitGb ?? plan.storageLimitGb,
     trialEndDate,
     renewDate,
     features,
+    onboarding: {
+      companyCreated: true,
+      emailVerified: skipEmailVerification,
+      domainConnected,
+      profileCompleted: Boolean(payload.businessType && payload.phone),
+      logoUploaded: Boolean(payload.logo),
+      firstUserAdded: false,
+      firstLeadAdded: false,
+      firstQuotationCreated: false,
+    },
+    whiteLabel: {
+      appTitle: payload.name.trim(),
+      primaryColor: "#7c3aed",
+      secondaryColor: "#4f46e5",
+      sidebarColor: "#0f172a",
+    },
+    tenantSettings: {
+      smtpFromName: payload.name.trim(),
+    },
     createdBy: superAdminId || null,
     updatedBy: superAdminId || null,
   });
@@ -173,6 +239,9 @@ async function provisionCompany({ payload, superAdminId }) {
 
   company.adminUserId = adminUser._id;
   await company.save();
+
+  await seedDefaultEmailTemplates(company._id, defaultBranch._id, adminUser._id);
+  await markOnboardingStep(company._id, 'firstUserAdded', true);
 
   return {
     company,

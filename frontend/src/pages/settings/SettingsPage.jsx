@@ -1,15 +1,26 @@
 import { Link } from 'react-router-dom';
-import { MessageCircle, Mail, ChevronRight } from 'lucide-react';
+import { Globe, Building2 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import { APP_SALES_EMAIL } from '../../config/branding';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 
 export default function SettingsPage() {
+  const { user } = useAuth();
   const { can } = usePermissions();
+  const isAdmin = user?.role === 'admin';
   const canManageWhatsApp = can('whatsapp', 'manage');
   const canManageEmail = can('email', 'manage');
 
   const items = [
+    {
+      to: '/settings/workspace',
+      icon: Building2,
+      title: 'Workspace & Domain',
+      description: 'Custom domain, DNS, SSL, branding and onboarding',
+      color: 'text-violet-600 bg-violet-500/10',
+      adminOnly: true,
+    },
     canManageWhatsApp && {
       to: '/settings/whatsapp-templates',
       icon: MessageCircle,
@@ -24,7 +35,7 @@ export default function SettingsPage() {
       description: `Manage email templates for ${APP_SALES_EMAIL}`,
       color: 'text-sky-600 bg-sky-500/10',
     },
-  ].filter(Boolean);
+  ].filter(Boolean).filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <div className="space-y-6">

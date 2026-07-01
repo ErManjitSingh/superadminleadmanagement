@@ -9,6 +9,7 @@ const { QUOTATION_POPULATE, generateQuoteNumber } = require('../utils/queryHelpe
 const { findQuotationsPaginated } = require('../repositories/quotationRepository');
 const { getQuotationStats } = require('../repositories/roleScopedRepository');
 const { calculateQuotationPricing } = require('../services/quotationCostingService');
+const { markOnboardingStep } = require('../services/onboardingService');
 
 function buildComputedPricingPayload({ body, packageSnapshot }) {
   const computed = calculateQuotationPricing({
@@ -87,6 +88,10 @@ const createQuotation = asyncHandler(async (req, res) => {
     ],
     createdBy: req.user._id,
   });
+
+  if (req.companyId) {
+    await markOnboardingStep(req.companyId, 'firstQuotationCreated', true).catch(() => {});
+  }
 
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   if (populated.status === 'pending_approval' || populated.status === 'sent') {
