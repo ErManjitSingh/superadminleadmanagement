@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 import AppSidebar from './sidebar/AppSidebar';
 import TopBar from './TopBar';
+import MobileNav from './MobileNav';
 import ImpersonationBanner from './ImpersonationBanner';
 function LayoutShell() {
   const { user } = useAuth();
