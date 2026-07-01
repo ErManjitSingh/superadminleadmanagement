@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const whatsAppNoteSchema = new mongoose.Schema(
   {
@@ -8,5 +9,7 @@ const whatsAppNoteSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+whatsAppNoteSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('WhatsAppNote', whatsAppNoteSchema);

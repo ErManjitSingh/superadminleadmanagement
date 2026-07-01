@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const VOUCHER_TYPES = ['hotel', 'transport', 'activity', 'master'];
 const VOUCHER_STATUSES = ['draft', 'issued', 'sent', 'redeemed'];
@@ -19,6 +20,8 @@ const voucherSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+voucherSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Voucher', voucherSchema);
 module.exports.VOUCHER_TYPES = VOUCHER_TYPES;

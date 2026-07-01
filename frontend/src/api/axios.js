@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { authStorage } from '../auth/authStorage';
-import { BRANCH_STORAGE_KEY } from '../store/slices/branchSlice';
 import { toast } from '../context/ToastContext';
 import { getApiSuccessMessage, getApiErrorMessage, shouldSkipSuccessToast } from './toastMessages';
 import {
@@ -8,6 +7,7 @@ import {
   keysFromMutationUrl,
   shouldEmitDataRefresh,
 } from '../lib/dataRefresh';
+import { getTenantSubdomain } from '../lib/tenantContext';
 
 /** Same-origin /api via Nginx — works on HTTP and HTTPS without mixed-content issues */
 const API = axios.create({
@@ -17,21 +17,13 @@ const API = axios.create({
 
 API.interceptors.request.use((config) => {
   const token = authStorage.getToken();
-  const selectedBranchId =
-    typeof window !== 'undefined' ? window.localStorage.getItem(BRANCH_STORAGE_KEY) : null;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
     authStorage.touchActivity();
   }
-  if (selectedBranchId) {
-    config.headers['x-branch-id'] = selectedBranchId;
-    const method = (config.method || 'get').toLowerCase();
-    if (method === 'get') {
-      config.params = {
-        ...(config.params || {}),
-        branchId: config.params?.branchId || selectedBranchId,
-      };
-    }
+  const tenantSubdomain = getTenantSubdomain();
+  if (tenantSubdomain) {
+    config.headers['x-tenant-subdomain'] = tenantSubdomain;
   }
   return config;
 });

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -15,5 +16,7 @@ const notificationSchema = new mongoose.Schema(
 
 notificationSchema.index({ user: 1, read: 1, createdAt: -1 });
 notificationSchema.index({ user: 1, type: 1, 'meta.followUpId': 1 });
+
+notificationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Notification', notificationSchema);

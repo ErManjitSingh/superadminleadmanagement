@@ -5,6 +5,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { getPermissionsForRole } = require('../config/permissions');
 const { resolveUserPermissions } = require('../services/permissionsService');
 const { ROLE_LABELS, ROLE_DASHBOARD_PATHS } = require('../config/roles');
+const { attachTenantContext } = require('./tenantContext');
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
@@ -17,24 +18,10 @@ const protect = asyncHandler(async (req, res, next) => {
   const user = await User.findById(decoded.id).select('-password');
   if (!user || user.status === 'disabled') throw new ApiError(401, 'User not found or disabled');
 
-  const branchIdFromHeader = req.headers['x-branch-id'];
-  const branchIdFromQuery = typeof req.query?.branchId === 'string' ? req.query.branchId.trim() : '';
-  const requestedBranchId = branchIdFromQuery || branchIdFromHeader || null;
-  const userBranchId = user.branchId?.toString?.();
-  if (user.role !== 'admin' && requestedBranchId && requestedBranchId !== userBranchId) {
-    throw new ApiError(403, 'Access denied for selected branch');
-  }
-
   req.user = user;
   req.permissions = await resolveUserPermissions(user);
-  req.branchId =
-    user.role === 'admin'
-      ? requestedBranchId || userBranchId || null
-      : userBranchId || null;
-  if (req.branchId) {
-    res.setHeader('x-branch-id', req.branchId.toString());
-  }
-  next();
+  req.branchId = null;
+  return attachTenantContext(req, res, next);
 });
 
 function formatUserResponse(user, permissions) {
@@ -51,8 +38,7 @@ function formatUserResponse(user, permissions) {
     roleName: ROLE_LABELS[obj.role] || obj.role,
     department: obj.department,
     status: obj.status,
-    branchId: obj.branchId || null,
-    allowedBranchIds: obj.role === 'admin' ? [] : (obj.branchId ? [obj.branchId] : []),
+    companyId: obj.companyId || null,
     teamId: obj.teamId,
     permissions: perms,
     dashboardPath: ROLE_DASHBOARD_PATHS[obj.role] || '/',

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const TASK_TYPES = [
   'hotel_confirmation',
   'cab_confirmation',
@@ -29,6 +30,8 @@ const tripTaskSchema = new mongoose.Schema(
 
 tripTaskSchema.index({ status: 1, dueDate: 1 });
 tripTaskSchema.index({ branchId: 1, status: 1, createdAt: -1 });
+
+tripTaskSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('TripTask', tripTaskSchema);
 module.exports.TASK_TYPES = TASK_TYPES;

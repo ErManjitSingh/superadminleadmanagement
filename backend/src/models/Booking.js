@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const BOOKING_STATUSES = [
   'booking_received',
@@ -174,6 +175,8 @@ bookingSchema.index({ returnDate: 1, status: 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
 bookingSchema.index({ branchId: 1, status: 1, travelDate: 1 });
 bookingSchema.index({ branchId: 1, archivedAt: 1, createdAt: -1 });
+
+bookingSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Booking', bookingSchema);
 module.exports.BOOKING_STATUSES = BOOKING_STATUSES;

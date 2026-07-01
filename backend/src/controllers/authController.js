@@ -4,13 +4,31 @@ const asyncHandler = require('../utils/asyncHandler');
 const { formatUserResponse, generateToken, getRestrictedSessionMeta } = require('../middleware/auth');
 const { resolveUserPermissions } = require('../services/permissionsService');
 const { logActivity, getClientIp } = require('../services/activityService');
+const { resolveCompanyFromRequest, assertCompanyAccessible } = require('../services/tenantResolveService');
+const CompanyLoginLog = require('../superadmin/models/CompanyLoginLog');
 
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) throw new ApiError(400, 'Please provide email and password');
 
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  const emailLower = email.toLowerCase();
+  const emailFilter = { email: emailLower };
+  if (resolvedCompany) {
+    emailFilter.companyId = resolvedCompany._id;
+    const check = assertCompanyAccessible(resolvedCompany);
+    if (!check.ok) throw new ApiError(check.code, check.message);
+  } else {
+    const duplicateCount = await User.countDocuments({ email: emailLower, status: { $ne: 'disabled' } });
+    if (duplicateCount > 1) {
+      throw new ApiError(400, 'Multiple accounts found. Please sign in using your company URL (subdomain).');
+    }
+  }
+
+  const user = await User.findOne(emailFilter).select('+password');
   if (!user || user.status === 'disabled') throw new ApiError(401, 'Invalid email or password');
+  if (resolvedCompany && user.companyId && String(user.companyId) !== String(resolvedCompany._id)) {
+    throw new ApiError(401, 'Invalid email or password');
+  }
   if (user.status === 'invited') {
     throw new ApiError(401, 'Account invitation is pending. Ask admin to reset your password.');
   }
@@ -18,6 +36,17 @@ const login = asyncHandler(async (req, res) => {
 
   user.lastLogin = new Date();
   await user.save();
+
+  if (user.companyId) {
+    await CompanyLoginLog.create({
+      companyId: user.companyId,
+      userId: user._id,
+      userEmail: user.email,
+      loginType: 'user',
+      ipAddress: getClientIp(req),
+      userAgent: req.headers['user-agent'],
+    }).catch(() => {});
+  }
 
   await logActivity({
     type: 'login',

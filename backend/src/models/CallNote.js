@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const CALL_OUTCOMES = [
   'interested',
   'need_better_hotel',
@@ -23,6 +24,8 @@ const callNoteSchema = new mongoose.Schema(
 );
 
 callNoteSchema.index({ leadId: 1, createdAt: -1 });
+
+callNoteSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('CallNote', callNoteSchema);
 module.exports.CALL_OUTCOMES = CALL_OUTCOMES;

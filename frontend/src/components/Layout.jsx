@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 import AppSidebar from './sidebar/AppSidebar';
 import TopBar from './TopBar';
-import MobileNav from './MobileNav';
+import ImpersonationBanner from './ImpersonationBanner';
 function LayoutShell() {
   const { user } = useAuth();
   const { mobileOpen, setMobileOpen } = useSidebar();
@@ -44,6 +44,7 @@ function LayoutShell() {
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col min-w-0">
+        <ImpersonationBanner />
         <TopBar onMenuClick={() => setMobileOpen(true)} />
         <main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">

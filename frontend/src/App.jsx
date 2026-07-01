@@ -10,9 +10,11 @@ import Layout from './components/Layout';
 import ComingSoon from './components/ui/ComingSoon';
 import {
   Login,
+  Signup,
   Register,
   Unauthorized,
   AcceptInvite,
+  ImpersonationCallback,
   RoleDashboard,
   Dashboard,
   Leads,
@@ -105,9 +107,11 @@ function App() {
           <NotificationProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
             <Route path="/register" element={<Register />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/accept-invite/:token" element={<AcceptInvite />} />
+            <Route path="/auth/impersonate" element={<ImpersonationCallback />} />
 
             <Route
               path="/sales-manager"

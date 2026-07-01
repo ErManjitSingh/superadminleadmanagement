@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const roomTypeSchema = new mongoose.Schema(
   {
@@ -44,5 +45,7 @@ const hotelSchema = new mongoose.Schema(
 );
 
 hotelSchema.index({ name: 'text', destination: 'text', location: 'text' });
+
+hotelSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Hotel', hotelSchema);

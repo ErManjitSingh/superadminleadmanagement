@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const followUpSchema = new mongoose.Schema(
   {
@@ -38,5 +39,7 @@ const followUpSchema = new mongoose.Schema(
 
 followUpSchema.index({ lead: 1, scheduledAt: -1 });
 followUpSchema.index({ status: 1, scheduledAt: 1 });
+
+followUpSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('FollowUp', followUpSchema);

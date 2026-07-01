@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const branchAssignmentSettingsSchema = new mongoose.Schema(
   {
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', required: true, unique: true },
@@ -11,5 +12,7 @@ const branchAssignmentSettingsSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+branchAssignmentSettingsSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('BranchAssignmentSettings', branchAssignmentSettingsSchema);

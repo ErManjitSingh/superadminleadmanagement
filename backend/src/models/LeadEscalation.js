@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const ESCALATION_LEVELS = ['15m', '30m', '1h'];
 
 const leadEscalationSchema = new mongoose.Schema(
@@ -17,6 +18,8 @@ const leadEscalationSchema = new mongoose.Schema(
 );
 
 leadEscalationSchema.index({ followUpId: 1, level: 1 }, { unique: true });
+
+leadEscalationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('LeadEscalation', leadEscalationSchema);
 module.exports.ESCALATION_LEVELS = ESCALATION_LEVELS;

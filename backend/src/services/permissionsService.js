@@ -13,7 +13,9 @@ async function resolveUserPermissions(user) {
   const defaults = getPermissionsForRole(user?.role);
   if (!user) return defaults;
   if (user.roleId) {
-    const role = await Role.findById(user.roleId).select('permissions').lean();
+    const roleQuery = { _id: user.roleId };
+    if (user.companyId) roleQuery.companyId = user.companyId;
+    const role = await Role.findOne(roleQuery).select('permissions').lean();
     if (role?.permissions) return mergePermissions(role.permissions, defaults);
   }
   return defaults;

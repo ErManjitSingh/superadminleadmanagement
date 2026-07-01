@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const changeSchema = new mongoose.Schema(
   {
     field: { type: String, required: true },
@@ -26,5 +27,7 @@ const auditLogSchema = new mongoose.Schema(
 
 auditLogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
 auditLogSchema.index({ branchId: 1, createdAt: -1 });
+
+auditLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('AuditLog', auditLogSchema);

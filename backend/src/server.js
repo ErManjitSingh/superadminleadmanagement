@@ -16,6 +16,9 @@ const { startNotificationScheduler } = require('./services/notificationScheduler
 const { purgeOldActivityLogs } = require('./services/activityService');
 const { startEmailInboxPoller } = require('./services/emailInboxService');
 const { archiveOldTrips } = require('./services/operationsArchiveService');
+const superAdminRoutes = require('./superadmin/routes');
+const { ensurePlatformIndexes } = require('./superadmin/config/ensurePlatformIndexes');
+const { ensureDefaultSettings } = require('./superadmin/services/platformSettingsService');
 
 const app = express();
 
@@ -56,12 +59,15 @@ app.get('/api', (req, res) => {
 });
 
 app.use('/api', apiLimiter, apiRoutes);
+app.use('/api/superadmin', apiLimiter, superAdminRoutes);
 app.use(errorHandler);
 
 async function start() {
   await connectDB();
   await connectRedis();
   await ensureIndexes();
+  await ensurePlatformIndexes();
+  await ensureDefaultSettings();
   await purgeOldActivityLogs();
 
   const httpServer = http.createServer(app);

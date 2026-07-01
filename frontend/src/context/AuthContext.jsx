@@ -4,7 +4,6 @@ import { authService, AuthError } from '../auth';
 import { authStorage } from '../auth/authStorage';
 import store from '../store';
 import { setCredentials, clearCredentials } from '../store/slices/authSlice';
-import { clearBranchState, setSelectedBranch } from '../store/slices/branchSlice';
 import { useRestrictedSessionTimeout } from '../hooks/useRestrictedSessionTimeout';
 
 const AuthContext = createContext(null);
@@ -17,7 +16,6 @@ export const AuthProvider = ({ children }) => {
     await authService.logout();
     setUser(null);
     store.dispatch(clearCredentials());
-    store.dispatch(clearBranchState());
   }, []);
 
   useRestrictedSessionTimeout(user, logout);
@@ -36,9 +34,6 @@ export const AuthProvider = ({ children }) => {
         try {
           const fresh = await authService.fetchCurrentUser();
           setUser(fresh);
-          if (fresh?.branchId && fresh?.role !== 'admin') {
-            store.dispatch(setSelectedBranch(fresh.branchId));
-          }
         } catch {
           authStorage.clearSession();
           setUser(null);
@@ -55,9 +50,6 @@ export const AuthProvider = ({ children }) => {
     const sessionUser = await authService.login(email, password);
     setUser(sessionUser);
     store.dispatch(setCredentials({ user: sessionUser, token: authStorage.getToken() }));
-    if (sessionUser?.branchId && sessionUser?.role !== 'admin') {
-      store.dispatch(setSelectedBranch(sessionUser.branchId));
-    }
     return sessionUser;
   }, []);
 

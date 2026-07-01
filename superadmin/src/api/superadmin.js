@@ -1,0 +1,27 @@
+import { api } from './axios';
+
+export const superAdminApi = {
+  login: (email, password) => api.post('/auth/login', { email, password }),
+  logout: () => api.post('/auth/logout'),
+  getMe: () => api.get('/auth/me'),
+  getDashboard: () => api.get('/dashboard'),
+  listCompanies: (params) => api.get('/companies', { params }),
+  getCompany: (id) => api.get(`/companies/${id}`),
+  createCompany: (data) => api.post('/companies', data),
+  updateCompany: (id, data) => api.patch(`/companies/${id}`, data),
+  deleteCompany: (id) => api.delete(`/companies/${id}`),
+  bulkCompanies: (data) => api.post('/companies/bulk', data),
+  exportCompanies: (params) => api.get('/companies/export', { params }),
+  impersonate: (id) => api.post(`/companies/${id}/impersonate`),
+  listPlans: () => api.get('/plans'),
+  getPlan: (id) => api.get(`/plans/${id}`),
+  createPlan: (data) => api.post('/plans', data),
+  updatePlan: (id, data) => api.patch(`/plans/${id}`, data),
+  deletePlan: (id) => api.delete(`/plans/${id}`),
+  getSettings: (category) => api.get('/settings', { params: { category } }),
+  patchSettings: (settings) => api.patch('/settings', { settings }),
+  getAuditLogs: (params) => api.get('/logs/audit', { params }),
+  getLoginLogs: (params) => api.get('/logs/login', { params }),
+  getNotifications: (params) => api.get('/notifications', { params }),
+  markNotificationsRead: (body) => api.post('/notifications/read', body),
+};

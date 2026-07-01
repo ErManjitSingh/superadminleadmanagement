@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 function normalizeDestinationKey(value = '') {
   return String(value)
     .trim()
@@ -28,6 +29,8 @@ destinationSchema.pre('validate', function setNormalizedKey(next) {
 });
 
 destinationSchema.statics.normalizeKey = normalizeDestinationKey;
+
+destinationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Destination', destinationSchema);
 module.exports.normalizeDestinationKey = normalizeDestinationKey;

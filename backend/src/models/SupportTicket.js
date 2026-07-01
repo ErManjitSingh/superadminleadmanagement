@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const ISSUE_CATEGORIES = [
   'hotel_issue',
@@ -26,6 +27,8 @@ const supportTicketSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+supportTicketSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('SupportTicket', supportTicketSchema);
 module.exports.ISSUE_CATEGORIES = ISSUE_CATEGORIES;

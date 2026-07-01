@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const QUOTE_STATUSES = [
   'draft',
@@ -66,6 +67,8 @@ const quotationSchema = new mongoose.Schema(
 
 quotationSchema.index({ lead: 1, status: 1 });
 quotationSchema.index({ status: 1, createdAt: -1 });
+
+quotationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Quotation', quotationSchema);
 module.exports.QUOTE_STATUSES = QUOTE_STATUSES;

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const TRANSFER_TYPES = ['assign', 'reassign', 'bulk_assign', 'branch_transfer'];
 
 const leadTransferLogSchema = new mongoose.Schema(
@@ -20,6 +21,8 @@ const leadTransferLogSchema = new mongoose.Schema(
 );
 
 leadTransferLogSchema.index({ leadId: 1, createdAt: -1 });
+
+leadTransferLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('LeadTransferLog', leadTransferLogSchema);
 module.exports.TRANSFER_TYPES = TRANSFER_TYPES;

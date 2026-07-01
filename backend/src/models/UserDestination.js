@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const userDestinationSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -11,5 +12,7 @@ const userDestinationSchema = new mongoose.Schema(
 
 userDestinationSchema.index({ userId: 1, destinationId: 1 }, { unique: true });
 userDestinationSchema.index({ branchId: 1, destinationId: 1 });
+
+userDestinationSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('UserDestination', userDestinationSchema);

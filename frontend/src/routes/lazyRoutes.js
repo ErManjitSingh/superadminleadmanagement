@@ -1,9 +1,11 @@
 import { lazy } from 'react';
 
 export const Login = lazy(() => import('../pages/Login'));
+export const Signup = lazy(() => import('../pages/SignupPage'));
 export const Register = lazy(() => import('../pages/Register'));
 export const Unauthorized = lazy(() => import('../pages/Unauthorized'));
 export const AcceptInvite = lazy(() => import('../pages/AcceptInvite'));
+export const ImpersonationCallback = lazy(() => import('../pages/ImpersonationCallback'));
 export const RoleDashboard = lazy(() => import('../pages/RoleDashboard'));
 export const Dashboard = lazy(() => import('../pages/Dashboard'));
 export const Leads = lazy(() => import('../pages/Leads'));

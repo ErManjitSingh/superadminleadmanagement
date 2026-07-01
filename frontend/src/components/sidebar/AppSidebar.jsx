@@ -1,7 +1,6 @@
+import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useMemo, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
 import { filterNavItems } from '../../lib/permissions';
@@ -19,23 +18,6 @@ import { mainNavItems } from './sidebar-config';
 import { filterNavItemsBySearch, injectSectionHeaders, isNavItemActive } from './sidebar-utils';
 import { cn } from '../../lib/utils';
 
-function formatBranchLabel(name) {
-  const raw = String(name || '').trim();
-  if (!raw) return '';
-  const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
-  if (
-    normalized.includes('bhatakhur') ||
-    normalized.includes('bhatakufar') ||
-    normalized.includes('bhattakufer') ||
-    normalized.includes('bhattakufar') ||
-    normalized.includes('bhata')
-  ) {
-    return 'PTW';
-  }
-  if (normalized.includes('shimla')) return 'UNO Trips';
-  return raw;
-}
-
 export default function AppSidebar({
   user,
   className = '',
@@ -49,7 +31,6 @@ export default function AppSidebar({
   const location = useLocation();
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
   const { user: authUser } = useAuth();
-  const { selectedBranchId, availableBranches } = useSelector((s) => s.branch);
   const [searchQuery] = useState('');
   const width = collapsed ? collapsedWidth : expandedWidth;
 
@@ -75,11 +56,8 @@ export default function AppSidebar({
             '/profile');
 
   const effectiveUser = authUser || user;
-  const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
-  const selectedBranchLabel = formatBranchLabel(selectedBranch?.name);
   const resolvedBrandTitle = brandTitle || APP_BRAND_NAME;
-  const resolvedBrandSubtitle =
-    brandSubtitle || (effectiveUser?.role === 'admin' && selectedBranchLabel ? selectedBranchLabel : 'Travel Lead Management');
+  const resolvedBrandSubtitle = brandSubtitle || 'Travel Lead Management';
 
   return (
     <SidebarThemeProvider accent={accent} profilePath={resolvedProfilePath}>

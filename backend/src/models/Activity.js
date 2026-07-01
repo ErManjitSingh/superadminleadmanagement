@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const activitySchema = new mongoose.Schema(
   {
@@ -12,5 +13,7 @@ const activitySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+activitySchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Activity', activitySchema);

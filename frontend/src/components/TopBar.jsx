@@ -1,9 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useEffect, useState } from 'react';
 import { Plus, Bell, Sun, Moon, Menu, X, LogOut, User, LogIn, ChevronDown, RefreshCw, Search, Command } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -12,12 +10,6 @@ import { getTopBarAccent } from './topbarAccent';
 import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from './ui/dropdown-menu';
 import { cn } from '../lib/utils';
 import AttendanceTopBarAction from './attendance/AttendanceTopBarAction';
-import API from '../api/axios';
-import {
-  hydrateSelectedBranch,
-  setAvailableBranches,
-  setSelectedBranch,
-} from '../store/slices/branchSlice';
 import { refreshAppData } from '../lib/appRefresh';
 import { useSidebar } from '../context/SidebarContext';
 
@@ -38,23 +30,6 @@ function getProfilePath(pathname) {
   if (pathname.startsWith('/team-leader')) return '/team-leader/profile';
   if (pathname.startsWith('/sales-executive')) return '/sales-executive/profile';
   return '/profile';
-}
-
-function formatBranchLabel(name) {
-  const raw = String(name || '').trim();
-  if (!raw) return '';
-  const normalized = raw.toLowerCase().replace(/[\s_-]+/g, '');
-  if (
-    normalized.includes('bhatakhur') ||
-    normalized.includes('bhatakufar') ||
-    normalized.includes('bhattakufer') ||
-    normalized.includes('bhattakufar') ||
-    normalized.includes('bhata')
-  ) {
-    return 'PTW';
-  }
-  if (normalized.includes('shimla')) return 'UNO Trips';
-  return raw;
 }
 
 function IconButton({ children, className, accent, ...props }) {
@@ -78,87 +53,17 @@ function IconButton({ children, className, accent, ...props }) {
 export default function TopBar({ onMenuClick }) {
   const { mobileOpen, setMobileOpen } = useSidebar();
   const queryClient = useQueryClient();
-  const dispatch = useDispatch();
   const { toggleTheme, isDark } = useTheme();
   const { user, logout } = useAuth();
   const { unreadCount, openDrawer } = useNotifications();
-  const { selectedBranchId, availableBranches } = useSelector((s) => s.branch);
   const navigate = useNavigate();
   const location = useLocation();
   const accent = getTopBarAccent(location.pathname);
   const profilePath = getProfilePath(location.pathname);
   const isAdmin = user?.role === 'admin';
-  const selectedBranch = availableBranches.find((b) => b._id === selectedBranchId);
-  const selectedBranchLabel = formatBranchLabel(selectedBranch?.name);
-  const adminRoleLine = isAdmin
-    ? `${user?.roleName || 'Admin'}${selectedBranchLabel ? ` - ${selectedBranchLabel}` : ''}`
-    : (user?.roleName || user?.role);
-  const [isBranchSwitching, setIsBranchSwitching] = useState(false);
+  const roleLine = user?.roleName || user?.role;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const refreshTimerRef = useRef(null);
-  const failSafeTimerRef = useRef(null);
-
-  useEffect(() => {
-    dispatch(hydrateSelectedBranch());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (!isAdmin) return;
-    API.get('/branches', { skipSuccessToast: true, skipErrorToast: true })
-      .then((r) => {
-        const list = Array.isArray(r.data) ? r.data : [];
-        dispatch(setAvailableBranches(list));
-        if (!list.length) return;
-        const storedBranchId =
-          typeof window !== 'undefined'
-            ? window.localStorage.getItem('crm.selectedBranchId')
-            : null;
-        const resolvedBranchId =
-          selectedBranchId && list.some((b) => b._id === selectedBranchId)
-            ? selectedBranchId
-            : storedBranchId && list.some((b) => b._id === storedBranchId)
-              ? storedBranchId
-              : null;
-        if (!resolvedBranchId) {
-          const preferredBranchId =
-            user?.branchId && list.some((b) => b._id === user.branchId)
-              ? user.branchId
-              : list[0]._id;
-          dispatch(setSelectedBranch(preferredBranchId));
-        } else if (resolvedBranchId !== selectedBranchId) {
-          dispatch(setSelectedBranch(resolvedBranchId));
-        }
-      })
-      .catch(() => {
-        dispatch(setAvailableBranches([]));
-      });
-  }, [dispatch, isAdmin, selectedBranchId, user?.branchId]);
-
-  const handleBranchChange = (branchId) => {
-    if (!branchId || branchId === selectedBranchId) return;
-    setIsBranchSwitching(true);
-    dispatch(setSelectedBranch(branchId));
-    refreshTimerRef.current = window.setTimeout(() => {
-      window.location.reload();
-    }, 1400);
-    // Safety net: never leave user stuck on loading.
-    failSafeTimerRef.current = window.setTimeout(() => {
-      window.location.reload();
-    }, 10000);
-  };
-
-  useEffect(() => () => {
-    if (refreshTimerRef.current) window.clearTimeout(refreshTimerRef.current);
-    if (failSafeTimerRef.current) window.clearTimeout(failSafeTimerRef.current);
-  }, []);
-
-  const handleBranchToggle = () => {
-    if (!availableBranches.length) return;
-    const currentIndex = availableBranches.findIndex((b) => b._id === selectedBranchId);
-    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % availableBranches.length : 0;
-    handleBranchChange(availableBranches[nextIndex]?._id);
-  };
 
   const handleLogout = async () => {
     try {
@@ -242,44 +147,6 @@ export default function TopBar({ onMenuClick }) {
               <span className="hidden md:inline">Refresh</span>
             </button>
           )}
-          {isAdmin && availableBranches.length > 0 && (
-            <div className="hidden md:inline-flex items-center h-10 rounded-xl border border-subtle bg-surface/95 p-1">
-              {availableBranches.slice(0, 2).map((branch) => {
-                const isActive = branch._id === selectedBranchId;
-                const branchLabel = formatBranchLabel(branch.name);
-                return (
-                  <button
-                    key={branch._id}
-                    type="button"
-                    onClick={() => handleBranchChange(branch._id)}
-                    disabled={isBranchSwitching || isActive}
-                    className={cn(
-                      'px-3 h-8 rounded-lg text-xs font-semibold transition-colors',
-                      isActive
-                        ? 'bg-brand-600 text-white'
-                        : 'text-content-muted hover:text-content-primary',
-                      'disabled:opacity-90'
-                    )}
-                    title={`Switch to ${branchLabel}`}
-                  >
-                    {branchLabel}
-                  </button>
-                );
-              })}
-              {availableBranches.length > 2 && (
-                <button
-                  type="button"
-                  onClick={handleBranchToggle}
-                  disabled={isBranchSwitching}
-                  className="px-2 h-8 rounded-lg text-xs font-semibold text-content-muted hover:text-content-primary"
-                  title="Switch to next branch"
-                >
-                  +{availableBranches.length - 2}
-                </button>
-              )}
-            </div>
-          )}
-
           {isAdmin && (
             <Link
               to="/leads/new"
@@ -342,7 +209,7 @@ export default function TopBar({ onMenuClick }) {
                   </div>
                   <div className="hidden md:block text-left min-w-0 max-w-[110px]">
                     <p className="text-xs font-bold text-content-primary truncate leading-tight">{user.name}</p>
-                    <p className="text-[10px] text-content-muted truncate leading-tight">{adminRoleLine}</p>
+                    <p className="text-[10px] text-content-muted truncate leading-tight">{roleLine}</p>
                   </div>
                   <ChevronDown className="w-3.5 h-3.5 text-content-muted hidden md:block shrink-0" />
                 </button>
@@ -386,17 +253,6 @@ export default function TopBar({ onMenuClick }) {
           )}
         </div>
       </div>
-      {isBranchSwitching && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-white/15 bg-slate-900 text-white shadow-2xl p-6 text-center">
-            <div className="mx-auto mb-4 w-10 h-10 rounded-full border-2 border-white/25 border-t-white animate-spin" />
-            <p className="text-base font-semibold">Switching branch...</p>
-            <p className="text-sm text-slate-300 mt-1">Refreshing data. Please wait.</p>
-          </div>
-        </div>,
-        document.body
-      )}
-
     </header>
   );
 }

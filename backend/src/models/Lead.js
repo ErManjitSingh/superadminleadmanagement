@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const LEAD_STATUSES = [
   'new',
@@ -153,6 +154,8 @@ leadSchema.pre('save', async function generateLeadId(next) {
   this.leadId = `L-${String(count + 1).padStart(4, '0')}`;
   next();
 });
+
+leadSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Lead', leadSchema);
 module.exports.LEAD_STATUSES = LEAD_STATUSES;

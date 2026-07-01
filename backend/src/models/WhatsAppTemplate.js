@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const whatsAppTemplateSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -13,5 +14,7 @@ const whatsAppTemplateSchema = new mongoose.Schema(
 );
 
 whatsAppTemplateSchema.index({ branchId: 1, enabled: 1, sortOrder: 1 });
+
+whatsAppTemplateSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('WhatsAppTemplate', whatsAppTemplateSchema);

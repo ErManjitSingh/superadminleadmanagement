@@ -21,8 +21,10 @@ const {
   deleteFlight,
 } = require('../controllers/packageController');
 const { protect } = require('../middleware/auth');
+const { requireFeature } = require('../middleware/requireFeature');
 
 router.use(protect);
+router.use(requireFeature('packages'));
 
 router.post('/duplicate/:id', duplicatePackage);
 router.route('/').get(listPackages).post(createPackage);

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const emailReplySchema = new mongoose.Schema(
   {
     messageId: { type: String, required: true, unique: true, index: true },
@@ -19,5 +20,7 @@ const emailReplySchema = new mongoose.Schema(
 );
 
 emailReplySchema.index({ leadId: 1, receivedAt: -1 });
+
+emailReplySchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('EmailReply', emailReplySchema);

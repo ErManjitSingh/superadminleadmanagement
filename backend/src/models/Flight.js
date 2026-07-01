@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const flightSchema = new mongoose.Schema(
   {
@@ -14,5 +15,7 @@ const flightSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+flightSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Flight', flightSchema);

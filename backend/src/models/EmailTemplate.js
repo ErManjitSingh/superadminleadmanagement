@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const EMAIL_TEMPLATE_CATEGORIES = [
   'quotation',
   'follow_up',
@@ -30,6 +31,8 @@ const emailTemplateSchema = new mongoose.Schema(
 );
 
 emailTemplateSchema.index({ branchId: 1, category: 1, enabled: 1, sortOrder: 1 });
+
+emailTemplateSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('EmailTemplate', emailTemplateSchema);
 module.exports.EMAIL_TEMPLATE_CATEGORIES = EMAIL_TEMPLATE_CATEGORIES;

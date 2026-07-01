@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const LEAD_ACTIVITY_TYPES = [
   'lead_created',
   'lead_assigned',
@@ -46,6 +47,8 @@ const leadActivitySchema = new mongoose.Schema(
 
 leadActivitySchema.index({ leadId: 1, createdAt: -1 });
 leadActivitySchema.index({ branchId: 1, createdAt: -1 });
+
+leadActivitySchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('LeadActivity', leadActivitySchema);
 module.exports.LEAD_ACTIVITY_TYPES = LEAD_ACTIVITY_TYPES;

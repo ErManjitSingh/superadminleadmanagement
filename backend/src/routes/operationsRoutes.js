@@ -3,6 +3,7 @@ const router = express.Router();
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 const { requirePermission } = require('../middleware/requirePermission');
+const { requireFeature } = require('../middleware/requireFeature');
 const {
   getDashboard,
   listBookings,
@@ -45,7 +46,7 @@ const {
   getCalendar,
 } = require('../controllers/operationsController');
 
-router.use(protect, authorize('operations_manager', 'admin'));
+router.use(protect, requireFeature('bookings'), authorize('operations_manager', 'admin'));
 
 router.get('/dashboard', requirePermission('operations', 'view'), getDashboard);
 router.get('/trip-tracker', requirePermission('operations', 'view'), getTripTracker);

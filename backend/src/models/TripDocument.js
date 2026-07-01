@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const DOCUMENT_TYPES = [
   'customer_id',
   'hotel_confirmation',
@@ -21,6 +22,8 @@ const tripDocumentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tripDocumentSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('TripDocument', tripDocumentSchema);
 module.exports.DOCUMENT_TYPES = DOCUMENT_TYPES;

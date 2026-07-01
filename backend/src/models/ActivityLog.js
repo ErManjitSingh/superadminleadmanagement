@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const activityLogSchema = new mongoose.Schema(
   {
@@ -17,5 +18,7 @@ const activityLogSchema = new mongoose.Schema(
 activityLogSchema.index({ branchId: 1, createdAt: -1 });
 /** Auto-delete entries older than 24 hours */
 activityLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
+
+activityLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('ActivityLog', activityLogSchema);

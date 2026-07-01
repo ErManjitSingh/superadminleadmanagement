@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const teamSchema = new mongoose.Schema(
   {
@@ -11,5 +12,7 @@ const teamSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+teamSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Team', teamSchema);

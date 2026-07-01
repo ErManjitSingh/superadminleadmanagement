@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const CAB_STATUSES = ['available', 'on_trip', 'maintenance', 'unavailable'];
 
@@ -25,6 +26,8 @@ const cabSchema = new mongoose.Schema(
 );
 
 cabSchema.index({ vehicleName: 'text', vehicleType: 'text', pickupLocation: 'text', dropLocation: 'text' });
+
+cabSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Cab', cabSchema);
 module.exports.CAB_STATUSES = CAB_STATUSES;

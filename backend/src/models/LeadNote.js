@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const leadNoteSchema = new mongoose.Schema(
   {
@@ -8,5 +9,7 @@ const leadNoteSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+leadNoteSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('LeadNote', leadNoteSchema);

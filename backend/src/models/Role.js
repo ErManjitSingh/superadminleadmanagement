@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const permissionBlock = {
   view: { type: Boolean, default: false },
@@ -11,8 +12,9 @@ const permissionBlock = {
 
 const roleSchema = new mongoose.Schema(
   {
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', index: true, default: null },
     name: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, unique: true, lowercase: true },
+    slug: { type: String, required: true, lowercase: true },
     description: { type: String, default: '' },
     isSystem: { type: Boolean, default: false },
     userCount: { type: Number, default: 0 },
@@ -37,5 +39,9 @@ const roleSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+roleSchema.index({ companyId: 1, slug: 1 }, { unique: true });
+
+roleSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Role', roleSchema);

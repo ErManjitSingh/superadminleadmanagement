@@ -14,7 +14,6 @@ const {
   deleteLead,
   getAssignees,
   assignLeads,
-  transferLeadBranch,
   addLeadNote,
   reactivateLead,
   reassignReactivatedLead,
@@ -22,6 +21,7 @@ const {
 } = require('../controllers/leadController');
 const { protect } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/requirePermission');
+const { requireFeature } = require('../middleware/requireFeature');
 const { authorize } = require('../middleware/rbac');
 const { validatePaginationQuery } = require('../validators/paginationValidator');
 const { initiateWhatsAppContact } = require('../controllers/whatsappContactController');
@@ -48,6 +48,7 @@ const {
 } = require('../controllers/enterpriseLeadController');
 
 router.use(protect);
+router.use(requireFeature('crm'));
 
 router.get('/check-duplicate', checkDuplicate);
 router.get('/recycle-bin', listRecycleBin);
@@ -76,7 +77,6 @@ router.post('/clear-all', authorize('admin'), clearAllLeads);
 router.get('/assignees', getAssignees);
 router.get('/lost', listLostLeads);
 router.post('/assign', authorize('admin', 'sales_manager', 'team_leader'), assignLeads);
-router.patch('/:id/transfer-branch', authorize('admin'), transferLeadBranch);
 router.post('/:id/reactivate', authorize('admin', 'sales_manager', 'team_leader'), reactivateLead);
 router.post('/:id/reassign-reactivated', authorize('admin', 'sales_manager', 'team_leader'), reassignReactivatedLead);
 router.patch('/:id/reactivation-stage', authorize('admin', 'sales_manager', 'team_leader'), updateReactivationStage);

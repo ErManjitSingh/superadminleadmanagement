@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const WORK_MODES = ['office', 'wfh'];
 const STATUSES = ['present', 'late', 'absent'];
 
@@ -21,6 +22,8 @@ const attendanceSchema = new mongoose.Schema(
 attendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
 attendanceSchema.index({ date: 1, workMode: 1 });
 attendanceSchema.index({ date: 1, status: 1 });
+
+attendanceSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
 module.exports.WORK_MODES = WORK_MODES;

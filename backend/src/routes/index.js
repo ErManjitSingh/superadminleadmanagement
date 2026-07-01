@@ -1,8 +1,10 @@
 const express = require('express');
 const dataSyncMiddleware = require('../middleware/dataSyncMiddleware');
+const { resolveTenant } = require('../middleware/tenantContext');
 const router = express.Router();
 
 router.use(dataSyncMiddleware);
+router.use(resolveTenant);
 
 const authRoutes = require('./authRoutes');
 const leadRoutes = require('./leadRoutes');
@@ -32,7 +34,6 @@ const reportsRoutes = require('./reportsRoutes');
 const inviteRoutes = require('./inviteRoutes');
 const navCountsRoutes = require('./navCountsRoutes');
 const attendanceRoutes = require('./attendanceRoutes');
-const branchRoutes = require('./branchRoutes');
 const destinationAssignmentRoutes = require('./destinationAssignmentRoutes');
 const skillAssignmentRoutes = require('./skillAssignmentRoutes');
 const assignmentConfigRoutes = require('./assignmentConfigRoutes');
@@ -41,8 +42,13 @@ const whatsappTemplateRoutes = require('./whatsappTemplateRoutes');
 const emailTemplateRoutes = require('./emailTemplateRoutes');
 const emailRoutes = require('./emailRoutes');
 const salesTargetRoutes = require('./salesTargetRoutes');
+const tenantRoutes = require('./tenantRoutes');
+const publicRoutes = require('./publicRoutes');
+const companySettingsRoutes = require('./companySettingsRoutes');
 
 router.use('/auth', authRoutes);
+router.use('/public', publicRoutes);
+router.use('/tenant', tenantRoutes);
 router.use('/invites', inviteRoutes);
 router.use('/leads', leadRoutes);
 router.use('/followups', followUpRoutes);
@@ -75,7 +81,7 @@ router.use('/activity-logs', activityLogRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/nav-counts', navCountsRoutes);
 router.use('/attendance', attendanceRoutes);
-router.use('/branches', branchRoutes);
+router.use('/company-settings', companySettingsRoutes);
 router.use('/destination-assignment', destinationAssignmentRoutes);
 router.use('/skill-assignment', skillAssignmentRoutes);
 router.use('/assignment', assignmentConfigRoutes);

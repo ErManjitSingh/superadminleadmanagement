@@ -1,0 +1,52 @@
+const ApiError = require('../utils/apiError');
+const asyncHandler = require('../utils/asyncHandler');
+const { runWithTenantContext } = require('../utils/tenantContextStore');
+const { resolveCompanyFromRequest, assertCompanyAccessible } = require('../services/tenantResolveService');
+
+const resolveTenant = asyncHandler(async (req, res, next) => {
+  const company = await resolveCompanyFromRequest(req);
+  if (company) {
+    req.resolvedCompany = company;
+    req.resolvedCompanyId = company._id;
+  }
+  next();
+});
+
+const attachTenantContext = asyncHandler(async (req, res, next) => {
+  const companyId = req.user?.companyId || null;
+
+  if (!companyId) {
+    throw new ApiError(403, 'User is not assigned to a company. Contact platform support.');
+  }
+
+  if (req.resolvedCompanyId && String(req.resolvedCompanyId) !== String(companyId)) {
+    throw new ApiError(403, 'Access denied for this tenant');
+  }
+
+  const company = req.resolvedCompany || req.tenantCompany;
+  if (company) {
+    const check = assertCompanyAccessible(company);
+    if (!check.ok) throw new ApiError(check.code, check.message);
+    req.tenantCompany = company;
+  } else {
+    const Company = require('../superadmin/models/Company');
+    const loaded = await Company.findOne({ _id: companyId, deletedAt: null }).lean();
+    const check = assertCompanyAccessible(loaded);
+    if (!check.ok) throw new ApiError(check.code, check.message);
+    req.tenantCompany = loaded;
+  }
+
+  req.companyId = companyId;
+  req.branchId = null;
+
+  runWithTenantContext(
+    {
+      companyId,
+      branchId: null,
+      userId: req.user?._id || null,
+    },
+    () => next()
+  );
+});
+
+module.exports = { resolveTenant, attachTenantContext };

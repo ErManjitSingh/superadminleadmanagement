@@ -1,11 +1,13 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 const bcrypt = require('bcryptjs');
 const { ROLES } = require('../config/roles');
 
 const userSchema = new mongoose.Schema(
   {
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', index: true, default: null },
     name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
     phone: { type: String, trim: true },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', index: true },
@@ -37,5 +39,9 @@ userSchema.pre('save', async function hashPassword(next) {
 userSchema.methods.matchPassword = async function matchPassword(entered) {
   return bcrypt.compare(entered, this.password);
 };
+
+userSchema.index({ companyId: 1, email: 1 }, { unique: true });
+
+userSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('User', userSchema);

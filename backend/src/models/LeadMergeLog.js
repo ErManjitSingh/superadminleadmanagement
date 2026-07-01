@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const leadMergeLogSchema = new mongoose.Schema(
   {
     sourceLeadId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead', required: true, index: true },
@@ -13,5 +14,7 @@ const leadMergeLogSchema = new mongoose.Schema(
 );
 
 leadMergeLogSchema.index({ targetLeadId: 1, createdAt: -1 });
+
+leadMergeLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('LeadMergeLog', leadMergeLogSchema);

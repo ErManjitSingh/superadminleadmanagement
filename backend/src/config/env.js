@@ -10,8 +10,9 @@ module.exports = {
   port: Number(process.env.PORT) || 5000,
   mongoUri: process.env.MONGO_URI || DEFAULT_MONGO_URI,
   jwtSecret: process.env.JWT_SECRET,
+  superAdminJwtSecret: process.env.SUPERADMIN_JWT_SECRET || process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '30d',
-  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,https://testing.unotrips.com')
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174,https://testing.unotrips.com')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const monthlySalesTargetSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
@@ -16,5 +17,7 @@ const monthlySalesTargetSchema = new mongoose.Schema(
 
 monthlySalesTargetSchema.index({ userId: 1, year: 1, month: 1 }, { unique: true });
 monthlySalesTargetSchema.index({ branchId: 1, year: 1, month: 1 });
+
+monthlySalesTargetSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('MonthlySalesTarget', monthlySalesTargetSchema);

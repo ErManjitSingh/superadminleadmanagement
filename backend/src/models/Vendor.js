@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const VENDOR_TYPES = ['hotel', 'transport', 'activity', 'local_guide', 'other'];
 
@@ -22,6 +23,8 @@ const vendorSchema = new mongoose.Schema(
 );
 
 vendorSchema.index({ name: 'text', destination: 'text' });
+
+vendorSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Vendor', vendorSchema);
 module.exports.VENDOR_TYPES = VENDOR_TYPES;

@@ -4,6 +4,8 @@ const { NOTIFICATIONS_ENABLED } = require('../config/notifications');
 const { getIO } = require('../config/socket');
 const { formatNotification } = require('../utils/queryHelpers');
 const { NOTIFICATION_TYPES: T } = require('../constants/notificationTypes');
+const { withCompany } = require('../utils/branchScope');
+const { getCompanyId } = require('../utils/tenantContextStore');
 
 async function emitUnreadCount(userId) {
   const io = getIO();
@@ -19,6 +21,7 @@ async function notifyUser(userId, payload) {
   const doc = await Notification.create({
     user: id,
     branchId: payload.branchId || payload.meta?.branchId || null,
+    companyId: payload.companyId || getCompanyId() || null,
     type: payload.type,
     title: payload.title,
     message: payload.message,
@@ -40,16 +43,18 @@ async function notifyUsers(userIds, payload) {
 }
 
 async function getActiveUserIdsByRoles(roles) {
-  const users = await User.find({ role: { $in: roles }, status: 'active' }).select('_id').lean();
+  const users = await User.find(withCompany({ role: { $in: roles }, status: 'active' })).select('_id').lean();
   return users.map((u) => u._id);
 }
 
 async function getActiveUserIdsByRolesInBranch(roles, branchId) {
-  const users = await User.find({
-    role: { $in: roles },
-    status: 'active',
-    ...(branchId ? { branchId } : {}),
-  })
+  const users = await User.find(
+    withCompany({
+      role: { $in: roles },
+      status: 'active',
+      ...(branchId ? { branchId } : {}),
+    })
+  )
     .select('_id')
     .lean();
   return users.map((u) => u._id);

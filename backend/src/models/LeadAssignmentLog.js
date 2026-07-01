@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+const { tenantPlugin } = require('../config/tenantPlugin');
 const ASSIGNMENT_TYPES = [
   'destination_match',
   'fallback_queue',
@@ -31,6 +32,8 @@ const leadAssignmentLogSchema = new mongoose.Schema(
 
 leadAssignmentLogSchema.index({ createdAt: -1 });
 leadAssignmentLogSchema.index({ branchId: 1, createdAt: -1 });
+
+leadAssignmentLogSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('LeadAssignmentLog', leadAssignmentLogSchema);
 module.exports.ASSIGNMENT_TYPES = ASSIGNMENT_TYPES;

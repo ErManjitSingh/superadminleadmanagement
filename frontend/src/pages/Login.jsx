@@ -175,6 +175,12 @@ export default function Login() {
           <p className="text-xs text-slate-500 text-center mt-3">
             Password: <span className="font-mono font-semibold text-slate-700">123456</span>
           </p>
+          <p className="text-sm text-center mt-4 text-slate-600">
+            New company?{' '}
+            <a href="/signup" className="font-semibold text-violet-700 hover:underline">
+              Start free trial
+            </a>
+          </p>
         </div>
       </motion.div>
     </div>

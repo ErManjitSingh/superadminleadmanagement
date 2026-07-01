@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { tenantPlugin } = require('../config/tenantPlugin');
 
 const itineraryDaySchema = new mongoose.Schema(
   {
@@ -27,5 +28,7 @@ const packageSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+packageSchema.plugin(tenantPlugin);
 
 module.exports = mongoose.model('Package', packageSchema);

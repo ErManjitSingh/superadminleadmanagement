@@ -1,16 +1,33 @@
 const mongoose = require('mongoose');
+const { getCompanyId } = require('./tenantContextStore');
 
-function normalizeBranchId(branchId) {
-  if (!branchId) return null;
-  if (branchId instanceof mongoose.Types.ObjectId) return branchId;
-  const raw = String(branchId).trim();
-  if (!raw || !mongoose.Types.ObjectId.isValid(raw)) return branchId;
+function normalizeCompanyId(companyId) {
+  if (!companyId) return null;
+  if (companyId instanceof mongoose.Types.ObjectId) return companyId;
+  const raw = String(companyId).trim();
+  if (!raw || !mongoose.Types.ObjectId.isValid(raw)) return companyId;
   return new mongoose.Types.ObjectId(raw);
 }
 
-function withBranch(filter = {}, branchId = null) {
-  if (!branchId) return { ...filter };
-  return { ...filter, branchId: normalizeBranchId(branchId) };
+/** Company-only tenant scope. Branch filtering is disabled platform-wide. */
+function withCompany(filter = {}, companyId = null) {
+  const effectiveCompanyId = companyId || getCompanyId();
+  if (!effectiveCompanyId) return { ...filter };
+  return { ...filter, companyId: normalizeCompanyId(effectiveCompanyId) };
 }
 
-module.exports = { withBranch, normalizeBranchId };
+/** @deprecated Branch scoping removed — applies company filter only. */
+function withBranch(filter = {}, _branchId = null) {
+  return withCompany(filter);
+}
+
+function withTenantScope(filter = {}, { companyId } = {}) {
+  return withCompany(filter, companyId);
+}
+
+module.exports = {
+  withBranch,
+  withCompany,
+  withTenantScope,
+  normalizeCompanyId,
+};
