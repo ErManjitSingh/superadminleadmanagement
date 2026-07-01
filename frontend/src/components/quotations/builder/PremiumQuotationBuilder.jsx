@@ -369,11 +369,11 @@ function StepPackage({ b }) {
 
       {b.packages.length > 0 && (
         <div>
-          <p className="text-sm font-bold mb-2">Catalog Packages</p>
-          <div className="grid sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+          <p className="text-sm font-bold mb-2">Your Packages & Catalog</p>
+          <div className="grid sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
             {b.packages.map((p) => (
               <button
-                key={p._id}
+                key={`${p._catalog || 'pkg'}-${p._id}`}
                 type="button"
                 onClick={() => b.selectPackage(p)}
                 className={cn(
@@ -381,8 +381,16 @@ function StepPackage({ b }) {
                   b.state.packageId === p._id ? 'border-amber-500/50 bg-amber-500/10' : 'border-subtle'
                 )}
               >
-                <p className="font-bold">{p.name}</p>
-                <p className="text-xs text-content-muted">{formatINR(p.startingPrice)}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-bold truncate">{p.name}</p>
+                  <span className={cn(
+                    'text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0',
+                    p._catalog === 'local' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-sky-500/15 text-sky-700'
+                  )}>
+                    {p._catalog === 'local' ? 'CRM' : 'UNO'}
+                  </span>
+                </div>
+                <p className="text-xs text-content-muted">{formatINR(p.startingPrice)} · {p.duration || '—'} days</p>
               </button>
             ))}
           </div>

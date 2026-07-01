@@ -1,16 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Package } from 'lucide-react';
+import { Plus, Search, Package, LayoutGrid, List, BarChart3 } from 'lucide-react';
 import API from '../../api/axios';
 import { Button } from '../ui/button';
+import PackageCard from './PackageCard';
 import PackageDataTable from './PackageDataTable';
-import PackageFormModal from './PackageFormModal';
 import ResourceManagement from './ResourceManagement';
 import { PACKAGE_TYPES } from '../quotations/constants';
+import { PACKAGE_STATUS_OPTIONS } from './builder/packageBuilderConstants';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { cn } from '../../lib/utils';
 
 export default function PackageManagementPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [packages, setPackages] = useState([]);
   const [hotels, setHotels] = useState([]);
   const [cabs, setCabs] = useState([]);
@@ -18,14 +23,14 @@ export default function PackageManagementPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editPackage, setEditPackage] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [viewMode, setViewMode] = useState('cards');
   const { confirm, dialogNode } = useConfirmDialog();
 
   const fetchAll = useCallback(() => {
     setLoading(true);
     Promise.all([
-      API.get('/packages', { params: { search, packageType: typeFilter || undefined } }),
+      API.get('/packages', { params: { search, packageType: typeFilter || undefined, status: statusFilter || undefined } }),
       API.get('/hotels'),
       API.get('/cabs'),
       API.get('/flights'),
@@ -35,21 +40,24 @@ export default function PackageManagementPage() {
       setCabs(c.data);
       setFlights(f.data);
     }).finally(() => setLoading(false));
-  }, [search, typeFilter]);
+  }, [search, typeFilter, statusFilter]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
   useDataRefresh(['packages'], fetchAll);
 
-  const handleSave = async (data) => {
-    if (editPackage) await API.put(`/packages/${editPackage._id}`, data);
-    else await API.post('/packages', data);
-    setModalOpen(false);
-    setEditPackage(null);
-    fetchAll();
-  };
+  useEffect(() => {
+    if (location.state?.message) {
+      fetchAll();
+    }
+  }, [location.state, fetchAll]);
 
   const handleDuplicate = async (id) => {
     await API.post(`/packages/duplicate/${id}`);
+    fetchAll();
+  };
+
+  const handleArchive = async (id) => {
+    await API.post(`/packages/${id}/archive`);
     fetchAll();
   };
 
@@ -86,19 +94,42 @@ export default function PackageManagementPage() {
     fetchAll();
   };
 
+  const totalQuotes = packages.reduce((s, p) => s + (p.quotationCount || 0), 0);
+  const publishedCount = packages.filter((p) => p.status === 'published').length;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-8">
+      {location.state?.message && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-800">
+          {location.state.message}
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold text-content-primary">Travel Packages</h1>
             <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 text-sm font-bold">{packages.length}</span>
           </div>
-          <p className="text-sm text-content-muted">Package catalog, itinerary builder & inventory</p>
+          <p className="text-sm text-content-muted">Product catalog — build once, quote unlimited times</p>
         </div>
-        <Button onClick={() => { setEditPackage(null); setModalOpen(true); }} className="rounded-xl gap-2 bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/20">
-          <Plus className="w-4 h-4" /> Add Package
+        <Button onClick={() => navigate('/packages/new')} className="rounded-xl gap-2 bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/20">
+          <Plus className="w-4 h-4" /> Create Package
         </Button>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: 'Total Packages', value: packages.length, icon: Package },
+          { label: 'Published', value: publishedCount, icon: BarChart3 },
+          { label: 'Quotations', value: totalQuotes, icon: BarChart3 },
+          { label: 'Drafts', value: packages.filter((p) => p.status === 'draft').length, icon: Package },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-subtle bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm p-4">
+            <p className="text-[10px] uppercase font-bold text-content-muted">{stat.label}</p>
+            <p className="text-2xl font-black text-content-primary mt-1">{stat.value}</p>
+          </div>
+        ))}
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
@@ -110,35 +141,57 @@ export default function PackageManagementPage() {
           <option value="">All Types</option>
           {PACKAGE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-premium h-10 rounded-xl text-sm min-w-[140px]">
+          <option value="">All Status</option>
+          {PACKAGE_STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </select>
+        <div className="flex gap-1 p-1 rounded-xl border border-subtle bg-surface-elevated">
+          <button type="button" onClick={() => setViewMode('cards')} className={cn('p-2 rounded-lg', viewMode === 'cards' ? 'bg-amber-500 text-white' : 'text-content-muted')}>
+            <LayoutGrid className="w-4 h-4" />
+          </button>
+          <button type="button" onClick={() => setViewMode('table')} className={cn('p-2 rounded-lg', viewMode === 'table' ? 'bg-amber-500 text-white' : 'text-content-muted')}>
+            <List className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {loading ? (
-        <div className="rounded-2xl border border-subtle overflow-hidden mb-8 animate-pulse">
-          <div className="h-12 bg-surface-elevated border-b border-subtle" />
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-14 border-b border-subtle/50 bg-surface-elevated/40" />
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-72 rounded-2xl bg-surface-elevated animate-pulse" />
           ))}
         </div>
       ) : packages.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-subtle p-16 text-center mb-8">
           <Package className="w-12 h-12 text-content-muted mx-auto mb-3" />
-          <p className="text-content-muted">No packages yet. Create your first travel package.</p>
+          <p className="text-content-muted mb-4">No packages yet. Build your first product with the premium builder.</p>
+          <Button onClick={() => navigate('/packages/new')} className="rounded-xl gap-2">Create Package</Button>
+        </div>
+      ) : viewMode === 'cards' ? (
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+          {packages.map((pkg, index) => (
+            <PackageCard
+              key={pkg._id}
+              pkg={pkg}
+              index={index}
+              onEdit={() => navigate(`/packages/${pkg._id}/edit`)}
+              onPreview={() => navigate(`/packages/${pkg._id}/edit`, { state: { preview: true } })}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onArchive={handleArchive}
+            />
+          ))}
         </div>
       ) : (
         <PackageDataTable
           packages={packages}
-          onEdit={(p) => {
-            setEditPackage(p);
-            setModalOpen(true);
-          }}
+          onEdit={(p) => navigate(`/packages/${p._id}/edit`)}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}
         />
       )}
 
       <ResourceManagement hotels={hotels} cabs={cabs} flights={flights} onSave={handleResourceSave} onDelete={handleResourceDelete} />
-
-      <PackageFormModal open={modalOpen} onClose={() => { setModalOpen(false); setEditPackage(null); }} onSubmit={handleSave} editPackage={editPackage} />
       {dialogNode}
     </motion.div>
   );

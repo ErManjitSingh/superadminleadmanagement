@@ -13,6 +13,7 @@ import {
   DEFAULT_PAYMENT_PLAN,
   matchesResourceDestination,
 } from '../quotationUtils';
+import { normalizePackageForQuotation } from '../../packages/builder/packageBuilderUtils';
 
 export const BUILDER_CONFIG = {
   executive: {
@@ -263,9 +264,21 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     }
     let cancelled = false;
     setLoadingPackages(true);
-    API.get('/uno-packages', { params: { limit: 50, destination }, skipErrorToast: true })
-      .then((res) => {
-        if (!cancelled) setPackages(unwrapList(res.data));
+    Promise.all([
+      API.get('/packages', { params: { search: destination }, skipErrorToast: true }).catch(() => ({ data: [] })),
+      API.get('/uno-packages', { params: { limit: 50, destination }, skipErrorToast: true }).catch(() => ({ data: [] })),
+    ])
+      .then(([localRes, unoRes]) => {
+        if (cancelled) return;
+        const local = (Array.isArray(localRes.data) ? localRes.data : [])
+          .filter((p) => ['published', 'hidden', 'draft'].includes(p.status) || !p.status)
+          .map((p) => ({
+            ...normalizePackageForQuotation(p),
+            _catalog: 'local',
+            source: 'local',
+          }));
+        const uno = unwrapList(unoRes.data).map((p) => ({ ...p, _catalog: 'uno', source: 'uno' }));
+        setPackages([...local, ...uno]);
       })
       .catch(() => {
         if (!cancelled) setPackages([]);
@@ -385,7 +398,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     const itinerary = detail.itinerary?.length > 0 ? detail.itinerary : buildFallbackItinerary(detail);
     const normalized = { ...detail, itinerary };
     setSelectedPkgDetail(normalized);
-    setCustomItinerary(itinerary.map((d) => ({ ...d, id: d.id || `day-${Date.now()}-${d.day}` })));
+    setCustomItinerary(itinerary.map((d) => ({ ...d, id: d.id || d._id || `day-${Date.now()}-${d.day}` })));
     setCustomInclusions(normalized.inclusions?.length ? [...normalized.inclusions] : ['']);
     setCustomExclusions(normalized.exclusions?.length ? [...normalized.exclusions] : ['']);
     setState((s) => ({
@@ -397,6 +410,15 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         duration: normalized.duration || s.packageInfo.duration,
         coverImage: normalized.coverImage,
       },
+      importantNotes: detail.importantNotes
+        ? {
+            ...s.importantNotes,
+            cancellationPolicy: detail.cancellationPolicy?.content || detail.importantNotes?.travelGuidelines || s.importantNotes.cancellationPolicy,
+            termsAndConditions: detail.cancellationPolicy?.refundRules || s.importantNotes.termsAndConditions,
+            travelGuidelines: detail.importantNotes.travelGuidelines || s.importantNotes.travelGuidelines,
+            documentsRequired: detail.importantNotes.documentsRequired || s.importantNotes.documentsRequired,
+          }
+        : s.importantNotes,
       pricing: {
         ...s.pricing,
         baseCost: normalized.startingPrice || 0,
@@ -406,11 +428,35 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   };
 
   const selectPackage = async (pkg) => {
-    setState((s) => ({ ...s, packageId: pkg._id }));
+    setState((s) => ({ ...s, packageId: pkg._id, templateKey: '' }));
     setLoadingPackageDetail(true);
     try {
-      const res = await API.get(`/uno-packages/${pkg._id}`, { skipErrorToast: true });
-      applyPackageDetail(res.data);
+      if (pkg._catalog === 'local' || pkg.source === 'local') {
+        const res = await API.get(`/packages/${pkg._id}`, { skipErrorToast: true });
+        const detail = normalizePackageForQuotation(res.data);
+        applyPackageDetail({
+          ...detail,
+          inclusions: res.data.inclusions,
+          exclusions: res.data.exclusions,
+          importantNotes: res.data.importantNotes,
+        });
+        if (res.data.pricing) {
+          setState((s) => ({
+            ...s,
+            pricing: {
+              ...s.pricing,
+              baseCost: res.data.pricing.finalPrice || res.data.startingPrice || 0,
+              ...calculatePricing({
+                ...s.pricing,
+                baseCost: res.data.pricing.finalPrice || res.data.startingPrice || 0,
+              }),
+            },
+          }));
+        }
+      } else {
+        const res = await API.get(`/uno-packages/${pkg._id}`, { skipErrorToast: true });
+        applyPackageDetail(res.data);
+      }
     } catch {
       applyPackageDetail(pkg);
     } finally {

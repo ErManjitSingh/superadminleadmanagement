@@ -6,6 +6,7 @@ export const PACKAGE_TYPES = [
   { value: 'adventure', label: 'Adventure', color: 'from-emerald-500/20 to-teal-500/10 border-emerald-400/40 text-emerald-700' },
   { value: 'luxury', label: 'Luxury', color: 'from-amber-500/20 to-orange-500/10 border-amber-400/40 text-amber-700' },
   { value: 'corporate', label: 'Corporate', color: 'from-slate-500/20 to-slate-600/10 border-slate-400/40 text-slate-700' },
+  { value: 'weekend', label: 'Weekend', color: 'from-cyan-500/20 to-teal-500/10 border-cyan-400/40 text-cyan-700' },
 ];
 
 export const QUOTE_STATUSES = [

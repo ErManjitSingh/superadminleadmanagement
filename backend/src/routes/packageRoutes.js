@@ -7,6 +7,11 @@ const {
   updatePackage,
   deletePackage,
   duplicatePackage,
+  archivePackage,
+  publishPackage,
+  savePackageVersion,
+  restorePackageVersion,
+  incrementPackageViews,
   listHotels,
   createHotel,
   updateHotel,
@@ -27,6 +32,11 @@ router.use(protect);
 router.use(requireFeature('packages'));
 
 router.post('/duplicate/:id', duplicatePackage);
+router.post('/:id/archive', archivePackage);
+router.post('/:id/publish', publishPackage);
+router.post('/:id/versions', savePackageVersion);
+router.post('/:id/versions/:versionId/restore', restorePackageVersion);
+router.post('/:id/view', incrementPackageViews);
 router.route('/').get(listPackages).post(createPackage);
 router.route('/:id').get(getPackage).put(updatePackage).delete(deletePackage);
 
