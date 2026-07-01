@@ -36,6 +36,8 @@ const hotelSchema = new mongoose.Schema(
     roomType: { type: String, default: 'Standard' },
     mealPlan: { type: String, default: 'CP (Breakfast)' },
     price: { type: Number, default: 0 },
+    image: { type: String, default: '' },
+    rating: { type: Number, default: 4.5 },
     contractRates: [contractRateSchema],
     specialNotes: { type: String, trim: true, default: '' },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', index: true },

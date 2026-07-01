@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import PackageManagementPage from '../components/packages/PackageManagementPage';
 import PremiumPackageBuilder from '../components/packages/builder/PremiumPackageBuilder';
-import PermissionRoute from '../components/PermissionRoute';
 
 function EditPackageRoute() {
   const { id } = useParams();
@@ -9,11 +8,7 @@ function EditPackageRoute() {
 }
 
 function NewPackageRoute() {
-  return (
-    <PermissionRoute module="packages" action="create">
-      <PremiumPackageBuilder />
-    </PermissionRoute>
-  );
+  return <PremiumPackageBuilder />;
 }
 
 export default function Packages() {

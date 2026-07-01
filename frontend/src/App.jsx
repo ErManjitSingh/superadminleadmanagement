@@ -255,7 +255,7 @@ function App() {
               <Route path="email-activity" element={<PermissionRoute module="email" action="send"><EmailActivityPage /></PermissionRoute>} />
               <Route path="customers" element={<PermissionRoute module="customers"><ComingSoon title="Customers" description="Repeat customers and relationship management" /></PermissionRoute>} />
               <Route path="quotations/*" element={<PermissionRoute module="quotations"><Quotations /></PermissionRoute>} />
-              <Route path="packages" element={<PermissionRoute module="packages"><Packages /></PermissionRoute>} />
+              <Route path="packages/*" element={<PermissionRoute module="packages"><Packages /></PermissionRoute>} />
               <Route path="team/attendance" element={<RoleRoute roles={['admin']}><AdminAttendancePage /></RoleRoute>} />
               <Route path="team/destination-assignment" element={<RoleRoute roles={['admin', 'sales_manager']}><DestinationAssignmentPage /></RoleRoute>} />
               <Route path="team/skill-assignment" element={<RoleRoute roles={['admin', 'sales_manager']}><SkillAssignmentPage /></RoleRoute>} />
