@@ -55,9 +55,14 @@ conn
         console.log('Bootstrap: cloning repo and running deploy script...\n');
         await exec(conn, `
 set -e
-mkdir -p /var/www/leadmanagement /var/www/indiaholidaydestination.com/public_html /var/www/admin.indiaholidaydestination.com/public_html
+mkdir -p /var/www/indiaholidaydestination.com/public_html /var/www/admin.indiaholidaydestination.com/public_html
 if [ ! -d /var/www/leadmanagement/.git ]; then
+  if [ -d /var/www/leadmanagement ]; then
+    cp -a /var/www/leadmanagement/backend/.env /tmp/ihd-backend.env.bak 2>/dev/null || true
+    rm -rf /var/www/leadmanagement
+  fi
   git clone https://github.com/ErManjitSingh/superadminleadmanagement.git /var/www/leadmanagement
+  cp -a /tmp/ihd-backend.env.bak /var/www/leadmanagement/backend/.env 2>/dev/null || true
 fi
 chmod +x /var/www/leadmanagement/deploy/scripts/ihd-vps-deploy.sh
 bash /var/www/leadmanagement/deploy/scripts/ihd-vps-deploy.sh
