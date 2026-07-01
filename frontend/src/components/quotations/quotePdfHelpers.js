@@ -93,7 +93,7 @@ export function buildSelectedHotelsSnapshot(dayWiseHotels) {
       nights: entry.nights || 1,
       price: entry.perNight,
       total: entry.totalCost ?? entry.perNight,
-      externalSource: entry.hotel.externalSource || 'uno_hotels',
+      externalSource: entry.hotel.isManual ? 'manual' : (entry.hotel.externalSource || 'uno_hotels'),
     }));
 }
 

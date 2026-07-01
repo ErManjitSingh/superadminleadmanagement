@@ -226,15 +226,27 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button
-                  type="button"
-                  variant="sky"
-                  className="rounded-xl gap-2 shadow-lg shadow-sky-500/20"
-                  disabled={!canContinue() || b.loadingPackageDetail}
-                  onClick={goNext}
-                >
-                  Continue <ArrowRight className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {b.step === 5 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-xl gap-2"
+                      onClick={skipActivities}
+                    >
+                      <SkipForward className="w-4 h-4" /> Skip activities
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="sky"
+                    className="rounded-xl gap-2 shadow-lg shadow-sky-500/20"
+                    disabled={!canContinue() || b.loadingPackageDetail}
+                    onClick={goNext}
+                  >
+                    Continue <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             )}
           </GlassCard>
@@ -457,17 +469,36 @@ function StepTransport({ b }) {
 }
 
 function StepActivities({ b, skipActivities }) {
+  const skipped = b.state.activitiesSkipped;
+  const hasActivities = b.availableActivities.length > 0;
+  const selectedCount = b.state.selectedActivityIds.length;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-start gap-3">
         <div>
           <h2 className="text-xl font-black">Activities</h2>
-          <p className="text-sm text-content-muted">Add experiences to make the quote irresistible</p>
+          <p className="text-sm text-content-muted">Add experiences to make the quote irresistible — or skip if not needed</p>
         </div>
-        <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={skipActivities}>
-          <SkipForward className="w-3.5 h-3.5" /> Skip
+        <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1.5 shrink-0" onClick={skipActivities}>
+          <SkipForward className="w-3.5 h-3.5" /> Skip activities
         </Button>
       </div>
+
+      {skipped && (
+        <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-sky-900 font-medium">Activities skipped — you can add them later or continue to inclusions.</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-xl"
+            onClick={() => b.setState((s) => ({ ...s, activitiesSkipped: false }))}
+          >
+            Add activities
+          </Button>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {ACTIVITY_PRESETS.map((preset) => (
@@ -481,24 +512,47 @@ function StepActivities({ b, skipActivities }) {
         ))}
       </div>
 
-      <div className="space-y-2 max-h-[320px] overflow-y-auto">
-        {b.availableActivities.map((a) => (
-          <button
-            key={a._id}
-            type="button"
-            onClick={() => b.toggleId('selectedActivityIds', a._id)}
-            className={cn(
-              'w-full flex justify-between p-4 rounded-xl border text-left',
-              b.state.selectedActivityIds.includes(a._id)
-                ? 'border-indigo-500/50 bg-indigo-500/10 ring-2 ring-indigo-500/20'
-                : 'border-subtle'
-            )}
-          >
-            <span className="text-sm font-medium">{a.name}</span>
-            <span className="font-bold">{formatINR(a.price)}</span>
-          </button>
-        ))}
-      </div>
+      {!hasActivities ? (
+        <div className="rounded-2xl border border-dashed border-subtle bg-surface-elevated/50 p-8 text-center space-y-4">
+          <p className="text-sm text-content-muted">No activities found for this destination.</p>
+          <Button type="button" variant="outline" className="rounded-xl gap-2" onClick={skipActivities}>
+            <SkipForward className="w-4 h-4" /> Skip &amp; continue to inclusions
+          </Button>
+        </div>
+      ) : (
+        <>
+          {selectedCount > 0 && (
+            <p className="text-xs font-semibold text-indigo-700">{selectedCount} activit{selectedCount === 1 ? 'y' : 'ies'} selected</p>
+          )}
+          <div className="space-y-2 max-h-[320px] overflow-y-auto">
+            {b.availableActivities.map((a) => (
+              <button
+                key={a._id}
+                type="button"
+                onClick={() => b.toggleId('selectedActivityIds', a._id)}
+                className={cn(
+                  'w-full flex justify-between p-4 rounded-xl border text-left',
+                  b.state.selectedActivityIds.includes(a._id)
+                    ? 'border-indigo-500/50 bg-indigo-500/10 ring-2 ring-indigo-500/20'
+                    : 'border-subtle'
+                )}
+              >
+                <span className="text-sm font-medium">{a.name}</span>
+                <span className="font-bold">{formatINR(a.price)}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {hasActivities && (
+        <div className="pt-4 border-t border-subtle flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-content-muted">Activities are optional for this quotation.</p>
+          <Button type="button" variant="ghost" size="sm" className="rounded-xl gap-1.5 text-content-muted" onClick={skipActivities}>
+            <SkipForward className="w-3.5 h-3.5" /> Skip &amp; continue
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

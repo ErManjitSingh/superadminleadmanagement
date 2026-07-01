@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { BedDouble, Check, Copy } from 'lucide-react';
+import { BedDouble, Check, Copy, List, PenLine } from 'lucide-react';
 import { Button } from '../ui/button';
 import UnoHotelSelector from './UnoHotelSelector';
+import ManualHotelEntry from './ManualHotelEntry';
 import { formatINR } from './quotationUtils';
 import { cn } from '../../lib/utils';
 
@@ -14,7 +15,10 @@ export function isDayWiseHotelsComplete(selections = [], nights = 1) {
   if (selections.length < required) return false;
   return Array.from({ length: required }, (_, index) => index + 1).every((day) => {
     const entry = selections.find((item) => item.day === day);
-    return Boolean(entry?.hotel && entry?.room && entry?.mealPlan);
+    if (!entry?.hotel?.name) return false;
+    const hasRoom = Boolean(entry.room?.name || entry.room?.id);
+    const hasMeal = Boolean(entry.mealPlan?.label || entry.mealPlan?.key);
+    return hasRoom && hasMeal;
   });
 }
 
@@ -25,6 +29,7 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
     [stayNights]
   );
   const [activeDay, setActiveDay] = useState(1);
+  const [entryMode, setEntryMode] = useState('catalog');
 
   const getDaySelection = (day) => value.find((item) => item.day === day) || null;
 
@@ -41,8 +46,8 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
       room: selection.room,
       mealPlan: selection.mealPlan,
       perNight,
-      totalCost: selection.mealPlan ? perNight : 0,
-      nights: 1,
+      totalCost: selection.totalCost ?? perNight,
+      nights: selection.nights || 1,
     });
     onChange(next.sort((a, b) => a.day - b.day));
   };
@@ -86,7 +91,11 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
               <button
                 key={day}
                 type="button"
-                onClick={() => setActiveDay(day)}
+                onClick={() => {
+                  setActiveDay(day);
+                  const sel = getDaySelection(day);
+                  setEntryMode(sel?.hotel?.isManual ? 'manual' : 'catalog');
+                }}
                 className={cn(
                   'min-w-[132px] rounded-xl border px-4 py-3 text-left transition-all',
                   active && 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/25 shadow-sm',
@@ -133,16 +142,51 @@ export default function DayWiseHotelSelector({ destination, nights = 1, value = 
       )}
 
       <div className="rounded-2xl border border-subtle bg-surface-base p-4 sm:p-5 space-y-4">
-        <p className="text-sm font-semibold text-content-primary">
-          Night {activeDay} — Hotel, room & meals
-        </p>
-        <UnoHotelSelector
-          key={`night-${activeDay}`}
-          destination={destination}
-          nights={1}
-          value={activeSelection}
-          onChange={(selection) => updateDaySelection(activeDay, selection)}
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm font-semibold text-content-primary">
+            Night {activeDay} — Hotel, room & meals
+          </p>
+          <div className="flex gap-1 p-1 rounded-xl bg-surface-elevated border border-subtle">
+            <button
+              type="button"
+              onClick={() => setEntryMode('catalog')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                entryMode === 'catalog' ? 'bg-amber-500 text-white shadow-sm' : 'text-content-muted hover:text-content-primary'
+              )}
+            >
+              <List className="w-3.5 h-3.5" /> From catalog
+            </button>
+            <button
+              type="button"
+              onClick={() => setEntryMode('manual')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                entryMode === 'manual' ? 'bg-sky-600 text-white shadow-sm' : 'text-content-muted hover:text-content-primary'
+              )}
+            >
+              <PenLine className="w-3.5 h-3.5" /> Enter manually
+            </button>
+          </div>
+        </div>
+
+        {entryMode === 'catalog' ? (
+          <UnoHotelSelector
+            key={`night-${activeDay}-catalog`}
+            destination={destination}
+            nights={1}
+            value={activeSelection?.hotel?.isManual ? null : activeSelection}
+            onChange={(selection) => updateDaySelection(activeDay, selection)}
+          />
+        ) : (
+          <ManualHotelEntry
+            key={`night-${activeDay}-manual`}
+            day={activeDay}
+            destination={destination}
+            value={activeSelection?.hotel?.isManual ? activeSelection : null}
+            onChange={(selection) => updateDaySelection(activeDay, selection)}
+          />
+        )}
       </div>
     </div>
   );
