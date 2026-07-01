@@ -43,6 +43,12 @@ EOF
 fi
 
 echo 'VITE_API_URL=/api' > "$APP_ROOT/frontend/.env"
+echo 'VITE_BASE=/app/' >> "$APP_ROOT/frontend/.env"
+cat > "$APP_ROOT/marketing/.env.local" <<EOF
+NEXT_PUBLIC_CRM_URL=/app
+NEXT_PUBLIC_API_URL=/api
+NEXT_PUBLIC_SUPERADMIN_URL=https://admin.${DOMAIN}/admin/login
+EOF
 cat > "$APP_ROOT/superadmin/.env" <<EOF
 VITE_API_URL=/api/superadmin
 VITE_CRM_URL=https://${DOMAIN}
@@ -59,13 +65,22 @@ node -e "require('./src/config/env');const m=require('mongoose');const U=require
   && echo "CRM DB already seeded" || npm run seed
 npm run seed:platform 2>/dev/null || true
 
-echo "==> CRM frontend build..."
+echo "==> CRM frontend build (base /app/)..."
 cd "$APP_ROOT/frontend"
+npm install
+VITE_BASE=/app/ npm run build
+
+echo "==> Marketing site build..."
+cd "$APP_ROOT/marketing"
 npm install
 npm run build
 
-echo "==> Publish CRM to public_html..."
-rsync -a --delete "$APP_ROOT/frontend/dist/" "$WEB_ROOT/"
+echo "==> Publish marketing site to public_html root..."
+rsync -a --delete "$APP_ROOT/marketing/out/" "$WEB_ROOT/"
+
+echo "==> Publish CRM to public_html/app/..."
+mkdir -p "$WEB_ROOT/app"
+rsync -a --delete "$APP_ROOT/frontend/dist/" "$WEB_ROOT/app/"
 
 echo "==> Super Admin build..."
 cd "$APP_ROOT/superadmin"
