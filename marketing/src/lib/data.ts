@@ -316,7 +316,7 @@ export const pricingPlans = [
 export const testimonials = [
   {
     quote:
-      "We replaced 12 Excel sheets with UNO Travel CRM. Our team closes 40% more bookings because nothing falls through the cracks anymore.",
+      "We replaced 12 Excel sheets with Travel CRM. Our team closes 40% more bookings because nothing falls through the cracks anymore.",
     author: "Rajesh Mehta",
     role: "CEO",
     company: "Golden Triangle Tours",
@@ -358,8 +358,8 @@ export const testimonials = [
 
 export const faqs = [
   {
-    q: "What is UNO Travel CRM?",
-    a: "UNO Travel CRM is an all-in-one platform built specifically for travel companies. It covers lead management, quotations, bookings, operations, attendance, WhatsApp, email and team management in a single modern interface.",
+    q: "What is Travel CRM?",
+    a: "Travel CRM is an all-in-one platform built specifically for travel companies. It covers lead management, quotations, bookings, operations, attendance, WhatsApp, email and team management in a single modern interface.",
   },
   {
     q: "Is there a free trial?",

@@ -108,19 +108,23 @@ export function SectionHeading({
   align?: "center" | "left";
 }) {
   return (
-    <FadeIn className={cn("mb-16", align === "center" && "text-center", className)}>
+    <FadeIn className={cn("mb-20", align === "center" && "text-center", className)}>
       {badge && (
-        <span className="mb-4 inline-block rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-primary">
+        <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.15em] text-emerald-400">
+          <span className="h-1 w-1 rounded-full bg-emerald-400" />
           {badge}
         </span>
       )}
-      <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+      <h2 className="font-display text-balance text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl xl:text-[3.25rem]">
         {title}
       </h2>
       {subtitle && (
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground lg:text-xl">
           {subtitle}
         </p>
+      )}
+      {align === "center" && (
+        <div className="mx-auto mt-8 h-px w-24 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
       )}
     </FadeIn>
   );

@@ -19,7 +19,7 @@ export function Comparison() {
             <div className="grid grid-cols-3 border-b border-white/10 bg-white/5 p-4 text-center text-sm font-semibold">
               <div className="text-left">Feature</div>
               <div className="text-red-400">Excel</div>
-              <div className="gradient-text">UNO Travel CRM</div>
+              <div className="gradient-text font-display text-lg font-bold">Travel CRM</div>
             </div>
             {comparisonRows.map((row, i) => (
               <div

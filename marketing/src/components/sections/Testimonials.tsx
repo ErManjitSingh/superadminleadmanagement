@@ -20,7 +20,7 @@ export function Testimonials() {
         <SectionHeading
           badge="Testimonials"
           title="Loved by Travel Companies"
-          subtitle="See why 100+ travel companies switched from spreadsheets to UNO Travel CRM."
+          subtitle="See why 100+ travel companies switched from spreadsheets to Travel CRM."
         />
 
         <FadeIn>

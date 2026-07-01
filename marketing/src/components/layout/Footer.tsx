@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plane, Mail, Share2, Globe, MessageCircle } from "lucide-react";
+import { Compass, Mail, Share2, Globe, MessageCircle } from "lucide-react";
 import { siteConfig } from "@/lib/config";
 
 const footerLinks = {
@@ -25,15 +25,15 @@ const footerLinks = {
 
 export function Footer() {
   return (
-    <footer id="contact" className="border-t border-white/10 bg-card/50">
+    <footer id="contact" className="border-t border-white/[0.06] bg-white/[0.02]">
       <div className="section-padding mx-auto max-w-7xl">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-violet-600">
-                <Plane className="h-4 w-4 text-white" />
+            <Link href="/" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500">
+                <Compass className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold">UNO Travel CRM</span>
+              <span className="font-display text-lg font-bold">Travel CRM</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
               {siteConfig.tagline}. Built for travel companies that want to grow faster with less chaos.
@@ -48,7 +48,7 @@ export function Footer() {
                 <a
                   key={i}
                   href={href}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 transition-colors hover:bg-white/10 hover:text-primary"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] transition-all hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
                 >
                   <Icon className="h-4 w-4" />
                 </a>
@@ -58,13 +58,13 @@ export function Footer() {
 
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title}>
-              <h4 className="mb-4 text-sm font-semibold capitalize">{title}</h4>
+              <h4 className="mb-4 font-display text-sm font-bold capitalize">{title}</h4>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="text-sm text-muted-foreground transition-colors hover:text-emerald-400"
                     >
                       {link.label}
                     </a>
@@ -75,14 +75,14 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
+        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-white/[0.06] pt-8 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} UNO Travel CRM. All rights reserved.
+            © {new Date().getFullYear()} Travel CRM. All rights reserved.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <a href={siteConfig.crmLogin} className="hover:text-foreground">CRM Login</a>
-            <a href={siteConfig.superAdmin} className="hover:text-foreground">Super Admin</a>
-            <Link href={siteConfig.signup} className="hover:text-foreground">Start Free Demo</Link>
+            <a href={siteConfig.crmLogin} className="hover:text-emerald-400">CRM Login</a>
+            <a href={siteConfig.superAdmin} className="hover:text-emerald-400">Super Admin</a>
+            <Link href={siteConfig.signup} className="hover:text-emerald-400">Start Free Demo</Link>
           </div>
         </div>
       </div>

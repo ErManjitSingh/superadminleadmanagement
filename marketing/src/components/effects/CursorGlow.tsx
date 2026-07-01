@@ -24,7 +24,7 @@ export function CursorGlow() {
       animate={{ x: position.x - 200, y: position.y - 200 }}
       transition={{ type: "spring", damping: 30, stiffness: 200, mass: 0.5 }}
     >
-      <div className="h-[400px] w-[400px] rounded-full bg-gradient-radial from-blue-500/10 via-violet-500/5 to-transparent blur-3xl" />
+      <div className="h-[400px] w-[400px] rounded-full bg-gradient-radial from-emerald-500/12 via-cyan-500/6 to-transparent blur-3xl" />
     </motion.div>
   );
 }

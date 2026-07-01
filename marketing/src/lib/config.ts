@@ -2,7 +2,7 @@ const crmBase = (process.env.NEXT_PUBLIC_CRM_URL || "").replace(/\/$/, "");
 const apiBase = (process.env.NEXT_PUBLIC_API_URL || "/api").replace(/\/$/, "");
 
 export const siteConfig = {
-  name: "UNO Travel CRM",
+  name: "Travel CRM",
   shortName: "Travel CRM",
   tagline: "The Complete AI-Powered Travel CRM for Modern Travel Companies",
   description:
