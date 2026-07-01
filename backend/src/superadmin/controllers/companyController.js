@@ -6,7 +6,7 @@ const User = require('../../models/User');
 const ApiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { parsePagination, paginatedResponse } = require('../../utils/pagination');
-const { provisionCompany, getCompanyCounts } = require('../services/companyProvisioningService');
+const { provisionCompany, getCompanyCounts, generateTempPassword } = require('../services/companyProvisioningService');
 const { logPlatformAudit } = require('../services/platformAuditService');
 const { generateToken, formatUserResponse } = require('../../middleware/auth');
 const { resolveUserPermissions } = require('../../services/permissionsService');
@@ -19,6 +19,11 @@ function sanitizeCompany(doc, counts = {}) {
     slug: c.slug,
     subdomain: c.subdomain,
     primaryDomain: c.primaryDomain,
+    domainType: c.domainType,
+    domainVerified: c.domainVerified,
+    businessType: c.businessType,
+    billingCycle: c.billingCycle,
+    autoRenewal: c.autoRenewal,
     logo: c.logo,
     ownerName: c.ownerName,
     ownerEmail: c.ownerEmail,
@@ -105,8 +110,13 @@ const getCompany = asyncHandler(async (req, res) => {
     .limit(20)
     .lean();
 
+  const adminUser = company.adminUserId
+    ? await User.findById(company.adminUserId).select('name email lastLogin').lean()
+    : null;
+
   res.json({
     company: sanitizeCompany(company, counts),
+    adminUser,
     loginLogs,
     auditLogs,
   });
@@ -306,6 +316,81 @@ const exportCompanies = asyncHandler(async (req, res) => {
   res.json({ data: rows });
 });
 
+const getCompanyUsers = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const users = await User.find({ companyId: company._id })
+    .select('name email role status lastLogin createdAt department')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.json({
+    data: users.map((u) => ({
+      id: u._id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      status: u.status,
+      department: u.department,
+      lastLogin: u.lastLogin,
+      createdAt: u.createdAt,
+    })),
+  });
+});
+
+const resetAdminPassword = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+  if (!company.adminUserId) throw new ApiError(400, 'No admin user');
+
+  const user = await User.findById(company.adminUserId);
+  if (!user) throw new ApiError(404, 'Admin user not found');
+
+  const tempPassword = req.body.password || generateTempPassword();
+  user.password = tempPassword;
+  await user.save();
+
+  await logPlatformAudit({
+    actor: req.superAdmin,
+    action: 'password_reset',
+    resourceType: 'company',
+    resourceId: company._id,
+    companyId: company._id,
+    metadata: { adminEmail: user.email },
+    req,
+  });
+
+  res.json({ message: 'Password reset successfully', tempPassword });
+});
+
+const upgradePlan = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const plan = await SubscriptionPlan.findOne({ _id: req.body.planId, deletedAt: null });
+  if (!plan) throw new ApiError(400, 'Invalid plan');
+
+  company.subscriptionPlanId = plan._id;
+  company.storageLimitGb = plan.storageLimitGb;
+  if (req.body.billingCycle) company.billingCycle = req.body.billingCycle;
+  company.updatedBy = req.superAdmin._id;
+  await company.save();
+
+  await logPlatformAudit({
+    actor: req.superAdmin,
+    action: 'plan_changed',
+    resourceType: 'company',
+    resourceId: company._id,
+    companyId: company._id,
+    metadata: { planSlug: plan.slug, planName: plan.name },
+    req,
+  });
+
+  const counts = await getCompanyCounts(company._id);
+  res.json({ company: sanitizeCompany(company, counts) });
+});
+
 module.exports = {
   listCompanies,
   getCompany,
@@ -315,4 +400,7 @@ module.exports = {
   bulkAction,
   impersonateCompany,
   exportCompanies,
+  getCompanyUsers,
+  resetAdminPassword,
+  upgradePlan,
 };

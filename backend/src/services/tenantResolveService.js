@@ -65,6 +65,7 @@ function assertCompanyAccessible(company) {
 
 module.exports = {
   PLATFORM_DOMAIN,
+  RESERVED_SUBDOMAINS,
   extractSubdomain,
   resolveCompanyFromRequest,
   assertCompanyAccessible,

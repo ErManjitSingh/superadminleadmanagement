@@ -7,19 +7,18 @@ type Theme = "dark" | "light";
 const ThemeContext = createContext<{
   theme: Theme;
   toggle: () => void;
-}>({ theme: "dark", toggle: () => {} });
+}>({ theme: "light", toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const stored = localStorage.getItem("theme") as Theme | null;
-    if (stored) {
-      setTheme(stored);
-      document.documentElement.classList.toggle("light", stored === "light");
-    }
+    const active: Theme = stored || "light";
+    setTheme(active);
+    document.documentElement.classList.toggle("light", active === "light");
   }, []);
 
   const toggle = () => {
@@ -30,7 +29,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   if (!mounted) {
-    return <div className="dark">{children}</div>;
+    return <div className="light">{children}</div>;
   }
 
   return (

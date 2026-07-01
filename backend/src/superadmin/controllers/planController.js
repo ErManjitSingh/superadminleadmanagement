@@ -17,6 +17,10 @@ function formatPlan(plan) {
     storageLimitGb: p.storageLimitGb,
     leadLimit: p.leadLimit,
     bookingLimit: p.bookingLimit,
+    trialDays: p.trialDays,
+    whatsappLimit: p.whatsappLimit,
+    apiCallLimit: p.apiCallLimit,
+    customDomainLimit: p.customDomainLimit,
     features: p.features,
     status: p.status,
     isCustom: p.isCustom,
@@ -65,7 +69,8 @@ const updatePlan = asyncHandler(async (req, res) => {
 
   const allowed = [
     'name', 'description', 'monthlyPrice', 'yearlyPrice', 'userLimit', 'branchLimit',
-    'storageLimitGb', 'leadLimit', 'bookingLimit', 'features', 'status', 'sortOrder',
+    'storageLimitGb', 'leadLimit', 'bookingLimit', 'trialDays', 'whatsappLimit',
+    'apiCallLimit', 'customDomainLimit', 'features', 'status', 'sortOrder',
   ];
   for (const key of allowed) {
     if (req.body[key] !== undefined) plan[key] = req.body[key];

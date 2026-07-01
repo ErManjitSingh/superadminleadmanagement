@@ -6,12 +6,28 @@ const dashboardRoutes = require('./dashboardRoutes');
 const settingsRoutes = require('./settingsRoutes');
 const logsRoutes = require('./logsRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const domainRoutes = require('./domainRoutes');
+const subscriptionRoutes = require('./subscriptionRoutes');
+const supportRoutes = require('./supportRoutes');
+const announcementRoutes = require('./announcementRoutes');
+const invoiceRoutes = require('./invoiceRoutes');
+const apiKeyRoutes = require('./apiKeyRoutes');
+const adminRoutes = require('./adminRoutes');
+const reportsRoutes = require('./reportsRoutes');
 
 const router = express.Router();
 
 router.use('/auth', authRoutes);
 router.use('/companies', companyRoutes);
 router.use('/plans', planRoutes);
+router.use('/subscriptions', subscriptionRoutes);
+router.use('/domains', domainRoutes);
+router.use('/support', supportRoutes);
+router.use('/announcements', announcementRoutes);
+router.use('/invoices', invoiceRoutes);
+router.use('/api-keys', apiKeyRoutes);
+router.use('/admins', adminRoutes);
+router.use('/reports', reportsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/logs', logsRoutes);

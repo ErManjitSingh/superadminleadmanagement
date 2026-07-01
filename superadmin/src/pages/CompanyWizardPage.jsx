@@ -8,35 +8,23 @@ import { Button } from '../components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input, Label, Select, Textarea } from '../components/ui/input';
 
-const STEPS = ['Company', 'Owner', 'Subscription', 'Features', 'Confirm'];
-
-const FEATURE_OPTIONS = [
-  'crm', 'bookings', 'packages', 'hotels', 'transport', 'activities',
-  'reports', 'calendar', 'whatsapp', 'email', 'api', 'payments', 'invoices',
-];
+const STEPS = ['Company', 'Plan', 'Domain', 'Finish'];
 
 const initialForm = {
   name: '',
-  slug: '',
   subdomain: '',
   primaryDomain: '',
   country: 'India',
-  state: '',
-  city: '',
-  address: '',
-  gst: '',
   timezone: 'Asia/Kolkata',
   currency: 'INR',
   ownerName: '',
   ownerEmail: '',
+  ownerPassword: '',
   phone: '',
   subscriptionPlanId: '',
   billingCycle: 'monthly',
   status: 'trial',
   trialDays: 14,
-  features: {
-    crm: true, bookings: true, packages: true, reports: true, email: true, calendar: true,
-  },
 };
 
 export default function CompanyWizardPage() {
@@ -62,22 +50,16 @@ export default function CompanyWizardPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function toggleFeature(key) {
-    setForm((prev) => ({
-      ...prev,
-      features: { ...prev.features, [key]: !prev.features[key] },
-    }));
-  }
-
   function next() {
     if (step === 3) {
-      createMutation.mutate(form);
+      createMutation.mutate({ ...form, ownerPassword: form.ownerPassword });
       return;
     }
-    setStep((s) => Math.min(s + 1, 4));
+    setStep((s) => Math.min(s + 1, 3));
   }
 
   const selectedPlan = plansData?.find((p) => p.id === form.subscriptionPlanId);
+  const done = step === 4 && result;
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -108,88 +90,64 @@ export default function CompanyWizardPage() {
           >
             {step === 0 && (
               <div className="space-y-4">
-                <CardHeader><CardTitle>Company Information</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Company & Owner</CardTitle></CardHeader>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2"><Label>Company Name *</Label><Input value={form.name} onChange={(e) => updateField('name', e.target.value)} required /></div>
-                  <div><Label>Slug</Label><Input value={form.slug} onChange={(e) => updateField('slug', e.target.value)} placeholder="auto-generated if empty" /></div>
-                  <div><Label>Subdomain</Label><Input value={form.subdomain} onChange={(e) => updateField('subdomain', e.target.value)} placeholder="acme" /></div>
-                  <div className="sm:col-span-2"><Label>Primary Domain</Label><Input value={form.primaryDomain} onChange={(e) => updateField('primaryDomain', e.target.value)} placeholder="crm.acme.com (optional)" /></div>
-                  <div><Label>Country</Label><Input value={form.country} onChange={(e) => updateField('country', e.target.value)} /></div>
-                  <div><Label>State</Label><Input value={form.state} onChange={(e) => updateField('state', e.target.value)} /></div>
-                  <div><Label>City</Label><Input value={form.city} onChange={(e) => updateField('city', e.target.value)} /></div>
-                  <div><Label>GST</Label><Input value={form.gst} onChange={(e) => updateField('gst', e.target.value)} /></div>
-                  <div className="sm:col-span-2"><Label>Address</Label><Textarea value={form.address} onChange={(e) => updateField('address', e.target.value)} /></div>
-                </div>
-              </div>
-            )}
-
-            {step === 1 && (
-              <div className="space-y-4">
-                <CardHeader><CardTitle>Owner Information</CardTitle></CardHeader>
-                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2"><Label>Company Name *</Label><Input value={form.name} onChange={(e) => updateField('name', e.target.value)} /></div>
                   <div className="sm:col-span-2"><Label>Owner Name *</Label><Input value={form.ownerName} onChange={(e) => updateField('ownerName', e.target.value)} /></div>
-                  <div className="sm:col-span-2"><Label>Owner Email *</Label><Input type="email" value={form.ownerEmail} onChange={(e) => updateField('ownerEmail', e.target.value)} /></div>
+                  <div><Label>Email *</Label><Input type="email" value={form.ownerEmail} onChange={(e) => updateField('ownerEmail', e.target.value)} /></div>
                   <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => updateField('phone', e.target.value)} /></div>
+                  <div><Label>Password *</Label><Input type="password" value={form.ownerPassword} onChange={(e) => updateField('ownerPassword', e.target.value)} /></div>
+                  <div><Label>Country</Label><Input value={form.country} onChange={(e) => updateField('country', e.target.value)} /></div>
                   <div><Label>Timezone</Label><Input value={form.timezone} onChange={(e) => updateField('timezone', e.target.value)} /></div>
                   <div><Label>Currency</Label><Input value={form.currency} onChange={(e) => updateField('currency', e.target.value)} /></div>
                 </div>
               </div>
             )}
 
-            {step === 2 && (
+            {step === 1 && (
               <div className="space-y-4">
-                <CardHeader><CardTitle>Subscription</CardTitle></CardHeader>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <Label>Plan *</Label>
-                    <Select value={form.subscriptionPlanId} onChange={(e) => updateField('subscriptionPlanId', e.target.value)}>
-                      <option value="">Select plan</option>
-                      {(plansData || []).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Billing Cycle</Label>
-                    <Select value={form.billingCycle} onChange={(e) => updateField('billingCycle', e.target.value)}>
-                      <option value="monthly">Monthly</option>
-                      <option value="yearly">Yearly</option>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Trial Days</Label>
-                    <Input type="number" value={form.trialDays} onChange={(e) => updateField('trialDays', Number(e.target.value))} />
-                  </div>
-                </div>
-                {selectedPlan && (
-                  <div className="rounded-xl bg-brand-500/10 p-4 text-sm">
-                    <p className="font-medium">{selectedPlan.name}</p>
-                    <p className="text-[var(--text-secondary)]">
-                      {selectedPlan.userLimit} users · {selectedPlan.storageLimitGb} GB storage
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {step === 3 && (
-              <div className="space-y-4">
-                <CardHeader>
-                  <CardTitle>Features</CardTitle>
-                  <CardDescription>Enable platform modules for this tenant</CardDescription>
-                </CardHeader>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {FEATURE_OPTIONS.map((key) => (
-                    <label key={key} className="flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 capitalize">
-                      <input type="checkbox" checked={!!form.features[key]} onChange={() => toggleFeature(key)} />
-                      {key}
-                    </label>
+                <CardHeader><CardTitle>Select Plan</CardTitle></CardHeader>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {(plansData || []).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => updateField('subscriptionPlanId', p.id)}
+                      className={`rounded-xl border p-4 text-left transition ${form.subscriptionPlanId === p.id ? 'border-violet-500 bg-violet-500/10 ring-2 ring-violet-500/20' : 'border-[var(--border)] hover:border-violet-300'}`}
+                    >
+                      <p className="font-semibold">{p.name}</p>
+                      <p className="text-sm text-[var(--text-muted)]">{p.userLimit} users · {p.storageLimitGb} GB</p>
+                    </button>
                   ))}
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div><Label>Billing Cycle</Label><Select value={form.billingCycle} onChange={(e) => updateField('billingCycle', e.target.value)}><option value="monthly">Monthly</option><option value="yearly">Yearly</option></Select></div>
+                  <div><Label>Trial Days</Label><Input type="number" value={form.trialDays} onChange={(e) => updateField('trialDays', Number(e.target.value))} /></div>
+                </div>
               </div>
             )}
 
-            {step === 4 && result && (
+            {step === 2 && (
+              <div className="space-y-4">
+                <CardHeader><CardTitle>Custom Domain</CardTitle><CardDescription>Optional — e.g. crm.company.com</CardDescription></CardHeader>
+                <div><Label>Subdomain</Label><Input value={form.subdomain} onChange={(e) => updateField('subdomain', e.target.value)} placeholder="acme" /></div>
+                <div><Label>Primary Domain</Label><Input value={form.primaryDomain} onChange={(e) => updateField('primaryDomain', e.target.value)} placeholder="crm.acme.com" /></div>
+              </div>
+            )}
+
+            {step === 3 && !done && (
+              <div className="space-y-4">
+                <CardHeader><CardTitle>Review & Finish</CardTitle><CardDescription>Automatically creates company, admin user, Head Office branch, roles & settings.</CardDescription></CardHeader>
+                <div className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-900/50">
+                  <p><strong>Company:</strong> {form.name}</p>
+                  <p><strong>Owner:</strong> {form.ownerName} ({form.ownerEmail})</p>
+                  <p><strong>Plan:</strong> {selectedPlan?.name || '—'}</p>
+                  <p><strong>Domain:</strong> {form.primaryDomain || `${form.subdomain || 'auto'}.…`}</p>
+                </div>
+              </div>
+            )}
+
+            {done && (
               <div className="space-y-4 text-center">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600">
                   <Check className="h-8 w-8" />
@@ -212,7 +170,7 @@ export default function CompanyWizardPage() {
           </motion.div>
         </AnimatePresence>
 
-        {step < 4 && (
+        {!done && step <= 3 && (
           <div className="mt-8 flex justify-between border-t border-[var(--border)] pt-4">
             <Button variant="secondary" disabled={step === 0} onClick={() => setStep((s) => s - 1)}>
               <ChevronLeft className="h-4 w-4" /> Back
@@ -221,9 +179,8 @@ export default function CompanyWizardPage() {
               onClick={next}
               disabled={
                 createMutation.isPending
-                || (step === 0 && !form.name)
-                || (step === 1 && (!form.ownerName || !form.ownerEmail))
-                || (step === 2 && !form.subscriptionPlanId)
+                || (step === 0 && (!form.name || !form.ownerName || !form.ownerEmail || !form.ownerPassword))
+                || (step === 1 && !form.subscriptionPlanId)
               }
             >
               {step === 3 ? (createMutation.isPending ? 'Creating…' : 'Create Company') : 'Continue'}

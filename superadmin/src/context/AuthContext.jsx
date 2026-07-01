@@ -40,6 +40,11 @@ export function AuthProvider({ children }) {
         superAdminStorage.clearSession();
         setUser(null);
       },
+      async refreshUser() {
+        const res = await superAdminApi.getMe();
+        setUser(res.data.user);
+        superAdminStorage.saveSession(res.data.user, superAdminStorage.getToken());
+      },
     }),
     [user, loading]
   );

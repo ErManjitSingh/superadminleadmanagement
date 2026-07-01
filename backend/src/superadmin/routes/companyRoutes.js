@@ -8,6 +8,9 @@ const {
   bulkAction,
   impersonateCompany,
   exportCompanies,
+  getCompanyUsers,
+  resetAdminPassword,
+  upgradePlan,
 } = require('../controllers/companyController');
 const { superAdminProtect } = require('../middleware/superAdminAuth');
 
@@ -18,6 +21,9 @@ router.use(superAdminProtect);
 router.get('/', listCompanies);
 router.get('/export', exportCompanies);
 router.post('/bulk', bulkAction);
+router.get('/:id/users', getCompanyUsers);
+router.post('/:id/reset-password', resetAdminPassword);
+router.post('/:id/upgrade-plan', upgradePlan);
 router.get('/:id', getCompany);
 router.post('/', createCompany);
 router.patch('/:id', updateCompany);

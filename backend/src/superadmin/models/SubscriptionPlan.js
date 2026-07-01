@@ -25,7 +25,6 @@ const subscriptionPlanSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      enum: ['starter', 'professional', 'business', 'enterprise', 'custom'],
     },
     description: { type: String, trim: true },
     monthlyPrice: { type: Number, required: true, min: 0, default: 0 },
@@ -35,6 +34,10 @@ const subscriptionPlanSchema = new mongoose.Schema(
     storageLimitGb: { type: Number, required: true, min: 1, default: 5 },
     leadLimit: { type: Number, min: 0, default: 1000 },
     bookingLimit: { type: Number, min: 0, default: 500 },
+    trialDays: { type: Number, min: 0, default: 14 },
+    whatsappLimit: { type: Number, min: 0, default: 0 },
+    apiCallLimit: { type: Number, min: 0, default: 0 },
+    customDomainLimit: { type: Number, min: 0, default: 1 },
     features: {
       type: [String],
       enum: FEATURE_KEYS,

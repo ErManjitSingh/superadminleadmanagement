@@ -1,8 +1,9 @@
 const Company = require('../models/Company');
 const SubscriptionPlan = require('../models/SubscriptionPlan');
-const SuperAdmin = require('../models/SuperAdmin');
 const PlatformAuditLog = require('../models/PlatformAuditLog');
 const CompanyLoginLog = require('../models/CompanyLoginLog');
+const PlatformSupportTicket = require('../models/PlatformSupportTicket');
+const PlatformInvoice = require('../models/PlatformInvoice');
 const User = require('../../models/User');
 const { getDbStatus } = require('../../config/db');
 
@@ -27,6 +28,8 @@ async function getDashboardMetrics() {
 
   const baseFilter = { deletedAt: null };
 
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
   const [
     totalCompanies,
     activeCompanies,
@@ -35,12 +38,18 @@ async function getDashboardMetrics() {
     trialCompanies,
     expiredCompanies,
     newCompaniesToday,
+    newCompaniesThisMonth,
+    domainsConnected,
+    dnsPending,
     upcomingRenewals,
     expiringTrials,
     totalCompanyUsers,
+    pendingSupportTickets,
     recentCompanies,
     recentAuditLogs,
     recentLoginLogs,
+    recentInvoices,
+    pendingDomains,
     plans,
   ] = await Promise.all([
     Company.countDocuments(baseFilter),
@@ -50,13 +59,17 @@ async function getDashboardMetrics() {
     Company.countDocuments({ ...baseFilter, status: 'trial' }),
     Company.countDocuments({ ...baseFilter, status: 'expired' }),
     Company.countDocuments({ ...baseFilter, createdAt: { $gte: todayStart, $lte: todayEnd } }),
+    Company.countDocuments({ ...baseFilter, createdAt: { $gte: monthStart } }),
+    Company.countDocuments({ ...baseFilter, $or: [{ domainVerified: true }, { domainType: 'subdomain' }] }),
+    Company.countDocuments({ ...baseFilter, domainType: 'custom', domainVerified: false, primaryDomain: { $ne: null } }),
     Company.countDocuments({ ...baseFilter, renewDate: { $gte: now, $lte: in30Days }, status: { $in: ['active', 'trial'] } }),
     Company.countDocuments({ ...baseFilter, trialEndDate: { $gte: now, $lte: in7Days }, status: 'trial' }),
     User.countDocuments({ companyId: { $ne: null }, status: { $ne: 'disabled' } }),
+    PlatformSupportTicket.countDocuments({ status: { $in: ['open', 'pending'] } }),
     Company.find(baseFilter)
       .sort({ createdAt: -1 })
       .limit(8)
-      .select('name slug status ownerEmail createdAt subscriptionPlanId')
+      .select('name slug status ownerEmail ownerName createdAt subscriptionPlanId logo subdomain domainVerified primaryDomain')
       .populate('subscriptionPlanId', 'name slug')
       .lean(),
     PlatformAuditLog.find()
@@ -67,6 +80,21 @@ async function getDashboardMetrics() {
       .sort({ createdAt: -1 })
       .limit(10)
       .populate('companyId', 'name slug')
+      .lean(),
+    PlatformInvoice.find()
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .populate('companyId', 'name')
+      .lean(),
+    Company.find({
+      ...baseFilter,
+      domainType: 'custom',
+      domainVerified: false,
+      primaryDomain: { $ne: null },
+    })
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .select('name primaryDomain ownerEmail createdAt')
       .lean(),
     SubscriptionPlan.find({ deletedAt: null, status: 'active' }).lean(),
   ]);
@@ -114,6 +142,13 @@ async function getDashboardMetrics() {
     { $sort: { _id: 1 } },
   ]);
 
+  const statusTrend = [
+    { name: 'active', value: activeCompanies },
+    { name: 'trial', value: trialCompanies },
+    { name: 'expired', value: expiredCompanies },
+    { name: 'suspended', value: suspendedCompanies },
+  ];
+
   return {
     metrics: {
       totalCompanies,
@@ -123,19 +158,34 @@ async function getDashboardMetrics() {
       trialCompanies,
       expiredCompanies,
       newCompaniesToday,
+      newCompaniesThisMonth,
+      domainsConnected,
+      dnsPending,
       upcomingRenewals,
       expiringTrials,
       totalCompanyUsers,
+      pendingSupportTickets,
       monthlyRevenue,
       yearlyRevenue,
+      totalRevenue: yearlyRevenue,
       storageUsedMb: storage.totalUsedMb,
       storageLimitGb: storage.totalLimitGb,
     },
     serverStatus: {
       database: db,
       api: { status: 'ok', timestamp: now.toISOString() },
+      health: db?.state === 'connected' ? 'healthy' : 'degraded',
     },
     recentCompanies,
+    recentPayments: recentInvoices.map((inv) => ({
+      id: inv._id,
+      invoiceNumber: inv.invoiceNumber,
+      companyName: inv.companyId?.name,
+      amount: inv.amount,
+      status: inv.status,
+      createdAt: inv.createdAt,
+    })),
+    pendingDomainVerification: pendingDomains,
     platformActivity: recentAuditLogs,
     auditLogs: recentAuditLogs,
     loginLogs: recentLoginLogs,
@@ -151,6 +201,7 @@ async function getDashboardMetrics() {
       })),
     },
     registrationTrend: registrationTrend.map((r) => ({ date: r._id, count: r.count })),
+    statusTrend,
   };
 }
 

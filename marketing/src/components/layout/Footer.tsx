@@ -94,7 +94,6 @@ export function Footer() {
           </p>
           <div className="flex gap-5 text-sm text-white/40">
             <a href={siteConfig.crmLogin} className="hover:text-violet-400">Login</a>
-            <a href={siteConfig.superAdmin} className="hover:text-violet-400">Super Admin</a>
           </div>
         </div>
       </div>

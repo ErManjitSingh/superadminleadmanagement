@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Navigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -24,8 +24,7 @@ import { LOGIN_PRESETS } from '../auth';
 import { AuthError } from '../auth/authService';
 import { cn } from '../lib/utils';
 import { APP_BRAND_NAME } from '../config/branding';
-
-const BG_IMAGE = '/login-bg.jpg';
+import loginBg from '../assets/login-bg.jpg';
 
 const LEFT_FEATURES = [
   { icon: Target, label: 'Smart Lead Management' },
@@ -82,9 +81,13 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user, getDashboardPath } = useAuth();
-  const { toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    setTheme('light');
+  }, [setTheme]);
 
   if (user) {
     const dest = user.dashboardPath || getDashboardPath(user.role);
@@ -126,12 +129,11 @@ export default function Login() {
     <div className="flex min-h-screen">
       {/* ── Left branding panel ── */}
       <div className="relative hidden w-[48%] overflow-hidden lg:flex lg:flex-col">
-        <div
-          className="absolute inset-0 scale-105 bg-cover bg-center"
-          style={{ backgroundImage: `url(${BG_IMAGE})` }}
+        <img
+          src={loginBg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-900/85 via-indigo-900/75 to-purple-800/80" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(139,92,246,0.3),transparent_55%)]" />
 
         <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-12">
           <div>

@@ -5,8 +5,8 @@ import { Card, CardHeader, CardTitle } from '../components/ui/card';
 import { Input, Select } from '../components/ui/input';
 import { formatDate } from '../lib/utils';
 
-export default function AuditLogsPage() {
-  const [tab, setTab] = useState('audit');
+export default function AuditLogsPage({ defaultTab = 'audit', title = 'Audit Logs', description = 'Platform audit and company login activity' }) {
+  const [tab, setTab] = useState(defaultTab);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
@@ -29,8 +29,8 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">System Logs</h1>
-        <p className="text-[var(--text-secondary)]">Platform audit and company login activity</p>
+        <h1 className="text-3xl font-bold">{title}</h1>
+        <p className="text-[var(--text-secondary)]">{description}</p>
       </div>
 
       <div className="flex flex-wrap gap-3">

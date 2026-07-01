@@ -51,9 +51,6 @@ export function Header() {
           <a href={siteConfig.crmLogin} className="rounded-lg px-4 py-2 text-sm font-medium text-white/80 hover:text-white">
             Login
           </a>
-          <a href={siteConfig.superAdmin} className="rounded-lg px-4 py-2 text-sm font-medium text-white/80 hover:text-white">
-            Super Admin
-          </a>
           <Link href={siteConfig.signup} className="btn-primary !py-2.5 !text-sm">
             Start Free Demo
           </Link>

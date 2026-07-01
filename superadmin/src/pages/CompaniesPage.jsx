@@ -1,19 +1,56 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
-import { Download, Eye, Plus, Search } from 'lucide-react';
+  Download, Eye, KeyRound, LogIn, Mail, MoreHorizontal, Pause, Play, Plus, Search, Trash2,
+} from 'lucide-react';
 import { superAdminApi } from '../api/superadmin';
+import { PageHeader } from '../components/shared/PageHeader';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input, Select } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { cn, formatDate, STATUS_COLORS } from '../lib/utils';
 import { PLATFORM_DOMAIN } from '../lib/branding';
+
+function ActionsMenu({ company, onAction }) {
+  const [open, setOpen] = useState(false);
+  const items = [
+    { label: 'View', icon: Eye, action: 'view' },
+    { label: 'Suspend', icon: Pause, action: 'suspend', hide: company.status === 'suspended' },
+    { label: 'Activate', icon: Play, action: 'activate', hide: company.status === 'active' },
+    { label: 'Login As Admin', icon: LogIn, action: 'impersonate' },
+    { label: 'Reset Password', icon: KeyRound, action: 'reset' },
+    { label: 'Delete', icon: Trash2, action: 'delete', danger: true, hide: company.isLegacy },
+  ].filter((i) => !i.hide);
+
+  return (
+    <div className="relative">
+      <Button variant="ghost" size="icon" onClick={() => setOpen((v) => !v)}>
+        <MoreHorizontal className="h-4 w-4" />
+      </Button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-50 mt-1 w-48 rounded-xl border border-[var(--border)] bg-white py-1 shadow-xl dark:bg-slate-900">
+            {items.map((item) => (
+              <button
+                key={item.action}
+                type="button"
+                onClick={() => { setOpen(false); onAction(item.action, company); }}
+                className={cn('flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800', item.danger && 'text-red-600')}
+              >
+                <item.icon className="h-3.5 w-3.5" />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function CompaniesPage() {
   const queryClient = useQueryClient();
@@ -24,88 +61,72 @@ export default function CompaniesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['companies', { search, status, page }],
-    queryFn: () =>
-      superAdminApi
-        .listCompanies({ search, status, page, limit: 15, sortBy: 'createdAt', sortOrder: 'desc' })
-        .then((r) => r.data),
+    queryFn: () => superAdminApi.listCompanies({ search, status, page, limit: 15 }).then((r) => r.data),
   });
 
   const bulkMutation = useMutation({
     mutationFn: (payload) => superAdminApi.bulkCompanies(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-      setSelected([]);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['companies'] }); setSelected([]); },
   });
 
   const companies = data?.data || [];
   const pagination = data?.pagination || {};
 
-  const columns = useMemo(
-    () => [
-      {
-        id: 'select',
-        header: ({ table }) => (
-          <input
-            type="checkbox"
-            checked={table.getIsAllPageRowsSelected()}
-            onChange={table.getToggleAllPageRowsSelectedHandler()}
-          />
-        ),
-        cell: ({ row }) => (
-          <input
-            type="checkbox"
-            checked={row.getIsSelected()}
-            disabled={row.original.isLegacy}
-            onChange={row.getToggleSelectedHandler()}
-          />
-        ),
-      },
-      {
-        accessorKey: 'name',
-        header: 'Company',
-        cell: ({ row }) => (
+  async function handleAction(action, company) {
+    if (action === 'view') window.location.href = `/admin/companies/${company.id}`;
+    if (action === 'suspend') await superAdminApi.bulkCompanies({ ids: [company.id], action: 'suspend' });
+    if (action === 'activate') await superAdminApi.bulkCompanies({ ids: [company.id], action: 'activate' });
+    if (action === 'delete' && confirm('Delete this company?')) await superAdminApi.deleteCompany(company.id);
+    if (action === 'reset') {
+      const res = await superAdminApi.resetPassword(company.id);
+      alert(`Temp password: ${res.data.tempPassword}`);
+    }
+    if (action === 'impersonate') {
+      const res = await superAdminApi.impersonate(company.id);
+      const { token, user, redirectUrl } = res.data;
+      const params = new URLSearchParams({ token, user: JSON.stringify(user), impersonation: 'true', companyName: res.data.company?.name || company.name });
+      window.open(`${redirectUrl}?${params}`, '_blank');
+    }
+    queryClient.invalidateQueries({ queryKey: ['companies'] });
+  }
+
+  const columns = useMemo(() => [
+    {
+      id: 'select',
+      header: ({ table }) => <input type="checkbox" checked={table.getIsAllPageRowsSelected()} onChange={table.getToggleAllPageRowsSelectedHandler()} />,
+      cell: ({ row }) => <input type="checkbox" checked={row.getIsSelected()} disabled={row.original.isLegacy} onChange={row.getToggleSelectedHandler()} />,
+    },
+    {
+      header: 'Company',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-xs font-bold text-white">
+            {row.original.name?.[0]}
+          </div>
           <div>
             <p className="font-medium">{row.original.name}</p>
             <p className="text-xs text-[var(--text-muted)]">{row.original.subdomain}.{PLATFORM_DOMAIN}</p>
           </div>
-        ),
-      },
-      { accessorKey: 'ownerEmail', header: 'Owner' },
-      {
-        accessorKey: 'status',
-        header: 'Status',
-        cell: ({ row }) => (
-          <Badge className={STATUS_COLORS[row.original.status]}>{row.original.status}</Badge>
-        ),
-      },
-      {
-        header: 'Plan',
-        cell: ({ row }) => row.original.subscriptionPlan?.name || '—',
-      },
-      {
-        header: 'Users',
-        cell: ({ row }) => row.original.usersCount,
-      },
-      {
-        accessorKey: 'createdAt',
-        header: 'Created',
-        cell: ({ row }) => formatDate(row.original.createdAt),
-      },
-      {
-        id: 'actions',
-        header: '',
-        cell: ({ row }) => (
-          <Link to={`/admin/companies/${row.original.id}`}>
-            <Button variant="ghost" size="icon">
-              <Eye className="h-4 w-4" />
-            </Button>
-          </Link>
-        ),
-      },
-    ],
-    []
-  );
+        </div>
+      ),
+    },
+    { header: 'Owner', cell: ({ row }) => <div><p className="text-sm">{row.original.ownerName}</p><p className="text-xs text-[var(--text-muted)]">{row.original.ownerEmail}</p></div> },
+    { header: 'Phone', cell: ({ row }) => row.original.phone || '—' },
+    { header: 'Plan', cell: ({ row }) => row.original.subscriptionPlan?.name || '—' },
+    { header: 'Status', cell: ({ row }) => <Badge className={STATUS_COLORS[row.original.status]}>{row.original.status}</Badge> },
+    { header: 'Trial Ends', cell: ({ row }) => row.original.trialEndDate ? formatDate(row.original.trialEndDate) : '—' },
+    { header: 'Renewal', cell: ({ row }) => row.original.renewDate ? formatDate(row.original.renewDate) : '—' },
+    {
+      header: 'Domain',
+      cell: ({ row }) => (
+        <Badge className={row.original.domainVerified ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'}>
+          {row.original.domainVerified ? 'Verified' : 'Pending'}
+        </Badge>
+      ),
+    },
+    { header: 'Created', cell: ({ row }) => formatDate(row.original.createdAt) },
+    { id: 'actions', header: '', cell: ({ row }) => <ActionsMenu company={row.original} onAction={handleAction} /> },
+  ], [queryClient]);
 
   const table = useReactTable({
     data: companies,
@@ -116,95 +137,53 @@ export default function CompaniesPage() {
       const next = typeof updater === 'function' ? updater(Object.fromEntries(selected.map((id) => [id, true]))) : updater;
       setSelected(Object.keys(next).filter((k) => next[k]).map((idx) => companies[Number(idx)]?.id).filter(Boolean));
     },
-    getRowId: (row, index) => String(index),
+    getRowId: (_, index) => String(index),
   });
-
-  async function handleExport() {
-    const res = await superAdminApi.exportCompanies({ search, status });
-    const blob = new Blob([JSON.stringify(res.data.data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'companies-export.json';
-    a.click();
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Companies</h1>
-          <p className="text-[var(--text-secondary)]">Manage tenant organizations on the platform</p>
-        </div>
-        <Link to="/admin/companies/new">
-          <Button>
-            <Plus className="h-4 w-4" />
-            Add Company
-          </Button>
-        </Link>
-      </div>
+      <PageHeader title="Companies" description="Manage tenant workspaces — no CRM business data is displayed.">
+        <Link to="/admin/companies/new"><Button><Plus className="h-4 w-4" />Create Company</Button></Link>
+        <Button variant="outline" onClick={() => superAdminApi.exportCompanies({ search, status }).then((r) => {
+          const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'companies.json'; a.click();
+        })}><Download className="h-4 w-4" />Export</Button>
+      </PageHeader>
 
-      <Card>
+      <Card className="p-4">
         <div className="mb-4 flex flex-wrap gap-3">
-          <div className="relative min-w-[240px] flex-1">
+          <div className="relative min-w-[200px] flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-            <Input
-              className="pl-9"
-              placeholder="Search companies…"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            />
+            <Input className="pl-9" placeholder="Search companies…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
           </div>
           <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-40">
             <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="trial">Trial</option>
-            <option value="suspended">Suspended</option>
-            <option value="inactive">Inactive</option>
-            <option value="expired">Expired</option>
+            {['active', 'trial', 'suspended', 'expired', 'inactive'].map((s) => <option key={s} value={s}>{s}</option>)}
           </Select>
-          <Button variant="secondary" onClick={handleExport}>
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          {selected.length > 0 && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Activate</Button>
+              <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'suspend' })}>Suspend</Button>
+            </div>
+          )}
         </div>
 
-        {selected.length > 0 && (
-          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-brand-500/10 px-3 py-2">
-            <span className="text-sm">{selected.length} selected</span>
-            <Button size="sm" variant="secondary" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Activate</Button>
-            <Button size="sm" variant="secondary" onClick={() => bulkMutation.mutate({ ids: selected, action: 'suspend' })}>Suspend</Button>
-            <Button size="sm" variant="secondary" onClick={() => bulkMutation.mutate({ ids: selected, action: 'extend_trial', trialDays: 14 })}>Extend Trial</Button>
-            <Button size="sm" variant="secondary" onClick={() => bulkMutation.mutate({ ids: selected, action: 'renew' })}>Renew</Button>
-          </div>
-        )}
-
         <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50/80 dark:bg-slate-900/50">
+          <table className="w-full min-w-[1100px] text-sm">
+            <thead className="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-[var(--text-muted)] dark:bg-slate-900/50">
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>
-                  {hg.headers.map((header) => (
-                    <th key={header.id} className="px-4 py-3 text-left font-medium text-[var(--text-secondary)]">
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                    </th>
-                  ))}
-                </tr>
+                <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-3 font-semibold">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>
               ))}
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-[var(--text-muted)]">Loading…</td></tr>
+                <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-muted)]">Loading…</td></tr>
               ) : companies.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-[var(--text-muted)]">No companies found</td></tr>
+                <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-muted)]">No companies found</td></tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-t border-[var(--border)] hover:bg-slate-50/50 dark:hover:bg-slate-900/30">
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-4 py-3">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
+                  <tr key={row.id} className="border-t border-[var(--border)] hover:bg-slate-50/50 dark:hover:bg-white/5">
+                    {row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
                   </tr>
                 ))
               )}
@@ -212,13 +191,11 @@ export default function CompaniesPage() {
           </table>
         </div>
 
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-sm text-[var(--text-muted)]">
-            Page {pagination.page} of {pagination.totalPages || 1} · {pagination.total} total
-          </p>
+        <div className="mt-4 flex items-center justify-between text-sm text-[var(--text-muted)]">
+          <span>Page {pagination.page || page} of {pagination.totalPages || 1} · {pagination.total || 0} total</span>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <Button variant="secondary" size="sm" disabled={page >= (pagination.totalPages || 1)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
+            <Button variant="outline" size="sm" disabled={page >= (pagination.totalPages || 1)} onClick={() => setPage((p) => p + 1)}>Next</Button>
           </div>
         </div>
       </Card>
