@@ -11,6 +11,7 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) throw new ApiError(400, 'Please provide email and password');
 
+  const resolvedCompany = await resolveCompanyFromRequest(req);
   const emailLower = email.toLowerCase();
   const emailFilter = { email: emailLower };
   if (resolvedCompany) {

@@ -22,8 +22,8 @@ const { ensureDefaultSettings } = require('./superadmin/services/platformSetting
 
 const app = express();
 
-// Behind Nginx — trust first proxy hop for correct per-client rate limits
-app.set('trust proxy', true);
+// Behind Nginx — trust first proxy hop only (required for rate limiting + correct client IP)
+app.set('trust proxy', 1);
 
 applySecurityMiddleware(app);
 

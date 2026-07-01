@@ -12,7 +12,7 @@ module.exports = {
   jwtSecret: process.env.JWT_SECRET,
   superAdminJwtSecret: process.env.SUPERADMIN_JWT_SECRET || process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '30d',
-  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174,https://indiaholidaydestination.com')
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174,https://indiaholidaydestination.com,https://www.indiaholidaydestination.com,https://admin.indiaholidaydestination.com')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
