@@ -64,6 +64,7 @@ npm install --omit=dev
 node -e "require('./src/config/env');const m=require('mongoose');const U=require('./src/models/User');m.connect(require('./src/config/env').mongoUri).then(async()=>{process.exit((await U.countDocuments())>0?0:1)}).catch(()=>process.exit(1))" \
   && echo "CRM DB already seeded" || npm run seed
 npm run seed:platform 2>/dev/null || true
+node src/scripts/migratePlanIdField.js 2>/dev/null || true
 
 echo "==> CRM frontend build (base /app/)..."
 cd "$APP_ROOT/frontend"

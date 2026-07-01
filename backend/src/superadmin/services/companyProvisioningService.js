@@ -190,7 +190,7 @@ async function provisionCompany({ payload, superAdminId }) {
     currency: payload.currency || "INR",
     billingCycle: payload.billingCycle || "monthly",
     autoRenewal: payload.autoRenewal !== false,
-    planId: plan._id,
+    subscriptionPlanId: plan._id,
     status: skipEmailVerification ? (payload.status || "trial") : "pending_verification",
     storageLimitGb: payload.storageLimitGb ?? plan.storageLimitGb,
     trialEndDate,

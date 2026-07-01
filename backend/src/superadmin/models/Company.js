@@ -101,7 +101,7 @@ const companySchema = new mongoose.Schema(
     currency: { type: String, default: "INR" },
     billingCycle: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },
     autoRenewal: { type: Boolean, default: true },
-    planId: {
+    subscriptionPlanId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SubscriptionPlan",
       index: true,

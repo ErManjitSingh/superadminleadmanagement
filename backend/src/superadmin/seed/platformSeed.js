@@ -123,7 +123,7 @@ async function seedPlatform() {
       country: 'India',
       timezone: 'Asia/Kolkata',
       currency: 'INR',
-      planId: enterprisePlan?._id,
+      subscriptionPlanId: enterprisePlan?._id,
       status: 'active',
       storageLimitGb: 200,
       trialEndDate: trialEnd,
