@@ -11,6 +11,7 @@ import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input, Select } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { DnsStatusBadge, SslStatusBadge } from '../components/domains/DomainStatusBadge';
 import { cn, formatDate, STATUS_COLORS } from '../lib/utils';
 import { PLATFORM_DOMAIN } from '../lib/branding';
 
@@ -56,12 +57,13 @@ export default function CompaniesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [domainFilter, setDomainFilter] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState([]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['companies', { search, status, page }],
-    queryFn: () => superAdminApi.listCompanies({ search, status, page, limit: 15 }).then((r) => r.data),
+    queryKey: ['companies', { search, status, domainFilter, page }],
+    queryFn: () => superAdminApi.listCompanies({ search, status, domainFilter, page, limit: 15 }).then((r) => r.data),
   });
 
   const bulkMutation = useMutation({
@@ -113,17 +115,31 @@ export default function CompaniesPage() {
     { header: 'Owner', cell: ({ row }) => <div><p className="text-sm">{row.original.ownerName}</p><p className="text-xs text-[var(--text-muted)]">{row.original.ownerEmail}</p></div> },
     { header: 'Phone', cell: ({ row }) => row.original.phone || '—' },
     { header: 'Plan', cell: ({ row }) => row.original.subscriptionPlan?.name || '—' },
+    {
+      header: 'System Domain',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.systemDomain || `${row.original.subdomain}.${PLATFORM_DOMAIN}`}</span>
+      ),
+    },
+    {
+      header: 'Custom Domain',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.customDomain || row.original.primaryDomain || '—'}</span>
+      ),
+    },
+    {
+      header: 'DNS',
+      cell: ({ row }) => (
+        <DnsStatusBadge status={row.original.domainStatus || (row.original.domainVerified ? 'verified' : row.original.primaryDomain ? 'pending' : 'not_connected')} />
+      ),
+    },
+    {
+      header: 'SSL',
+      cell: ({ row }) => <SslStatusBadge status={row.original.sslStatus} />,
+    },
     { header: 'Status', cell: ({ row }) => <Badge className={STATUS_COLORS[row.original.status]}>{row.original.status}</Badge> },
     { header: 'Trial Ends', cell: ({ row }) => row.original.trialEndDate ? formatDate(row.original.trialEndDate) : '—' },
     { header: 'Renewal', cell: ({ row }) => row.original.renewDate ? formatDate(row.original.renewDate) : '—' },
-    {
-      header: 'Domain',
-      cell: ({ row }) => (
-        <Badge className={row.original.domainVerified ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'}>
-          {row.original.domainVerified ? 'Verified' : 'Pending'}
-        </Badge>
-      ),
-    },
     { header: 'Created', cell: ({ row }) => formatDate(row.original.createdAt) },
     { id: 'actions', header: '', cell: ({ row }) => <ActionsMenu company={row.original} onAction={handleAction} /> },
   ], [queryClient]);
@@ -160,6 +176,14 @@ export default function CompaniesPage() {
             <option value="">All statuses</option>
             {['active', 'trial', 'suspended', 'expired', 'inactive'].map((s) => <option key={s} value={s}>{s}</option>)}
           </Select>
+          <Select value={domainFilter} onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }} className="w-52">
+            <option value="">All domains</option>
+            <option value="verified">Verified domains</option>
+            <option value="pending_dns">Pending DNS</option>
+            <option value="ssl_failed">SSL failed</option>
+            <option value="custom_connected">Custom domain connected</option>
+            <option value="no_custom">No custom domain</option>
+          </Select>
           {selected.length > 0 && (
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Activate</Button>
@@ -169,7 +193,7 @@ export default function CompaniesPage() {
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-          <table className="w-full min-w-[1100px] text-sm">
+          <table className="w-full min-w-[1400px] text-sm">
             <thead className="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-[var(--text-muted)] dark:bg-slate-900/50">
               {table.getHeaderGroups().map((hg) => (
                 <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-3 font-semibold">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>

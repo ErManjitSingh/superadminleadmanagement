@@ -1,26 +1,24 @@
 const Company = require('../models/Company');
-const { domainPointsToPlatform, normalizeDomain } = require('../../controllers/publicDomainController');
-const { onDomainVerified } = require('../../services/sslProvisioningService');
-const { markOnboardingStep } = require('../../services/onboardingService');
 const ApiError = require('../../utils/apiError');
 const asyncHandler = require('../../utils/asyncHandler');
 const { parsePagination, paginatedResponse } = require('../../utils/pagination');
 const { logPlatformAudit } = require('../services/platformAuditService');
-const { platformDomain } = require('../../config/branding');
+const {
+  formatDomainFields,
+  connectCustomDomain,
+  verifyCustomDomain,
+  disconnectCustomDomain,
+  refreshDomainStatus,
+} = require('../../services/domainService');
 
 function formatDomainRow(c) {
+  const domain = formatDomainFields(c);
   return {
     id: c._id,
     companyId: c._id,
     companyName: c.name,
     subdomain: c.subdomain,
-    subdomainUrl: `${c.subdomain}.${platformDomain}`,
-    primaryDomain: c.primaryDomain,
-    domainType: c.domainType || 'subdomain',
-    domainVerified: Boolean(c.domainVerified),
-    domainLastVerifiedAt: c.domainLastVerifiedAt,
-    sslStatus: c.sslStatus || 'not_applicable',
-    sslLastCheckedAt: c.sslLastCheckedAt,
+    ...domain,
     status: c.status,
     ownerEmail: c.ownerEmail,
     createdAt: c.createdAt,
@@ -30,8 +28,10 @@ function formatDomainRow(c) {
 const listDomains = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 20 });
   const filter = { deletedAt: null };
-  if (req.query.verified === 'true') filter.domainVerified = true;
-  if (req.query.verified === 'false') filter.domainVerified = false;
+  if (req.query.verified === 'true') filter.domainStatus = 'verified';
+  if (req.query.verified === 'false') filter.domainStatus = { $in: ['pending', 'failed'] };
+  if (req.query.domainStatus) filter.domainStatus = req.query.domainStatus;
+  if (req.query.sslStatus) filter.sslStatus = req.query.sslStatus;
   if (req.query.type === 'custom') filter.primaryDomain = { $ne: null };
   if (req.query.search) {
     const s = req.query.search.trim();
@@ -53,9 +53,8 @@ const listDomains = asyncHandler(async (req, res) => {
 const listPendingDns = asyncHandler(async (req, res) => {
   const companies = await Company.find({
     deletedAt: null,
-    domainType: 'custom',
     primaryDomain: { $ne: null },
-    domainVerified: false,
+    domainStatus: { $in: ['pending', 'failed'] },
   })
     .sort({ createdAt: -1 })
     .limit(50)
@@ -64,65 +63,95 @@ const listPendingDns = asyncHandler(async (req, res) => {
   res.json({ data: companies.map(formatDomainRow) });
 });
 
+const getCompanyDomain = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null }).lean();
+  if (!company) throw new ApiError(404, 'Company not found');
+  res.json({ data: formatDomainRow(company) });
+});
+
+const connectCompanyDomain = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const domain = req.body.customDomain || req.body.primaryDomain;
+  await connectCustomDomain(company, domain, {
+    verify: Boolean(req.body.verify),
+    actor: req.superAdmin,
+    req,
+  });
+  company.updatedBy = req.superAdmin._id;
+  await company.save();
+
+  res.json({ company: formatDomainRow(company.toObject()) });
+});
+
 const verifyCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
   if (!company) throw new ApiError(404, 'Company not found');
   if (!company.primaryDomain) throw new ApiError(400, 'Company has no custom domain');
 
-  const result = await domainPointsToPlatform(company.primaryDomain);
-  company.domainVerified = result.verified;
-  company.domainLastVerifiedAt = new Date();
+  const result = await verifyCustomDomain(company, { actor: req.superAdmin, req });
   company.updatedBy = req.superAdmin._id;
-  if (result.verified) {
-    await markOnboardingStep(company._id, 'domainConnected', true);
-    await onDomainVerified(company);
-  } else {
-    await company.save();
-  }
+  await company.save();
 
-  await logPlatformAudit({
-    actor: req.superAdmin,
-    action: 'domain_verify',
-    resourceType: 'company',
-    resourceId: company._id,
-    companyId: company._id,
-    metadata: { domain: company.primaryDomain, verified: result.verified },
-    req,
-  });
+  res.json(result);
+});
 
-  res.json({
-    domain: company.primaryDomain,
-    verified: result.verified,
-    status: result.verified ? 'verified' : 'pending',
-    method: result.method,
-  });
+const refreshCompanyDomain = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const result = await refreshDomainStatus(company, { actor: req.superAdmin, req });
+  company.updatedBy = req.superAdmin._id;
+  await company.save();
+
+  res.json({ ...result, company: formatDomainRow(company.toObject()) });
+});
+
+const disconnectCompanyDomain = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  await disconnectCustomDomain(company, { actor: req.superAdmin, req });
+  company.updatedBy = req.superAdmin._id;
+  await company.save();
+
+  res.json({ company: formatDomainRow(company.toObject()) });
 });
 
 const updateCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
   if (!company) throw new ApiError(404, 'Company not found');
 
-  const domain = normalizeDomain(req.body.primaryDomain);
-  if (!domain) throw new ApiError(400, 'Valid domain required');
-
-  const taken = await Company.findOne({
-    primaryDomain: domain,
-    _id: { $ne: company._id },
-    deletedAt: null,
+  const domain = req.body.customDomain || req.body.primaryDomain;
+  await connectCustomDomain(company, domain, {
+    verify: Boolean(req.body.verify),
+    actor: req.superAdmin,
+    req,
   });
-  if (taken) throw new ApiError(409, 'Domain already in use');
-
-  company.primaryDomain = domain;
-  company.domainType = 'custom';
-  company.domainVerified = false;
-  if (req.body.verify) {
-    const result = await domainPointsToPlatform(domain);
-    company.domainVerified = result.verified;
-  }
   company.updatedBy = req.superAdmin._id;
   await company.save();
+
+  await logPlatformAudit({
+    actor: req.superAdmin,
+    action: 'domain_update',
+    resourceType: 'company_domain',
+    resourceId: company._id,
+    companyId: company._id,
+    metadata: { domain: company.primaryDomain },
+    req,
+  });
 
   res.json({ company: formatDomainRow(company) });
 });
 
-module.exports = { listDomains, listPendingDns, verifyCompanyDomain, updateCompanyDomain };
+module.exports = {
+  listDomains,
+  listPendingDns,
+  getCompanyDomain,
+  connectCompanyDomain,
+  verifyCompanyDomain,
+  refreshCompanyDomain,
+  disconnectCompanyDomain,
+  updateCompanyDomain,
+};

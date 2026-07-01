@@ -47,6 +47,7 @@ const salesTargetRoutes = require('./salesTargetRoutes');
 const tenantRoutes = require('./tenantRoutes');
 const publicRoutes = require('./publicRoutes');
 const companySettingsRoutes = require('./companySettingsRoutes');
+const domainRoutes = require('./domainRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/public', publicRoutes);
@@ -84,6 +85,7 @@ router.use('/reports', reportsRoutes);
 router.use('/nav-counts', navCountsRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/company-settings', companySettingsRoutes);
+router.use('/domain', domainRoutes);
 router.use('/destination-assignment', destinationAssignmentRoutes);
 router.use('/skill-assignment', skillAssignmentRoutes);
 router.use('/assignment', assignmentConfigRoutes);

@@ -21,12 +21,25 @@ function extractSubdomain(host) {
     return sub;
   }
 
-  if (parts.length >= 3) {
-    const sub = parts[0];
-    if (!RESERVED_SUBDOMAINS.has(sub)) return sub;
-  }
-
   return null;
+}
+
+async function findCompanyByCustomHost(hostname) {
+  if (!hostname) return null;
+
+  const byPrimary = await Company.findOne({
+    primaryDomain: hostname,
+    domainVerified: true,
+    deletedAt: null,
+  }).lean();
+  if (byPrimary) return byPrimary;
+
+  return Company.findOne({
+    deletedAt: null,
+    additionalDomains: {
+      $elemMatch: { domain: hostname, verified: true },
+    },
+  }).lean();
 }
 
 async function resolveCompanyFromRequest(req) {
@@ -40,10 +53,7 @@ async function resolveCompanyFromRequest(req) {
   }
 
   if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-    const byCustomDomain = await Company.findOne({
-      primaryDomain: hostname,
-      deletedAt: null,
-    }).lean();
+    const byCustomDomain = await findCompanyByCustomHost(hostname);
     if (byCustomDomain) return byCustomDomain;
   }
 
@@ -68,6 +78,7 @@ module.exports = {
   PLATFORM_DOMAIN,
   RESERVED_SUBDOMAINS,
   extractSubdomain,
+  findCompanyByCustomHost,
   resolveCompanyFromRequest,
   assertCompanyAccessible,
 };

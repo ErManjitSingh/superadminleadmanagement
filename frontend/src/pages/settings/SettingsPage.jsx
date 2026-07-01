@@ -16,8 +16,8 @@ export default function SettingsPage() {
     {
       to: '/settings/workspace',
       icon: Building2,
-      title: 'Workspace & Domain',
-      description: 'Custom domain, DNS, SSL, branding and onboarding',
+      title: 'Custom Domain',
+      description: 'Connect crm.yourcompany.com with DNS verification and SSL',
       color: 'text-violet-600 bg-violet-500/10',
       adminOnly: true,
     },

@@ -1,14 +1,14 @@
 const Company = require('../superadmin/models/Company');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
-const {
-  domainPointsToPlatform,
-  normalizeDomain,
-} = require('../controllers/publicDomainController');
-const { onDomainVerified } = require('../services/sslProvisioningService');
 const { markOnboardingStep, formatOnboardingResponse, checkProfileCompleted } = require('../services/onboardingService');
 const { sendOwnerVerificationEmail } = require('../services/emailVerificationService');
-const { platformDomain } = require('../config/branding');
+const {
+  formatDomainFields,
+  connectCustomDomain,
+  verifyCustomDomain,
+  disconnectCustomDomain,
+} = require('../services/domainService');
 
 function maskSecrets(settings = {}) {
   const copy = { ...settings };
@@ -32,14 +32,6 @@ function formatCompanyPublic(company) {
     id: company._id,
     name: company.name,
     subdomain: company.subdomain,
-    subdomainUrl: `https://${company.subdomain}.${platformDomain}`,
-    primaryDomain: company.primaryDomain,
-    domainType: company.domainType,
-    domainVerified: Boolean(company.domainVerified),
-    domainLastVerifiedAt: company.domainLastVerifiedAt,
-    sslStatus: company.sslStatus,
-    sslLastCheckedAt: company.sslLastCheckedAt,
-    additionalDomains: company.additionalDomains || [],
     timezone: company.timezone,
     currency: company.currency,
     logo: company.logo,
@@ -50,6 +42,8 @@ function formatCompanyPublic(company) {
     trialEndDate: company.trialEndDate,
     whiteLabel: company.whiteLabel || {},
     features: company.features,
+    additionalDomains: company.additionalDomains || [],
+    ...formatDomainFields(company),
   };
 }
 
@@ -117,35 +111,11 @@ const updateCompanySettings = asyncHandler(async (req, res) => {
 const verifyCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.companyId);
   if (!company) throw new ApiError(404, 'Company not found');
-  if (!company.primaryDomain) throw new ApiError(400, 'No custom domain configured');
 
-  const result = await domainPointsToPlatform(company.primaryDomain);
-  company.domainVerified = result.verified;
-  company.domainLastVerifiedAt = new Date();
-  if (result.verified) {
-    company.status = company.status === 'pending_verification' && !company.ownerEmailVerified
-      ? company.status
-      : (company.status === 'inactive' ? 'trial' : company.status);
-    await markOnboardingStep(company._id, 'domainConnected', true);
-    const ssl = await onDomainVerified(company);
-    return res.json({
-      domain: company.primaryDomain,
-      verified: true,
-      status: 'verified',
-      method: result.method,
-      sslStatus: ssl.status,
-      domainLastVerifiedAt: company.domainLastVerifiedAt,
-    });
-  }
-
-  company.domainVerified = false;
-  await company.save();
+  const result = await verifyCustomDomain(company, { actor: req.user, req });
   res.json({
-    domain: company.primaryDomain,
-    verified: false,
-    status: 'pending',
-    method: result.method,
-    sslStatus: company.sslStatus,
+    ...result,
+    company: formatCompanyPublic(company.toObject()),
   });
 });
 
@@ -153,33 +123,13 @@ const updateCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.companyId);
   if (!company) throw new ApiError(404, 'Company not found');
 
-  const domain = normalizeDomain(req.body.primaryDomain);
-  if (!domain) throw new ApiError(400, 'Valid domain required');
-
-  const taken = await Company.findOne({
-    primaryDomain: domain,
-    _id: { $ne: company._id },
-    deletedAt: null,
+  const domain = req.body.customDomain || req.body.primaryDomain;
+  await connectCustomDomain(company, domain, {
+    verify: Boolean(req.body.verify),
+    actor: req.user,
+    req,
   });
-  if (taken) throw new ApiError(409, 'Domain already in use');
 
-  company.primaryDomain = domain;
-  company.domainType = 'custom';
-  company.domainVerified = false;
-  company.sslStatus = 'pending';
-  company.domainLastVerifiedAt = null;
-
-  if (req.body.verify) {
-    const result = await domainPointsToPlatform(domain);
-    company.domainVerified = result.verified;
-    company.domainLastVerifiedAt = new Date();
-    if (result.verified) {
-      await markOnboardingStep(company._id, 'domainConnected', true);
-      await onDomainVerified(company);
-    }
-  }
-
-  await company.save();
   res.json({ company: formatCompanyPublic(company.toObject()) });
 });
 
@@ -187,13 +137,7 @@ const removeCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.companyId);
   if (!company) throw new ApiError(404, 'Company not found');
 
-  company.primaryDomain = null;
-  company.domainType = 'subdomain';
-  company.domainVerified = true;
-  company.sslStatus = 'not_applicable';
-  company.domainLastVerifiedAt = null;
-  await company.save();
-
+  await disconnectCustomDomain(company, { actor: req.user, req });
   res.json({ company: formatCompanyPublic(company.toObject()) });
 });
 

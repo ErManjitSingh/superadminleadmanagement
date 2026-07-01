@@ -9,7 +9,8 @@ const COMPANY_STATUSES = [
   "pending_verification",
 ];
 
-const SSL_STATUSES = ["not_applicable", "pending", "active", "failed"];
+const SSL_STATUSES = ["not_applicable", "pending", "generating", "active", "failed", "expired"];
+const DOMAIN_STATUSES = ["not_connected", "pending", "verified", "failed"];
 
 const featureFlagsSchema = new mongoose.Schema(
   {
@@ -53,8 +54,16 @@ const companySchema = new mongoose.Schema(
       enum: ["subdomain", "custom"],
       default: "subdomain",
     },
+    domainStatus: {
+      type: String,
+      enum: DOMAIN_STATUSES,
+      default: "not_connected",
+      index: true,
+    },
     domainVerified: { type: Boolean, default: false },
     domainLastVerifiedAt: { type: Date, default: null },
+    dnsVerifiedAt: { type: Date, default: null },
+    domainConnectedAt: { type: Date, default: null },
     sslStatus: {
       type: String,
       enum: SSL_STATUSES,
@@ -163,6 +172,36 @@ companySchema.query.notDeleted = function notDeleted() {
   return this.where({ deletedAt: null });
 };
 
+companySchema.virtual("customDomain").get(function customDomainGetter() {
+  return this.primaryDomain;
+});
+
+companySchema.set("toJSON", { virtuals: true });
+companySchema.set("toObject", { virtuals: true });
+
+companySchema.pre("save", function syncDomainStatus(next) {
+  if (!this.primaryDomain) {
+    this.domainStatus = "not_connected";
+    if (this.domainType === "custom") this.domainType = "subdomain";
+  } else if (this.domainVerified) {
+    this.domainStatus = "verified";
+    if (!this.dnsVerifiedAt) {
+      this.dnsVerifiedAt = this.domainLastVerifiedAt || new Date();
+    }
+    if (!this.domainConnectedAt) {
+      this.domainConnectedAt = this.dnsVerifiedAt;
+    }
+    this.domainType = "custom";
+  } else if (this.domainLastVerifiedAt && !this.domainVerified && this.domainStatus !== "pending") {
+    this.domainStatus = "failed";
+  } else if (this.domainStatus === "not_connected") {
+    this.domainStatus = "pending";
+    this.domainType = "custom";
+  }
+  next();
+});
+
 module.exports = mongoose.model("Company", companySchema);
 module.exports.COMPANY_STATUSES = COMPANY_STATUSES;
 module.exports.SSL_STATUSES = SSL_STATUSES;
+module.exports.DOMAIN_STATUSES = DOMAIN_STATUSES;

@@ -7,7 +7,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const { platformDomain } = require("../config/branding");
 
 const APP_CNAME_TARGET =
-  process.env.APP_CNAME_TARGET || `app.${platformDomain}`;
+  process.env.APP_CNAME_TARGET || `proxy.${platformDomain}`;
 const SERVER_IP = process.env.SERVER_IP || process.env.VPS_IP || "";
 
 function normalizeSubdomain(value) {

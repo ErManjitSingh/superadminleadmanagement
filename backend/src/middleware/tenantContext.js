@@ -17,6 +17,7 @@ const EMAIL_VERIFICATION_EXEMPT = [
   '/api/auth/logout',
   '/api/auth/login',
   '/api/company-settings',
+  '/api/domain',
   '/api/public',
 ];
 

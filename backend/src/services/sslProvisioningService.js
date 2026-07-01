@@ -9,11 +9,13 @@ const SSL_AUTO_PROVISION = process.env.SSL_AUTO_PROVISION === 'true';
 async function provisionSslForDomain(company, domain) {
   if (!domain) return { status: 'not_applicable' };
 
-  company.sslStatus = 'pending';
+  company.sslStatus = 'generating';
   company.sslLastCheckedAt = new Date();
   await company.save();
 
   if (!SSL_AUTO_PROVISION) {
+    company.sslStatus = 'pending';
+    await company.save();
     console.log(`[SSL] Auto-provision disabled — mark pending for ${domain}`);
     return { status: 'pending', auto: false };
   }

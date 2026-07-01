@@ -2,16 +2,17 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, Building2, Calendar, Globe, HardDrive, LogIn, Mail, MapPin, Shield, Users,
+  ArrowLeft, Building2, Calendar, HardDrive, LogIn, Mail, MapPin, Shield, Users,
 } from 'lucide-react';
 import { superAdminApi } from '../api/superadmin';
 import { PLATFORM_DOMAIN } from '../lib/branding';
 import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import DomainManagementPanel from '../components/domains/DomainManagementPanel';
 import { formatDate, formatCurrency, STATUS_COLORS } from '../lib/utils';
 
-const TABS = ['Overview', 'Subscription', 'Domain', 'Users', 'Storage', 'Billing', 'Security', 'Activity', 'Settings'];
+const TABS = ['Overview', 'Subscription', 'Domain Management', 'Users', 'Storage', 'Billing', 'Security', 'Activity', 'Settings'];
 
 export default function CompanyDetailPage() {
   const { id } = useParams();
@@ -121,15 +122,8 @@ export default function CompanyDetailPage() {
         </Card>
       )}
 
-      {tab === 'Domain' && (
-        <Card className="p-5 space-y-3">
-          <InfoRow icon={Globe} label="Subdomain" value={`${company.subdomain}.${PLATFORM_DOMAIN}`} />
-          <InfoRow label="Custom Domain" value={company.primaryDomain || '—'} />
-          <InfoRow label="Domain Status" value={company.domainVerified ? 'Verified' : 'Pending Verification'} />
-          {company.primaryDomain && !company.domainVerified && (
-            <Button variant="outline" onClick={() => superAdminApi.verifyDomain(id).then(() => refetch())}>Verify DNS</Button>
-          )}
-        </Card>
+      {tab === 'Domain Management' && (
+        <DomainManagementPanel company={company} onUpdated={() => refetch()} />
       )}
 
       {tab === 'Users' && (

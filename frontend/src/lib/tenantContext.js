@@ -1,4 +1,10 @@
 const PLATFORM_DOMAIN = import.meta.env.VITE_PLATFORM_DOMAIN || 'indiaholidaydestination.com';
+const RESERVED = new Set(['www', 'api', 'admin', 'app', 'testing', 'staging', 'mail']);
+
+export function isPlatformHostname(hostname) {
+  const host = String(hostname || '').toLowerCase();
+  return host === PLATFORM_DOMAIN || host.endsWith(`.${PLATFORM_DOMAIN}`);
+}
 
 export function getTenantSubdomain() {
   if (typeof window === 'undefined') return null;
@@ -6,9 +12,12 @@ export function getTenantSubdomain() {
   if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
     return localStorage.getItem('tenant_subdomain') || null;
   }
+  if (!isPlatformHostname(hostname)) {
+    return null;
+  }
   if (hostname.endsWith(`.${PLATFORM_DOMAIN}`)) {
     const sub = hostname.split('.')[0];
-    if (sub && !['www', 'api', 'admin', 'app', 'testing'].includes(sub)) return sub;
+    if (sub && !RESERVED.has(sub)) return sub;
   }
   return localStorage.getItem('tenant_subdomain') || null;
 }

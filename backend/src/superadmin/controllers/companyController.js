@@ -10,9 +10,11 @@ const { provisionCompany, getCompanyCounts, generateTempPassword } = require('..
 const { logPlatformAudit } = require('../services/platformAuditService');
 const { generateToken, formatUserResponse } = require('../../middleware/auth');
 const { resolveUserPermissions } = require('../../services/permissionsService');
+const { formatDomainFields } = require('../../services/domainService');
 
 function sanitizeCompany(doc, counts = {}) {
   const c = doc.toObject ? doc.toObject() : doc;
+  const domain = formatDomainFields(c);
   return {
     id: c._id,
     name: c.name,
@@ -21,6 +23,7 @@ function sanitizeCompany(doc, counts = {}) {
     primaryDomain: c.primaryDomain,
     domainType: c.domainType,
     domainVerified: c.domainVerified,
+    ...domain,
     businessType: c.businessType,
     billingCycle: c.billingCycle,
     autoRenewal: c.autoRenewal,
@@ -52,17 +55,56 @@ function sanitizeCompany(doc, counts = {}) {
 
 function buildCompanyFilter(query) {
   const filter = { deletedAt: null };
+  const and = [];
   if (query.status) filter.status = query.status;
   if (query.search) {
     const s = query.search.trim();
-    filter.$or = [
-      { name: { $regex: s, $options: 'i' } },
-      { slug: { $regex: s, $options: 'i' } },
-      { ownerEmail: { $regex: s, $options: 'i' } },
-      { ownerName: { $regex: s, $options: 'i' } },
-    ];
+    and.push({
+      $or: [
+        { name: { $regex: s, $options: 'i' } },
+        { slug: { $regex: s, $options: 'i' } },
+        { ownerEmail: { $regex: s, $options: 'i' } },
+        { ownerName: { $regex: s, $options: 'i' } },
+        { primaryDomain: { $regex: s, $options: 'i' } },
+      ],
+    });
   }
   if (query.plan) filter.subscriptionPlanId = query.plan;
+  if (query.domainFilter === 'verified') {
+    and.push({
+      $or: [
+        { domainStatus: 'verified' },
+        { domainVerified: true, primaryDomain: { $ne: null } },
+      ],
+    });
+  }
+  if (query.domainFilter === 'pending_dns') {
+    and.push({
+      $or: [
+        { domainStatus: { $in: ['pending', 'failed'] } },
+        { primaryDomain: { $ne: null }, domainVerified: false },
+      ],
+    });
+  }
+  if (query.domainFilter === 'ssl_failed') filter.sslStatus = { $in: ['failed', 'expired'] };
+  if (query.domainFilter === 'custom_connected') {
+    and.push({
+      $or: [
+        { domainStatus: 'verified' },
+        { domainVerified: true, primaryDomain: { $ne: null } },
+      ],
+    });
+  }
+  if (query.domainFilter === 'no_custom') {
+    and.push({
+      $or: [
+        { domainStatus: 'not_connected' },
+        { primaryDomain: null },
+        { primaryDomain: { $exists: false } },
+      ],
+    });
+  }
+  if (and.length) filter.$and = and;
   return filter;
 }
 
