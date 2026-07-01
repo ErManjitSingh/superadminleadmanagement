@@ -82,6 +82,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
   const lead = resolveQuoteLead(quote);
   const pkg = resolveQuotePackage(quote);
+  const packageInfo = quote.packageInfo || {};
   const p = quote.pricing || {};
   const hotels = resolveQuoteHotels(quote);
   const vehicles = resolveQuoteVehicles(quote);
@@ -89,11 +90,45 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const policies = resolvePolicies(quote);
   const banks = resolveBankAccounts(quote);
   const pax = resolveTravelerCounts(quote);
-  const nights = Math.max(1, (pkg.duration || 1) - 1);
+  const nights = Math.max(1, (pkg.duration || packageInfo.duration || 1) - 1);
   const shortName = pkg.shortName || pkg.name?.split(' ').slice(0, 2).join(' ') || 'Package';
+  const coverImage =
+    pkg.coverImage ||
+    packageInfo.coverImage ||
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
+  const displayTotal = p.grandTotal || p.total || 0;
+  const paymentPlan = quote.paymentPlan || [];
+  const importantNotes = quote.importantNotes || {};
 
   return (
     <div ref={ref} className="quote-ht-pdf">
+      {/* Premium cover */}
+      <section className="quote-ht-cover">
+        <PdfImage src={coverImage} alt="" className="quote-ht-cover-bg" />
+        <div className="quote-ht-cover-overlay" />
+        <div className="quote-ht-cover-content">
+          <img
+            src={COMPANY_INFO.logoUrl}
+            alt={COMPANY_INFO.name}
+            className="quote-ht-cover-logo"
+            crossOrigin="anonymous"
+          />
+          <p className="quote-ht-cover-eyebrow">Tailored Travel Quotation</p>
+          <h1 className="quote-ht-cover-title">{packageInfo.packageName || pkg.name}</h1>
+          <p className="quote-ht-cover-dest">{packageInfo.destination || pkg.routing || pkg.destination}</p>
+          <div className="quote-ht-cover-chips">
+            <span>{nights} Nights · {pkg.duration || packageInfo.duration} Days</span>
+            {packageInfo.hotelCategory && <span>{packageInfo.hotelCategory}</span>}
+            {packageInfo.mealPlan && <span>{packageInfo.mealPlan}</span>}
+          </div>
+          <div className="quote-ht-cover-price">
+            <span className="lbl">Package from</span>
+            <span className="amt">{formatINR(displayTotal)}</span>
+            <span className="ref">{quote.quoteNumber}</span>
+          </div>
+        </div>
+      </section>
+
       <div className="quote-ht-topbar">
         <div className="quote-ht-brand-row">
           <img
@@ -127,9 +162,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             </div>
           </div>
           <div className="quote-ht-package-hero-price">
-            <span className="price-label">Total Package Cost</span>
-            <span className="price-value">{formatINR(p.total)}</span>
-            <span className="price-note">Inclusive quote · {quote.quoteNumber}</span>
+            <span className="price-label">Grand Total</span>
+            <span className="price-value">{formatINR(displayTotal)}</span>
+            <span className="price-note">All inclusive · {quote.quoteNumber}</span>
           </div>
         </div>
 
@@ -169,7 +204,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             ['No. of Rooms', `${pax.rooms}${pax.extraBeds ? ` | Extra Bed: ${pax.extraBeds}` : ''}`],
             ['No. of Traveller', `Adult: ${pax.adults}${pax.kids ? ` | Kids: ${pax.kids}` : ''}`],
             ...(pkg.cabCategory || vehicles[0]?.name ? [['Cab Category', pkg.cabCategory || vehicles[0]?.name]] : []),
-            ['Package Cost', `${formatINR(p.total)}/-`],
+            ['Package Cost', `${formatINR(displayTotal)}/-`],
             ['Prepared For', lead.name || 'Guest'],
             ...(lead.phone ? [['Customer Phone', lead.phone]] : []),
           ].map(([label, value]) => (
@@ -192,7 +227,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <tbody>
           <tr className="quote-ht-amount-row">
             <td style={{ fontWeight: 700 }}>{pkg.packageCategory}</td>
-            <td style={{ textAlign: 'right' }}>{formatINR(p.total)}</td>
+            <td style={{ textAlign: 'right' }}>{formatINR(displayTotal)}</td>
           </tr>
         </tbody>
       </table>
@@ -336,6 +371,22 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
+      {/* Payment plan */}
+      {paymentPlan.length > 0 && (
+        <>
+          <div className="quote-ht-section-title">Payment Schedule</div>
+          <div className="quote-ht-payment-grid">
+            {paymentPlan.map((row) => (
+              <div key={row.label} className="quote-ht-payment-card">
+                <span className="quote-ht-payment-pct">{row.percent}%</span>
+                <span className="quote-ht-payment-label">{row.label}</span>
+                <span className="quote-ht-payment-amt">{formatINR(row.amount)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Inclusion & Exclusion */}
       {(pkg.inclusions?.length || pkg.exclusions?.length) && (
         <>
@@ -361,13 +412,36 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Policies — same sections as reference PDF */}
+      {/* Policies — custom notes + defaults */}
       <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Policies &amp; Terms</div>
       <div className="quote-ht-body">
+        {importantNotes.travelGuidelines && (
+          <PolicyBlock title="Travel Guidelines" items={[importantNotes.travelGuidelines]} />
+        )}
+        {importantNotes.weather && (
+          <PolicyBlock title="Weather" items={[importantNotes.weather]} />
+        )}
+        {importantNotes.packingTips && (
+          <PolicyBlock title="Packing Tips" items={[importantNotes.packingTips]} />
+        )}
         <PolicyBlock title="Remarks" items={policies.remarks} />
-        <PolicyBlock title="Terms & Conditions" items={policies.terms} />
+        <PolicyBlock
+          title="Terms & Conditions"
+          items={
+            importantNotes.termsAndConditions
+              ? [importantNotes.termsAndConditions, ...(policies.terms || [])]
+              : policies.terms
+          }
+        />
         <PolicyBlock title="Confirmation Policy" items={policies.confirmation} />
-        <PolicyBlock title="Cancellation Policy" items={policies.cancellation} />
+        <PolicyBlock
+          title="Cancellation Policy"
+          items={
+            importantNotes.cancellationPolicy
+              ? [importantNotes.cancellationPolicy, ...(policies.cancellation || [])]
+              : policies.cancellation
+          }
+        />
         <PolicyBlock title="Amendment {Postpone & Prepone Policy}" items={policies.amendment} />
       </div>
 

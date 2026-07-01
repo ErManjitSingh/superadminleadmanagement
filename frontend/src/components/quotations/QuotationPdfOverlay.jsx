@@ -37,7 +37,7 @@ export default function QuotationPdfOverlay({ quote, open, onClose, pdfRef: exte
           <X className="w-4 h-4" /> Close
         </Button>
         <p className="text-sm font-medium text-slate-300 hidden sm:block order-last sm:order-none w-full sm:w-auto text-center">
-          {quote.quoteNumber} — Preview matches PDF / Print output
+          Premium travel brochure — matches print / PDF output
         </p>
         <div className="flex gap-2 ml-auto">
           <Button variant="outline" onClick={handleOpenTab} className="rounded-xl gap-2 border-slate-500 bg-slate-800 text-white hover:bg-slate-700 hidden sm:inline-flex">

@@ -8,12 +8,11 @@ import {
   CloudOff,
   Download,
   ExternalLink,
+  Eye,
   FileText,
   Loader2,
   Mail,
   MessageCircle,
-  PanelRightClose,
-  PanelRightOpen,
   Search,
   SkipForward,
   Sparkles,
@@ -23,14 +22,12 @@ import Avatar from '../../ui/Avatar';
 import DayWiseHotelSelector, { isDayWiseHotelsComplete } from '../DayWiseHotelSelector';
 import InclusionExclusionEditor, { cleanInclusionExclusionLines } from '../InclusionExclusionEditor';
 import QuotePricingPanel from '../QuotePricingPanel';
-import QuotePdfPreview from '../QuotePdfPreview';
+import QuotationPdfOverlay from '../QuotationPdfOverlay';
 import { HOTEL_CATEGORIES, MEAL_PLANS } from '../constants';
 import { formatINR } from '../quotationUtils';
-import { printQuotation } from '../printQuotation';
 import { cn } from '../../../lib/utils';
 import { useQuotationBuilder } from './useQuotationBuilder';
 import BuilderStepNav from './BuilderStepNav';
-import LivePreviewPanel from './LivePreviewPanel';
 import TimelineItineraryBuilder from './TimelineItineraryBuilder';
 import GlassCard from './GlassCard';
 import {
@@ -45,7 +42,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const [searchParams] = useSearchParams();
   const initialLeadId = searchParams.get('leadId');
   const pdfRef = useRef(null);
-  const [previewOpen, setPreviewOpen] = useState(true);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   const b = useQuotationBuilder({ mode, initialLeadId });
 
@@ -122,19 +119,28 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
 
           <div className="flex items-center gap-2 shrink-0">
             <AutosaveBadge status={b.autosaveStatus} />
-            <button
+            <Button
               type="button"
-              onClick={() => setPreviewOpen((v) => !v)}
-              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-subtle text-xs font-medium"
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1.5 border-sky-400/40 bg-white/80"
+              disabled={!b.draftQuote}
+              onClick={() => setPdfPreviewOpen(true)}
             >
-              {previewOpen ? <PanelRightClose className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-              Preview
-            </button>
+              <Eye className="w-4 h-4" /> Preview PDF
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto p-4 flex gap-4">
+      <QuotationPdfOverlay
+        quote={b.draftQuote}
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        pdfRef={pdfRef}
+      />
+
+      <div className="max-w-6xl mx-auto p-4 flex gap-4">
         <aside className="hidden lg:block w-56 shrink-0">
           <GlassCard className="p-3 sticky top-20">
             <BuilderStepNav step={b.step} maxReached={b.maxReached} onStepChange={b.setStep} />
@@ -201,9 +207,9 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                 {b.step === 12 && (
                   <StepPreviewSend
                     b={b}
-                    pdfRef={pdfRef}
                     shareUrl={shareUrl}
                     onFinish={handleFinish}
+                    onOpenPreview={() => setPdfPreviewOpen(true)}
                   />
                 )}
               </motion.div>
@@ -233,18 +239,6 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
             )}
           </GlassCard>
         </main>
-
-        {previewOpen && (
-          <aside className="hidden xl:block w-[380px] shrink-0">
-            <GlassCard className="sticky top-20 h-[calc(100vh-6rem)] overflow-hidden">
-              <LivePreviewPanel
-                draftQuote={b.draftQuote}
-                packageInfo={b.state.packageInfo}
-                pricing={b.state.pricing}
-              />
-            </GlassCard>
-          </aside>
-        )}
       </div>
     </div>
   );
@@ -620,13 +614,15 @@ function StepCustomer({ b }) {
   );
 }
 
-function StepPreviewSend({ b, pdfRef, shareUrl, onFinish }) {
+function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview }) {
+  const total = b.state.pricing?.grandTotal || b.state.pricing?.total || 0;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-black">Preview & Send</h2>
-          <p className="text-sm text-content-muted">Your premium travel brochure is ready</p>
+          <p className="text-sm text-content-muted">Review the brochure, then share with your customer</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => b.saveVersion()}>
@@ -645,16 +641,39 @@ function StepPreviewSend({ b, pdfRef, shareUrl, onFinish }) {
         </div>
       </div>
 
-      <div ref={pdfRef} className="rounded-xl border border-subtle overflow-hidden bg-white max-h-[480px] overflow-y-auto">
-        {b.draftQuote && <QuotePdfPreview quote={b.draftQuote} />}
-      </div>
+      <GlassCard className="p-8 text-center bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-amber-500/10 border-sky-400/30">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/30 mb-4">
+          <FileText className="w-8 h-8 text-white" />
+        </div>
+        <h3 className="text-lg font-bold text-content-primary">
+          {b.state.packageInfo?.packageName || b.activePkg?.name || 'Your travel quotation'}
+        </h3>
+        <p className="text-sm text-content-muted mt-1">
+          {b.selectedLead?.name ? `Prepared for ${b.selectedLead.name}` : 'Select a lead to personalize'}
+        </p>
+        {total > 0 && (
+          <p className="text-3xl font-black text-emerald-600 metric-tabular mt-4">{formatINR(total)}</p>
+        )}
+        <Button
+          type="button"
+          variant="sky"
+          size="lg"
+          className="rounded-xl gap-2 mt-6 shadow-lg shadow-sky-500/25"
+          disabled={!b.draftQuote}
+          onClick={onOpenPreview}
+        >
+          <Eye className="w-5 h-5" /> Preview PDF Brochure
+        </Button>
+        <p className="text-xs text-content-muted mt-3">Opens full-screen preview · Print or save as PDF from there</p>
+      </GlassCard>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
         <Button
           type="button"
           variant="outline"
           className="rounded-xl gap-2"
-          onClick={() => pdfRef.current && printQuotation(pdfRef.current, b.draftQuote?.package?.name)}
+          disabled={!b.draftQuote}
+          onClick={onOpenPreview}
         >
           <Download className="w-4 h-4" /> Download PDF
         </Button>
