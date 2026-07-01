@@ -12,13 +12,24 @@ function mergePermissions(stored, defaults) {
 async function resolveUserPermissions(user) {
   const defaults = getPermissionsForRole(user?.role);
   if (!user) return defaults;
+  let perms = defaults;
   if (user.roleId) {
     const roleQuery = { _id: user.roleId };
     if (user.companyId) roleQuery.companyId = user.companyId;
     const role = await Role.findOne(roleQuery).select('permissions').lean();
-    if (role?.permissions) return mergePermissions(role.permissions, defaults);
+    if (role?.permissions) perms = mergePermissions(role.permissions, defaults);
   }
-  return defaults;
+  if (user.role === 'admin') {
+    perms.quotations = {
+      ...perms.quotations,
+      view: true,
+      create: true,
+      edit: true,
+      delete: true,
+      approve: true,
+    };
+  }
+  return perms;
 }
 
 module.exports = { resolveUserPermissions };

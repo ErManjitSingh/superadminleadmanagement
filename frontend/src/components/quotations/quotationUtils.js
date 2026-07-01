@@ -1,10 +1,11 @@
-export function calculatePricing({ baseCost = 0, hotelCost = 0, cabCost = 0, flightCost = 0, activityCost = 0, taxes = 0, markup = 0, discount = 0 }) {
+export function calculatePricing({ baseCost = 0, hotelCost = 0, cabCost = 0, flightCost = 0, activityCost = 0, taxes = 0, markup = 0, discount = 0, gst = 0 }) {
   const subtotal = Number(baseCost) + Number(hotelCost) + Number(cabCost) + Number(flightCost) + Number(activityCost) + Number(taxes);
   const total = subtotal + Number(markup) - Number(discount);
+  const grandTotal = Math.max(0, total) + Number(gst);
   const costBeforeMarkup = subtotal;
   const profit = Number(markup) - Number(discount);
   const profitMargin = costBeforeMarkup > 0 ? Math.round((profit / total) * 1000) / 10 : 0;
-  return { subtotal, total: Math.max(0, total), profitMargin };
+  return { subtotal, total: Math.max(0, total), grandTotal: Math.max(0, grandTotal), profitMargin };
 }
 
 export function formatINR(n) {
@@ -45,19 +46,56 @@ export const defaultPricing = {
   taxes: 0,
   markup: 0,
   discount: 0,
+  coupon: '',
+  gst: 0,
   total: 0,
+  grandTotal: 0,
   profitMargin: 0,
+};
+
+export const defaultPackageInfo = {
+  packageName: '',
+  destination: '',
+  duration: 0,
+  travelDate: '',
+  adults: 2,
+  children: 0,
+  infants: 0,
+  mealPlan: 'MAP (Breakfast + Dinner)',
+  hotelCategory: '4 Star',
+  transportation: 'Private Cab',
+  flightIncluded: false,
+  visaIncluded: false,
+  insuranceIncluded: false,
+};
+
+export const DEFAULT_PAYMENT_PLAN = [
+  { label: 'Booking Amount', percent: 30, amount: 0 },
+  { label: 'Before Travel', percent: 40, amount: 0 },
+  { label: 'Before Departure', percent: 30, amount: 0 },
+];
+
+export const defaultImportantNotes = {
+  cancellationPolicy: '',
+  termsAndConditions: '',
+  travelGuidelines: '',
+  weather: '',
+  packingTips: '',
 };
 
 export const defaultWizardState = {
   leadId: '',
   packageId: '',
+  templateKey: '',
   customizations: '',
   selectedHotelIds: [],
   selectedCabIds: [],
   selectedFlightIds: [],
   selectedActivityIds: [],
   activitiesSkipped: false,
+  packageInfo: { ...defaultPackageInfo },
+  paymentPlan: DEFAULT_PAYMENT_PLAN.map((p) => ({ ...p })),
+  importantNotes: { ...defaultImportantNotes },
   pricing: { ...defaultPricing },
 };
 

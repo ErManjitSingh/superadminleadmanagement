@@ -8,7 +8,10 @@ const QUOTE_STATUSES = [
   'viewed',
   'negotiation',
   'approved',
+  'accepted',
   'rejected',
+  'expired',
+  'booked',
 ];
 
 const timelineSchema = new mongoose.Schema(
@@ -29,6 +32,52 @@ const quotationSchema = new mongoose.Schema(
     package: { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
     packageSnapshot: { type: mongoose.Schema.Types.Mixed },
     status: { type: String, enum: QUOTE_STATUSES, default: 'draft', index: true },
+    templateKey: { type: String, default: '' },
+    shareToken: { type: String, index: true, sparse: true },
+    packageInfo: {
+      packageName: { type: String, default: '' },
+      destination: { type: String, default: '' },
+      duration: { type: Number, default: 0 },
+      travelDate: { type: Date },
+      adults: { type: Number, default: 2 },
+      children: { type: Number, default: 0 },
+      infants: { type: Number, default: 0 },
+      mealPlan: { type: String, default: '' },
+      hotelCategory: { type: String, default: '' },
+      transportation: { type: String, default: '' },
+      flightIncluded: { type: Boolean, default: false },
+      visaIncluded: { type: Boolean, default: false },
+      insuranceIncluded: { type: Boolean, default: false },
+    },
+    paymentPlan: [
+      {
+        label: { type: String, default: '' },
+        percent: { type: Number, default: 0 },
+        amount: { type: Number, default: 0 },
+      },
+    ],
+    importantNotes: {
+      cancellationPolicy: { type: String, default: '' },
+      termsAndConditions: { type: String, default: '' },
+      travelGuidelines: { type: String, default: '' },
+      weather: { type: String, default: '' },
+      packingTips: { type: String, default: '' },
+    },
+    analytics: {
+      viewCount: { type: Number, default: 0 },
+      viewedAt: { type: Date },
+      acceptedAt: { type: Date },
+      rejectedAt: { type: Date },
+    },
+    versions: [
+      {
+        versionNumber: { type: Number, required: true },
+        label: { type: String, default: '' },
+        savedAt: { type: Date, default: Date.now },
+        savedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        snapshot: { type: mongoose.Schema.Types.Mixed },
+      },
+    ],
     pricing: {
       baseCost: { type: Number, default: 0 },
       hotelCost: { type: Number, default: 0 },
@@ -38,6 +87,8 @@ const quotationSchema = new mongoose.Schema(
       taxes: { type: Number, default: 0 },
       markup: { type: Number, default: 0 },
       discount: { type: Number, default: 0 },
+      coupon: { type: String, default: '' },
+      gst: { type: Number, default: 0 },
       total: { type: Number, default: 0 },
       profitMargin: { type: Number, default: 0 },
     },

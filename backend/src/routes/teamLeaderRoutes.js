@@ -36,6 +36,17 @@ router.put('/leads/:id', updateLead);
 router.post('/leads/:id/comment', addLeadComment);
 router.get('/followups', listFollowUps);
 router.get('/executives', listExecutives);
+const {
+  getQuotationTemplates,
+  autosaveQuotation,
+  saveQuotationVersion,
+  restoreQuotationVersion,
+} = require('../controllers/quotationController');
+router.get('/quotations/templates', getQuotationTemplates);
+router.post('/quotations/autosave', autosaveQuotation);
+router.post('/quotations/:id/autosave', autosaveQuotation);
+router.post('/quotations/:id/versions', saveQuotationVersion);
+router.post('/quotations/:id/versions/:versionNumber/restore', restoreQuotationVersion);
 router.get('/quotations/:segment?', listQuotations);
 router.post('/quotations', createQuotation);
 router.put('/quotations/:id', approveQuotation);

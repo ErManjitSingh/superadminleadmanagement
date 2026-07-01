@@ -12,9 +12,12 @@ export const QUOTE_STATUSES = [
   { value: 'draft', label: 'Draft', color: 'text-slate-700 bg-slate-500/15 border-slate-400/40' },
   { value: 'sent', label: 'Sent', color: 'text-sky-700 bg-sky-500/15 border-sky-400/40' },
   { value: 'viewed', label: 'Viewed', color: 'text-indigo-700 bg-indigo-500/15 border-indigo-400/40' },
-  { value: 'negotiation', label: 'Negotiation', color: 'text-amber-700 bg-amber-500/15 border-amber-400/40' },
+  { value: 'accepted', label: 'Accepted', color: 'text-emerald-700 bg-emerald-500/15 border-emerald-400/40' },
   { value: 'approved', label: 'Approved', color: 'text-emerald-700 bg-emerald-500/15 border-emerald-400/40' },
   { value: 'rejected', label: 'Rejected', color: 'text-red-700 bg-red-500/15 border-red-400/40' },
+  { value: 'expired', label: 'Expired', color: 'text-amber-700 bg-amber-500/15 border-amber-400/40' },
+  { value: 'booked', label: 'Booked', color: 'text-violet-700 bg-violet-500/15 border-violet-400/40' },
+  { value: 'negotiation', label: 'Negotiation', color: 'text-amber-700 bg-amber-500/15 border-amber-400/40' },
 ];
 
 export const QUOTE_TIMELINE_TYPES = {

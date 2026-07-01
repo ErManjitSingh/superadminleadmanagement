@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileText, Send, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileText, Send, TrendingUp, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import API from '../../api/axios';
+import { unwrapList } from '../../utils/apiHelpers';
 import { Button } from '../ui/button';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
@@ -20,6 +23,8 @@ import { cn } from '../../lib/utils';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQuotationsQuery, useQuotationStatsQuery } from '../../features/quotations/hooks/useQuotationsQuery';
 import { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
+import { useAuth } from '../../context/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const KPI = [
   { key: 'total', label: 'Total Quotes', color: 'from-sky-500/20 to-blue-500/10 border-sky-400/40', icon: FileText, text: 'text-sky-700' },
@@ -32,6 +37,11 @@ const STATUS_OPTIONS = [{ value: '', label: 'All Statuses' }, ...QUOTE_STATUSES.
 
 export default function QuotationListPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { can } = usePermissions();
+  const isAdmin = user?.role === 'admin';
+  const canCreate = can('quotations', 'create');
+  const [executives, setExecutives] = useState([]);
   const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
   const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
@@ -66,6 +76,20 @@ export default function QuotationListPage() {
   useDataRefresh(['quotations', 'leads'], invalidate);
 
   useEffect(() => {
+    if (!isAdmin) return;
+    API.get('/leads/assignees', { skipSuccessToast: true, skipErrorToast: true })
+      .then((res) => setExecutives(unwrapList(res.data)))
+      .catch(() => setExecutives([]));
+  }, [isAdmin]);
+
+  const creatorName = (q) =>
+    q.createdByExecutive?.name || q.createdBy?.name || '—';
+
+  const tableHeaders = isAdmin
+    ? ['Quote #', 'Customer', 'Created By', 'Package', 'Amount', 'Status', 'Date', 'Actions']
+    : ['Quote #', 'Customer', 'Package', 'Amount', 'Status', 'Date', 'Actions'];
+
+  useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [debouncedSearch, appliedFilters.status, appliedFilters.destination, appliedFilters.dateFrom, appliedFilters.dateTo]);
 
@@ -96,8 +120,19 @@ export default function QuotationListPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-content-primary">Quotations</h1>
-          <p className="text-sm text-content-muted">View all quotes — creator, customer, package details & who it was sent to</p>
+          <p className="text-sm text-content-muted">
+            {isAdmin
+              ? 'All quotations across the company — filter by sales executive, status, or destination'
+              : 'View all quotes — creator, customer, package details & who it was sent to'}
+          </p>
         </div>
+        {canCreate && (
+          <Link to="/quotations/new">
+            <Button variant="sky" className="rounded-xl gap-2 shadow-lg shadow-sky-500/20">
+              <Plus className="w-4 h-4" /> Create Quotation
+            </Button>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -124,6 +159,8 @@ export default function QuotationListPage() {
         onRefresh={invalidate}
         hasActiveFilters={hasActiveFilters}
         showStatusFilter
+        showExecutiveFilter={isAdmin}
+        executives={executives}
         statusOptions={STATUS_OPTIONS}
         className="mb-4"
       />
@@ -136,14 +173,14 @@ export default function QuotationListPage() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead><tr className="border-b border-subtle bg-surface-elevated/50">
-                {['Quote #', 'Customer', 'Package', 'Amount', 'Status', 'Date', 'Actions'].map((h) => (
+                {tableHeaders.map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold uppercase text-content-muted whitespace-nowrap">{h}</th>
                 ))}
               </tr></thead>
               <tbody className="divide-y divide-subtle">
                 {quotes.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-12 text-center text-content-muted">
+                    <td colSpan={tableHeaders.length} className="p-12 text-center text-content-muted">
                       No quotations match your filters
                     </td>
                   </tr>
@@ -151,7 +188,15 @@ export default function QuotationListPage() {
                   <tr key={q._id} className="hover:bg-sky-500/[0.03] group">
                     <td className="px-4 py-3.5 font-mono text-sm font-medium text-sky-600 whitespace-nowrap">{q.quoteNumber}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap"><div className="flex items-center gap-2"><Avatar name={q.lead?.name} size="sm" className="!w-7 !h-7 !text-[10px]" /><span className="text-sm font-medium">{q.lead?.name}</span></div></td>
-                    <td className="px-4 py-3.5 text-sm text-content-secondary whitespace-nowrap">{q.package?.name || q.packageSnapshot?.name || '—'}</td>
+                    {isAdmin && (
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Avatar name={creatorName(q)} size="sm" className="!w-7 !h-7 !text-[10px]" />
+                          <span className="text-sm text-content-secondary">{creatorName(q)}</span>
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-4 py-3.5 text-sm text-content-secondary whitespace-nowrap">{q.package?.name || q.packageSnapshot?.name || q.packageInfo?.packageName || '—'}</td>
                     <td className="px-4 py-3.5 text-sm font-semibold metric-tabular whitespace-nowrap">{formatINR(q.pricing?.total)}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap"><QuoteStatusBadge status={q.status} /></td>
                     <td className="px-4 py-3.5 text-xs text-content-muted whitespace-nowrap">{new Date(q.createdAt).toLocaleDateString('en-IN')}</td>

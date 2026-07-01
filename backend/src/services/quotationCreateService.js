@@ -97,10 +97,8 @@ async function persistQuotation({
   return populated;
 }
 
-function assertCanCreateQuotation(req) {
-  if (req.user.role === 'admin') {
-    throw new ApiError(403, 'Admin can only view quotations');
-  }
+function assertCanCreateQuotation() {
+  // All non-read-only roles with quotations.create permission may create quotes.
 }
 
 module.exports = { persistQuotation, assertCanCreateQuotation };

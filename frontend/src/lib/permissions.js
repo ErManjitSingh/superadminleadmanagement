@@ -1,9 +1,25 @@
 import { getPermissionsForRole } from './rolePermissions';
 
 function resolvePermissions(user) {
-  if (user?.permissions) return user.permissions;
-  if (user?.role) return getPermissionsForRole(user.role);
-  return null;
+  let perms;
+  if (user?.permissions) perms = user.permissions;
+  else if (user?.role) perms = getPermissionsForRole(user.role);
+  else return null;
+
+  if (user?.role === 'admin') {
+    perms = {
+      ...perms,
+      quotations: {
+        ...perms.quotations,
+        view: true,
+        create: true,
+        edit: true,
+        delete: true,
+        approve: true,
+      },
+    };
+  }
+  return perms;
 }
 
 export function canAccess(user, module, action = 'view') {
