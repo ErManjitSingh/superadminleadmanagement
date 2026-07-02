@@ -39,6 +39,7 @@ export function buildQuotationWhatsAppMessage({
   quoteNumber = '',
   executiveName = '',
   shareUrl = '',
+  pdfUrl = '',
 } = {}) {
   const name = lead.name || 'Sir/Madam';
   const dest = destination || lead.destination || 'your trip';
@@ -62,7 +63,11 @@ export function buildQuotationWhatsAppMessage({
   }
   lines.push('');
   lines.push('Please review the details and let us know if you would like any changes.');
-  lines.push('(Download PDF from CRM and attach it in this chat if needed.)');
+  if (pdfUrl) {
+    lines.push('', `📄 Download quotation PDF: ${pdfUrl}`);
+  } else {
+    lines.push('(PDF will be attached or linked when available.)');
+  }
   if (shareUrl) {
     lines.push('', `View online: ${shareUrl}`);
   }
@@ -92,4 +97,55 @@ export function openWhatsApp(phone, message = '') {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
   return true;
+}
+
+export function downloadBlob(blob, fileName) {
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Share quotation on WhatsApp with optional PDF file.
+ * Mobile: native share sheet (PDF attached when supported).
+ * Desktop: download PDF + open WhatsApp with PDF link in message.
+ */
+export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName, pdfUrl }) {
+  if (!phone) return false;
+
+  const file = pdfBlob
+    ? new File([pdfBlob], fileName || 'quotation.pdf', { type: 'application/pdf' })
+    : null;
+
+  if (file && navigator.share) {
+    try {
+      const payload = { text: message, files: [file] };
+      if (navigator.canShare?.(payload)) {
+        await navigator.share(payload);
+        return true;
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') return false;
+    }
+  }
+
+  if (pdfBlob) {
+    downloadBlob(pdfBlob, fileName || 'quotation.pdf');
+  }
+
+  const msg = pdfUrl && !message.includes(pdfUrl)
+    ? `${message}\n\n📄 PDF downloaded — attach it in WhatsApp if needed.\n${pdfUrl}`
+    : message;
+
+  return openWhatsApp(phone, msg);
+}
+
+export function buildPublicPdfUrl(pdfPath) {
+  if (!pdfPath || typeof window === 'undefined') return '';
+  if (pdfPath.startsWith('http')) return pdfPath;
+  return `${window.location.origin}${pdfPath.startsWith('/') ? '' : '/'}${pdfPath}`;
 }

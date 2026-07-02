@@ -12,6 +12,7 @@ const { findQuotationsPaginated } = require('../repositories/quotationRepository
 const { getQuotationStats } = require('../repositories/roleScopedRepository');
 const { calculateQuotationPricing } = require('../services/quotationCostingService');
 const { markOnboardingStep } = require('../services/onboardingService');
+const { saveQuotationPdfBuffer, buildPublicPdfUrl } = require('../services/quotationPdfService');
 
 function pickBuilderFields(body = {}) {
   const fields = {};
@@ -324,6 +325,41 @@ const restoreQuotationVersion = asyncHandler(async (req, res) => {
 
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
+});
+
+const uploadQuotationPdf = asyncHandler(async (req, res) => {
+  const { pdfBase64 } = req.body || {};
+  if (!pdfBase64) throw new ApiError('pdfBase64 is required', 400);
+
+  const quotation = await Quotation.findById(req.params.id);
+  if (!quotation) throw new ApiError(404, 'Quotation not found');
+
+  const buffer = Buffer.from(String(pdfBase64), 'base64');
+  if (!buffer.length) throw new ApiError('Invalid PDF data', 400);
+  if (buffer.length > 15 * 1024 * 1024) throw new ApiError('PDF too large (max 15MB)', 400);
+
+  if (!quotation.shareToken) {
+    quotation.shareToken = crypto.randomBytes(16).toString('hex');
+  }
+
+  const { pdfUrl } = saveQuotationPdfBuffer(quotation.shareToken, buffer);
+  quotation.pdfUrl = pdfUrl;
+  quotation.timeline = [
+    ...(quotation.timeline || []),
+    {
+      type: 'pdf_generated',
+      date: new Date(),
+      user: req.user.name,
+      notes: 'Quotation PDF generated for sharing',
+    },
+  ];
+  await quotation.save();
+
+  res.json({
+    pdfUrl,
+    publicUrl: buildPublicPdfUrl(req, pdfUrl),
+    shareToken: quotation.shareToken,
+  });
 });
 
 module.exports = {

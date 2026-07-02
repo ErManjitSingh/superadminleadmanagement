@@ -13,6 +13,7 @@ const {
   autosaveQuotation,
   saveQuotationVersion,
   restoreQuotationVersion,
+  uploadQuotationPdf,
 } = require('../controllers/quotationController');
 const { protect } = require('../middleware/auth');
 
@@ -26,6 +27,7 @@ router.post('/recalculate', recalculateQuotation);
 router.post('/:id/autosave', autosaveQuotation);
 router.post('/:id/versions', saveQuotationVersion);
 router.post('/:id/versions/:versionNumber/restore', restoreQuotationVersion);
+router.post('/:id/pdf', uploadQuotationPdf);
 router.route('/').get(listQuotations).post(createQuotation);
 router.route('/:id').get(getQuotation).put(updateQuotation).delete(deleteQuotation);
 

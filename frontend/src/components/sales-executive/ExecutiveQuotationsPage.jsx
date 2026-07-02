@@ -15,7 +15,7 @@ import {
 } from './executivePageStyles';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
-import { buildQuotationShareUrl, buildQuotationWhatsAppMessage, openWhatsApp } from '../../lib/whatsappContact';
+import { buildQuotationShareUrl, buildPublicPdfUrl, buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
 import { toast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
@@ -95,6 +95,7 @@ export default function ExecutiveQuotationsPage() {
         return;
       }
 
+      const pdfPublicUrl = row?.pdfUrl ? buildPublicPdfUrl(row.pdfUrl) : '';
       const message = buildQuotationWhatsAppMessage({
         lead,
         packageName: row?.package?.name || row?.packageSnapshot?.name,
@@ -104,8 +105,9 @@ export default function ExecutiveQuotationsPage() {
         quoteNumber: row?.quoteNumber,
         executiveName: user?.name,
         shareUrl: row?.shareToken ? buildQuotationShareUrl(row.shareToken) : '',
+        pdfUrl: pdfPublicUrl,
       });
-      openWhatsApp(phone, message);
+      await shareQuotationWhatsApp({ phone, message, pdfUrl: pdfPublicUrl });
     } catch (err) {
       /* toast via axios */
     }

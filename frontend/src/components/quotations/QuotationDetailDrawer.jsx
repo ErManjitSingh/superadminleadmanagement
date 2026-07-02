@@ -6,7 +6,7 @@ import QuotePricingPanel from './QuotePricingPanel';
 import QuoteTimeline from './QuoteTimeline';
 import { Button } from '../ui/button';
 import { formatINR } from './quotationUtils';
-import { buildQuotationShareUrl, buildQuotationWhatsAppMessage, openWhatsApp } from '../../lib/whatsappContact';
+import { buildQuotationShareUrl, buildPublicPdfUrl, buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
 import { toast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -61,10 +61,13 @@ export default function QuotationDetailDrawer({
       quoteNumber: quote.quoteNumber,
       executiveName: user?.name,
       shareUrl,
+      pdfUrl: quote.pdfUrl ? buildPublicPdfUrl(quote.pdfUrl) : '',
     });
-    if (!openWhatsApp(customerPhone, message)) {
-      toast.error('Could not open WhatsApp.');
-    }
+    shareQuotationWhatsApp({
+      phone: customerPhone,
+      message,
+      pdfUrl: quote.pdfUrl ? buildPublicPdfUrl(quote.pdfUrl) : '',
+    });
   };
 
   return (

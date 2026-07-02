@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import QuotationPdfOverlay from '../QuotationPdfOverlay';
+import QuotePdfPreview from '../QuotePdfPreview';
 import { HOTEL_CATEGORIES, MEAL_PLANS, isNoHotelMealPlan } from '../constants';
 import { formatINR } from '../quotationUtils';
 import { cn } from '../../../lib/utils';
@@ -32,8 +33,10 @@ import { builderUiToHotels, builderUiToTransport } from '../../builder-shared/bu
 import { BUILDER_STEPS, VEHICLE_TYPES } from './builderConstants';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from '../../../context/ToastContext';
-import { buildQuotationShareUrl, buildQuotationWhatsAppMessage, openWhatsApp } from '../../../lib/whatsappContact';
+import { buildQuotationShareUrl } from '../../../lib/whatsappContact';
 import { logWhatsAppContact } from '../../../services/whatsappTemplatesApi';
+import { shareQuotationWithPdf } from '../quotationShare';
+import { downloadQuotationPdf } from '../exportQuotationPdf';
 
 const HOTEL_STEP = 3;
 
@@ -52,7 +55,9 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const [searchParams] = useSearchParams();
   const initialLeadId = searchParams.get('leadId');
   const pdfRef = useRef(null);
+  const exportPdfRef = useRef(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [sharingPdf, setSharingPdf] = useState(false);
 
   const b = useQuotationBuilder({ mode, initialLeadId });
   const { user } = useAuth();
@@ -68,32 +73,57 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
       toast.error('Customer phone number missing. Add phone on the lead first.');
       return;
     }
-
-    const info = b.state.packageInfo || {};
-    const total = Number(b.state.pricing?.grandTotal || b.state.pricing?.total) || 0;
-    const message = buildQuotationWhatsAppMessage({
-      lead,
-      packageName: info.packageName || b.activePkg?.name,
-      destination: info.destination || b.hotelDestination,
-      duration: info.duration,
-      total,
-      quoteNumber: b.draftQuote?.quoteNumber,
-      executiveName: user?.name,
-      shareUrl,
-    });
-
-    try {
-      if (b.state.leadId && b.config.contactEndpoint) {
-        await logWhatsAppContact(b.state.leadId, {}, b.config.contactEndpoint);
-      }
-    } catch {
-      /* logging is optional */
+    if (!exportPdfRef.current) {
+      toast.error('Quotation preview not ready. Wait a moment and try again.');
+      return;
     }
 
-    if (!openWhatsApp(phone, message)) {
-      toast.error('Could not open WhatsApp. Check the customer phone number.');
+    setSharingPdf(true);
+    try {
+      const info = b.state.packageInfo || {};
+      const total = Number(b.state.pricing?.grandTotal || b.state.pricing?.total) || 0;
+
+      try {
+        if (b.state.leadId && b.config.contactEndpoint) {
+          await logWhatsAppContact(b.state.leadId, {}, b.config.contactEndpoint);
+        }
+      } catch {
+        /* optional */
+      }
+
+      await shareQuotationWithPdf({
+        contentEl: exportPdfRef.current,
+        quotationId: b.draftId,
+        savePath: b.config.savePath,
+        phone,
+        lead,
+        packageName: info.packageName || b.activePkg?.name,
+        destination: info.destination || b.hotelDestination,
+        duration: info.duration,
+        total,
+        quoteNumber: b.draftQuote?.quoteNumber,
+        executiveName: user?.name,
+        shareUrl,
+      });
+    } finally {
+      setSharingPdf(false);
     }
   }, [b, user?.name, shareUrl]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (!exportPdfRef.current) {
+      setPdfPreviewOpen(true);
+      toast.info('Open preview, then use Download PDF again.');
+      return;
+    }
+    try {
+      const name = b.draftQuote?.quoteNumber || 'quotation';
+      await downloadQuotationPdf(exportPdfRef.current, `${name}.pdf`);
+      toast.success('PDF downloaded.');
+    } catch (err) {
+      toast.error(err?.message || 'Could not generate PDF.');
+    }
+  }, [b.draftQuote?.quoteNumber]);
 
   const goNext = () => b.setStep((s) => getNextStep(s, noHotel));
   const goBack = () => b.setStep((s) => getPrevStep(s, noHotel));
@@ -184,6 +214,15 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
         pdfRef={pdfRef}
       />
 
+      {b.draftQuote && (
+        <div
+          aria-hidden
+          className="fixed -left-[12000px] top-0 w-[210mm] opacity-0 pointer-events-none overflow-hidden"
+        >
+          <QuotePdfPreview ref={exportPdfRef} quote={b.draftQuote} />
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto p-4 flex gap-4">
         <aside className="hidden lg:block w-56 shrink-0">
           <GlassCard className="p-3 sticky top-20">
@@ -248,6 +287,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                     onFinish={handleFinish}
                     onOpenPreview={() => setPdfPreviewOpen(true)}
                     onSendWhatsApp={handleSendWhatsApp}
+                    onDownloadPdf={handleDownloadPdf}
+                    sharingPdf={sharingPdf}
                   />
                 )}
               </motion.div>
@@ -455,7 +496,7 @@ function StepPackage({ b, initialLeadId }) {
   );
 }
 
-function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp }) {
+function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp, onDownloadPdf, sharingPdf }) {
   const total = b.state.pricing?.grandTotal || b.state.pricing?.total || 0;
   const info = b.state.packageInfo || {};
   const noHotel = isNoHotelMealPlan(info.mealPlan);
@@ -572,7 +613,7 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp 
           variant="outline"
           className="rounded-xl gap-2"
           disabled={!b.draftQuote}
-          onClick={onOpenPreview}
+          onClick={onDownloadPdf}
         >
           <Download className="w-4 h-4" /> Download PDF
         </Button>
@@ -598,11 +639,12 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp 
           type="button"
           variant="outline"
           className="rounded-xl gap-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-800"
-          disabled={!customerPhone}
-          title={customerPhone ? 'Open WhatsApp with quotation message' : 'Add customer phone on lead'}
+          disabled={!customerPhone || sharingPdf}
+          title={customerPhone ? 'Generate PDF and share on WhatsApp' : 'Add customer phone on lead'}
           onClick={onSendWhatsApp}
         >
-          <MessageCircle className="w-4 h-4" /> WhatsApp
+          {sharingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+          {sharingPdf ? 'Sending…' : 'WhatsApp + PDF'}
         </Button>
       </div>
 

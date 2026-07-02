@@ -34,6 +34,7 @@ const quotationSchema = new mongoose.Schema(
     status: { type: String, enum: QUOTE_STATUSES, default: 'draft', index: true },
     templateKey: { type: String, default: '' },
     shareToken: { type: String, index: true, sparse: true },
+    pdfUrl: { type: String, trim: true, default: '' },
     packageInfo: {
       packageName: { type: String, default: '' },
       destination: { type: String, default: '' },
