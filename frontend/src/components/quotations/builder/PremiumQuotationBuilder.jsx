@@ -217,7 +217,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
       {b.draftQuote && (
         <div
           aria-hidden
-          className="fixed -left-[12000px] top-0 w-[210mm] opacity-0 pointer-events-none overflow-hidden"
+          className="fixed top-0 left-0 w-[794px] -z-10 pointer-events-none overflow-visible"
+          style={{ visibility: 'hidden' }}
         >
           <QuotePdfPreview ref={exportPdfRef} quote={b.draftQuote} />
         </div>

@@ -23,7 +23,7 @@ export async function shareQuotationWithPdf({
   existingPdfUrl = '',
 }) {
   if (!contentEl) {
-    toast.error('Open PDF preview first, then try again.');
+    toast.error('Quotation preview not ready. Wait a few seconds and try again.');
     return false;
   }
 
@@ -37,8 +37,9 @@ export async function shareQuotationWithPdf({
       try {
         const uploaded = await uploadQuotationPdf(quotationId, blob, savePath);
         publicPdfUrl = uploaded.publicUrl || buildPublicPdfUrl(uploaded.pdfUrl);
-      } catch {
-        /* share locally if upload fails */
+      } catch (uploadErr) {
+        console.warn('PDF upload failed', uploadErr);
+        toast.info('PDF ready — sharing without server link.');
       }
     }
 
@@ -54,16 +55,30 @@ export async function shareQuotationWithPdf({
       pdfUrl: publicPdfUrl,
     });
 
-    await shareQuotationWhatsApp({
+    const shared = await shareQuotationWhatsApp({
       phone,
       message,
       pdfBlob: blob,
       fileName,
       pdfUrl: publicPdfUrl,
     });
-    return true;
+
+    if (shared) {
+      toast.success(
+        publicPdfUrl
+          ? 'PDF sent — WhatsApp opened with download link.'
+          : 'PDF downloaded — WhatsApp opened. Attach the file in chat if needed.',
+      );
+    }
+    return shared;
   } catch (err) {
-    toast.error(err?.message || 'Could not generate PDF. Try Preview PDF first.');
+    console.error('PDF share failed', err);
+    const detail = String(err?.message || '');
+    if (/canvas|exceed|memory|too large/i.test(detail)) {
+      toast.error('PDF bahut bada hai. Pehle Preview PDF → Print/Save PDF try karein.');
+    } else {
+      toast.error('PDF send nahi ho paya. Download PDF try karein ya dubara attempt karein.');
+    }
     return false;
   }
 }
