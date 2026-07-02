@@ -160,7 +160,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       const total = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
       const destList = hotelDestination ? [{ name: hotelDestination }] : [];
       return {
-        leadId: state.leadId,
+        leadId: state.leadId || selectedLead?._id,
         packageId: state.packageId,
         status: statusOverride,
         pricing: {
@@ -184,7 +184,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         customizations: state.customizations,
       };
     },
-    [state, builderUi, activePkg, buildPackageSnapshot, hotelDestination]
+    [state, builderUi, activePkg, buildPackageSnapshot, hotelDestination, selectedLead]
+  );
+
+  const canPersistDraft = Boolean(
+    (state.leadId || selectedLead?._id) && (state.packageId || state.templateKey)
   );
 
   const draftQuote = useMemo(() => {
@@ -349,11 +353,13 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   }, [state.pricing.total]);
 
   useEffect(() => {
-    if (!state.leadId || !state.packageId) return;
+    if (!canPersistDraft) return;
     setSaveRevision((r) => r + 1);
   }, [
+    canPersistDraft,
     state.leadId,
     state.packageId,
+    state.templateKey,
     state.packageInfo,
     state.pricing,
     state.paymentPlan,
@@ -371,7 +377,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   ]);
 
   useEffect(() => {
-    if (!state.leadId || !state.packageId || debouncedRevision === 0) return;
+    if (!canPersistDraft || debouncedRevision === 0) return;
 
     let cancelled = false;
     setAutosaveStatus('saving');
@@ -393,7 +399,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     return () => {
       cancelled = true;
     };
-  }, [debouncedRevision, state.leadId, state.packageId, draftId, config.savePath, buildSavePayload]);
+  }, [canPersistDraft, debouncedRevision, draftId, config.savePath, buildSavePayload]);
 
   const selectLead = (lead) => {
     setSelectedLead(lead);
@@ -495,6 +501,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     setCustomExclusions(template.exclusions?.length ? [...template.exclusions] : ['']);
     setState((s) => ({
       ...s,
+      packageId: '',
       templateKey: template.key,
       packageInfo: {
         ...s.packageInfo,
@@ -601,7 +608,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   };
 
   const handleSubmit = async (saveAs) => {
-    if (!state.leadId || !state.packageId) return;
+    if (!canPersistDraft) return;
     const status = saveAs === 'draft' ? config.draftStatus : config.submitStatus;
     setSaving(true);
     try {
@@ -624,8 +631,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
 
   const ensureDraftSaved = async () => {
     if (draftId) return draftId;
-    if (!state.leadId || !state.packageId) {
-      throw new Error('Select lead and package before sharing.');
+    if (!canPersistDraft) {
+      throw new Error('Pehle lead aur package/template select karein, phir share karein.');
     }
     const payload = buildSavePayload('draft');
     const { data } = await API.post(`${config.savePath}/autosave`, payload, { skipErrorToast: true });
