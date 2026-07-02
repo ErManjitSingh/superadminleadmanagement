@@ -247,46 +247,57 @@ function extractPromptFlags(prompt = '') {
     hasRohtang: text.includes('rohtang'),
     hasSolang: text.includes('solang'),
     hasKufri: text.includes('kufri'),
+    hasKhajjiar: text.includes('khajjiar'),
     hasHimachal: text.includes('himachal'),
     isHoneymoon: text.includes('honeymoon'),
+    isFamily: text.includes('family'),
+    isAdventure: text.includes('adventure') || text.includes('trek'),
   };
 }
 
-function detectCuratedRoute(prompt = '', logistics = {}) {
-  const flags = extractPromptFlags(prompt);
-  const text = String(prompt).toLowerCase();
-  const fromDelhi = logistics.pickup === 'Delhi' || /\bfrom\s+delhi\b/.test(text) || /\bdelhi\s*to\s*delhi\b/.test(text);
-  const toDelhi = logistics.drop === 'Delhi' || /\bto\s+delhi\b/.test(text) || logistics.roundTrip;
+const TRANSFER_LEGS = {
+  'delhi|shimla': { km: '340 km', hours: '8–9 hours', via: 'Chandigarh → Kalka → scenic hill roads', stops: ['Pinjore Gardens (optional)'] },
+  'shimla|manali': { km: '250 km', hours: '7–8 hours', via: 'Mandi & Kullu Valley', stops: ['riverside views', 'apple orchards'] },
+  'manali|delhi': { km: '540 km', hours: '11–13 hours', via: 'Kullu → Mandi → Chandigarh', stops: ['meal & refreshment breaks'] },
+  'manali|shimla': { km: '250 km', hours: '7–8 hours', via: 'Kullu Valley → Shimla ridge', stops: [] },
+  'chandigarh|shimla': { km: '115 km', hours: '3–4 hours', via: 'Kalka → Shimla hill roads', stops: [] },
+  'chandigarh|manali': { km: '310 km', hours: '8–9 hours', via: 'Mandi → Kullu', stops: [] },
+  'delhi|manali': { km: '530 km', hours: '12–14 hours', via: 'Chandigarh → Mandi → Kullu', stops: [] },
+  'delhi|dharamshala': { km: '475 km', hours: '10–11 hours', via: 'Chandigarh → Kangra Valley', stops: [] },
+  'delhi|dalhousie': { km: '560 km', hours: '11–12 hours', via: 'Pathankot → Banikhet', stops: [] },
+  'delhi|kasol': { km: '520 km', hours: '12–13 hours', via: 'Chandigarh → Bhuntar → Kasol', stops: [] },
+};
 
-  if (flags.hasShimla && flags.hasManali && fromDelhi && toDelhi) {
-    if (flags.hasRohtang || flags.hasSolang) return 'delhi_shimla_manali_rohtang';
-    return 'delhi_shimla_manali';
-  }
-  if (flags.hasShimla && flags.hasManali && flags.hasRohtang) return 'delhi_shimla_manali_rohtang';
-  if (flags.hasShimla && flags.hasManali) return 'delhi_shimla_manali';
-  return null;
+function getTransferLeg(from, to) {
+  const key = `${String(from).toLowerCase()}|${String(to).toLowerCase()}`;
+  const reverse = `${String(to).toLowerCase()}|${String(from).toLowerCase()}`;
+  return TRANSFER_LEGS[key] || TRANSFER_LEGS[reverse] || {
+    km: '',
+    hours: 'scenic drive',
+    via: `highways towards ${to}`,
+    stops: ['comfort stops en route'],
+  };
 }
 
-function inferDurationFromPrompt(prompt = '', logistics = {}, curatedRoute = null) {
+function inferDurationFromPrompt(prompt = '', logistics = {}) {
   const parsed = parseDurationFromPrompt(prompt);
   if (parsed) return parsed;
 
-  const routes = {
-    delhi_shimla_manali_rohtang: { days: 6, nights: 5 },
-    delhi_shimla_manali: { days: 5, nights: 4 },
-  };
-  if (curatedRoute && routes[curatedRoute]) return routes[curatedRoute];
-
   const flags = extractPromptFlags(prompt);
+  const dests = extractDestinations(prompt);
+
   if (flags.hasShimla && flags.hasManali && (flags.hasRohtang || flags.hasSolang) && logistics.roundTrip) {
     return { days: 6, nights: 5 };
   }
   if (flags.hasShimla && flags.hasManali && logistics.roundTrip) {
     return { days: 5, nights: 4 };
   }
-  if (flags.hasShimla && flags.hasManali) {
-    return { days: 4, nights: 3 };
+  if (dests.length === 1) {
+    const extra = flags.hasRohtang ? 1 : 0;
+    return { days: 3 + extra, nights: 2 + extra };
   }
+  if (dests.length === 2) return { days: 4, nights: 3 };
+  if (dests.length >= 3) return { days: dests.length + 2, nights: dests.length + 1 };
   return null;
 }
 
@@ -296,7 +307,7 @@ function dayRow(day, location, title, description, extras = {}) {
     day,
     title,
     description,
-    accommodation: extras.accommodation || (day < 6 ? `Overnight stay in ${location}` : ''),
+    accommodation: extras.accommodation ?? (extras.accommodation === '' ? '' : `Overnight stay in ${location}`),
     meals: extras.meals || 'Breakfast & Dinner',
     activities: extras.activities || '',
     transport: extras.transport || '',
@@ -304,205 +315,294 @@ function dayRow(day, location, title, description, extras = {}) {
   };
 }
 
-/** ChatGPT-quality curated routes for common Himachal packages */
-function buildDelhiShimlaManaliRohtang(logistics, variationSeed = 0) {
-  const pickup = logistics.pickup || 'Delhi';
+/** Build ordered day slots from prompt — each prompt gets a different plan */
+function computeDayPlan({ stops, logistics, totalDays, flags }) {
+  const dests = stops.length ? [...stops] : ['Himachal Pradesh'];
+  const pickup = logistics.pickup || '';
   const drop = logistics.drop || pickup;
-  const v = variationSeed % 2;
+  const wantsRohtang = flags.hasRohtang || flags.hasSolang;
+  const slots = [];
 
-  const days = [
-    dayRow(
-      1,
-      'Shimla',
-      `${pickup} → Shimla (Approx. 340 km | 8–9 hours)`,
-      v === 0
-        ? `Early morning pickup from ${pickup} — hotel, home, airport (DEL), or railway station as per your convenience.
+  const isShimlaManali =
+    dests.length === 2
+    && dests[0].toLowerCase() === 'shimla'
+    && dests[1].toLowerCase() === 'manali';
 
-En Route (optional sightseeing):
-• Pinjore Gardens — Mughal-style terraced gardens, perfect for a photo break
+  if (isShimlaManali) {
+    if (totalDays >= 6 && wantsRohtang) {
+      slots.push(
+        { type: 'transfer', from: pickup || 'Start', to: 'Shimla', location: 'Shimla' },
+        { type: 'sightsee_transfer', from: 'Shimla', to: 'Manali', location: 'Manali', kufri: true },
+        { type: 'excursion', excursion: 'rohtang', location: 'Manali' },
+        { type: 'sightseeing', location: 'Manali', focus: 'local' },
+        { type: 'return', from: 'Manali', to: drop || pickup || 'Start', location: drop || pickup || 'End' },
+        { type: 'departure', location: drop || pickup || 'End' },
+      );
+    } else if (totalDays >= 5) {
+      slots.push(
+        { type: 'transfer', from: pickup || 'Start', to: 'Shimla', location: 'Shimla' },
+        { type: 'sightseeing', location: 'Shimla', focus: 'sightseeing' },
+        { type: 'transfer', from: 'Shimla', to: 'Manali', location: 'Manali' },
+        { type: 'sightseeing', location: 'Manali', focus: wantsRohtang ? 'solang' : 'sightseeing' },
+        { type: 'return', from: 'Manali', to: drop || pickup || 'Start', location: drop || pickup || 'End' },
+      );
+    } else {
+      slots.push(
+        { type: 'transfer', from: pickup || 'Start', to: 'Shimla', location: 'Shimla' },
+        { type: 'transfer', from: 'Shimla', to: 'Manali', location: 'Manali' },
+        { type: 'sightseeing', location: 'Manali', focus: wantsRohtang ? 'rohtang' : 'sightseeing' },
+        { type: 'return', from: 'Manali', to: drop || pickup || 'Start', location: drop || pickup || 'End' },
+      );
+    }
+  } else if (dests.length === 1) {
+    const loc = dests[0];
+    if (pickup) slots.push({ type: 'transfer', from: pickup, to: loc, location: loc });
+    else slots.push({ type: 'sightseeing', location: loc, focus: 'arrival' });
+
+    const stayDays = Math.max(1, totalDays - (pickup && drop ? 2 : pickup || drop ? 1 : 0));
+    for (let i = 1; i < stayDays; i++) {
+      if (loc === 'Manali' && wantsRohtang && i === 1) {
+        slots.push({ type: 'excursion', excursion: 'rohtang', location: loc });
+      } else if (loc === 'Dalhousie' && flags.hasKhajjiar && i === 1) {
+        slots.push({ type: 'excursion', excursion: 'khajjiar', location: loc });
+      } else {
+        slots.push({
+          type: 'sightseeing',
+          location: loc,
+          focus: i === stayDays - 1 ? 'leisure' : 'sightseeing',
+        });
+      }
+    }
+    if (pickup && drop) slots.push({ type: 'return', from: loc, to: drop, location: drop });
+    else if (slots.length < totalDays) slots.push({ type: 'departure', location: loc });
+  } else {
+    if (pickup) slots.push({ type: 'transfer', from: pickup, to: dests[0], location: dests[0] });
+
+    dests.forEach((loc, i) => {
+      if (i > 0) slots.push({ type: 'transfer', from: dests[i - 1], to: loc, location: loc });
+      else if (!pickup) slots.push({ type: 'sightseeing', location: loc, focus: 'arrival' });
+
+      const remainingDests = dests.length - i - 1;
+      const remainingDays = totalDays - slots.length - (drop ? 1 : 0);
+      const daysHere = Math.max(1, Math.floor(remainingDays / (remainingDests + 1)));
+
+      for (let d = 0; d < daysHere && slots.length < totalDays - (drop ? 1 : 0); d++) {
+        if (loc === 'Manali' && wantsRohtang && d === 0) {
+          slots.push({ type: 'excursion', excursion: 'rohtang', location: loc });
+        } else {
+          slots.push({ type: 'sightseeing', location: loc, focus: d === 0 ? 'arrival' : 'sightseeing' });
+        }
+      }
+    });
+
+    if (drop && pickup) {
+      slots.push({ type: 'return', from: dests[dests.length - 1], to: drop, location: drop });
+    }
+  }
+
+  while (slots.length > totalDays) slots.pop();
+  while (slots.length < totalDays) {
+    const last = dests[dests.length - 1];
+    slots.push({ type: 'leisure', location: last });
+  }
+
+  return slots.map((s, i) => ({ ...s, day: i + 1 }));
+}
+
+function formatBullets(items = []) {
+  return items.filter(Boolean).map((item) => `• ${item}`).join('\n');
+}
+
+function renderTransferDay(slot, variationSeed) {
+  const leg = getTransferLeg(slot.from, slot.to);
+  const dist = leg.km ? ` (Approx. ${leg.km} | ${leg.hours})` : '';
+  const title = `${slot.from} → ${slot.to}${dist}`;
+  const stops = leg.stops?.length ? `\n\nEn route (optional):\n${formatBullets(leg.stops)}` : '';
+
+  const descriptions = [
+    `Early morning pickup from ${slot.from} — hotel, home, airport or railway station (as coordinated).
+
+Drive via ${leg.via}.${stops}
 
 Afternoon/Evening:
-• Arrive in Shimla and complete hotel check-in
-• Evening free to explore The Ridge, Mall Road & Christ Church
+• Arrive in ${slot.to}
+• Hotel check-in & relax
 
-Dinner & overnight stay in Shimla.`
-        : `Day 1 — ${pickup} to Shimla by private AC cab (340 km | 8–9 hrs).
+Dinner & overnight stay in ${slot.to}.`,
 
-Morning: Depart ${pickup} after breakfast/pickup. Drive via Chandigarh → Kalka → scenic hill roads with comfort stops for meals.
+    `Morning: Depart ${slot.from} in private AC cab${dist ? ` — ${leg.km}, ${leg.hours}` : ''}.
 
-Optional en route: Pinjore Gardens.
+En Route: ${leg.via}.${stops}
 
-Evening: Reach Shimla, check-in at hotel. Stroll on Mall Road, The Ridge & visit Christ Church.
+Evening: Reach ${slot.to}, complete check-in. Leisure time at local market.
 
-Overnight in Shimla.`,
-      {
-        meals: 'Dinner',
-        activities: `Pickup ${pickup}, Pinjore Gardens (optional), Mall Road, The Ridge, Christ Church`,
-        transport: `Private AC cab · Pickup: ${pickup} → Shimla`,
-        accommodation: 'Overnight stay in Shimla (1 night)',
-      },
-    ),
-    dayRow(
-      2,
-      'Manali',
-      'Shimla Sightseeing → Manali (Approx. 250 km | 7–8 hours)',
-      `Morning — Shimla:
-• Jakhoo Temple (Lord Hanuman temple with valley views)
-• Kufri — snow activities in winter, Himalayan Nature Park, scenic viewpoints
+Overnight in ${slot.to}.`,
+  ];
+
+  return {
+    title,
+    description: descriptions[variationSeed % descriptions.length],
+    meals: 'Dinner',
+    activities: `Pickup ${slot.from}, drive to ${slot.to}, hotel check-in`,
+    transport: `Private AC cab · ${slot.from} → ${slot.to}`,
+    accommodation: `Overnight stay in ${slot.to}`,
+  };
+}
+
+function renderSightseeTransferDay(slot, variationSeed) {
+  const leg = getTransferLeg(slot.from, slot.to);
+  const dist = leg.km ? ` (Approx. ${leg.km} | ${leg.hours})` : '';
+
+  return {
+    title: `${slot.from} Sightseeing → ${slot.to}${dist}`,
+    description: `Morning — ${slot.from}:
+${formatBullets(['Jakhoo Temple', 'Kufri — snow activities (winter), Himalayan Nature Park', 'The Ridge & Mall Road (time permitting)'])}
 
 Afternoon:
-• Drive to Manali via Mandi & Kullu Valley
-• Enjoy riverside views, apple orchards & mountain scenery en route
+• Drive to ${slot.to} via ${leg.via}
+• Enjoy ${leg.stops?.join(', ') || 'scenic valley views'} en route
 • Hotel check-in on arrival
 
-Overnight stay in Manali.`,
-      {
-        meals: 'Breakfast & Dinner',
-        activities: 'Jakhoo Temple, Kufri, drive to Manali, valley views',
-        transport: 'Private AC cab · Shimla → Manali (full day transfer + sightseeing)',
-        accommodation: 'Overnight stay in Manali (1 night)',
-      },
-    ),
-    dayRow(
-      3,
-      'Manali',
-      'Rohtang Pass / Solang Valley Excursion (Full Day)',
-      `Full-day excursion to Rohtang Pass (subject to weather, permit availability & seasonal opening).
+Overnight stay in ${slot.to}.`,
+    meals: 'Breakfast & Dinner',
+    activities: `Jakhoo Temple, Kufri, drive to ${slot.to}`,
+    transport: `Private AC cab · ${slot.from} → ${slot.to}`,
+    accommodation: `Overnight stay in ${slot.to}`,
+  };
+}
+
+function renderExcursionDay(slot) {
+  if (slot.excursion === 'rohtang') {
+    return {
+      title: 'Rohtang Pass / Solang Valley Excursion (Full Day)',
+      description: `Full-day excursion to Rohtang Pass (subject to weather, permit & seasonal opening).
 
 Snow activities (optional, on direct payment):
-• Skiing · Snow scooter · Tube sliding · Yak ride
+${formatBullets(['Skiing', 'Snow scooter', 'Tube sliding', 'Yak ride'])}
 
-If Rohtang Pass is closed (common in winter):
-• Visit Solang Valley — paragliding, zorbing, cable car & meadow views
+If Rohtang Pass is closed:
+${formatBullets(['Visit Solang Valley — paragliding, zorbing, cable car & meadow views'])}
 
-Return to Manali by evening.
-
-Overnight stay in Manali.`,
-      {
-        meals: 'Breakfast & Dinner',
-        activities: 'Rohtang Pass or Solang Valley, snow/adventure activities (optional)',
-        transport: 'Private cab for Rohtang/Solang day excursion',
-        accommodation: 'Overnight stay in Manali (1 night)',
-      },
-    ),
-    dayRow(
-      4,
-      'Manali',
-      'Manali Local Sightseeing',
-      `After breakfast, explore Manali town & nearby attractions:
-
-• Hadimba Devi Temple — ancient wooden temple in cedar forest
-• Vashisht Temple & Hot Springs — natural sulphur springs
-• Club House & Van Vihar — leisure spots by the Beas River
-
-Evening:
-• Shopping at Mall Road — Kullu shawls, local honey & souvenirs
-
-Overnight stay in Manali.`,
-      {
-        meals: 'Breakfast & Dinner',
-        activities: 'Hadimba Temple, Vashisht, Hot Springs, Club House, Van Vihar, Mall Road',
-        transport: 'Private cab for local sightseeing',
-        accommodation: 'Overnight stay in Manali (1 night)',
-      },
-    ),
-    dayRow(
-      5,
-      'Delhi',
-      `Manali → ${drop} (Approx. 540 km | 11–13 hours)`,
-      `Breakfast at hotel. Check-out and begin the long downhill drive to ${drop}.
-
-• Scenic drive via Kullu → Mandi → Chandigarh route
-• Optional stops for meals & refreshments en route
-• ${drop === pickup ? 'Overnight journey or hotel stay in ' + drop + ' (as per package)' : 'Arrive ' + drop + ' by late evening'}
-
-Overnight in ${drop} or en route (as per package plan).`,
-      {
-        meals: 'Breakfast',
-        activities: `Checkout Manali, drive to ${drop}, en route meal stops`,
-        transport: `Private AC cab · Manali → ${drop}`,
-        accommodation: drop === pickup ? `Overnight in ${drop} or en route` : `Overnight in ${drop}`,
-      },
-    ),
-    dayRow(
-      6,
-      drop,
-      `Departure from ${drop}`,
-      `Tour concludes with drop at your preferred location in ${drop}:
-• Airport (DEL) · Railway Station · Hotel · Home (within city limits, if included)
-
-Thank you for choosing us — wishing you safe travels & wonderful memories of Himachal!`,
-      {
-        meals: 'Breakfast',
-        activities: `Drop at airport/railway/hotel/home in ${drop}`,
-        transport: `Drop · ${drop}`,
-        accommodation: '',
-      },
-    ),
-  ];
-
-  return days.map((d, i) => ({
-    ...d,
-    id: `curated-rohtang-d${d.day}-v${variationSeed}-${Date.now()}-${i}`,
-  }));
-}
-
-function buildDelhiShimlaManali(logistics, variationSeed = 0) {
-  const pickup = logistics.pickup || 'Delhi';
-  const drop = logistics.drop || pickup;
-
-  const days = [
-    dayRow(1, 'Shimla', `${pickup} → Shimla (Approx. 340 km | 8–9 hours)`, buildPickupDayDescription(pickup, 'Shimla', variationSeed), {
-      meals: 'Dinner',
-      activities: `Pickup ${pickup}, en route Pinjore Gardens (optional), Shimla check-in`,
-      transport: `Private AC cab · Pickup: ${pickup} → Shimla`,
-      accommodation: 'Overnight stay in Shimla',
-    }),
-    dayRow(2, 'Shimla', 'Shimla Local Sightseeing', DESTINATION_PLANS.shimla.sightseeing, {
+Return to Manali by evening. Overnight stay in Manali.`,
       meals: 'Breakfast & Dinner',
-      activities: 'Jakhoo Temple, Kufri, Mall Road, The Ridge',
-      transport: 'Private cab for Shimla sightseeing',
-      accommodation: 'Overnight stay in Shimla',
-    }),
-    dayRow(3, 'Manali', 'Shimla → Manali (Approx. 250 km | 7–8 hours)', `Morning checkout from Shimla. Drive to Manali via Kullu Valley with scenic stops.
-
-Afternoon: Arrive Manali, hotel check-in. Evening at leisure on Mall Road.
-
-Overnight stay in Manali.`, {
-      meals: 'Breakfast & Dinner',
-      activities: 'Drive Shimla to Manali, Kullu Valley views',
-      transport: 'Private AC cab · Shimla → Manali',
+      activities: 'Rohtang Pass or Solang Valley excursion',
+      transport: 'Private cab for full-day excursion',
       accommodation: 'Overnight stay in Manali',
-    }),
-    dayRow(4, 'Manali', 'Manali Sightseeing (Solang Valley)', DESTINATION_PLANS.manali.sightseeing, {
+    };
+  }
+  if (slot.excursion === 'khajjiar') {
+    return {
+      title: 'Khajjiar & Dalhousie Sightseeing (Full Day)',
+      description: `Morning: Drive to Khajjiar — "Mini Switzerland of India" with lush meadow, lake & deodar forests.
+
+Afternoon: Kalatop Wildlife Sanctuary, Panchpula waterfalls.
+
+Evening: Return to Dalhousie. Overnight stay.`,
       meals: 'Breakfast & Dinner',
-      activities: 'Hadimba Temple, Vashisht, Solang Valley',
+      activities: 'Khajjiar, Kalatop, Panchpula',
       transport: 'Private cab for sightseeing',
-      accommodation: 'Overnight stay in Manali',
-    }),
-    dayRow(5, drop, `Manali → ${drop} & Departure`, buildDropDayDescription(drop, 'Manali', variationSeed), {
-      meals: 'Breakfast',
-      activities: `Checkout, drive to ${drop}, tour ends`,
-      transport: `Private AC cab · Manali → Drop: ${drop}`,
-      accommodation: '',
-    }),
-  ];
-
-  return days.map((d, i) => ({
-    ...d,
-    id: `curated-sm-d${d.day}-v${variationSeed}-${Date.now()}-${i}`,
-  }));
+      accommodation: 'Overnight stay in Dalhousie',
+    };
+  }
+  return null;
 }
 
-const CURATED_BUILDERS = {
-  delhi_shimla_manali_rohtang: buildDelhiShimlaManaliRohtang,
-  delhi_shimla_manali: buildDelhiShimlaManali,
-};
+function renderSightseeingDay(slot, flags, variationSeed) {
+  const loc = slot.location;
+  const key = loc.toLowerCase();
+  const plans = DESTINATION_PLANS[key];
+  let planKey = 'sightseeing';
 
-function buildCuratedItinerary(routeKey, logistics, variationSeed) {
-  const builder = CURATED_BUILDERS[routeKey];
-  if (!builder) return null;
-  return builder(logistics, variationSeed);
+  if (slot.focus === 'arrival') planKey = 'arrival';
+  else if (slot.focus === 'leisure') planKey = 'leisure';
+  else if (slot.focus === 'local' && key === 'manali') planKey = 'sightseeing';
+  else if (slot.focus === 'solang' && key === 'manali') {
+    return renderExcursionDay({ excursion: 'rohtang', location: 'Manali' }) || {};
+  }
+  else if (slot.focus === 'rohtang' && key === 'manali') {
+    return renderExcursionDay({ excursion: 'rohtang', location: 'Manali' }) || {};
+  }
+  else if (flags.isHoneymoon) planKey = 'honeymoon';
+
+  const raw = plans?.[planKey] || plans?.sightseeing;
+  const description = raw || (typeof DEFAULT_PLAN[planKey] === 'function'
+    ? DEFAULT_PLAN[planKey](loc)
+    : DEFAULT_PLAN.sightseeing(loc));
+
+  const titles = {
+    arrival: `Arrival & Check-in — ${loc}`,
+    leisure: `Leisure Day in ${loc}`,
+    sightseeing: `Full Day Sightseeing in ${loc}`,
+    local: `Local Sightseeing — ${loc}`,
+    honeymoon: `Romantic Day in ${loc}`,
+  };
+
+  return {
+    title: titles[slot.focus] || titles.sightseeing,
+    description,
+    meals: 'Breakfast & Dinner',
+    activities: `Sightseeing in ${loc}`,
+    transport: 'Private cab for full-day sightseeing',
+    accommodation: `Overnight stay in ${loc}`,
+  };
+}
+
+function renderReturnDay(slot, variationSeed) {
+  const leg = getTransferLeg(slot.from, slot.to);
+  const dist = leg.km ? ` (Approx. ${leg.km} | ${leg.hours})` : '';
+
+  return {
+    title: `${slot.from} → ${slot.to}${dist}`,
+    description: `Morning: Breakfast at hotel in ${slot.from}. Check-out & begin return drive.
+
+Journey: Via ${leg.via} with ${leg.stops?.join(', ') || 'comfort stops'} en route.
+
+${slot.to === slot.from ? 'Overnight journey or hotel stay (as per package).' : `Arrive ${slot.to} by evening.`}`,
+    meals: 'Breakfast',
+    activities: `Checkout ${slot.from}, drive to ${slot.to}`,
+    transport: `Private AC cab · ${slot.from} → ${slot.to}`,
+    accommodation: `Overnight in ${slot.to} or en route`,
+  };
+}
+
+function renderDepartureDay(slot) {
+  return {
+    title: `Departure from ${slot.location}`,
+    description: `Tour concludes with drop at your preferred location in ${slot.location}:
+${formatBullets(['Airport', 'Railway Station', 'Hotel', 'Home (within city limits, if included)'])}
+
+Thank you — safe travels!`,
+    meals: 'Breakfast',
+    activities: `Drop at airport/railway/hotel in ${slot.location}`,
+    transport: `Drop · ${slot.location}`,
+    accommodation: '',
+  };
+}
+
+function renderDaySlot(slot, { flags, variationSeed }) {
+  if (slot.type === 'transfer') return renderTransferDay(slot, variationSeed);
+  if (slot.type === 'sightsee_transfer') return renderSightseeTransferDay(slot, variationSeed);
+  if (slot.type === 'excursion') return renderExcursionDay(slot) || renderSightseeingDay(slot, flags, variationSeed);
+  if (slot.type === 'return') return renderReturnDay(slot, variationSeed);
+  if (slot.type === 'departure') return renderDepartureDay(slot);
+  if (slot.type === 'leisure') return renderSightseeingDay({ ...slot, focus: 'leisure' }, flags, variationSeed);
+  return renderSightseeingDay(slot, flags, variationSeed);
+}
+
+function buildDynamicItinerary({ prompt, logistics, totalDays, stops, variationSeed }) {
+  const flags = extractPromptFlags(prompt);
+  const dayPlan = computeDayPlan({ stops, logistics, totalDays, flags });
+
+  return dayPlan.map((slot, index) => {
+    const content = renderDaySlot(slot, { flags, variationSeed: variationSeed + index });
+    return dayRow(slot.day, slot.location, content.title, content.description, {
+      meals: content.meals,
+      activities: content.activities,
+      transport: content.transport,
+      accommodation: content.accommodation,
+      id: `dyn-d${slot.day}-v${variationSeed}-${Date.now()}-${index}`,
+    });
+  });
 }
 
 function getRouteHint(pickup, destination) {
@@ -586,6 +686,11 @@ function extractDestinations(prompt = '', fallback = 'Himachal Pradesh') {
     { key: 'dalhousie', name: 'Dalhousie' },
     { key: 'dharamshala', name: 'Dharamshala' },
     { key: 'kullu', name: 'Kullu' },
+    { key: 'rishikesh', name: 'Rishikesh' },
+    { key: 'haridwar', name: 'Haridwar' },
+    { key: 'dehradun', name: 'Dehradun' },
+    { key: 'jaipur', name: 'Jaipur' },
+    { key: 'agra', name: 'Agra' },
   ];
   const found = ordered
     .map((d) => ({ ...d, index: text.indexOf(d.key) }))
@@ -594,7 +699,8 @@ function extractDestinations(prompt = '', fallback = 'Himachal Pradesh') {
     .map((d) => d.name);
   if (found.length) return found;
   if (text.includes('himachal')) return ['Shimla', 'Manali'];
-  return [fallback];
+  if (fallback && !fallback.toLowerCase().includes('himachal')) return [fallback];
+  return ['Shimla'];
 }
 
 function isHoneymoonPrompt(prompt = '') {
@@ -734,15 +840,12 @@ export async function generateItineraryFromAI({
   variationSeed = 0,
 }) {
   const logistics = extractTravelLogistics(prompt);
-  const curatedRoute = detectCuratedRoute(prompt, logistics);
-  const inferred = inferDurationFromPrompt(prompt, logistics, curatedRoute);
+  const inferred = inferDurationFromPrompt(prompt, logistics);
   const parsed = parseDurationFromPrompt(prompt);
+  const stops = extractDestinations(prompt, destination);
 
   const totalDays = parsed?.days || inferred?.days || days || 4;
   const totalNights = parsed?.nights ?? inferred?.nights ?? nights ?? Math.max(0, totalDays - 1);
-  const stops = extractDestinations(prompt, destination);
-  const firstStop = stops[0] || destination;
-  const lastStop = stops[stops.length - 1] || destination;
 
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (apiKey) {
@@ -750,9 +853,6 @@ export async function generateItineraryFromAI({
       const logisticsNote = [
         logistics.pickup ? `Pickup city: ${logistics.pickup} (must appear clearly on Day 1)` : '',
         logistics.drop ? `Drop city: ${logistics.drop} (must appear clearly on last day)` : '',
-        curatedRoute === 'delhi_shimla_manali_rohtang'
-          ? 'Route: Delhi → Shimla → Manali → Rohtang/Solang day → Manali local → Delhi. Include distances & drive hours.'
-          : '',
       ].filter(Boolean).join('\n');
 
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -774,18 +874,16 @@ export async function generateItineraryFromAI({
 
 User request: ${prompt}
 
-Primary destination region: ${destination}
-Route stops: ${logistics.pickup || 'Start'} → ${stops.join(' → ')} → ${logistics.drop || 'End'}
+Destinations in order: ${stops.join(' → ')}
+Route: ${logistics.pickup || 'Start'} → ${stops.join(' → ')} → ${logistics.drop || 'End'}
 ${logisticsNote}
 
 Requirements:
-- Exactly ${totalDays} days
+- Exactly ${totalDays} days — content MUST match the user request, not a generic template
 - Rich descriptions with Morning / Afternoon / Evening sections
 - Include approximate km & drive hours on transfer days
-- Day 1 must mention pickup location if specified
-- Dedicated Rohtang Pass / Solang Valley day if mentioned in prompt
-- Last day must mention drop/return if applicable
-- Variation #${variationSeed + 1} — ${variationSeed > 0 ? 'use fresh wording different from a previous draft' : 'first draft'}`,
+- Mention only places relevant to THIS prompt
+- Variation #${variationSeed + 1} — ${variationSeed > 0 ? 'use fresh wording' : 'first draft'}`,
             },
           ],
         }),
@@ -810,39 +908,18 @@ Requirements:
     }
   }
 
-  // Curated route templates (Delhi–Shimla–Manali–Rohtang etc.)
-  if (curatedRoute) {
-    const curatedDays = buildCuratedItinerary(curatedRoute, logistics, variationSeed);
-    if (curatedDays?.length) {
-      return {
-        days: curatedDays,
-        totalDays: curatedDays.length,
-        totalNights: Math.max(0, curatedDays.length - 1),
-        logistics,
-      };
-    }
-  }
-
-  const itinerary = Array.from({ length: totalDays }, (_, index) => {
-    const day = index + 1;
-    const stopIndex = totalDays <= stops.length
-      ? index
-      : Math.floor((index / totalDays) * stops.length);
-    const stop = stops[Math.min(stopIndex, stops.length - 1)] || destination;
-    const planKey = getPlanKey(day, totalDays, prompt);
-    const dayDest = day === 1 ? firstStop : day === totalDays ? lastStop : stop;
-
-    return {
-      ...defaultItineraryDay(day, dayDest),
-      id: `ai-day-${day}-v${variationSeed}-${Date.now()}`,
-      title: buildDayTitle(day, dayDest, prompt, totalDays, logistics),
-      description: getRichDescription(day, totalDays, dayDest, prompt, logistics, variationSeed),
-      accommodation: day < totalDays ? `Overnight at hotel in ${dayDest}` : '',
-      meals: buildMeals(day, totalDays),
-      activities: buildActivities(day, dayDest, planKey, logistics),
-      transport: buildTransport(day, totalDays, planKey, logistics, dayDest),
-    };
+  const days_out = buildDynamicItinerary({
+    prompt,
+    logistics,
+    totalDays,
+    stops,
+    variationSeed,
   });
 
-  return { days: itinerary, totalDays, totalNights, logistics };
+  return {
+    days: days_out,
+    totalDays: days_out.length,
+    totalNights: Math.max(0, days_out.length - 1),
+    logistics,
+  };
 }

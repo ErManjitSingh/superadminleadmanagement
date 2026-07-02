@@ -97,7 +97,7 @@ export default function AiItineraryGenerator({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           rows={4}
-          placeholder='Shimla Manali tour with Rohtang Pass — from Delhi to Delhi (6 Days / 5 Nights)'
+          placeholder='Describe your trip — e.g. "3N/4D Kasol from Delhi" or "Shimla Manali with Rohtang, from Delhi to Delhi"'
           className={cn(inputCls('h-auto py-3 resize-none'), 'border-violet-500/20 focus:ring-violet-500/30')}
         />
 
