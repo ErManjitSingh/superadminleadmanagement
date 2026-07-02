@@ -32,12 +32,87 @@ Return ONLY valid JSON:
   "drop": "Delhi or null"
 }`;
 
+function buildUserMessage({ prompt, destination, days, nights, variationSeed }) {
+  const dayHint = days
+    ? `Target: ${nights ?? Math.max(0, days - 1)} Nights / ${days} Days`
+    : 'Infer suitable duration from the prompt if not specified';
+
+  return `User request (follow this exactly):
+${prompt}
+
+${dayHint}
+${destination ? `Default region hint: ${destination}` : ''}
+Variation #${variationSeed + 1}${variationSeed > 0 ? ' — use different wording from previous draft' : ''}
+
+Build the complete day-wise itinerary for THIS specific request only.`;
+}
+
+function parseJsonFromText(raw = '') {
+  const text = String(raw).trim();
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced?.[1]?.trim() || text;
+  return JSON.parse(candidate);
+}
+
+function getAiProvider() {
+  const forced = String(process.env.AI_ITINERARY_PROVIDER || '').toLowerCase();
+  if (forced === 'gemini' && process.env.GEMINI_API_KEY) return 'gemini';
+  if (forced === 'openai' && process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  return null;
+}
+
+async function callGemini({ prompt, destination, days, nights, variationSeed }) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: buildUserMessage({ prompt, destination, days, nights, variationSeed }) }],
+        },
+      ],
+      generationConfig: {
+        temperature: variationSeed > 0 ? 0.9 : 0.75,
+        maxOutputTokens: 8192,
+        responseMimeType: 'application/json',
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => '');
+    throw new ApiError(
+      `Gemini API error (${res.status})${errText ? `: ${errText.slice(0, 300)}` : ''}`,
+      res.status >= 500 ? 502 : 400,
+    );
+  }
+
+  const data = await res.json();
+  const raw =
+    data.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') || '';
+  if (!raw) {
+    const blockReason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason;
+    throw new ApiError(`Gemini returned empty response${blockReason ? `: ${blockReason}` : ''}`, 502);
+  }
+
+  return parseJsonFromText(raw);
+}
+
 async function callOpenAI({ prompt, destination, days, nights, variationSeed }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  const dayHint = days ? `Target: ${nights ?? Math.max(0, days - 1)} Nights / ${days} Days` : 'Infer suitable duration from the prompt if not specified';
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -54,14 +129,7 @@ async function callOpenAI({ prompt, destination, days, nights, variationSeed }) 
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: `User request (follow this exactly):
-${prompt}
-
-${dayHint}
-${destination ? `Default region hint: ${destination}` : ''}
-Variation #${variationSeed + 1}${variationSeed > 0 ? ' — use different wording from previous draft' : ''}
-
-Build the complete day-wise itinerary for THIS specific request only.`,
+          content: buildUserMessage({ prompt, destination, days, nights, variationSeed }),
         },
       ],
     }),
@@ -69,12 +137,15 @@ Build the complete day-wise itinerary for THIS specific request only.`,
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
-    throw new ApiError(`AI service error (${res.status})${errText ? `: ${errText.slice(0, 200)}` : ''}`, res.status >= 500 ? 502 : 400);
+    throw new ApiError(
+      `OpenAI error (${res.status})${errText ? `: ${errText.slice(0, 200)}` : ''}`,
+      res.status >= 500 ? 502 : 400,
+    );
   }
 
   const data = await res.json();
   const raw = data.choices?.[0]?.message?.content || '';
-  return JSON.parse(raw);
+  return parseJsonFromText(raw);
 }
 
 function normalizeDays(parsed, variationSeed) {
@@ -116,17 +187,25 @@ async function generateItineraryFromPrompt({
   const text = String(prompt || '').trim();
   if (!text) throw new ApiError('Prompt is required', 400);
 
-  if (!process.env.OPENAI_API_KEY) {
-    return { source: 'unavailable', reason: 'OPENAI_API_KEY not configured' };
+  const provider = getAiProvider();
+  if (!provider) {
+    return {
+      source: 'unavailable',
+      reason: 'Set GEMINI_API_KEY or OPENAI_API_KEY in backend .env',
+    };
   }
 
-  const parsed = await callOpenAI({ prompt: text, destination, days, nights, variationSeed });
+  const params = { prompt: text, destination, days, nights, variationSeed };
+  const parsed =
+    provider === 'gemini' ? await callGemini(params) : await callOpenAI(params);
+
   const result = normalizeDays(parsed, variationSeed);
   if (!result) throw new ApiError('AI returned empty itinerary', 502);
 
-  return { source: 'openai', ...result };
+  return { source: provider, ...result };
 }
 
 module.exports = {
   generateItineraryFromPrompt,
+  getAiProvider,
 };

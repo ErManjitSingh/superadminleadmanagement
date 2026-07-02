@@ -21,7 +21,7 @@ const generateItinerary = asyncHandler(async (req, res) => {
     return res.status(503).json({
       success: false,
       code: 'AI_NOT_CONFIGURED',
-      message: 'AI itinerary service is not configured on server',
+      message: 'Add GEMINI_API_KEY or OPENAI_API_KEY in backend .env (Gemini: https://aistudio.google.com/apikey)',
     });
   }
 
