@@ -1,5 +1,23 @@
 import { defaultItineraryDay } from '../quotations/quotationUtils';
 
+const KNOWN_CITIES = [
+  'new delhi', 'delhi', 'ncr', 'chandigarh', 'ambala', 'kalka', 'pathankot',
+  'amritsar', 'dehradun', 'haridwar', 'rishikesh', 'shimla', 'manali',
+  'dharamshala', 'dalhousie', 'kasol', 'kullu', 'mumbai', 'jaipur', 'agra',
+];
+
+const ROUTE_HINTS = {
+  delhi: 'Chandigarh → Kalka → scenic hill roads',
+  'new delhi': 'Chandigarh → Kalka → scenic hill roads',
+  chandigarh: 'Kalka → Solan → winding mountain highways',
+  ambala: 'Kalka → Solan → hill route',
+  kalka: 'Solan → Shimla ridge road (or toy train option nearby)',
+  pathankot: 'Kangra Valley → Palampur → mountain route',
+  amritsar: 'Pathankot → Kangra → Dharamshala/Manali direction',
+  dehradun: 'Mussoorie road or Rishikesh-Haridwar belt',
+  haridwar: 'Rishikesh → Devprayag → mountain ascent',
+};
+
 /** Rich day-wise content templates — used when OpenAI key is not set */
 const DESTINATION_PLANS = {
   shimla: {
@@ -151,6 +169,119 @@ Evening free for personal plans. Overnight stay in ${dest}.`,
   departure: (dest) => `Enjoy breakfast at the hotel. Check-out and transfer for your onward journey from ${dest}. Depart with wonderful travel memories.`,
 };
 
+function titleCase(str = '') {
+  return String(str)
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function normalizeCity(name = '') {
+  const n = String(name).trim().toLowerCase();
+  if (n === 'ncr' || n.includes('delhi')) return 'Delhi';
+  return titleCase(n);
+}
+
+/** Extract pickup & drop cities from natural language prompt */
+export function extractTravelLogistics(prompt = '') {
+  const text = String(prompt).toLowerCase().replace(/\s+/g, ' ').trim();
+  let pickup = '';
+  let drop = '';
+
+  const cityPattern = KNOWN_CITIES.map((c) => c.replace(/\s+/g, '\\s+')).join('|');
+
+  const pickupPatterns = [
+    new RegExp(`(?:pick\\s*up|pickup|starting|start)\\s+(?:from\\s+)?(${cityPattern})`, 'i'),
+    new RegExp(`(?:pick\\s*up|pickup|starting|start)\\s+(?:from\\s+)?([a-z][a-z\\s]{2,20}?)(?:\\s+to|\\s+for|\\s+and|,|\\.|$)`, 'i'),
+    new RegExp(`\\bfrom\\s+(${cityPattern})\\b`, 'i'),
+    new RegExp(`\\bfrom\\s+([a-z][a-z\\s]{2,20}?)(?:\\s+to|\\s+for|\\s+covering|,|\\.|$)`, 'i'),
+  ];
+
+  for (const re of pickupPatterns) {
+    const m = text.match(re);
+    if (m?.[1]) {
+      pickup = normalizeCity(m[1]);
+      break;
+    }
+  }
+
+  const dropPatterns = [
+    new RegExp(`(?:drop|return|ending|end)\\s+(?:to\\s+|at\\s+)?(${cityPattern})`, 'i'),
+    new RegExp(`(?:drop|return)\\s+(?:to\\s+)?([a-z][a-z\\s]{2,20}?)(?:\\s|$|,|\\.)`, 'i'),
+    new RegExp(`\\bto\\s+(${cityPattern})\\s+(?:and\\s+back|return)`, 'i'),
+  ];
+
+  for (const re of dropPatterns) {
+    const m = text.match(re);
+    if (m?.[1]) {
+      drop = normalizeCity(m[1]);
+      break;
+    }
+  }
+
+  if (pickup && !drop) drop = pickup;
+
+  return { pickup, drop };
+}
+
+function getRouteHint(pickup, destination) {
+  const key = pickup.toLowerCase();
+  const via = ROUTE_HINTS[key] || ROUTE_HINTS[key.replace('new ', '')];
+  if (via) return via;
+  return `scenic highways towards ${destination}`;
+}
+
+function buildPickupDayDescription(pickup, firstStop, variationSeed = 0) {
+  const via = getRouteHint(pickup, firstStop);
+  const variants = [
+    `Day 1 — Pickup from ${pickup}
+
+Morning: Our chauffeur will pick you up from your preferred location in ${pickup} — hotel, home, airport (DEL), or railway station (on prior intimation). Settle into your private AC vehicle for a comfortable hill journey.
+
+En Route: Drive via ${via}. Enjoy panoramic views, optional refreshment breaks at dhabas/cafés, and photo stops at scenic viewpoints. Your driver knows the best routes and timing for a smooth ride.
+
+Afternoon/Evening: Arrive in ${firstStop}. Hotel check-in, freshen up, and relax after the drive.
+
+Dinner & overnight stay in ${firstStop}.`,
+
+    `Pickup & Transfer: ${pickup} → ${firstStop}
+
+Start your trip with a doorstep pickup in ${pickup}. Whether you are starting from Connaught Place, Karol Bagh, Noida, Gurgaon, or the airport — we coordinate the pickup point as per your convenience.
+
+The journey follows ${via}, with well-timed breaks for meals and stretching. Window views shift from cityscapes to pine-covered hills as you climb towards ${firstStop}.
+
+Reach ${firstStop}, complete check-in, and spend the evening exploring nearby markets or resting at the hotel.
+
+Meals: Dinner | Overnight: ${firstStop}`,
+  ];
+  return variants[variationSeed % variants.length];
+}
+
+function buildDropDayDescription(drop, lastStop, variationSeed = 0) {
+  const via = getRouteHint(drop, lastStop);
+  const variants = [
+    `Checkout & Drop to ${drop}
+
+Morning: Breakfast at the hotel in ${lastStop}. Complete check-out formalities and load luggage into the cab.
+
+Journey: Descend via ${via} on your return leg to ${drop}. The drive is relaxed with comfort stops en route.
+
+Evening: Drop at your preferred location in ${drop} — home, hotel, airport, or railway station as discussed with your travel advisor.
+
+Tour concludes with happy memories. Safe travels!`,
+
+    `Final Day — ${lastStop} to ${drop}
+
+After breakfast, bid farewell to the mountains and begin your downhill drive towards ${drop}. Your private cab will drop you at the agreed point in ${drop} (hotel/residence/airport/railway station).
+
+Route highlights: ${via}. Keep your camera ready for last glimpses of the valleys.
+
+Package ends on arrival in ${drop}.`,
+  ];
+  return variants[variationSeed % variants.length];
+}
+
 function parseDurationFromPrompt(prompt = '') {
   const text = String(prompt).toLowerCase();
   const nightsMatch = text.match(/(\d+)\s*night/);
@@ -187,9 +318,17 @@ function getPlanKey(day, totalDays, prompt) {
   return 'sightseeing';
 }
 
-function getRichDescription(day, totalDays, destination, prompt) {
-  const key = destination.toLowerCase();
+function getRichDescription(day, totalDays, destination, prompt, logistics, variationSeed = 0) {
   const planKey = getPlanKey(day, totalDays, prompt);
+
+  if (day === 1 && logistics.pickup) {
+    return buildPickupDayDescription(logistics.pickup, destination, variationSeed);
+  }
+  if (day === totalDays && logistics.drop && logistics.drop !== destination) {
+    return buildDropDayDescription(logistics.drop, destination, variationSeed);
+  }
+
+  const key = destination.toLowerCase();
   const plans = DESTINATION_PLANS[key];
 
   if (plans?.[planKey]) return plans[planKey];
@@ -199,8 +338,16 @@ function getRichDescription(day, totalDays, destination, prompt) {
   return typeof fallback === 'function' ? fallback(destination) : fallback;
 }
 
-function buildDayTitle(day, destination, prompt, totalDays) {
+function buildDayTitle(day, destination, prompt, totalDays, logistics) {
   const planKey = getPlanKey(day, totalDays, prompt);
+
+  if (day === 1 && logistics.pickup) {
+    return `Pickup from ${logistics.pickup} → ${destination}`;
+  }
+  if (day === totalDays && logistics.drop && logistics.drop !== destination) {
+    return `${destination} → Drop at ${logistics.drop}`;
+  }
+
   const titles = {
     arrival: `Arrival & Welcome in ${destination}`,
     departure: `Departure from ${destination}`,
@@ -217,9 +364,15 @@ function buildMeals(day, totalDays) {
   return 'Breakfast & Dinner';
 }
 
-function buildActivities(day, destination, planKey) {
+function buildActivities(day, destination, planKey, logistics) {
+  if (day === 1 && logistics.pickup) {
+    return `Pickup from ${logistics.pickup}, hill drive, hotel check-in in ${destination}`;
+  }
+  if (planKey === 'departure' && logistics.drop) {
+    return `Checkout, drive to ${logistics.drop}, tour ends`;
+  }
   const acts = {
-    arrival: `Airport/Railway station transfer, hotel check-in, Mall Road / local market visit`,
+    arrival: `Transfer, hotel check-in, local market visit`,
     sightseeing: `Local sightseeing, major attractions, photography stops`,
     honeymoon: `Scenic viewpoints, couple activities, romantic dinner (optional)`,
     leisure: `Free time, optional activities, shopping`,
@@ -228,44 +381,83 @@ function buildActivities(day, destination, planKey) {
   return acts[planKey] || `Sightseeing in ${destination}`;
 }
 
+function buildTransport(day, totalDays, planKey, logistics, destination) {
+  if (day === 1 && logistics.pickup) {
+    return `Private AC cab · Pickup: ${logistics.pickup} → ${destination}`;
+  }
+  if (day === totalDays && logistics.drop) {
+    return `Private AC cab · ${destination} → Drop: ${logistics.drop}`;
+  }
+  if (planKey === 'sightseeing') return 'Private cab for full-day sightseeing';
+  return 'Private transfer';
+}
+
 const OPENAI_SYSTEM_PROMPT = `You are an expert Indian travel itinerary writer for a premium tour operator (Himachal, Uttarakhand, Rajasthan, Kerala, etc.).
 
 Write day-wise itineraries that read like a professional travel brochure — detailed, engaging, and practical.
 
 RULES:
-- Each day description must be 100–180 words (4–6 sentences minimum, can use short paragraphs).
-- Structure descriptions with Morning / Afternoon / Evening when it fits naturally.
-- Mention specific landmarks, experiences, and local flavour — not generic one-liners.
-- Match the trip type (honeymoon, family, adventure) from the user prompt.
-- Day 1 = arrival & transfer; last day = checkout & departure.
-- Use warm, professional tone suitable for customer-facing PDF quotations.
+- Each day description must be 100–200 words (use Morning / Afternoon / Evening structure).
+- If the user mentions pickup from a city (e.g. Delhi, Chandigarh), Day 1 MUST clearly state:
+  • Exact pickup city and pickup point options (hotel/home/airport/railway)
+  • Route en route to the first destination
+  • Drive duration feel and comfort stops
+- If return/drop to a city is implied, the LAST day MUST state drop location in that city.
+- Mention specific landmarks, experiences, and local flavour.
+- Match trip type (honeymoon, family, adventure) from the prompt.
+- Use warm, professional tone for customer-facing PDF quotations.
 
-Return ONLY valid JSON in this exact shape (no markdown):
+Return ONLY valid JSON:
 {
   "days": [
     {
       "day": 1,
-      "title": "Short catchy title",
-      "description": "Full detailed description...",
-      "meals": "Breakfast & Dinner",
-      "activities": "Brief activity summary",
-      "transport": "Private Cab"
+      "title": "Pickup from Delhi → Shimla",
+      "description": "Full detailed description with pickup location...",
+      "meals": "Dinner",
+      "activities": "Pickup Delhi, drive to Shimla, check-in",
+      "transport": "Private AC cab · Pickup: Delhi → Shimla"
     }
   ]
 }`;
 
+function mapGeneratedDays(dayList, stops, destination, variationSeed) {
+  return dayList.map((d, i) => ({
+    ...defaultItineraryDay(d.day || i + 1, stops[Math.min(i, stops.length - 1)] || destination),
+    ...d,
+    id: `ai-day-${d.day || i + 1}-${variationSeed}-${Date.now()}`,
+    description: String(d.description || '').trim(),
+    transport: d.transport || d.transportNotes || '',
+  }));
+}
+
 /**
  * Generates itinerary days. Uses OpenAI when VITE_OPENAI_API_KEY is set; otherwise rich local templates.
+ * @param variationSeed — increment on regenerate for alternate wording
  */
-export async function generateItineraryFromAI({ prompt, destination = 'Himachal Pradesh', days, nights }) {
+export async function generateItineraryFromAI({
+  prompt,
+  destination = 'Himachal Pradesh',
+  days,
+  nights,
+  variationSeed = 0,
+}) {
   const parsed = parseDurationFromPrompt(prompt);
   const totalDays = days || parsed?.days || 4;
   const totalNights = nights ?? parsed?.nights ?? Math.max(0, totalDays - 1);
   const stops = extractDestinations(prompt, destination);
+  const logistics = extractTravelLogistics(prompt);
+  const firstStop = stops[0] || destination;
+  const lastStop = stops[stops.length - 1] || destination;
 
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (apiKey) {
     try {
+      const logisticsNote = [
+        logistics.pickup ? `Pickup city: ${logistics.pickup} (must appear clearly on Day 1)` : '',
+        logistics.drop ? `Drop city: ${logistics.drop} (must appear clearly on last day)` : '',
+      ].filter(Boolean).join('\n');
+
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -274,7 +466,7 @@ export async function generateItineraryFromAI({ prompt, destination = 'Himachal 
         },
         body: JSON.stringify({
           model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini',
-          temperature: 0.75,
+          temperature: variationSeed > 0 ? 0.9 : 0.75,
           max_tokens: 4096,
           response_format: { type: 'json_object' },
           messages: [
@@ -286,13 +478,15 @@ export async function generateItineraryFromAI({ prompt, destination = 'Himachal 
 User request: ${prompt}
 
 Primary destination region: ${destination}
-Route stops to cover: ${stops.join(' → ')}
+Route stops: ${stops.join(' → ')}
+${logisticsNote}
 
 Requirements:
 - Exactly ${totalDays} days
-- Rich, detailed descriptions (100–180 words each day)
-- Specific place names and experiences
-- Appropriate for the trip type mentioned in the prompt`,
+- Rich descriptions (100–200 words per day)
+- Day 1 must mention pickup location if specified in prompt
+- Last day must mention drop/return if applicable
+- Variation #${variationSeed + 1} — ${variationSeed > 0 ? 'use fresh wording different from a previous draft' : 'first draft'}`,
             },
           ],
         }),
@@ -305,14 +499,10 @@ Requirements:
         const dayList = Array.isArray(parsedDays) ? parsedDays : [];
         if (dayList.length) {
           return {
-            days: dayList.map((d, i) => ({
-              ...defaultItineraryDay(d.day || i + 1, stops[Math.min(i, stops.length - 1)] || destination),
-              ...d,
-              id: `ai-day-${d.day || i + 1}`,
-              description: String(d.description || '').trim(),
-            })),
+            days: mapGeneratedDays(dayList, stops, destination, variationSeed),
             totalDays: dayList.length,
             totalNights: Math.max(0, dayList.length - 1),
+            logistics,
           };
         }
       }
@@ -328,18 +518,19 @@ Requirements:
       : Math.floor((index / totalDays) * stops.length);
     const stop = stops[Math.min(stopIndex, stops.length - 1)] || destination;
     const planKey = getPlanKey(day, totalDays, prompt);
+    const dayDest = day === 1 ? firstStop : day === totalDays ? lastStop : stop;
 
     return {
-      ...defaultItineraryDay(day, stop),
-      id: `ai-day-${day}`,
-      title: buildDayTitle(day, stop, prompt, totalDays),
-      description: getRichDescription(day, totalDays, stop, prompt),
-      accommodation: day < totalDays ? `Overnight at hotel in ${stop}` : '',
+      ...defaultItineraryDay(day, dayDest),
+      id: `ai-day-${day}-v${variationSeed}-${Date.now()}`,
+      title: buildDayTitle(day, dayDest, prompt, totalDays, logistics),
+      description: getRichDescription(day, totalDays, dayDest, prompt, logistics, variationSeed),
+      accommodation: day < totalDays ? `Overnight at hotel in ${dayDest}` : '',
       meals: buildMeals(day, totalDays),
-      activities: buildActivities(day, stop, planKey),
-      transport: day === 1 || day === totalDays ? 'Private transfer' : 'Private Cab for sightseeing',
+      activities: buildActivities(day, dayDest, planKey, logistics),
+      transport: buildTransport(day, totalDays, planKey, logistics, dayDest),
     };
   });
 
-  return { days: itinerary, totalDays, totalNights };
+  return { days: itinerary, totalDays, totalNights, logistics };
 }

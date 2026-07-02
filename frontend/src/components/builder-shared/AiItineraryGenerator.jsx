@@ -22,21 +22,39 @@ export default function AiItineraryGenerator({
   const [generating, setGenerating] = useState(false);
   const [manualEdit, setManualEdit] = useState(false);
   const [error, setError] = useState('');
+  const [regenerateCount, setRegenerateCount] = useState(0);
+  const [lastLogistics, setLastLogistics] = useState(null);
 
   const runGenerate = async (regenerate = false) => {
     if (!prompt?.trim()) {
-      setError('Describe the package you want — e.g. "3 Nights 4 Days Himachal honeymoon"');
+      setError('Describe the package you want — e.g. "Pickup from Delhi, 3 Nights 4 Days Himachal honeymoon"');
       return;
     }
     setError('');
     setGenerating(true);
+    if (regenerate) setManualEdit(false);
+
+    const nextSeed = regenerate ? regenerateCount + 1 : 0;
+    if (regenerate) setRegenerateCount(nextSeed);
+    else setRegenerateCount(0);
+
     try {
-      const result = await generateItineraryFromAI({ prompt, destination, days, nights });
+      const result = await generateItineraryFromAI({
+        prompt,
+        destination,
+        days,
+        nights,
+        variationSeed: nextSeed,
+      });
       onItineraryChange(result.days);
+      if (result.logistics) setLastLogistics(result.logistics);
       if (onDurationChange) {
         onDurationChange({ days: result.totalDays, nights: result.totalNights });
       }
-      if (regenerate) setManualEdit(false);
+      // Scroll to itinerary after generate
+      requestAnimationFrame(() => {
+        document.getElementById('ai-itinerary-results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     } catch {
       setError('Could not generate itinerary. Try again or edit manually.');
     } finally {
@@ -79,7 +97,7 @@ export default function AiItineraryGenerator({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           rows={4}
-          placeholder='Create a 3 Nights 4 Days Himachal package covering Shimla and Manali for a honeymoon couple.'
+          placeholder='Pickup from Delhi — 3 Nights 4 Days Himachal covering Shimla & Manali for a honeymoon couple.'
           className={cn(inputCls('h-auto py-3 resize-none'), 'border-violet-500/20 focus:ring-violet-500/30')}
         />
 
@@ -99,10 +117,10 @@ export default function AiItineraryGenerator({
             type="button"
             variant="outline"
             className="rounded-xl gap-2"
-            disabled={generating || !itinerary.length}
+            disabled={generating || !prompt?.trim()}
             onClick={() => runGenerate(true)}
           >
-            <RefreshCw className="w-4 h-4" /> Regenerate
+            <RefreshCw className={cn('w-4 h-4', generating && 'animate-spin')} /> Regenerate
           </Button>
           <Button
             type="button"
@@ -124,6 +142,19 @@ export default function AiItineraryGenerator({
           </Button>
         </div>
       </GlassCard>
+
+      {lastLogistics?.pickup && (
+        <div className="flex flex-wrap gap-2 px-1">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-800 border border-emerald-500/25">
+            Pickup: {lastLogistics.pickup}
+          </span>
+          {lastLogistics.drop && (
+            <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-sky-500/15 text-sky-800 border border-sky-500/25">
+              Drop: {lastLogistics.drop}
+            </span>
+          )}
+        </div>
+      )}
 
       {!itinerary.length && !generating && (
         <div className="rounded-2xl border border-dashed border-violet-500/25 bg-violet-500/5 p-10 text-center">
@@ -148,9 +179,9 @@ export default function AiItineraryGenerator({
       )}
 
       {!generating && itinerary.length > 0 && (
-        <div className="space-y-3">
+        <div id="ai-itinerary-results" className="space-y-3">
           {itinerary.map((day, index) => (
-            <GlassCard key={day.id || day.day} className="p-4 border-subtle/80">
+            <GlassCard key={day.id || `day-${day.day}-${index}`} className="p-4 border-subtle/80">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-black uppercase tracking-wider text-violet-600 bg-violet-500/10 px-2.5 py-1 rounded-full">
                   Day {day.day}
@@ -178,8 +209,13 @@ export default function AiItineraryGenerator({
                   <p className="text-sm text-content-secondary mt-2 leading-relaxed whitespace-pre-wrap">
                     {day.description}
                   </p>
-                  {(day.meals || day.activities) && (
+                  {(day.meals || day.activities || day.transport) && (
                     <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-subtle/60">
+                      {day.transport && (
+                        <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-800">
+                          {day.transport}
+                        </span>
+                      )}
                       {day.meals && (
                         <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-amber-500/10 text-amber-800">
                           Meals: {day.meals}
