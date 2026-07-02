@@ -4,16 +4,19 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { buildListParams, unwrapList, unwrapPagination } from '../../../utils/apiHelpers';
 import { parsePackageNights } from '../UnoHotelSelector';
 import { cleanInclusionExclusionLines } from '../InclusionExclusionEditor';
-import { sumDayWiseHotelCost } from '../DayWiseHotelSelector';
-import { buildSelectedHotelsSnapshot } from '../quotePdfHelpers';
 import {
-  calculatePricing,
   defaultItineraryDay,
   defaultWizardState,
   DEFAULT_PAYMENT_PLAN,
   matchesResourceDestination,
 } from '../quotationUtils';
 import { normalizePackageForQuotation } from '../../packages/builder/packageBuilderUtils';
+import {
+  defaultBuilderUi,
+  builderUiFromPackage,
+  builderUiToSelectedHotelsSnapshot,
+  builderUiToSelectedCabs,
+} from '../../builder-shared/builderUiUtils';
 
 export const BUILDER_CONFIG = {
   executive: {
@@ -108,6 +111,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   const [activities, setActivities] = useState([]);
 
   const [state, setState] = useState({ ...defaultWizardState, leadId: initialLeadId || '' });
+  const [builderUi, setBuilderUi] = useState(defaultBuilderUi());
   const [customItinerary, setCustomItinerary] = useState([]);
   const [customInclusions, setCustomInclusions] = useState(['']);
   const [customExclusions, setCustomExclusions] = useState(['']);
@@ -143,41 +147,55 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   );
 
   const buildSavePayload = useCallback(
-    (statusOverride) => ({
-      leadId: state.leadId,
-      packageId: state.packageId,
-      status: statusOverride,
-      pricing: state.pricing,
-      packageInfo: state.packageInfo,
-      paymentPlan: state.paymentPlan,
-      importantNotes: state.importantNotes,
-      templateKey: state.templateKey,
-      selectedHotels: buildSelectedHotelsSnapshot(dayWiseHotels),
-      selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
-      selectedFlights: flights.filter((f) => state.selectedFlightIds.includes(f._id)),
-      selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
-      package: buildPackageSnapshot(activePkg),
-      customizations: state.customizations,
-    }),
-    [state, dayWiseHotels, cabs, flights, activities, activePkg, buildPackageSnapshot]
+    (statusOverride) => {
+      const total = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
+      const destList = hotelDestination ? [{ name: hotelDestination }] : [];
+      return {
+        leadId: state.leadId,
+        packageId: state.packageId,
+        status: statusOverride,
+        pricing: {
+          ...state.pricing,
+          total,
+          grandTotal: total,
+          baseCost: total,
+        },
+        packageInfo: state.packageInfo,
+        paymentPlan: syncPaymentAmounts(state.paymentPlan, total),
+        importantNotes: {
+          ...state.importantNotes,
+          travelGuidelines: builderUi.internalNotes || state.importantNotes.travelGuidelines,
+        },
+        templateKey: state.templateKey,
+        selectedHotels: builderUiToSelectedHotelsSnapshot(builderUi, destList),
+        selectedCabs: builderUiToSelectedCabs(builderUi),
+        selectedFlights: [],
+        selectedActivities: [],
+        package: buildPackageSnapshot(activePkg),
+        customizations: state.customizations,
+      };
+    },
+    [state, builderUi, activePkg, buildPackageSnapshot, hotelDestination]
   );
 
   const draftQuote = useMemo(() => {
     if (!selectedLead) return null;
+    const total = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
+    const destList = hotelDestination ? [{ name: hotelDestination }] : [];
     return {
       quoteNumber: draftId ? 'DRAFT' : 'PREVIEW',
       createdAt: new Date().toISOString(),
       lead: selectedLead,
       package: buildPackageSnapshot(activePkg || {}),
-      pricing: state.pricing,
+      pricing: { ...state.pricing, total, grandTotal: total },
       packageInfo: state.packageInfo,
-      paymentPlan: state.paymentPlan,
+      paymentPlan: syncPaymentAmounts(state.paymentPlan, total),
       importantNotes: state.importantNotes,
-      selectedHotels: buildSelectedHotelsSnapshot(dayWiseHotels),
-      selectedCabs: cabs.filter((c) => state.selectedCabIds.includes(c._id)),
-      selectedActivities: activities.filter((a) => state.selectedActivityIds.includes(a._id)),
+      selectedHotels: builderUiToSelectedHotelsSnapshot(builderUi, destList),
+      selectedCabs: builderUiToSelectedCabs(builderUi),
+      selectedActivities: [],
     };
-  }, [selectedLead, activePkg, state, dayWiseHotels, cabs, activities, buildPackageSnapshot, draftId]);
+  }, [selectedLead, activePkg, state, builderUi, buildPackageSnapshot, draftId, hotelDestination]);
 
   useEffect(() => {
     if (step > maxReached) setMaxReached(step);
@@ -292,47 +310,18 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   }, [hotelDestination]);
 
   useEffect(() => {
-    const hotelCost = sumDayWiseHotelCost(dayWiseHotels);
-    const cabCost = cabs.filter((c) => state.selectedCabIds.includes(c._id)).reduce((s, c) => s + (c.cost || 0), 0);
-    const flightCost = flights.filter((f) => state.selectedFlightIds.includes(f._id)).reduce((s, f) => s + (f.cost || 0), 0);
-    const activityCost = activities
-      .filter((a) => state.selectedActivityIds.includes(a._id))
-      .reduce((s, a) => s + (a.price || 0), 0);
-    const calc = calculatePricing({
-      ...state.pricing,
-      hotelCost,
-      cabCost,
-      flightCost,
-      activityCost,
-    });
+    const total = Number(state.pricing.total) || 0;
     setState((s) => ({
       ...s,
       pricing: {
         ...s.pricing,
-        hotelCost,
-        cabCost,
-        flightCost,
-        activityCost,
-        total: calc.total,
-        grandTotal: calc.grandTotal,
-        profitMargin: calc.profitMargin,
+        total,
+        grandTotal: total,
+        baseCost: total,
       },
-      paymentPlan: syncPaymentAmounts(s.paymentPlan, calc.grandTotal || calc.total),
+      paymentPlan: syncPaymentAmounts(s.paymentPlan, total),
     }));
-  }, [
-    state.selectedCabIds,
-    state.selectedFlightIds,
-    state.selectedActivityIds,
-    cabs,
-    flights,
-    activities,
-    state.pricing.baseCost,
-    state.pricing.taxes,
-    state.pricing.markup,
-    state.pricing.discount,
-    state.pricing.gst,
-    dayWiseHotels,
-  ]);
+  }, [state.pricing.total]);
 
   useEffect(() => {
     if (!state.leadId || !state.packageId) return;
@@ -353,6 +342,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     customInclusions,
     customExclusions,
     dayWiseHotels,
+    builderUi,
   ]);
 
   useEffect(() => {
@@ -392,6 +382,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     setCustomInclusions(['']);
     setCustomExclusions(['']);
     setDayWiseHotels([]);
+    setBuilderUi(defaultBuilderUi());
   };
 
   const applyPackageDetail = (detail) => {
@@ -401,6 +392,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     setCustomItinerary(itinerary.map((d) => ({ ...d, id: d.id || d._id || `day-${Date.now()}-${d.day}` })));
     setCustomInclusions(normalized.inclusions?.length ? [...normalized.inclusions] : ['']);
     setCustomExclusions(normalized.exclusions?.length ? [...normalized.exclusions] : ['']);
+    setBuilderUi(builderUiFromPackage(normalized));
+    const packageTotal = Number(detail.pricing?.finalPrice) || Number(normalized.startingPrice) || 0;
     setState((s) => ({
       ...s,
       packageInfo: {
@@ -421,9 +414,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         : s.importantNotes,
       pricing: {
         ...s.pricing,
-        baseCost: normalized.startingPrice || 0,
-        ...calculatePricing({ ...s.pricing, baseCost: normalized.startingPrice || 0 }),
+        total: packageTotal,
+        grandTotal: packageTotal,
+        baseCost: packageTotal,
       },
+      paymentPlan: syncPaymentAmounts(s.paymentPlan, packageTotal),
     }));
   };
 
@@ -441,16 +436,16 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
           importantNotes: res.data.importantNotes,
         });
         if (res.data.pricing) {
+          const total = res.data.pricing.finalPrice || res.data.startingPrice || 0;
           setState((s) => ({
             ...s,
             pricing: {
               ...s.pricing,
-              baseCost: res.data.pricing.finalPrice || res.data.startingPrice || 0,
-              ...calculatePricing({
-                ...s.pricing,
-                baseCost: res.data.pricing.finalPrice || res.data.startingPrice || 0,
-              }),
+              total,
+              grandTotal: total,
+              baseCost: total,
             },
+            paymentPlan: syncPaymentAmounts(s.paymentPlan, total),
           }));
         }
       } else {
@@ -531,6 +526,18 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   const updateImportantNotes = (patch) => {
     setState((s) => ({ ...s, importantNotes: { ...s.importantNotes, ...patch } }));
   };
+
+  const updateBuilderUi = useCallback((patch) => {
+    setBuilderUi((ui) => ({ ...ui, ...patch }));
+  }, []);
+
+  const updatePricingTotal = useCallback((total) => {
+    setState((s) => ({
+      ...s,
+      pricing: { ...s.pricing, total, grandTotal: total, baseCost: total },
+      paymentPlan: syncPaymentAmounts(s.paymentPlan, total),
+    }));
+  }, []);
 
   const updatePaymentPlan = (index, patch) => {
     setState((s) => {
@@ -625,6 +632,9 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     setCustomExclusions,
     dayWiseHotels,
     handleDayWiseHotelChange,
+    builderUi,
+    updateBuilderUi,
+    updatePricingTotal,
     cabs,
     flights,
     activities,

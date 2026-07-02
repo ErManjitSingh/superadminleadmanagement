@@ -1,4 +1,10 @@
 import { defaultItineraryDay } from '../../quotations/quotationUtils';
+import {
+  defaultBuilderUi,
+  builderUiToHotels,
+  builderUiToTransport,
+  builderUiFromPackage,
+} from '../../builder-shared/builderUiUtils';
 
 export function slugify(text = '') {
   return String(text)
@@ -30,30 +36,21 @@ export const defaultPricing = {
 };
 
 export function calculatePackagePricing(pricing = {}, adults = 2) {
-  const p = { ...defaultPricing, ...pricing };
-  const subtotal =
-    Number(p.hotelCost) +
-    Number(p.cabCost) +
-    Number(p.activityCost) +
-    Number(p.mealCost) +
-    Number(p.guideCost) +
-    Number(p.taxes);
-  const beforeCommission = subtotal + Number(p.markup) - Number(p.discount);
-  const finalPrice = Math.max(0, beforeCommission);
+  const finalPrice = Math.max(0, Number(pricing.finalPrice) || 0);
   const perPerson = adults > 0 ? Math.round(finalPrice / adults) : finalPrice;
   return {
-    ...p,
+    ...defaultPricing,
+    ...pricing,
     finalPrice,
     perPerson,
-    doubleSharing: p.doubleSharing || perPerson,
-    tripleSharing: p.tripleSharing || Math.round(perPerson * 0.92),
-    quadSharing: p.quadSharing || Math.round(perPerson * 0.88),
+    cabCost: pricing.cabCost || 0,
+    hotelCost: pricing.hotelCost || 0,
   };
 }
 
 export function defaultPackageState(destination = 'Himachal Pradesh') {
-  const days = 5;
-  const nights = 4;
+  const days = 4;
+  const nights = 3;
   return {
     name: '',
     slug: '',
@@ -79,21 +76,14 @@ export function defaultPackageState(destination = 'Himachal Pradesh') {
     hotels: [],
     transport: [],
     activities: [],
-    meals: Array.from({ length: days }, (_, i) => ({
-      day: i + 1,
-      breakfast: 'Hotel',
-      lunch: 'On own',
-      dinner: 'Hotel',
-      snacks: '',
-      specialDinner: '',
-    })),
+    meals: [],
     pricing: { ...defaultPricing },
-    inclusions: [''],
-    exclusions: [''],
+    inclusions: ['Hotel accommodation', 'Private cab', 'Breakfast & Dinner'],
+    exclusions: ['Personal expenses', 'Lunch', 'Entry tickets'],
     cancellationPolicy: { content: '', refundRules: '', slabs: [] },
     importantNotes: {
       travelGuidelines: '',
-      documentsRequired: 'Valid ID proof, passport if international',
+      documentsRequired: 'Valid ID proof',
       packingTips: '',
       weather: '',
       safety: '',
@@ -118,13 +108,16 @@ export function defaultPackageState(destination = 'Himachal Pradesh') {
       visa: false,
       insurance: false,
     },
+    builderUi: defaultBuilderUi(),
   };
 }
 
 export function packageFromApi(pkg = {}) {
   const destination = pkg.destination || 'Himachal Pradesh';
-  const days = pkg.days || pkg.duration || 5;
+  const days = pkg.days || pkg.duration || 4;
   const base = defaultPackageState(destination);
+  const builderUi = builderUiFromPackage(pkg);
+
   return {
     ...base,
     ...pkg,
@@ -133,11 +126,9 @@ export function packageFromApi(pkg = {}) {
       ...d,
       id: d._id || d.id || `day-${i}`,
     })),
-    inclusions: pkg.inclusions?.length ? pkg.inclusions : [''],
-    exclusions: pkg.exclusions?.length ? pkg.exclusions : [''],
-    meals: pkg.meals?.length
-      ? pkg.meals
-      : Array.from({ length: days }, (_, i) => ({ day: i + 1, breakfast: 'Hotel', lunch: '', dinner: 'Hotel', snacks: '', specialDinner: '' })),
+    inclusions: pkg.inclusions?.length ? pkg.inclusions : base.inclusions,
+    exclusions: pkg.exclusions?.length ? pkg.exclusions : base.exclusions,
+    meals: pkg.meals || [],
     pricing: { ...defaultPricing, ...(pkg.pricing || {}) },
     cancellationPolicy: { content: '', refundRules: '', slabs: [], ...(pkg.cancellationPolicy || {}) },
     importantNotes: { ...base.importantNotes, ...(pkg.importantNotes || {}) },
@@ -146,15 +137,46 @@ export function packageFromApi(pkg = {}) {
     destinations: pkg.destinations || [],
     hotels: pkg.hotels || [],
     transport: pkg.transport || [],
-    activities: pkg.activities || [],
+    activities: [],
     gallery: pkg.gallery || [],
     videos: pkg.videos || [],
     tags: pkg.tags || [],
+    builderUi: {
+      ...defaultBuilderUi(),
+      ...builderUi,
+      internalNotes:
+        builderUi.internalNotes ||
+        (typeof pkg.importantNotes === 'string' ? pkg.importantNotes : pkg.importantNotes?.travelGuidelines || ''),
+      aiPrompt: pkg.aiPrompt || builderUi.aiPrompt || '',
+    },
   };
 }
 
 export function packageToPayload(state) {
-  const pricing = calculatePackagePricing(state.pricing, 2);
+  const builderUi = state.builderUi || defaultBuilderUi();
+  const hotels = builderUiToHotels(builderUi, state.destinations);
+  const transport = builderUiToTransport(builderUi);
+  const cabCost = transport.reduce((s, t) => s + (Number(t.cost) || 0), 0);
+  const finalPrice = Math.max(0, Number(state.pricing?.finalPrice) || 0);
+
+  const pricing = calculatePackagePricing({
+    ...state.pricing,
+    finalPrice,
+    cabCost,
+    hotelCost: 0,
+    activityCost: 0,
+    mealCost: 0,
+    guideCost: 0,
+    taxes: 0,
+    markup: 0,
+    discount: 0,
+    agentCommission: 0,
+  });
+
+  const notes = builderUi.internalNotes?.trim()
+    ? { ...state.importantNotes, travelGuidelines: builderUi.internalNotes }
+    : state.importantNotes;
+
   return {
     ...state,
     slug: state.slug || slugify(state.name),
@@ -163,9 +185,15 @@ export function packageToPayload(state) {
     duration: state.days || state.duration,
     startingPrice: pricing.finalPrice || state.startingPrice || 0,
     pricing,
+    hotels,
+    transport,
+    activities: [],
+    meals: state.meals || [],
+    importantNotes: notes,
     inclusions: (state.inclusions || []).filter((x) => String(x).trim()),
     exclusions: (state.exclusions || []).filter((x) => String(x).trim()),
     itinerary: (state.itinerary || []).map(({ id, ...rest }) => rest),
+    builderUi: undefined,
   };
 }
 
@@ -183,7 +211,7 @@ export function normalizePackageForQuotation(pkg) {
     importantNotes: pkg.importantNotes,
     hotels: pkg.hotels,
     transport: pkg.transport,
-    activities: pkg.activities,
+    activities: [],
     source: 'local',
   };
 }

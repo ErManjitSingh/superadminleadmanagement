@@ -1,0 +1,181 @@
+import { useState } from 'react';
+import { Bot, Copy, Loader2, Pencil, RefreshCw, Sparkles, Wand2 } from 'lucide-react';
+import { Button } from '../ui/button';
+import GlassCard from '../quotations/builder/GlassCard';
+import { generateItineraryFromAI } from './aiItineraryService';
+import { cn } from '../../lib/utils';
+
+function inputCls(extra = '') {
+  return cn('input-premium w-full rounded-xl text-sm', extra);
+}
+
+export default function AiItineraryGenerator({
+  prompt,
+  onPromptChange,
+  itinerary = [],
+  onItineraryChange,
+  destination = 'Himachal Pradesh',
+  days,
+  nights,
+  onDurationChange,
+}) {
+  const [generating, setGenerating] = useState(false);
+  const [manualEdit, setManualEdit] = useState(false);
+  const [error, setError] = useState('');
+
+  const runGenerate = async (regenerate = false) => {
+    if (!prompt?.trim()) {
+      setError('Describe the package you want — e.g. "3 Nights 4 Days Himachal honeymoon"');
+      return;
+    }
+    setError('');
+    setGenerating(true);
+    try {
+      const result = await generateItineraryFromAI({ prompt, destination, days, nights });
+      onItineraryChange(result.days);
+      if (onDurationChange) {
+        onDurationChange({ days: result.totalDays, nights: result.totalNights });
+      }
+      if (regenerate) setManualEdit(false);
+    } catch {
+      setError('Could not generate itinerary. Try again or edit manually.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const copyItinerary = async () => {
+    const text = (itinerary || [])
+      .map((d) => `Day ${d.day}: ${d.title}\n${d.description || ''}`)
+      .join('\n\n');
+    await navigator.clipboard.writeText(text);
+  };
+
+  const updateDay = (index, patch) => {
+    const next = [...itinerary];
+    next[index] = { ...next[index], ...patch };
+    onItineraryChange(next);
+  };
+
+  return (
+    <div className="space-y-5">
+      <GlassCard className="p-5 sm:p-6 bg-gradient-to-br from-violet-500/10 via-indigo-500/5 to-sky-500/10 border-violet-500/20">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/30 shrink-0">
+            <Bot className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-xl font-black flex items-center gap-2">
+              AI Itinerary Generator
+              <Sparkles className="w-5 h-5 text-violet-500" />
+            </h2>
+            <p className="text-sm text-content-muted mt-0.5">
+              Describe the trip — AI drafts day-wise itinerary in seconds
+            </p>
+          </div>
+        </div>
+
+        <textarea
+          value={prompt}
+          onChange={(e) => onPromptChange(e.target.value)}
+          rows={4}
+          placeholder='Create a 3 Nights 4 Days Himachal package covering Shimla and Manali for a honeymoon couple.'
+          className={cn(inputCls('h-auto py-3 resize-none'), 'border-violet-500/20 focus:ring-violet-500/30')}
+        />
+
+        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          <Button
+            type="button"
+            className="rounded-xl gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500"
+            disabled={generating}
+            onClick={() => runGenerate(false)}
+          >
+            {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+            Generate Itinerary
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl gap-2"
+            disabled={generating || !itinerary.length}
+            onClick={() => runGenerate(true)}
+          >
+            <RefreshCw className="w-4 h-4" /> Regenerate
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl gap-2"
+            disabled={!itinerary.length}
+            onClick={copyItinerary}
+          >
+            <Copy className="w-4 h-4" /> Copy
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="rounded-xl gap-2"
+            disabled={!itinerary.length}
+            onClick={() => setManualEdit((v) => !v)}
+          >
+            <Pencil className="w-4 h-4" /> {manualEdit ? 'Done Editing' : 'Edit Manually'}
+          </Button>
+        </div>
+      </GlassCard>
+
+      {!itinerary.length && !generating && (
+        <div className="rounded-2xl border border-dashed border-violet-500/25 bg-violet-500/5 p-10 text-center">
+          <Bot className="w-10 h-10 mx-auto text-violet-400 mb-3" />
+          <p className="text-sm font-medium text-content-primary">No itinerary yet</p>
+          <p className="text-xs text-content-muted mt-1">Enter a prompt above and click Generate Itinerary</p>
+        </div>
+      )}
+
+      {generating && (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 rounded-2xl bg-surface-elevated/60 animate-pulse" />
+          ))}
+        </div>
+      )}
+
+      {!generating && itinerary.length > 0 && (
+        <div className="space-y-3">
+          {itinerary.map((day, index) => (
+            <GlassCard key={day.id || day.day} className="p-4 border-subtle/80">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs font-black uppercase tracking-wider text-violet-600 bg-violet-500/10 px-2.5 py-1 rounded-full">
+                  Day {day.day}
+                </span>
+              </div>
+              {manualEdit ? (
+                <div className="space-y-2">
+                  <input
+                    value={day.title || ''}
+                    onChange={(e) => updateDay(index, { title: e.target.value })}
+                    className={inputCls('h-10 font-semibold')}
+                    placeholder="Day title"
+                  />
+                  <textarea
+                    value={day.description || ''}
+                    onChange={(e) => updateDay(index, { description: e.target.value })}
+                    rows={3}
+                    className={inputCls('h-auto py-2 resize-none')}
+                    placeholder="Day description"
+                  />
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-bold text-content-primary">{day.title}</h3>
+                  <p className="text-sm text-content-secondary mt-1 whitespace-pre-wrap">{day.description}</p>
+                </>
+              )}
+            </GlassCard>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

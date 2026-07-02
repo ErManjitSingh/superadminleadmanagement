@@ -1,45 +1,20 @@
 import {
   Package,
-  MapPin,
-  Map,
+  Bot,
   Building2,
   Car,
-  Sparkles,
-  UtensilsCrossed,
   IndianRupee,
-  CheckCircle2,
-  CircleOff,
-  FileWarning,
-  StickyNote,
-  Images,
-  Video,
-  Search,
-  Tags,
-  Star,
   Eye,
-  Save,
 } from 'lucide-react';
 
+/** Simplified 6-step package builder flow */
 export const PACKAGE_BUILDER_STEPS = [
   { id: 1, title: 'Basic Details', key: 'basics', icon: Package },
-  { id: 2, title: 'Destinations', key: 'destinations', icon: MapPin },
-  { id: 3, title: 'Itinerary', key: 'itinerary', icon: Map },
-  { id: 4, title: 'Hotels', key: 'hotels', icon: Building2 },
-  { id: 5, title: 'Transport', key: 'transport', icon: Car },
-  { id: 6, title: 'Activities', key: 'activities', icon: Sparkles },
-  { id: 7, title: 'Meals', key: 'meals', icon: UtensilsCrossed },
-  { id: 8, title: 'Pricing', key: 'pricing', icon: IndianRupee },
-  { id: 9, title: 'Inclusions', key: 'inclusions', icon: CheckCircle2 },
-  { id: 10, title: 'Exclusions', key: 'exclusions', icon: CircleOff },
-  { id: 11, title: 'Policies', key: 'policies', icon: FileWarning },
-  { id: 12, title: 'Notes', key: 'notes', icon: StickyNote },
-  { id: 13, title: 'Gallery', key: 'gallery', icon: Images },
-  { id: 14, title: 'Videos', key: 'videos', icon: Video },
-  { id: 15, title: 'SEO', key: 'seo', icon: Search },
-  { id: 16, title: 'Tags', key: 'tags', icon: Tags },
-  { id: 17, title: 'Features', key: 'features', icon: Star },
-  { id: 18, title: 'Preview', key: 'preview', icon: Eye },
-  { id: 19, title: 'Publish', key: 'publish', icon: Save },
+  { id: 2, title: 'AI Itinerary', key: 'ai-itinerary', icon: Bot },
+  { id: 3, title: 'Hotels', key: 'hotels', icon: Building2 },
+  { id: 4, title: 'Transport', key: 'transport', icon: Car },
+  { id: 5, title: 'Pricing', key: 'pricing', icon: IndianRupee },
+  { id: 6, title: 'Preview', key: 'preview', icon: Eye },
 ];
 
 export const PACKAGE_STATUS_OPTIONS = [
@@ -63,17 +38,6 @@ export const PACKAGE_FEATURE_OPTIONS = [
   { key: 'flights', label: 'Flights' },
   { key: 'visa', label: 'Visa' },
   { key: 'insurance', label: 'Insurance' },
-];
-
-export const TRANSPORT_TYPES = [
-  { value: 'cab', label: 'Cab' },
-  { value: 'suv', label: 'SUV' },
-  { value: 'sedan', label: 'Sedan' },
-  { value: 'tempo', label: 'Tempo Traveller' },
-  { value: 'luxury', label: 'Luxury Car' },
-  { value: 'flight', label: 'Flight' },
-  { value: 'train', label: 'Train' },
-  { value: 'bus', label: 'Bus' },
 ];
 
 export const DIFFICULTY_OPTIONS = [

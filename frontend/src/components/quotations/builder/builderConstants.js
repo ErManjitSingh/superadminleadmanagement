@@ -1,31 +1,20 @@
 import {
   Package,
-  Map,
+  Bot,
   Building2,
   Car,
-  Sparkles,
-  CheckCircle2,
-  CircleOff,
   IndianRupee,
-  CreditCard,
-  FileText,
-  User,
   Eye,
 } from 'lucide-react';
 
+/** Simplified 6-step quotation builder */
 export const BUILDER_STEPS = [
   { id: 1, title: 'Package', key: 'package', icon: Package },
-  { id: 2, title: 'Itinerary', key: 'itinerary', icon: Map },
+  { id: 2, title: 'AI Itinerary', key: 'ai-itinerary', icon: Bot },
   { id: 3, title: 'Hotels', key: 'hotels', icon: Building2 },
   { id: 4, title: 'Transport', key: 'transport', icon: Car },
-  { id: 5, title: 'Activities', key: 'activities', icon: Sparkles },
-  { id: 6, title: 'Inclusions', key: 'inclusions', icon: CheckCircle2 },
-  { id: 7, title: 'Exclusions', key: 'exclusions', icon: CircleOff },
-  { id: 8, title: 'Pricing', key: 'pricing', icon: IndianRupee },
-  { id: 9, title: 'Payment', key: 'payment', icon: CreditCard },
-  { id: 10, title: 'Notes', key: 'notes', icon: FileText },
-  { id: 11, title: 'Customer', key: 'customer', icon: User },
-  { id: 12, title: 'Preview', key: 'preview', icon: Eye },
+  { id: 5, title: 'Pricing', key: 'pricing', icon: IndianRupee },
+  { id: 6, title: 'Preview', key: 'preview', icon: Eye },
 ];
 
 export const INCLUSION_PRESETS = [
@@ -51,16 +40,6 @@ export const EXCLUSION_PRESETS = [
 ];
 
 export const VEHICLE_TYPES = ['Cab', 'Tempo Traveller', 'SUV', 'Sedan', 'Luxury Car'];
-
-export const ACTIVITY_PRESETS = [
-  { name: 'Ropeway', icon: '🚡' },
-  { name: 'River Rafting', icon: '🛶' },
-  { name: 'Paragliding', icon: '🪂' },
-  { name: 'Snow Activities', icon: '❄️' },
-  { name: 'Sightseeing', icon: '🏞️' },
-  { name: 'Temple Visit', icon: '🛕' },
-  { name: 'Shopping', icon: '🛍️' },
-];
 
 export const QUOTE_STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft', color: 'bg-slate-500/15 text-slate-700' },

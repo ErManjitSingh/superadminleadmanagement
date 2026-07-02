@@ -9,25 +9,12 @@ import PackagePreviewPanel from './PackagePreviewPanel';
 import { usePackageBuilder } from './usePackageBuilder';
 import {
   StepBasics,
-  StepDestinations,
-  StepItinerary,
-  StepHotels,
-  StepTransport,
-  StepActivities,
-  StepMeals,
-  StepPricing,
-  StepInclusions,
-  StepExclusions,
-  StepPolicies,
-  StepNotes,
-  StepGallery,
-  StepVideos,
-  StepSeo,
-  StepTags,
-  StepFeatures,
-  StepPreview,
-  StepPublish,
-} from './PackageBuilderSteps';
+  StepAiItinerary,
+  StepHotelsSimplified,
+  StepTransportSimplified,
+  StepPricingSimplified,
+  StepPreviewSimplified,
+} from './SimplifiedPackageSteps';
 
 export default function PremiumPackageBuilder({ packageId }) {
   const b = usePackageBuilder(packageId);
@@ -47,30 +34,19 @@ export default function PremiumPackageBuilder({ packageId }) {
   const renderStep = () => {
     switch (b.step) {
       case 1: return <StepBasics b={b} />;
-      case 2: return <StepDestinations b={b} />;
-      case 3: return <StepItinerary b={b} />;
-      case 4: return <StepHotels b={b} />;
-      case 5: return <StepTransport b={b} />;
-      case 6: return <StepActivities b={b} />;
-      case 7: return <StepMeals b={b} />;
-      case 8: return <StepPricing b={b} />;
-      case 9: return <StepInclusions b={b} />;
-      case 10: return <StepExclusions b={b} />;
-      case 11: return <StepPolicies b={b} />;
-      case 12: return <StepNotes b={b} />;
-      case 13: return <StepGallery b={b} />;
-      case 14: return <StepVideos b={b} />;
-      case 15: return <StepSeo b={b} />;
-      case 16: return <StepTags b={b} />;
-      case 17: return <StepFeatures b={b} />;
-      case 18: return <StepPreview b={b} previewMode={previewMode} setPreviewMode={setPreviewMode} />;
-      case 19: return <StepPublish b={b} />;
+      case 2: return <StepAiItinerary b={b} />;
+      case 3: return <StepHotelsSimplified b={b} />;
+      case 4: return <StepTransportSimplified b={b} />;
+      case 5: return <StepPricingSimplified b={b} />;
+      case 6: return <StepPreviewSimplified b={b} previewMode={previewMode} setPreviewMode={setPreviewMode} />;
       default: return null;
     }
   };
 
+  const showStickySave = b.step < b.totalSteps;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/80 via-white to-sky-50/60 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50/80 via-white to-sky-50/60 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 pb-24">
       <div className="sticky top-0 z-30 border-b border-white/20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl">
         <div className="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -93,6 +69,19 @@ export default function PremiumPackageBuilder({ packageId }) {
             <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1.5" disabled={b.saving} onClick={() => b.save()}>
               <Save className="w-4 h-4" /> Save
             </Button>
+          </div>
+        </div>
+
+        <div className="max-w-[1600px] mx-auto px-4 pb-3 xl:hidden">
+          <div className="flex gap-1 overflow-x-auto">
+            {Array.from({ length: b.totalSteps }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => b.setStep(n)}
+                className={`shrink-0 h-1.5 rounded-full transition-all ${b.step === n ? 'w-8 bg-amber-500' : n <= b.maxReached ? 'w-4 bg-amber-300' : 'w-4 bg-slate-200'}`}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -124,12 +113,17 @@ export default function PremiumPackageBuilder({ packageId }) {
               </motion.div>
             </AnimatePresence>
 
-            {b.step < 19 && (
+            {b.step < b.totalSteps && (
               <div className="flex justify-between mt-8 pt-6 border-t border-white/30">
                 <Button type="button" variant="outline" className="rounded-xl gap-2" disabled={b.step === 1} onClick={goBack}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button type="button" variant="amber" className="rounded-xl gap-2 shadow-lg shadow-amber-500/20" disabled={!b.canContinue} onClick={goNext}>
+                <Button
+                  type="button"
+                  className="rounded-xl gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400"
+                  disabled={!b.canContinue}
+                  onClick={goNext}
+                >
                   Continue <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
@@ -137,20 +131,43 @@ export default function PremiumPackageBuilder({ packageId }) {
           </GlassCard>
         </main>
 
-        <aside className="hidden lg:block w-72 xl:w-80 shrink-0">
-          <PackagePreviewPanel pkg={b.draftPreview} previewMode={previewMode} />
-        </aside>
+        {b.step < b.totalSteps && (
+          <aside className="hidden lg:block w-72 shrink-0">
+            <PackagePreviewPanel pkg={b.draftPreview} previewMode={previewMode} />
+          </aside>
+        )}
       </div>
+
+      {showStickySave && (
+        <div className="fixed bottom-0 inset-x-0 z-40 border-t border-white/30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-3">
+          <div className="max-w-[1600px] mx-auto flex justify-end gap-2">
+            <Button type="button" variant="outline" className="rounded-xl" disabled={b.saving} onClick={() => b.save()}>
+              Save draft
+            </Button>
+            <Button type="button" className="rounded-xl gap-2" disabled={!b.canContinue || b.saving} onClick={goNext}>
+              Next step <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function AutosaveBadge({ status }) {
   if (status === 'saving') {
-    return <span className="text-xs text-content-muted flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Saving…</span>;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-content-muted px-2 py-1 rounded-lg bg-white/50">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…
+      </span>
+    );
   }
   if (status === 'saved') {
-    return <span className="text-xs text-emerald-600 flex items-center gap-1"><Cloud className="w-3 h-3" /> Saved</span>;
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 px-2 py-1 rounded-lg bg-emerald-500/10">
+        <Cloud className="w-3.5 h-3.5" /> Saved
+      </span>
+    );
   }
   return null;
 }
