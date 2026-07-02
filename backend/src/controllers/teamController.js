@@ -129,6 +129,13 @@ const addMember = asyncHandler(async (req, res) => {
     await team.save();
   }
 
+  if (!exec.teamId || String(exec.teamId) !== String(team._id)) {
+    exec.teamId = team._id;
+    if (!exec.companyId && team.companyId) exec.companyId = team.companyId;
+    if (!exec.branchId && team.branchId) exec.branchId = team.branchId;
+    await exec.save();
+  }
+
   const populated = await Team.findById(team._id)
     .populate('teamLeader', 'name email')
     .populate('members', 'name email');

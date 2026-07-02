@@ -22,7 +22,9 @@ export default function AdminAssignLeadModal({
 }) {
   const isBulk = lead?.bulk;
   const roleOptions = ROLE_OPTIONS.filter((r) => allowedRoles.includes(r.value));
-  const defaultRole = roleOptions[0]?.value || 'sales_executive';
+  const defaultRole = allowedRoles.includes('sales_executive')
+    ? 'sales_executive'
+    : roleOptions[0]?.value || 'sales_executive';
   const [role, setRole] = useState(defaultRole);
   const [assigneeId, setAssigneeId] = useState('');
 
@@ -50,7 +52,7 @@ export default function AdminAssignLeadModal({
     e.preventDefault();
     if (!assigneeId) return;
     const leadIds = isBulk ? lead.leadIds : [lead._id];
-    onAssign({ assigneeRole: role, assigneeId, leadIds });
+    onAssign({ assigneeRole: role, assigneeId: String(assigneeId), leadIds });
     setAssigneeId('');
   };
 
@@ -119,12 +121,13 @@ export default function AdminAssignLeadModal({
             ) : (
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {people.map((person) => {
-                  const selected = assigneeId === person._id;
+                  const personId = String(person._id);
+                  const selected = String(assigneeId) === personId;
                   return (
                     <button
-                      key={person._id}
+                      key={personId}
                       type="button"
-                      onClick={() => setAssigneeId(person._id)}
+                      onClick={() => setAssigneeId(personId)}
                       className={cn(
                         'w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
                         selected

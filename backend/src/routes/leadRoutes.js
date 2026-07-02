@@ -61,6 +61,9 @@ router.get('/audit-log', listAuditLog);
 router.post('/bulk-status', requirePermission('leads', 'edit'), bulkUpdateStatus);
 router.post('/bulk-export', requirePermission('leads', 'view'), bulkExportLeads);
 router.post('/merge', authorize('admin', 'sales_manager'), mergeDuplicateLeads);
+router.get('/assignees', getAssignees);
+router.get('/lost', listLostLeads);
+router.post('/assign', authorize('admin', 'sales_manager', 'team_leader'), assignLeads);
 router.get('/:id/followups', getLeadFollowups);
 router.get('/:id/quotations', getLeadQuotations);
 router.get('/:id/notes-list', getLeadNotesList);
@@ -74,9 +77,6 @@ router.delete('/:id/permanent', requirePermission('leads', 'delete'), permanentD
 
 router.post('/seed-demo', authorize('admin'), seedDemoLeads);
 router.post('/clear-all', authorize('admin'), clearAllLeads);
-router.get('/assignees', getAssignees);
-router.get('/lost', listLostLeads);
-router.post('/assign', authorize('admin', 'sales_manager', 'team_leader'), assignLeads);
 router.post('/:id/reactivate', authorize('admin', 'sales_manager', 'team_leader'), reactivateLead);
 router.post('/:id/reassign-reactivated', authorize('admin', 'sales_manager', 'team_leader'), reassignReactivatedLead);
 router.patch('/:id/reactivation-stage', authorize('admin', 'sales_manager', 'team_leader'), updateReactivationStage);

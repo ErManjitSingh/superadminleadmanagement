@@ -35,6 +35,7 @@ const {
   buildAssignmentPatch,
   assertCanAssignLeads,
   getAssigneesForUser,
+  leadScopeFilter,
 } = require('../services/leadAssignmentService');
 const { setReactivationStage } = require('../services/reactivationService');
 const { logLeadActivity } = require('../services/leadActivityService');
@@ -656,7 +657,7 @@ const assignLeads = asyncHandler(async (req, res) => {
   if (!ids.length) throw new ApiError(400, 'No leads selected');
   if (!assigneeRole || !assigneeId) throw new ApiError(400, 'Assignee role and user are required');
 
-  const { assignee, branchId, teamId } = await assertCanAssignLeads(req, {
+  const { assignee, teamId } = await assertCanAssignLeads(req, {
     leadIds: ids,
     assigneeRole,
     assigneeId,
@@ -668,16 +669,13 @@ const assignLeads = asyncHandler(async (req, res) => {
     patch.assignedTeamLeader = req.user._id;
   }
 
-  const leadsBefore = await Lead.find({
-    _id: { $in: ids },
-    ...(branchId ? { branchId } : {}),
-    isDeleted: { $ne: true },
-  }).select('_id assignedTo branchId');
+  const leadFilter = leadScopeFilter(ids);
+  const leadsBefore = await Lead.find(leadFilter).select('_id assignedTo branchId');
 
-  await Lead.updateMany(
-    { _id: { $in: ids }, ...(branchId ? { branchId } : {}), isDeleted: { $ne: true } },
-    patch
-  );
+  const updateResult = await Lead.updateMany(leadFilter, patch);
+  if (updateResult.matchedCount === 0) {
+    throw new ApiError(404, 'One or more leads were not found');
+  }
 
   const transferType = ids.length > 1 ? 'bulk_assign' : 'assign';
   await Promise.all(
@@ -685,7 +683,7 @@ const assignLeads = asyncHandler(async (req, res) => {
       Promise.all([
         logLeadActivity({
           leadId: lead._id,
-          branchId: branchId || req.branchId,
+          branchId: lead.branchId || req.branchId,
           type: lead.assignedTo ? 'lead_reassigned' : 'lead_assigned',
           description: `Assigned to ${assignee.name}`,
           actor: req.user,
@@ -693,7 +691,7 @@ const assignLeads = asyncHandler(async (req, res) => {
         }),
         logLeadTransfer({
           leadId: lead._id,
-          branchId: lead.branchId || branchId || req.branchId,
+          branchId: lead.branchId || req.branchId,
           type: transferType,
           actor: req.user,
           fromUserId: lead.assignedTo || null,

@@ -38,11 +38,15 @@ async function getPresentUserIds(userIds, branchId) {
 }
 
 async function filterEligibleExecutives(executives, branchId) {
+  if (!executives.length) return [];
+
   const presentIds = await getPresentUserIds(
     executives.map((e) => e._id),
     branchId
   );
-  return executives.filter((e) => presentIds.has(String(e._id)));
+  const present = executives.filter((e) => presentIds.has(String(e._id)));
+  // When attendance isn't marked yet, still allow assignment instead of blocking all executives.
+  return present.length ? present : executives;
 }
 
 async function advanceRoundRobin(key, poolLength) {

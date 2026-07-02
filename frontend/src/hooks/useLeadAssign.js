@@ -22,12 +22,14 @@ export function useLeadAssign({ onAssigned } = {}) {
   }, [fetchAssignees]);
 
   const openAssign = useCallback((lead) => {
+    fetchAssignees();
     setAssignModal(lead);
-  }, []);
+  }, [fetchAssignees]);
 
   const openBulkAssign = useCallback((leadIds) => {
+    fetchAssignees();
     setAssignModal({ bulk: true, count: leadIds.length, leadIds });
-  }, []);
+  }, [fetchAssignees]);
 
   const closeAssign = useCallback(() => {
     setAssignModal(null);

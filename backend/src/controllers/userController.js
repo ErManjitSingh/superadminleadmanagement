@@ -1,12 +1,29 @@
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Lead = require('../models/Lead');
+const Branch = require('../models/Branch');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { ROLE_LABELS, ROLES } = require('../config/roles');
 const { logActivity, getClientIp } = require('../services/activityService');
 const crypto = require('crypto');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { withCompany } = require('../utils/branchScope');
+
+async function resolveUserTenantFields(req, { branchId: bodyBranchId } = {}) {
+  const companyId = req.companyId || req.user?.companyId || null;
+  let branchId = bodyBranchId || req.branchId || req.user?.branchId || null;
+
+  if (!branchId && companyId) {
+    const branch = await Branch.findOne({ companyId, status: 'active' })
+      .sort({ createdAt: 1 })
+      .select('_id')
+      .lean();
+    branchId = branch?._id || null;
+  }
+
+  return { companyId, branchId };
+}
 
 async function attachLeadCounts(users) {
   if (!users.length) return users;
@@ -25,7 +42,7 @@ async function attachLeadCounts(users) {
 const listUsers = asyncHandler(async (req, res) => {
   const { status, roleId, department, search } = req.query;
   const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
-  const filter = {};
+  const filter = withCompany({}, req.companyId);
   if (req.branchId) filter.branchId = req.branchId;
 
   if (status) filter.status = status;
@@ -89,20 +106,22 @@ const createUser = asyncHandler(async (req, res) => {
   }
   if (!roleId) throw new ApiError(400, 'Role is required');
 
-  const role = await Role.findById(roleId);
+  const role = await Role.findOne({ _id: roleId, ...withCompany({}, req.companyId) });
   if (!role) throw new ApiError(400, 'Invalid role');
   if (!ROLES.includes(role.slug)) {
     throw new ApiError(400, 'Role is not a valid system role');
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const exists = await User.findOne({ email: normalizedEmail });
+  const exists = await User.findOne(withCompany({ email: normalizedEmail }, req.companyId));
   if (exists) throw new ApiError(400, 'User with this email already exists');
 
   const plainPassword = password?.trim();
   if (!plainPassword || plainPassword.length < 6) {
     throw new ApiError(400, 'Password is required (minimum 6 characters)');
   }
+
+  const { companyId, branchId: resolvedBranchId } = await resolveUserTenantFields(req, { branchId });
 
   const user = await User.create({
     name: name.trim(),
@@ -113,7 +132,8 @@ const createUser = asyncHandler(async (req, res) => {
     department: department || 'Sales',
     status: status || 'active',
     password: plainPassword,
-    branchId: req.user.role === 'admin' ? (branchId || req.branchId || null) : (req.user.branchId || null),
+    companyId: companyId || undefined,
+    branchId: resolvedBranchId,
   });
 
   await logActivity({
@@ -238,11 +258,15 @@ const deleteUser = asyncHandler(async (req, res) => {
 });
 
 const inviteUser = asyncHandler(async (req, res) => {
-  const role = await Role.findById(req.body.roleId);
+  const role = await Role.findOne({ _id: req.body.roleId, ...withCompany({}, req.companyId) });
   if (!role) throw new ApiError(400, 'Invalid role');
 
   const token = `inv-${crypto.randomBytes(16).toString('hex')}`;
   const invitePassword = crypto.randomBytes(8).toString('hex');
+
+  const { companyId, branchId: resolvedBranchId } = await resolveUserTenantFields(req, {
+    branchId: req.body.branchId,
+  });
 
   const user = await User.create({
     name: req.body.name || req.body.email.split('@')[0],
@@ -253,7 +277,8 @@ const inviteUser = asyncHandler(async (req, res) => {
     roleId: role._id,
     department: req.body.department || 'Sales',
     status: 'invited',
-    branchId: req.user.role === 'admin' ? (req.body.branchId || req.branchId || null) : (req.user.branchId || null),
+    companyId: companyId || undefined,
+    branchId: resolvedBranchId,
     inviteToken: token,
     inviteExpiresAt: new Date(Date.now() + 7 * 86400000),
   });

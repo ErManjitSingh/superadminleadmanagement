@@ -13,11 +13,26 @@ function tenantPlugin(schema) {
   }
 
   schema.pre('save', async function assignCompanyFromBranch() {
-    if (this.companyId || !this.branchId) return;
-    const Branch = mongoose.model('Branch');
-    const branch = await Branch.findById(this.branchId).select('companyId').lean();
-    if (branch?.companyId) {
-      this.companyId = branch.companyId;
+    if (this.companyId) return;
+
+    if (this.branchId) {
+      const Branch = mongoose.model('Branch');
+      const branch = await Branch.findById(this.branchId).select('companyId').lean();
+      if (branch?.companyId) {
+        this.companyId = branch.companyId;
+        return;
+      }
+    }
+
+    try {
+      const { getCompanyId } = require('../utils/tenantContextStore');
+      const { normalizeCompanyId } = require('../utils/branchScope');
+      const ctxCompanyId = getCompanyId();
+      if (ctxCompanyId) {
+        this.companyId = normalizeCompanyId(ctxCompanyId);
+      }
+    } catch {
+      // Outside request tenant context — companyId must be set explicitly.
     }
   });
 

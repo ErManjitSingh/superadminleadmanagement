@@ -22,6 +22,8 @@ const {
   loadLeadNotes,
   loadLeadQuotations,
 } = require('../services/leadDetailService');
+const { withCompany } = require('../utils/branchScope');
+const { ensureTenantRecordsForAssignment } = require('../services/leadAssignmentService');
 const {
   LEAD_POPULATE,
   FOLLOWUP_POPULATE,
@@ -100,32 +102,36 @@ const assignLeads = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Please select an executive to assign the lead');
   }
 
+  await ensureTenantRecordsForAssignment({ leadIds: ids, assigneeId: req.body.executiveId });
+
   const patch = {};
 
   if (req.body.executiveId) {
-    const executive = await User.findOne({
-      _id: req.body.executiveId,
-      ...(req.branchId ? { branchId: req.branchId } : {}),
-    });
+    const executive = await User.findOne(
+      withCompany({
+        _id: req.body.executiveId,
+        role: 'sales_executive',
+        status: 'active',
+      })
+    );
     if (!executive) throw new ApiError(404, 'Executive not found');
     patch.assignedTo = executive._id;
     patch.assigneeRole = 'sales_executive';
   }
 
   if (req.body.teamId) {
-    const team = await Team.findOne({
-      _id: req.body.teamId,
-      ...(req.branchId ? { branchId: req.branchId } : {}),
-    }).populate('teamLeader', 'name');
+    const team = await Team.findOne(withCompany({ _id: req.body.teamId }))
+      .populate('teamLeader', 'name');
     if (!team) throw new ApiError(404, 'Team not found');
     patch.teamId = team._id;
     if (team.teamLeader) patch.assignedTeamLeader = team.teamLeader._id;
   }
 
-  await Lead.updateMany(
-    { _id: { $in: ids }, ...(req.branchId ? { branchId: req.branchId } : {}) },
-    patch
-  );
+  const leadFilter = withCompany({ _id: { $in: ids }, isDeleted: { $ne: true } });
+  const updateResult = await Lead.updateMany(leadFilter, patch);
+  if (updateResult.matchedCount === 0) {
+    throw new ApiError(404, 'One or more leads were not found');
+  }
 
   await logActivity({
     type: 'lead_assigned',
@@ -138,16 +144,16 @@ const assignLeads = asyncHandler(async (req, res) => {
   });
 
   const team = req.body.teamId
-    ? await Team.findOne({
-        _id: req.body.teamId,
-        ...(req.branchId ? { branchId: req.branchId } : {}),
-      }).select('name')
+    ? await Team.findOne(withCompany({ _id: req.body.teamId })).select('name')
     : null;
   const executive = req.body.executiveId
-    ? await User.findOne({
-        _id: req.body.executiveId,
-        ...(req.branchId ? { branchId: req.branchId } : {}),
-      }).select('name')
+    ? await User.findOne(
+        withCompany({
+          _id: req.body.executiveId,
+          role: 'sales_executive',
+          status: 'active',
+        })
+      ).select('name')
     : null;
 
   if (req.body.executiveId) {
