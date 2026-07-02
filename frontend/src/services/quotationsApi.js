@@ -18,7 +18,7 @@ export async function uploadQuotationPdf(quotationId, pdfBlob, savePath = '/quot
   const { data } = await API.post(
     `${savePath}/${quotationId}/pdf`,
     { pdfBase64 },
-    { skipSuccessToast: true },
+    { skipSuccessToast: true, skipErrorToast: true },
   );
   return data;
 }

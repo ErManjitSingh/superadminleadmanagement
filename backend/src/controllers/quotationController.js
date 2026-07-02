@@ -329,14 +329,14 @@ const restoreQuotationVersion = asyncHandler(async (req, res) => {
 
 const uploadQuotationPdf = asyncHandler(async (req, res) => {
   const { pdfBase64 } = req.body || {};
-  if (!pdfBase64) throw new ApiError('pdfBase64 is required', 400);
+  if (!pdfBase64) throw new ApiError(400, 'pdfBase64 is required');
 
   const quotation = await Quotation.findById(req.params.id);
   if (!quotation) throw new ApiError(404, 'Quotation not found');
 
   const buffer = Buffer.from(String(pdfBase64), 'base64');
-  if (!buffer.length) throw new ApiError('Invalid PDF data', 400);
-  if (buffer.length > 15 * 1024 * 1024) throw new ApiError('PDF too large (max 15MB)', 400);
+  if (!buffer.length) throw new ApiError(400, 'Invalid PDF data');
+  if (buffer.length > 15 * 1024 * 1024) throw new ApiError(400, 'PDF too large (max 15MB)');
 
   if (!quotation.shareToken) {
     quotation.shareToken = crypto.randomBytes(16).toString('hex');

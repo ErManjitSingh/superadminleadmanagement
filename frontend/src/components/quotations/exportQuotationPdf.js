@@ -4,6 +4,10 @@ import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 
 const CAPTURE_WIDTH_PX = 794;
 
+function isMobileCapture() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
 /** html2canvas skips invisible nodes — force visible styles on clone. */
 function prepareForCapture(root) {
   root.style.cssText = [
@@ -22,7 +26,6 @@ function prepareForCapture(root) {
 
 function mountCaptureHost(viewport) {
   const host = document.createElement('div');
-  // Must stay "visible" for html2canvas — opacity 0.01 hides from user without blank canvas.
   host.style.cssText = [
     'position:fixed',
     'left:0',
@@ -40,19 +43,12 @@ function mountCaptureHost(viewport) {
   return host;
 }
 
-function isCanvasMostlyBlank(canvas) {
-  if (!canvas?.width || !canvas?.height) return true;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return true;
-  const w = Math.min(80, canvas.width);
-  const h = Math.min(80, canvas.height);
-  const { data } = ctx.getImageData(0, 0, w, h);
-  let white = 0;
-  const pixels = data.length / 4;
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i] > 248 && data[i + 1] > 248 && data[i + 2] > 248) white += 1;
+function canvasToJpeg(canvas, quality) {
+  try {
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch {
+    return canvas.toDataURL('image/png');
   }
-  return white / pixels > 0.97;
 }
 
 async function captureViewport(viewport, scale) {
@@ -62,15 +58,95 @@ async function captureViewport(viewport, scale) {
     allowTaint: true,
     backgroundColor: '#ffffff',
     logging: false,
+    imageTimeout: 15000,
     width: CAPTURE_WIDTH_PX,
-    height: viewport.offsetHeight,
+    height: viewport.offsetHeight || 1,
     windowWidth: CAPTURE_WIDTH_PX,
-    windowHeight: viewport.offsetHeight,
+    windowHeight: viewport.offsetHeight || 1,
   });
 }
 
+async function buildPdfFromSlices(embedded, viewport, host) {
+  await waitForImages(embedded, 12000);
+  if (document.fonts?.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      /* ignore */
+    }
+  }
+  await new Promise((r) => setTimeout(r, 400));
+
+  const mobile = isMobileCapture();
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const totalHeight = Math.max(embedded.scrollHeight, embedded.offsetHeight, 1);
+  const scale = mobile ? 1 : totalHeight > 12000 ? 1.5 : 2;
+  const jpegQuality = mobile ? 0.72 : 0.85;
+  const slicePx = Math.max(800, Math.floor((CAPTURE_WIDTH_PX * pageHeight) / pageWidth));
+
+  let pageIndex = 0;
+  for (let y = 0; y < totalHeight; y += slicePx) {
+    const sliceHeight = Math.min(slicePx, totalHeight - y);
+    viewport.style.height = `${sliceHeight}px`;
+    embedded.style.marginTop = `-${y}px`;
+
+    const canvas = await captureViewport(viewport, scale);
+    if (!canvas?.width || !canvas?.height) {
+      throw new Error('PDF render failed');
+    }
+
+    const imgData = canvasToJpeg(canvas, jpegQuality);
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    if (pageIndex > 0) pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
+    pageIndex += 1;
+  }
+
+  if (!pageIndex) throw new Error('PDF render failed');
+  return pdf.output('blob');
+}
+
+/** Single-shot capture — fallback when slice mode fails (common on mobile). */
+async function buildPdfSimple(embedded, viewport, host) {
+  viewport.style.height = 'auto';
+  embedded.style.marginTop = '0';
+  viewport.style.overflow = 'visible';
+
+  const mobile = isMobileCapture();
+  const canvas = await captureViewport(viewport, mobile ? 0.85 : 1.25);
+  if (!canvas?.width || !canvas?.height) {
+    throw new Error('PDF render failed');
+  }
+
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgData = canvasToJpeg(canvas, mobile ? 0.7 : 0.82);
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  if (imgHeight <= pageHeight) {
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+  } else {
+    let rendered = 0;
+    let page = 0;
+    while (rendered < imgHeight) {
+      if (page > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, -rendered, imgWidth, imgHeight);
+      rendered += pageHeight;
+      page += 1;
+    }
+  }
+
+  return pdf.output('blob');
+}
+
 /**
- * Render quotation DOM to a multi-page A4 PDF blob (viewport slice — works for long brochures).
+ * Render quotation DOM to a multi-page A4 PDF blob.
  */
 export async function exportQuotationPdfBlob(contentEl) {
   if (!contentEl) throw new Error('Quotation preview is not ready');
@@ -91,52 +167,12 @@ export async function exportQuotationPdfBlob(contentEl) {
   const host = mountCaptureHost(viewport);
 
   try {
-    await waitForImages(embedded, 12000);
-    if (document.fonts?.ready) {
-      try {
-        await document.fonts.ready;
-      } catch {
-        /* ignore */
-      }
+    try {
+      return await buildPdfFromSlices(embedded, viewport, host);
+    } catch (sliceErr) {
+      console.warn('Slice PDF capture failed, trying simple mode', sliceErr);
+      return await buildPdfSimple(embedded, viewport, host);
     }
-    await new Promise((r) => setTimeout(r, 400));
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const totalHeight = Math.max(embedded.scrollHeight, embedded.offsetHeight, 1);
-    const scale = totalHeight > 12000 ? 1.5 : 2;
-    const slicePx = Math.max(1000, Math.floor((CAPTURE_WIDTH_PX * pageHeight) / pageWidth));
-
-    let pageIndex = 0;
-    for (let y = 0; y < totalHeight; y += slicePx) {
-      const sliceHeight = Math.min(slicePx, totalHeight - y);
-      viewport.style.height = `${sliceHeight}px`;
-      embedded.style.marginTop = `-${y}px`;
-
-      const canvas = await captureViewport(viewport, scale);
-
-      if (!canvas?.width || !canvas?.height || isCanvasMostlyBlank(canvas)) {
-        throw new Error('PDF render failed — preview was empty. Use Preview PDF → Print/Save PDF.');
-      }
-
-      let imgData;
-      try {
-        imgData = canvas.toDataURL('image/jpeg', 0.85);
-      } catch {
-        throw new Error('PDF image too large — try Preview PDF → Print/Save PDF');
-      }
-
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      if (pageIndex > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
-      pageIndex += 1;
-    }
-
-    if (!pageIndex) throw new Error('PDF render failed');
-    return pdf.output('blob');
   } finally {
     host.remove();
   }

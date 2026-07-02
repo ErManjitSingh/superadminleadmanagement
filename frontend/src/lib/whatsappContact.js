@@ -138,12 +138,16 @@ export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName
       return openWhatsApp(phone, msg);
     }
 
-    // No hosted PDF — last resort: system share sheet (user picks WhatsApp + contact)
     const file = pdfBlob
       ? new File([pdfBlob], fileName || 'quotation.pdf', { type: 'application/pdf' })
       : null;
     if (file && navigator.share) {
       try {
+        const withText = { files: [file], text: msg };
+        if (navigator.canShare?.(withText)) {
+          await navigator.share(withText);
+          return true;
+        }
         const fileOnly = { files: [file] };
         if (navigator.canShare?.(fileOnly)) {
           await navigator.share(fileOnly);
@@ -154,7 +158,7 @@ export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName
       }
     }
 
-    return openWhatsApp(phone, `${msg}\n\n(PDF link not ready — save quotation and try again.)`);
+    return openWhatsApp(phone, msg);
   }
 
   if (pdfBlob) {

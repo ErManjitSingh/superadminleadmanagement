@@ -47,12 +47,14 @@ const {
   autosaveQuotation,
   saveQuotationVersion,
   restoreQuotationVersion,
+  uploadQuotationPdf,
 } = require('../controllers/quotationController');
 router.get('/quotations/templates', getQuotationTemplates);
 router.post('/quotations/autosave', autosaveQuotation);
 router.post('/quotations/:id/autosave', autosaveQuotation);
 router.post('/quotations/:id/versions', saveQuotationVersion);
 router.post('/quotations/:id/versions/:versionNumber/restore', restoreQuotationVersion);
+router.post('/quotations/:id/pdf', uploadQuotationPdf);
 router.get('/quotations/:segment?', listQuotations);
 router.post('/quotations', createQuotation);
 router.put('/quotations/:id', updateQuotation);

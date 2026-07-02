@@ -32,6 +32,9 @@ export async function shareQuotationWithPdf({
   toast.info('Generating PDF…');
   try {
     const blob = await exportQuotationPdfBlob(contentEl);
+    if (!blob?.size) {
+      throw new Error('PDF empty');
+    }
     const fileName = `Quotation-${quoteNumber || 'draft'}.pdf`.replace(/[^\w.-]+/g, '_');
 
     let activeQuotationId = quotationId;
@@ -41,9 +44,16 @@ export async function shareQuotationWithPdf({
 
     let publicPdfUrl = existingPdfUrl ? buildPublicPdfUrl(existingPdfUrl) : '';
     if (activeQuotationId && savePath) {
-      const uploaded = await uploadQuotationPdf(activeQuotationId, blob, savePath);
-      publicPdfUrl = uploaded.publicUrl || buildPublicPdfUrl(uploaded.pdfUrl);
-    } else if (isMobileDevice()) {
+      try {
+        const uploaded = await uploadQuotationPdf(activeQuotationId, blob, savePath);
+        publicPdfUrl = uploaded.publicUrl || buildPublicPdfUrl(uploaded.pdfUrl);
+      } catch (uploadErr) {
+        console.warn('PDF upload failed', uploadErr);
+        if (isMobileDevice() && !publicPdfUrl) {
+          toast.info('PDF link upload fail — WhatsApp file share try ho raha hai.');
+        }
+      }
+    } else if (isMobileDevice() && !publicPdfUrl) {
       toast.error('Quotation save nahi hui. Pehle lead + package select karein, phir try karein.');
       return false;
     }
@@ -73,7 +83,7 @@ export async function shareQuotationWithPdf({
         isMobileDevice()
           ? publicPdfUrl
             ? 'WhatsApp khula — Send dabayein. Customer ko PDF link milega.'
-            : 'WhatsApp khula — message bhejein.'
+            : 'WhatsApp khula — PDF attach/share karein.'
           : publicPdfUrl
             ? 'PDF downloaded + WhatsApp opened with customer link.'
             : 'PDF downloaded — attach it in WhatsApp chat.',
@@ -82,9 +92,11 @@ export async function shareQuotationWithPdf({
     return shared;
   } catch (err) {
     console.error('PDF share failed', err);
-    const detail = String(err?.message || '');
-    if (/canvas|exceed|memory|too large/i.test(detail)) {
-      toast.error('PDF bahut bada hai. Pehle Preview PDF → Print/Save PDF try karein.');
+    const detail = String(err?.response?.data?.message || err?.message || '');
+    if (/canvas|exceed|memory|too large|security/i.test(detail)) {
+      toast.error('PDF bahut bada hai. Preview PDF → Print/Save PDF try karein.');
+    } else if (detail) {
+      toast.error(`PDF share fail: ${detail.slice(0, 120)}`);
     } else {
       toast.error('PDF send nahi ho paya. Download PDF try karein ya dubara attempt karein.');
     }
