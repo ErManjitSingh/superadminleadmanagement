@@ -30,7 +30,7 @@ export function buildQuotationShareUrl(shareToken) {
   return `${window.location.origin}${pathPrefix}/quote/${shareToken}`;
 }
 
-/** WhatsApp message for PDF file share — no download links. */
+/** Plain-text WhatsApp message (no emoji — survives wa.me encoding). */
 export function buildQuotationWhatsAppMessage({
   lead = {},
   packageName = '',
@@ -45,20 +45,20 @@ export function buildQuotationWhatsAppMessage({
   const pkg = packageName || 'travel package';
   const dur = duration ? `${duration} Days` : '';
   const price =
-    total > 0 ? `₹${Number(total).toLocaleString('en-IN')}` : '';
+    total > 0 ? `Rs.${Number(total).toLocaleString('en-IN')}` : '';
 
   const lines = [
     `Hello ${name},`,
     '',
     `Greetings from ${executiveName || APP_BRAND_NAME}!`,
     '',
-    `Your quotation is ready for *${dest}*:`,
-    `📦 Package: ${pkg}`,
+    `Your quotation is ready for ${dest}:`,
+    `Package: ${pkg}`,
   ];
-  if (dur) lines.push(`📅 Duration: ${dur}`);
-  if (price) lines.push(`💰 Total: ${price}`);
+  if (dur) lines.push(`Duration: ${dur}`);
+  if (price) lines.push(`Total: ${price}`);
   if (quoteNumber && quoteNumber !== 'DRAFT' && quoteNumber !== 'PREVIEW') {
-    lines.push(`📋 Quote #: ${quoteNumber}`);
+    lines.push(`Quote #: ${quoteNumber}`);
   }
   lines.push(
     '',
@@ -81,6 +81,11 @@ export function buildWhatsAppUrl(phone, message = '') {
 export function isMobileDevice() {
   if (typeof navigator === 'undefined') return false;
   return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+export function isAndroidDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android/i.test(navigator.userAgent);
 }
 
 export function openWhatsApp(phone, message = '') {
@@ -125,18 +130,34 @@ async function copyPhoneHint(phone) {
   }
 }
 
-async function sharePdfFileNative(file, message) {
+function buildPdfFile(pdfBlob, fileName) {
+  if (!pdfBlob) return null;
+  return new File([pdfBlob], fileName || 'quotation.pdf', {
+    type: 'application/pdf',
+    lastModified: Date.now(),
+  });
+}
+
+/**
+ * Native OS share with PDF file. Must run soon after user tap — do not await slow work before this.
+ */
+export async function sharePdfFileNative(file, message = '') {
   if (!file || !navigator.share) return false;
 
-  const attempts = [
-    { files: [file], text: message },
-    { files: [file], title: file.name },
-    { files: [file] },
-  ];
+  const attempts = isAndroidDevice()
+    ? [
+        { files: [file] },
+        { files: [file], text: message },
+        { files: [file], title: file.name },
+      ]
+    : [
+        { files: [file], text: message },
+        { files: [file] },
+        { files: [file], title: file.name },
+      ];
 
   for (const payload of attempts) {
     try {
-      if (navigator.canShare && !navigator.canShare(payload)) continue;
       await navigator.share(payload);
       return true;
     } catch (err) {
@@ -148,37 +169,29 @@ async function sharePdfFileNative(file, message) {
 
 /**
  * Share quotation PDF as a file (not a link).
- * Mobile: native share sheet → pick WhatsApp → PDF attached.
- * Desktop: download PDF + open WhatsApp chat (user attaches file).
+ * Returns { ok, mode } where mode is native-share | download-manual | desktop.
  */
 export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName }) {
-  if (!phone) return false;
+  if (!phone) return { ok: false, mode: 'error' };
 
-  const file = pdfBlob
-    ? new File([pdfBlob], fileName || 'quotation.pdf', { type: 'application/pdf' })
-    : null;
+  const file = buildPdfFile(pdfBlob, fileName);
 
   if (isMobileDevice() && file) {
     await copyPhoneHint(phone);
     const shared = await sharePdfFileNative(file, message);
-    if (shared) return true;
+    if (shared) return { ok: true, mode: 'native-share' };
 
     downloadBlob(pdfBlob, fileName || 'quotation.pdf');
-    openWhatsApp(
-      phone,
-      `${message}\n\n📎 PDF download ho gayi — attach (+) icon se file choose karein.`,
-    );
-    return true;
+    openWhatsApp(phone, message);
+    return { ok: true, mode: 'download-manual' };
   }
 
   if (pdfBlob) {
     downloadBlob(pdfBlob, fileName || 'quotation.pdf');
   }
 
-  return openWhatsApp(
-    phone,
-    `${message}\n\n📎 PDF download ho gayi — WhatsApp mein attach (+) se PDF file bhejein.`,
-  );
+  openWhatsApp(phone, message);
+  return { ok: true, mode: 'desktop' };
 }
 
 export function buildPublicPdfUrl(pdfPath) {

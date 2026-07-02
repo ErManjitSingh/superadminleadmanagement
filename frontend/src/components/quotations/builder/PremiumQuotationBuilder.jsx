@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -35,8 +35,9 @@ import { useAuth } from '../../../context/AuthContext';
 import { toast } from '../../../context/ToastContext';
 import { buildQuotationShareUrl } from '../../../lib/whatsappContact';
 import { logWhatsAppContact } from '../../../services/whatsappTemplatesApi';
-import { shareQuotationWithPdf } from '../quotationShare';
+import { shareQuotationWithPdf, warmQuotationPdfBlob } from '../quotationShare';
 import { downloadQuotationPdf } from '../exportQuotationPdf';
+import { isMobileDevice } from '../../../lib/whatsappContact';
 
 const HOTEL_STEP = 3;
 
@@ -56,6 +57,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const initialLeadId = searchParams.get('leadId');
   const pdfRef = useRef(null);
   const exportPdfRef = useRef(null);
+  const pdfBlobCacheRef = useRef(null);
+  const [pdfCacheReady, setPdfCacheReady] = useState(false);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [sharingPdf, setSharingPdf] = useState(false);
 
@@ -66,6 +69,43 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
 
   const shareUrl = b.shareToken ? buildQuotationShareUrl(b.shareToken) : '';
 
+  const pdfWarmKey = useMemo(
+    () =>
+      JSON.stringify({
+        step: b.step,
+        leadId: b.state.leadId,
+        packageId: b.state.packageId,
+        templateKey: b.state.templateKey,
+        total: b.state.pricing?.grandTotal,
+        itinerary: b.customItinerary?.length,
+        packageName: b.state.packageInfo?.packageName,
+      }),
+    [b.step, b.state, b.customItinerary?.length],
+  );
+
+  useEffect(() => {
+    if (b.step !== 6 || !b.draftQuote || !exportPdfRef.current) {
+      pdfBlobCacheRef.current = null;
+      setPdfCacheReady(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setPdfCacheReady(false);
+    const timer = setTimeout(() => {
+      warmQuotationPdfBlob(exportPdfRef.current).then((blob) => {
+        if (cancelled) return;
+        pdfBlobCacheRef.current = blob;
+        setPdfCacheReady(Boolean(blob?.size));
+      });
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [pdfWarmKey, b.draftQuote, b.step]);
+
   const handleSendWhatsApp = useCallback(async () => {
     const lead = b.selectedLead;
     const phone = lead?.whatsapp || lead?.phone;
@@ -75,6 +115,10 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
     }
     if (!exportPdfRef.current) {
       toast.error('Quotation preview not ready. Wait a moment and try again.');
+      return;
+    }
+    if (isMobileDevice() && !pdfCacheReady) {
+      toast.info('PDF ready ho rahi hai… 2-3 second wait karein, phir dubara try karein.');
       return;
     }
 
@@ -93,6 +137,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
 
       await shareQuotationWithPdf({
         contentEl: exportPdfRef.current,
+        prebuiltBlob: pdfBlobCacheRef.current,
         quotationId: b.draftId,
         savePath: b.config.savePath,
         ensureQuotationId: b.ensureDraftSaved,
@@ -108,7 +153,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
     } finally {
       setSharingPdf(false);
     }
-  }, [b, user?.name, shareUrl]);
+  }, [b, user?.name, pdfCacheReady]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (!exportPdfRef.current) {
@@ -290,6 +335,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                     onSendWhatsApp={handleSendWhatsApp}
                     onDownloadPdf={handleDownloadPdf}
                     sharingPdf={sharingPdf}
+                    pdfCacheReady={pdfCacheReady}
                   />
                 )}
               </motion.div>
@@ -497,7 +543,7 @@ function StepPackage({ b, initialLeadId }) {
   );
 }
 
-function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp, onDownloadPdf, sharingPdf }) {
+function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp, onDownloadPdf, sharingPdf, pdfCacheReady }) {
   const total = b.state.pricing?.grandTotal || b.state.pricing?.total || 0;
   const info = b.state.packageInfo || {};
   const noHotel = isNoHotelMealPlan(info.mealPlan);
@@ -640,12 +686,22 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
           type="button"
           variant="outline"
           className="rounded-xl gap-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-800"
-          disabled={!customerPhone || sharingPdf}
-          title={customerPhone ? 'Generate PDF and share on WhatsApp' : 'Add customer phone on lead'}
+          disabled={!customerPhone || sharingPdf || (isMobileDevice() && !pdfCacheReady)}
+          title={
+            !customerPhone
+              ? 'Add customer phone on lead'
+              : isMobileDevice() && !pdfCacheReady
+                ? 'PDF prepare ho rahi hai…'
+                : 'Generate PDF and share on WhatsApp'
+          }
           onClick={onSendWhatsApp}
         >
           {sharingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
-          {sharingPdf ? 'Sending…' : 'WhatsApp + PDF'}
+          {sharingPdf
+            ? 'Sending…'
+            : isMobileDevice() && !pdfCacheReady
+              ? 'PDF ready ho rahi…'
+              : 'WhatsApp + PDF'}
         </Button>
       </div>
 
