@@ -95,6 +95,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
         contentEl: exportPdfRef.current,
         quotationId: b.draftId,
         savePath: b.config.savePath,
+        ensureQuotationId: b.ensureDraftSaved,
         phone,
         lead,
         packageName: info.packageName || b.activePkg?.name,
@@ -218,7 +219,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
         <div
           aria-hidden
           className="fixed top-0 left-0 w-[794px] -z-10 pointer-events-none overflow-visible"
-          style={{ visibility: 'hidden' }}
+          style={{ opacity: 0.01, visibility: 'visible' }}
         >
           <QuotePdfPreview ref={exportPdfRef} quote={b.draftQuote} />
         </div>

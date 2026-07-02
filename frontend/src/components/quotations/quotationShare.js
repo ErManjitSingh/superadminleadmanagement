@@ -2,6 +2,7 @@ import { toast } from '../../context/ToastContext';
 import {
   buildQuotationWhatsAppMessage,
   buildPublicPdfUrl,
+  isMobileDevice,
   shareQuotationWhatsApp,
 } from '../../lib/whatsappContact';
 import { uploadQuotationPdf } from '../../services/quotationsApi';
@@ -11,6 +12,7 @@ export async function shareQuotationWithPdf({
   contentEl,
   quotationId,
   savePath,
+  ensureQuotationId,
   phone,
   lead,
   packageName,
@@ -32,15 +34,18 @@ export async function shareQuotationWithPdf({
     const blob = await exportQuotationPdfBlob(contentEl);
     const fileName = `Quotation-${quoteNumber || 'draft'}.pdf`.replace(/[^\w.-]+/g, '_');
 
+    let activeQuotationId = quotationId;
+    if (!activeQuotationId && ensureQuotationId) {
+      activeQuotationId = await ensureQuotationId();
+    }
+
     let publicPdfUrl = existingPdfUrl ? buildPublicPdfUrl(existingPdfUrl) : '';
-    if (quotationId && savePath) {
-      try {
-        const uploaded = await uploadQuotationPdf(quotationId, blob, savePath);
-        publicPdfUrl = uploaded.publicUrl || buildPublicPdfUrl(uploaded.pdfUrl);
-      } catch (uploadErr) {
-        console.warn('PDF upload failed', uploadErr);
-        toast.info('PDF ready — sharing without server link.');
-      }
+    if (activeQuotationId && savePath) {
+      const uploaded = await uploadQuotationPdf(activeQuotationId, blob, savePath);
+      publicPdfUrl = uploaded.publicUrl || buildPublicPdfUrl(uploaded.pdfUrl);
+    } else if (isMobileDevice()) {
+      toast.error('Quotation save nahi hui. Pehle lead + package select karein, phir try karein.');
+      return false;
     }
 
     const message = buildQuotationWhatsAppMessage({
@@ -65,9 +70,13 @@ export async function shareQuotationWithPdf({
 
     if (shared) {
       toast.success(
-        publicPdfUrl
-          ? 'PDF sent — WhatsApp opened with download link.'
-          : 'PDF downloaded — WhatsApp opened. Attach the file in chat if needed.',
+        isMobileDevice()
+          ? publicPdfUrl
+            ? 'WhatsApp khula — Send dabayein. Customer ko PDF link milega.'
+            : 'WhatsApp khula — message bhejein.'
+          : publicPdfUrl
+            ? 'PDF downloaded + WhatsApp opened with customer link.'
+            : 'PDF downloaded — attach it in WhatsApp chat.',
       );
     }
     return shared;

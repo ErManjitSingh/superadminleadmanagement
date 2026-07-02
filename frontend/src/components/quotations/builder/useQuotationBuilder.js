@@ -622,6 +622,19 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     }
   };
 
+  const ensureDraftSaved = async () => {
+    if (draftId) return draftId;
+    if (!state.leadId || !state.packageId) {
+      throw new Error('Select lead and package before sharing.');
+    }
+    const payload = buildSavePayload('draft');
+    const { data } = await API.post(`${config.savePath}/autosave`, payload, { skipErrorToast: true });
+    setDraftId(data._id);
+    setShareToken(data.shareToken || '');
+    setVersions(data.versions || []);
+    return data._id;
+  };
+
   return {
     config,
     step,
@@ -673,6 +686,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     draftQuote,
     saving,
     handleSubmit,
+    ensureDraftSaved,
     saveVersion,
     restoreVersion,
     buildPackageSnapshot,
