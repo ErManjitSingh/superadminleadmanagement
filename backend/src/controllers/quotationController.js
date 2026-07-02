@@ -375,4 +375,5 @@ module.exports = {
   autosaveQuotation,
   saveQuotationVersion,
   restoreQuotationVersion,
+  uploadQuotationPdf,
 };
