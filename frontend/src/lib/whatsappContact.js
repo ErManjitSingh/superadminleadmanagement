@@ -30,6 +30,7 @@ export function buildQuotationShareUrl(shareToken) {
   return `${window.location.origin}${pathPrefix}/quote/${shareToken}`;
 }
 
+/** WhatsApp message for PDF file share — no download links. */
 export function buildQuotationWhatsAppMessage({
   lead = {},
   packageName = '',
@@ -38,8 +39,6 @@ export function buildQuotationWhatsAppMessage({
   total = 0,
   quoteNumber = '',
   executiveName = '',
-  shareUrl = '',
-  pdfUrl = '',
 } = {}) {
   const name = lead.name || 'Sir/Madam';
   const dest = destination || lead.destination || 'your trip';
@@ -61,17 +60,13 @@ export function buildQuotationWhatsAppMessage({
   if (quoteNumber && quoteNumber !== 'DRAFT' && quoteNumber !== 'PREVIEW') {
     lines.push(`📋 Quote #: ${quoteNumber}`);
   }
-  lines.push('');
-  lines.push('Please review the details and let us know if you would like any changes.');
-  if (pdfUrl) {
-    lines.push('', `📄 Download quotation PDF: ${pdfUrl}`);
-  } else {
-    lines.push('(PDF will be attached or linked when available.)');
-  }
-  if (shareUrl) {
-    lines.push('', `View online: ${shareUrl}`);
-  }
-  lines.push('', 'Thank you!');
+  lines.push(
+    '',
+    'Please find the quotation PDF attached.',
+    'Let us know if you would like any changes.',
+    '',
+    'Thank you!',
+  );
   return lines.join('\n');
 }
 
@@ -95,7 +90,6 @@ export function openWhatsApp(phone, message = '') {
   const waMeUrl = text ? `https://wa.me/${normalized}?text=${text}` : `https://wa.me/${normalized}`;
 
   if (isMobileDevice()) {
-    // whatsapp:// opens the app with the customer number pre-filled (Android/iOS)
     const appUrl = text
       ? `whatsapp://send?phone=${normalized}&text=${text}`
       : `whatsapp://send?phone=${normalized}`;
@@ -120,56 +114,71 @@ export function downloadBlob(blob, fileName) {
   URL.revokeObjectURL(url);
 }
 
+async function copyPhoneHint(phone) {
+  const normalized = normalizeWhatsAppPhone(phone);
+  if (!normalized) return false;
+  try {
+    await navigator.clipboard.writeText(normalized);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function sharePdfFileNative(file, message) {
+  if (!file || !navigator.share) return false;
+
+  const attempts = [
+    { files: [file], text: message },
+    { files: [file], title: file.name },
+    { files: [file] },
+  ];
+
+  for (const payload of attempts) {
+    try {
+      if (navigator.canShare && !navigator.canShare(payload)) continue;
+      await navigator.share(payload);
+      return true;
+    } catch (err) {
+      if (err?.name === 'AbortError') return false;
+    }
+  }
+  return false;
+}
+
 /**
- * Share quotation on WhatsApp with optional PDF file.
- * Mobile: opens WhatsApp to customer number with PDF download link in message.
- * Desktop: downloads PDF locally + opens WhatsApp with the same link.
- * (Browsers cannot auto-attach files to a specific WhatsApp chat.)
+ * Share quotation PDF as a file (not a link).
+ * Mobile: native share sheet → pick WhatsApp → PDF attached.
+ * Desktop: download PDF + open WhatsApp chat (user attaches file).
  */
-export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName, pdfUrl }) {
+export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName }) {
   if (!phone) return false;
 
-  const msg = pdfUrl && !message.includes(pdfUrl)
-    ? `${message}\n\n📄 Quotation PDF: ${pdfUrl}`
-    : message;
+  const file = pdfBlob
+    ? new File([pdfBlob], fileName || 'quotation.pdf', { type: 'application/pdf' })
+    : null;
 
-  if (isMobileDevice()) {
-    if (pdfUrl) {
-      return openWhatsApp(phone, msg);
-    }
+  if (isMobileDevice() && file) {
+    await copyPhoneHint(phone);
+    const shared = await sharePdfFileNative(file, message);
+    if (shared) return true;
 
-    const file = pdfBlob
-      ? new File([pdfBlob], fileName || 'quotation.pdf', { type: 'application/pdf' })
-      : null;
-    if (file && navigator.share) {
-      try {
-        const withText = { files: [file], text: msg };
-        if (navigator.canShare?.(withText)) {
-          await navigator.share(withText);
-          return true;
-        }
-        const fileOnly = { files: [file] };
-        if (navigator.canShare?.(fileOnly)) {
-          await navigator.share(fileOnly);
-          return true;
-        }
-      } catch (err) {
-        if (err?.name === 'AbortError') return false;
-      }
-    }
-
-    return openWhatsApp(phone, msg);
+    downloadBlob(pdfBlob, fileName || 'quotation.pdf');
+    openWhatsApp(
+      phone,
+      `${message}\n\n📎 PDF download ho gayi — attach (+) icon se file choose karein.`,
+    );
+    return true;
   }
 
   if (pdfBlob) {
     downloadBlob(pdfBlob, fileName || 'quotation.pdf');
   }
 
-  const desktopMsg = pdfUrl
-    ? `${msg}\n\n📄 PDF downloaded — attach it in WhatsApp if needed.`
-    : msg;
-
-  return openWhatsApp(phone, desktopMsg);
+  return openWhatsApp(
+    phone,
+    `${message}\n\n📎 PDF download ho gayi — WhatsApp mein attach (+) se PDF file bhejein.`,
+  );
 }
 
 export function buildPublicPdfUrl(pdfPath) {

@@ -104,7 +104,6 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
         total,
         quoteNumber: b.draftQuote?.quoteNumber,
         executiveName: user?.name,
-        shareUrl,
       });
     } finally {
       setSharingPdf(false);

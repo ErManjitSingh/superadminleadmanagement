@@ -1,7 +1,6 @@
 import { toast } from '../../context/ToastContext';
 import {
   buildQuotationWhatsAppMessage,
-  buildPublicPdfUrl,
   isMobileDevice,
   shareQuotationWhatsApp,
 } from '../../lib/whatsappContact';
@@ -21,8 +20,6 @@ export async function shareQuotationWithPdf({
   total,
   quoteNumber,
   executiveName,
-  shareUrl,
-  existingPdfUrl = '',
 }) {
   if (!contentEl) {
     toast.error('Quotation preview not ready. Wait a few seconds and try again.');
@@ -39,23 +36,22 @@ export async function shareQuotationWithPdf({
 
     let activeQuotationId = quotationId;
     if (!activeQuotationId && ensureQuotationId) {
-      activeQuotationId = await ensureQuotationId();
-    }
-
-    let publicPdfUrl = existingPdfUrl ? buildPublicPdfUrl(existingPdfUrl) : '';
-    if (activeQuotationId && savePath) {
       try {
-        const uploaded = await uploadQuotationPdf(activeQuotationId, blob, savePath);
-        publicPdfUrl = uploaded.publicUrl || buildPublicPdfUrl(uploaded.pdfUrl);
-      } catch (uploadErr) {
-        console.warn('PDF upload failed', uploadErr);
-        if (isMobileDevice() && !publicPdfUrl) {
-          toast.info('PDF link upload fail — WhatsApp file share try ho raha hai.');
+        activeQuotationId = await ensureQuotationId();
+      } catch (saveErr) {
+        if (isMobileDevice()) {
+          console.warn('Draft save skipped for share', saveErr);
+        } else {
+          throw saveErr;
         }
       }
-    } else if (isMobileDevice() && !publicPdfUrl) {
-      toast.error('Quotation save nahi hui. Pehle lead + package select karein, phir try karein.');
-      return false;
+    }
+
+    // Save PDF on server for records only — not sent as link to customer.
+    if (activeQuotationId && savePath) {
+      uploadQuotationPdf(activeQuotationId, blob, savePath).catch((err) => {
+        console.warn('PDF server save failed', err);
+      });
     }
 
     const message = buildQuotationWhatsAppMessage({
@@ -66,8 +62,6 @@ export async function shareQuotationWithPdf({
       total,
       quoteNumber,
       executiveName,
-      shareUrl,
-      pdfUrl: publicPdfUrl,
     });
 
     const shared = await shareQuotationWhatsApp({
@@ -75,18 +69,13 @@ export async function shareQuotationWithPdf({
       message,
       pdfBlob: blob,
       fileName,
-      pdfUrl: publicPdfUrl,
     });
 
     if (shared) {
       toast.success(
         isMobileDevice()
-          ? publicPdfUrl
-            ? 'WhatsApp khula — Send dabayein. Customer ko PDF link milega.'
-            : 'WhatsApp khula — PDF attach/share karein.'
-          : publicPdfUrl
-            ? 'PDF downloaded + WhatsApp opened with customer link.'
-            : 'PDF downloaded — attach it in WhatsApp chat.',
+          ? 'WhatsApp choose karein — PDF file attached hogi. Customer number clipboard par hai.'
+          : 'PDF download ho gayi — WhatsApp khula, attach (+) se PDF bhejein.',
       );
     }
     return shared;

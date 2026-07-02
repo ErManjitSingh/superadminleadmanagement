@@ -6,7 +6,7 @@ import QuotePricingPanel from './QuotePricingPanel';
 import QuoteTimeline from './QuoteTimeline';
 import { Button } from '../ui/button';
 import { formatINR } from './quotationUtils';
-import { buildQuotationShareUrl, buildPublicPdfUrl, buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
+import { buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
 import { toast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -45,9 +45,8 @@ export default function QuotationDetailDrawer({
   const creatorName = quote.createdByExecutive?.name || quote.createdBy?.name || '—';
   const packageName = quote.package?.name || quote.packageSnapshot?.name || 'Custom package';
   const sentEvent = [...(quote.timeline || [])].reverse().find((t) => t.type === 'sent');
-  const shareUrl = quote.shareToken ? buildQuotationShareUrl(quote.shareToken) : '';
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = async () => {
     if (!customerPhone) {
       toast.error('Customer phone number missing on this lead.');
       return;
@@ -60,13 +59,23 @@ export default function QuotationDetailDrawer({
       total: quote.pricing?.total,
       quoteNumber: quote.quoteNumber,
       executiveName: user?.name,
-      shareUrl,
-      pdfUrl: quote.pdfUrl ? buildPublicPdfUrl(quote.pdfUrl) : '',
     });
-    shareQuotationWhatsApp({
+
+    let pdfBlob = null;
+    if (quote.pdfUrl) {
+      try {
+        const res = await fetch(quote.pdfUrl.startsWith('http') ? quote.pdfUrl : `${window.location.origin}${quote.pdfUrl}`);
+        if (res.ok) pdfBlob = await res.blob();
+      } catch {
+        /* text-only fallback */
+      }
+    }
+
+    await shareQuotationWhatsApp({
       phone: customerPhone,
       message,
-      pdfUrl: quote.pdfUrl ? buildPublicPdfUrl(quote.pdfUrl) : '',
+      pdfBlob,
+      fileName: `Quotation-${quote.quoteNumber || 'quote'}.pdf`,
     });
   };
 
