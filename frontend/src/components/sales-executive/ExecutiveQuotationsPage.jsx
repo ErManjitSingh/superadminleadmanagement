@@ -15,6 +15,9 @@ import {
 } from './executivePageStyles';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
+import { buildQuotationShareUrl, buildQuotationWhatsAppMessage, openWhatsApp } from '../../lib/whatsappContact';
+import { toast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
 import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
@@ -38,6 +41,7 @@ const STATUS_LABELS = {
 
 export default function ExecutiveQuotationsPage() {
   const location = useLocation();
+  const { user } = useAuth();
   const [quotes, setQuotes] = useState([]);
   const [statusTab, setStatusTab] = useState('all');
   const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
@@ -77,10 +81,31 @@ export default function ExecutiveQuotationsPage() {
     }
   }, [location.state]);
 
-  const handleSend = async (id) => {
+  const handleSend = async (quote) => {
+    const id = quote?._id || quote;
+    const row = typeof quote === 'object' ? quote : quotes.find((q) => q._id === id);
     try {
       await API.put(`/sales-executive/quotations/${id}`, { action: 'send' });
       fetchQuotes();
+
+      const lead = row?.lead || {};
+      const phone = lead.whatsapp || lead.phone;
+      if (!phone) {
+        toast.info('Marked as sent. Add customer phone to send via WhatsApp.');
+        return;
+      }
+
+      const message = buildQuotationWhatsAppMessage({
+        lead,
+        packageName: row?.package?.name || row?.packageSnapshot?.name,
+        destination: lead.destination || row?.packageInfo?.destination,
+        duration: row?.packageInfo?.duration || row?.packageSnapshot?.duration,
+        total: row?.pricing?.total,
+        quoteNumber: row?.quoteNumber,
+        executiveName: user?.name,
+        shareUrl: row?.shareToken ? buildQuotationShareUrl(row.shareToken) : '',
+      });
+      openWhatsApp(phone, message);
     } catch (err) {
       /* toast via axios */
     }
@@ -207,7 +232,7 @@ export default function ExecutiveQuotationsPage() {
                           </Button>
                         )}
                         {q.status === 'approved' && (
-                          <Button size="sm" variant="outline" onClick={() => handleSend(q._id)}>
+                          <Button size="sm" variant="outline" onClick={() => handleSend(q)}>
                             <Send className="w-3 h-3 mr-1" /> Send to Customer
                           </Button>
                         )}
@@ -235,7 +260,7 @@ export default function ExecutiveQuotationsPage() {
               Submit for Approval
             </Button>
           ) : selected?.status === 'approved' ? (
-            <Button size="sm" variant="outline" className="flex-1" onClick={() => { handleSend(selected._id); setSelected(null); }}>
+            <Button size="sm" variant="outline" className="flex-1" onClick={() => { handleSend(selected); setSelected(null); }}>
               <Send className="w-3 h-3 mr-1" /> Send to Customer
             </Button>
           ) : null

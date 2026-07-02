@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -30,6 +30,10 @@ import SimplifiedTransportSection from '../../builder-shared/SimplifiedTransport
 import SimplifiedPricingSection from '../../builder-shared/SimplifiedPricingSection';
 import { builderUiToHotels, builderUiToTransport } from '../../builder-shared/builderUiUtils';
 import { BUILDER_STEPS, VEHICLE_TYPES } from './builderConstants';
+import { useAuth } from '../../../context/AuthContext';
+import { toast } from '../../../context/ToastContext';
+import { buildQuotationShareUrl, buildQuotationWhatsAppMessage, openWhatsApp } from '../../../lib/whatsappContact';
+import { logWhatsAppContact } from '../../../services/whatsappTemplatesApi';
 
 const HOTEL_STEP = 3;
 
@@ -51,8 +55,45 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   const b = useQuotationBuilder({ mode, initialLeadId });
+  const { user } = useAuth();
   const noHotel = isNoHotelMealPlan(b.state.packageInfo?.mealPlan);
   const visibleSteps = BUILDER_STEPS.filter((s) => !(noHotel && s.id === HOTEL_STEP));
+
+  const shareUrl = b.shareToken ? buildQuotationShareUrl(b.shareToken) : '';
+
+  const handleSendWhatsApp = useCallback(async () => {
+    const lead = b.selectedLead;
+    const phone = lead?.whatsapp || lead?.phone;
+    if (!phone) {
+      toast.error('Customer phone number missing. Add phone on the lead first.');
+      return;
+    }
+
+    const info = b.state.packageInfo || {};
+    const total = Number(b.state.pricing?.grandTotal || b.state.pricing?.total) || 0;
+    const message = buildQuotationWhatsAppMessage({
+      lead,
+      packageName: info.packageName || b.activePkg?.name,
+      destination: info.destination || b.hotelDestination,
+      duration: info.duration,
+      total,
+      quoteNumber: b.draftQuote?.quoteNumber,
+      executiveName: user?.name,
+      shareUrl,
+    });
+
+    try {
+      if (b.state.leadId && b.config.contactEndpoint) {
+        await logWhatsAppContact(b.state.leadId, {}, b.config.contactEndpoint);
+      }
+    } catch {
+      /* logging is optional */
+    }
+
+    if (!openWhatsApp(phone, message)) {
+      toast.error('Could not open WhatsApp. Check the customer phone number.');
+    }
+  }, [b, user?.name, shareUrl]);
 
   const goNext = () => b.setStep((s) => getNextStep(s, noHotel));
   const goBack = () => b.setStep((s) => getPrevStep(s, noHotel));
@@ -83,10 +124,6 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
       },
     });
   };
-
-  const shareUrl = b.shareToken
-    ? `${window.location.origin}/quote/${b.shareToken}`
-    : null;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-100 via-sky-50/80 to-indigo-100/60 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40">
@@ -210,6 +247,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                     shareUrl={shareUrl}
                     onFinish={handleFinish}
                     onOpenPreview={() => setPdfPreviewOpen(true)}
+                    onSendWhatsApp={handleSendWhatsApp}
                   />
                 )}
               </motion.div>
@@ -417,7 +455,7 @@ function StepPackage({ b, initialLeadId }) {
   );
 }
 
-function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview }) {
+function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp }) {
   const total = b.state.pricing?.grandTotal || b.state.pricing?.total || 0;
   const info = b.state.packageInfo || {};
   const noHotel = isNoHotelMealPlan(info.mealPlan);
@@ -425,6 +463,7 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview }) {
   const hotels = noHotel || b.builderUi.skipHotel ? [] : builderUiToHotels(b.builderUi, destList);
   const transport = builderUiToTransport(b.builderUi);
   const itinerary = b.customItinerary || [];
+  const customerPhone = b.selectedLead?.whatsapp || b.selectedLead?.phone;
 
   return (
     <div className="space-y-5">
@@ -558,8 +597,10 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview }) {
         <Button
           type="button"
           variant="outline"
-          className="rounded-xl gap-2"
-          onClick={() => b.selectedLead?.phone && window.open(`https://wa.me/${b.selectedLead.phone.replace(/\D/g, '')}`, '_blank')}
+          className="rounded-xl gap-2 bg-green-50 hover:bg-green-100 border-green-200 text-green-800"
+          disabled={!customerPhone}
+          title={customerPhone ? 'Open WhatsApp with quotation message' : 'Add customer phone on lead'}
+          onClick={onSendWhatsApp}
         >
           <MessageCircle className="w-4 h-4" /> WhatsApp
         </Button>

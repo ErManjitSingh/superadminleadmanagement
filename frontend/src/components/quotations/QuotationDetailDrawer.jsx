@@ -1,4 +1,4 @@
-import { Download, Mail, MapPin, Phone, User, Users, Calendar, Send } from 'lucide-react';
+import { Download, Mail, MapPin, Phone, User, Users, Calendar, Send, MessageCircle } from 'lucide-react';
 import AppDrawer from '../ui/AppDrawer';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
@@ -6,6 +6,9 @@ import QuotePricingPanel from './QuotePricingPanel';
 import QuoteTimeline from './QuoteTimeline';
 import { Button } from '../ui/button';
 import { formatINR } from './quotationUtils';
+import { buildQuotationShareUrl, buildQuotationWhatsAppMessage, openWhatsApp } from '../../lib/whatsappContact';
+import { toast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 function InfoRow({ icon: Icon, label, value }) {
   if (!value) return null;
@@ -33,12 +36,36 @@ export default function QuotationDetailDrawer({
   onDownloadPdf,
   actions,
 }) {
+  const { user } = useAuth();
+
   if (!quote) return null;
 
   const lead = quote.lead || {};
+  const customerPhone = lead.whatsapp || lead.phone;
   const creatorName = quote.createdByExecutive?.name || quote.createdBy?.name || '—';
   const packageName = quote.package?.name || quote.packageSnapshot?.name || 'Custom package';
   const sentEvent = [...(quote.timeline || [])].reverse().find((t) => t.type === 'sent');
+  const shareUrl = quote.shareToken ? buildQuotationShareUrl(quote.shareToken) : '';
+
+  const handleWhatsApp = () => {
+    if (!customerPhone) {
+      toast.error('Customer phone number missing on this lead.');
+      return;
+    }
+    const message = buildQuotationWhatsAppMessage({
+      lead,
+      packageName,
+      destination: lead.destination || quote.packageInfo?.destination,
+      duration: quote.packageInfo?.duration || quote.packageSnapshot?.duration,
+      total: quote.pricing?.total,
+      quoteNumber: quote.quoteNumber,
+      executiveName: user?.name,
+      shareUrl,
+    });
+    if (!openWhatsApp(customerPhone, message)) {
+      toast.error('Could not open WhatsApp.');
+    }
+  };
 
   return (
     <AppDrawer open={open} onClose={onClose} className="max-w-xl overflow-y-auto">
@@ -106,6 +133,15 @@ export default function QuotationDetailDrawer({
           {onDownloadPdf && (
             <Button onClick={onDownloadPdf} variant="sky" className="rounded-xl gap-2 flex-1">
               <Download className="w-4 h-4" /> View PDF
+            </Button>
+          )}
+          {customerPhone && (
+            <Button
+              type="button"
+              onClick={handleWhatsApp}
+              className="rounded-xl gap-2 flex-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
+            >
+              <MessageCircle className="w-4 h-4" /> WhatsApp
             </Button>
           )}
           {!readOnly && actions}
