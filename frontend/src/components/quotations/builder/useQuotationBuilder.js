@@ -22,6 +22,7 @@ import {
 export const BUILDER_CONFIG = {
   executive: {
     leadsPath: '/sales-executive/leads/all',
+    leadApiPath: (id) => `/sales-executive/leads/${id}`,
     leadDetailPath: (id) => `/sales-executive/leads/${id}/view`,
     savePath: '/sales-executive/quotations',
     backPath: '/sales-executive/quotations',
@@ -35,7 +36,8 @@ export const BUILDER_CONFIG = {
   },
   team_leader: {
     leadsPath: '/team-leader/leads',
-    leadDetailPath: (id) => `/team-leader/leads/${id}`,
+    leadApiPath: (id) => `/team-leader/leads/${id}`,
+    leadDetailPath: (id) => `/team-leader/leads/${id}/view`,
     leadsParams: { filter: 'all', page: 1, limit: 50 },
     savePath: '/team-leader/quotations',
     backPath: '/team-leader/quotations/pending',
@@ -48,7 +50,8 @@ export const BUILDER_CONFIG = {
   },
   sales_manager: {
     leadsPath: '/sales-manager/leads',
-    leadDetailPath: (id) => `/sales-manager/leads/${id}`,
+    leadApiPath: (id) => `/sales-manager/leads/${id}`,
+    leadDetailPath: (id) => `/sales-manager/leads/${id}/view`,
     leadsParams: { filter: 'all', page: 1, limit: 50 },
     savePath: '/sales-manager/quotations',
     backPath: '/sales-manager/quotations/pending',
@@ -61,6 +64,7 @@ export const BUILDER_CONFIG = {
   },
   admin: {
     leadsPath: '/leads',
+    leadApiPath: (id) => `/leads/${id}`,
     leadDetailPath: (id) => `/leads/${id}`,
     savePath: '/quotations',
     backPath: '/quotations',
@@ -104,6 +108,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   const [leadSearch, setLeadSearch] = useState('');
   const debouncedLeadSearch = useDebouncedValue(leadSearch, 400);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [loadingLead, setLoadingLead] = useState(Boolean(initialLeadId));
+  const [leadLoadError, setLeadLoadError] = useState('');
 
   const [templates, setTemplates] = useState([]);
   const [packages, setPackages] = useState([]);
@@ -229,20 +235,31 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   const fetchLeadById = useCallback(
     async (id) => {
       if (!id) return null;
+      setLoadingLead(true);
+      setLeadLoadError('');
       try {
-        const { data } = await API.get(`${config.leadDetailPath(id)}`, { skipErrorToast: true });
-        setSelectedLead(data);
+        const apiPath = config.leadApiPath?.(id) || config.leadDetailPath(id);
+        const { data } = await API.get(apiPath, { skipErrorToast: true });
+        const lead = data?.lead || data;
+        if (!lead?._id && !lead?.name) {
+          throw new Error('Invalid lead response');
+        }
+        setSelectedLead(lead);
         setState((s) => ({
           ...s,
           leadId: id,
           packageInfo: {
             ...s.packageInfo,
-            destination: data.destination || s.packageInfo.destination,
+            destination: lead.destination || s.packageInfo.destination,
           },
         }));
-        return data;
+        return lead;
       } catch {
+        setSelectedLead(null);
+        setLeadLoadError('Could not load this lead. Open the quotation builder again from the lead page.');
         return null;
+      } finally {
+        setLoadingLead(false);
       }
     },
     [config]
@@ -617,6 +634,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     leadSearch,
     setLeadSearch,
     loadingLeads,
+    loadingLead,
+    leadLoadError,
     fetchLeads,
     selectLead,
     templates,

@@ -278,11 +278,23 @@ function StepPackage({ b, initialLeadId }) {
         <p className="text-sm text-content-muted mt-1">Start from a template or pick a catalog package</p>
       </div>
 
-      {initialLeadId && !b.selectedLead && (
+      {initialLeadId && b.loadingLead && (
         <GlassCard className="p-4">
           <p className="text-sm text-content-muted flex items-center gap-2">
             <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Loading lead details…
           </p>
+        </GlassCard>
+      )}
+
+      {initialLeadId && !b.loadingLead && b.leadLoadError && (
+        <GlassCard className="p-4 border border-red-500/30 bg-red-500/5">
+          <p className="text-sm text-red-700">{b.leadLoadError}</p>
+          <Link
+            to={b.config.leadDetailPath?.(initialLeadId) || b.config.backPath}
+            className="text-sm text-sky-600 font-semibold mt-2 inline-block"
+          >
+            Back to lead
+          </Link>
         </GlassCard>
       )}
 
