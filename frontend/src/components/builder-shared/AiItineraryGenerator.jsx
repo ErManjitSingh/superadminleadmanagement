@@ -97,7 +97,7 @@ export default function AiItineraryGenerator({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           rows={4}
-          placeholder='Describe your trip — e.g. "3N/4D Kasol from Delhi" or "Shimla Manali with Rohtang, from Delhi to Delhi"'
+          placeholder='Describe any trip in your own words — destinations, days, pickup city, activities (e.g. Kerala 5N houseboat, Goa honeymoon, Shimla Manali Rohtang from Delhi)'
           className={cn(inputCls('h-auto py-3 resize-none'), 'border-violet-500/20 focus:ring-violet-500/30')}
         />
 

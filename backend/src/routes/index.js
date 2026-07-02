@@ -48,6 +48,7 @@ const tenantRoutes = require('./tenantRoutes');
 const publicRoutes = require('./publicRoutes');
 const companySettingsRoutes = require('./companySettingsRoutes');
 const domainRoutes = require('./domainRoutes');
+const aiItineraryRoutes = require('./aiItineraryRoutes');
 
 router.use('/auth', authRoutes);
 router.use('/public', publicRoutes);
@@ -89,5 +90,6 @@ router.use('/domain', domainRoutes);
 router.use('/destination-assignment', destinationAssignmentRoutes);
 router.use('/skill-assignment', skillAssignmentRoutes);
 router.use('/assignment', assignmentConfigRoutes);
+router.use('/ai-itinerary', aiItineraryRoutes);
 
 module.exports = router;
