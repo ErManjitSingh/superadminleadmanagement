@@ -42,7 +42,23 @@ export const WIZARD_STEPS = [
 ];
 
 export const HOTEL_CATEGORIES = ['Budget', '3 Star', '4 Star', '5 Star', 'Luxury', 'Boutique'];
-export const MEAL_PLANS = ['EP (Room Only)', 'CP (Breakfast)', 'MAP (Breakfast + Dinner)', 'AP (All Meals)', 'All Inclusive'];
+export const NO_HOTEL_MEAL_PLAN = 'No Hotel';
+export const MEAL_PLANS = [
+  'EP (Room Only)',
+  'CP (Breakfast)',
+  'MAP (Breakfast + Dinner)',
+  'AP (All Meals)',
+  'All Inclusive',
+  NO_HOTEL_MEAL_PLAN,
+];
+/** Meal plans shown inside hotel room configuration (excludes No Hotel) */
+export const MEAL_PLANS_WITH_HOTEL = MEAL_PLANS.filter((m) => m !== NO_HOTEL_MEAL_PLAN);
+
+export function isNoHotelMealPlan(mealPlan) {
+  if (!mealPlan) return false;
+  const value = String(mealPlan).trim().toLowerCase();
+  return value === 'no hotel' || value === 'no_hotel';
+}
 
 import { APP_PLATFORM_DOMAIN, APP_QUOTES_EMAIL, APP_WEBSITE } from '../../config/branding';
 

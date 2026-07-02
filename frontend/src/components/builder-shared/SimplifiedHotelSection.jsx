@@ -1,7 +1,7 @@
 import { Plus, Trash2, Building2, MapPin } from 'lucide-react';
 import { Button } from '../ui/button';
 import GlassCard from '../quotations/builder/GlassCard';
-import { MEAL_PLANS } from '../quotations/constants';
+import { MEAL_PLANS_WITH_HOTEL } from '../quotations/constants';
 import { ROOM_TYPES } from './fleetConstants';
 import { emptyDestinationHotel } from './builderUiUtils';
 import { cn } from '../../lib/utils';
@@ -63,7 +63,7 @@ function HotelFields({ hotel, onChange }) {
           onChange={(e) => onChange({ ...hotel, mealPlan: e.target.value })}
           className={inputCls()}
         >
-          {MEAL_PLANS.map((m) => (
+          {MEAL_PLANS_WITH_HOTEL.map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>

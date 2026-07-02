@@ -135,8 +135,14 @@ export default function AiItineraryGenerator({
 
       {generating && (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 rounded-2xl bg-surface-elevated/60 animate-pulse" />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="rounded-2xl bg-surface-elevated/60 animate-pulse p-4 space-y-2">
+              <div className="h-4 w-20 bg-slate-200/80 rounded" />
+              <div className="h-5 w-3/4 bg-slate-200/80 rounded" />
+              <div className="h-3 w-full bg-slate-200/60 rounded" />
+              <div className="h-3 w-full bg-slate-200/60 rounded" />
+              <div className="h-3 w-2/3 bg-slate-200/60 rounded" />
+            </div>
           ))}
         </div>
       )}
@@ -161,15 +167,31 @@ export default function AiItineraryGenerator({
                   <textarea
                     value={day.description || ''}
                     onChange={(e) => updateDay(index, { description: e.target.value })}
-                    rows={3}
-                    className={inputCls('h-auto py-2 resize-none')}
-                    placeholder="Day description"
+                    rows={6}
+                    className={inputCls('h-auto py-2 resize-y min-h-[120px]')}
+                    placeholder="Detailed day description — morning, afternoon, evening activities..."
                   />
                 </div>
               ) : (
                 <>
                   <h3 className="font-bold text-content-primary">{day.title}</h3>
-                  <p className="text-sm text-content-secondary mt-1 whitespace-pre-wrap">{day.description}</p>
+                  <p className="text-sm text-content-secondary mt-2 leading-relaxed whitespace-pre-wrap">
+                    {day.description}
+                  </p>
+                  {(day.meals || day.activities) && (
+                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-subtle/60">
+                      {day.meals && (
+                        <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-amber-500/10 text-amber-800">
+                          Meals: {day.meals}
+                        </span>
+                      )}
+                      {day.activities && (
+                        <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-sky-500/10 text-sky-800">
+                          {day.activities}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </GlassCard>

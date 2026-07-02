@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,13 +14,11 @@ import {
   Mail,
   MessageCircle,
   Pencil,
-  Search,
   Sparkles,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
-import Avatar from '../../ui/Avatar';
 import QuotationPdfOverlay from '../QuotationPdfOverlay';
-import { HOTEL_CATEGORIES, MEAL_PLANS } from '../constants';
+import { HOTEL_CATEGORIES, MEAL_PLANS, isNoHotelMealPlan } from '../constants';
 import { formatINR } from '../quotationUtils';
 import { cn } from '../../../lib/utils';
 import { useQuotationBuilder } from './useQuotationBuilder';
@@ -31,7 +29,19 @@ import SimplifiedHotelSection from '../../builder-shared/SimplifiedHotelSection'
 import SimplifiedTransportSection from '../../builder-shared/SimplifiedTransportSection';
 import SimplifiedPricingSection from '../../builder-shared/SimplifiedPricingSection';
 import { builderUiToHotels, builderUiToTransport } from '../../builder-shared/builderUiUtils';
-import { VEHICLE_TYPES } from './builderConstants';
+import { BUILDER_STEPS, VEHICLE_TYPES } from './builderConstants';
+
+const HOTEL_STEP = 3;
+
+function getNextStep(step, noHotel) {
+  if (step === 2 && noHotel) return 4;
+  return Math.min(6, step + 1);
+}
+
+function getPrevStep(step, noHotel) {
+  if (step === 4 && noHotel) return 2;
+  return Math.max(1, step - 1);
+}
 
 export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const navigate = useNavigate();
@@ -41,9 +51,17 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   const b = useQuotationBuilder({ mode, initialLeadId });
+  const noHotel = isNoHotelMealPlan(b.state.packageInfo?.mealPlan);
+  const visibleSteps = BUILDER_STEPS.filter((s) => !(noHotel && s.id === HOTEL_STEP));
 
-  const goNext = () => b.setStep((s) => Math.min(6, s + 1));
-  const goBack = () => b.setStep((s) => Math.max(1, s - 1));
+  const goNext = () => b.setStep((s) => getNextStep(s, noHotel));
+  const goBack = () => b.setStep((s) => getPrevStep(s, noHotel));
+
+  useEffect(() => {
+    if (noHotel && b.step === HOTEL_STEP) {
+      b.setStep(4);
+    }
+  }, [noHotel, b.step, b.setStep]);
 
   const canContinue = () => {
     if (b.step === 1) return b.state.leadId && (b.state.packageId || b.state.templateKey);
@@ -107,14 +125,14 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
 
         <div className="max-w-6xl mx-auto px-4 pb-3 lg:hidden">
           <div className="flex gap-1 overflow-x-auto">
-            {Array.from({ length: 6 }, (_, i) => i + 1).map((n) => (
+            {visibleSteps.map((s) => (
               <button
-                key={n}
+                key={s.id}
                 type="button"
-                onClick={() => n <= b.maxReached && b.setStep(n)}
+                onClick={() => s.id <= b.maxReached && b.setStep(s.id)}
                 className={cn(
                   'shrink-0 h-1.5 rounded-full transition-all',
-                  b.step === n ? 'w-8 bg-sky-500' : n <= b.maxReached ? 'w-4 bg-sky-300' : 'w-4 bg-slate-200'
+                  b.step === s.id ? 'w-8 bg-sky-500' : s.id <= b.maxReached ? 'w-4 bg-sky-300' : 'w-4 bg-slate-200'
                 )}
               />
             ))}
@@ -132,7 +150,12 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
       <div className="max-w-6xl mx-auto p-4 flex gap-4">
         <aside className="hidden lg:block w-56 shrink-0">
           <GlassCard className="p-3 sticky top-20">
-            <BuilderStepNav step={b.step} maxReached={b.maxReached} onStepChange={b.setStep} />
+            <BuilderStepNav
+              step={b.step}
+              maxReached={b.maxReached}
+              onStepChange={b.setStep}
+              hiddenStepIds={noHotel ? [HOTEL_STEP] : []}
+            />
           </GlassCard>
         </aside>
 
@@ -146,7 +169,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2 }}
               >
-                {b.step === 1 && <StepPackage b={b} />}
+                {b.step === 1 && <StepPackage b={b} initialLeadId={initialLeadId} />}
                 {b.step === 2 && (
                   <AiItineraryGenerator
                     prompt={b.builderUi.aiPrompt}
@@ -159,7 +182,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                     onDurationChange={({ days, nights }) => b.updatePackageInfo({ duration: days })}
                   />
                 )}
-                {b.step === 3 && (
+                {b.step === 3 && !noHotel && (
                   <SimplifiedHotelSection
                     builderUi={b.builderUi}
                     onChange={b.updateBuilderUi}
@@ -246,7 +269,7 @@ function AutosaveBadge({ status }) {
   return null;
 }
 
-function StepPackage({ b }) {
+function StepPackage({ b, initialLeadId }) {
   const info = b.state.packageInfo;
   return (
     <div className="space-y-6">
@@ -255,48 +278,18 @@ function StepPackage({ b }) {
         <p className="text-sm text-content-muted mt-1">Start from a template or pick a catalog package</p>
       </div>
 
-      {!b.selectedLead && (
-        <GlassCard className="p-4 space-y-3">
-          <p className="text-sm font-bold">Select Lead</p>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted" />
-            <input
-              type="search"
-              value={b.leadSearch}
-              onChange={(e) => b.setLeadSearch(e.target.value)}
-              placeholder="Search leads (min 2 chars)…"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-subtle bg-white/50 text-sm"
-            />
-          </div>
-          {b.loadingLeads ? (
-            <p className="text-sm text-content-muted text-center py-4">Searching…</p>
-          ) : (
-            <div className="grid gap-2 max-h-48 overflow-y-auto">
-              {b.leads.map((l) => (
-                <button
-                  key={l._id}
-                  type="button"
-                  onClick={() => b.selectLead(l)}
-                  className={cn(
-                    'flex items-center gap-3 p-3 rounded-xl border text-left',
-                    b.state.leadId === l._id ? 'border-sky-500/50 bg-sky-500/10' : 'border-subtle'
-                  )}
-                >
-                  <Avatar name={l.name} size="sm" />
-                  <div>
-                    <p className="font-semibold text-sm">{l.name}</p>
-                    <p className="text-xs text-content-muted">{l.destination}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+      {initialLeadId && !b.selectedLead && (
+        <GlassCard className="p-4">
+          <p className="text-sm text-content-muted flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Loading lead details…
+          </p>
         </GlassCard>
       )}
 
       {b.selectedLead && (
         <GlassCard className="p-4 flex items-center justify-between">
           <div>
+            <p className="text-[10px] uppercase font-bold text-content-muted">Lead</p>
             <p className="font-bold">{b.selectedLead.name}</p>
             <p className="text-xs text-content-muted">
               {b.selectedLead.phone} · {b.selectedLead.destination}
@@ -307,6 +300,15 @@ function StepPackage({ b }) {
             className="text-xs text-sky-600 flex items-center gap-1"
           >
             View <ExternalLink className="w-3 h-3" />
+          </Link>
+        </GlassCard>
+      )}
+
+      {!initialLeadId && !b.selectedLead && (
+        <GlassCard className="p-4 text-center space-y-2">
+          <p className="text-sm text-content-muted">Open the quotation builder from a lead to continue.</p>
+          <Link to={b.config.backPath} className="text-sm text-sky-600 font-semibold">
+            Back to leads
           </Link>
         </GlassCard>
       )}
@@ -370,8 +372,27 @@ function StepPackage({ b }) {
         <Field label="Adults" type="number" value={info.adults} onChange={(v) => b.updatePackageInfo({ adults: Number(v) })} />
         <Field label="Children" type="number" value={info.children} onChange={(v) => b.updatePackageInfo({ children: Number(v) })} />
         <Field label="Infants" type="number" value={info.infants} onChange={(v) => b.updatePackageInfo({ infants: Number(v) })} />
-        <SelectField label="Meal Plan" value={info.mealPlan} options={MEAL_PLANS} onChange={(v) => b.updatePackageInfo({ mealPlan: v })} />
-        <SelectField label="Hotel Category" value={info.hotelCategory} options={HOTEL_CATEGORIES} onChange={(v) => b.updatePackageInfo({ hotelCategory: v })} />
+        <SelectField
+          label="Meal Plan"
+          value={info.mealPlan}
+          options={MEAL_PLANS}
+          onChange={(v) => {
+            const skipHotel = isNoHotelMealPlan(v);
+            b.updatePackageInfo({
+              mealPlan: v,
+              ...(skipHotel ? { hotelCategory: '' } : {}),
+            });
+            b.updateBuilderUi({ skipHotel });
+          }}
+        />
+        {!isNoHotelMealPlan(info.mealPlan) && (
+          <SelectField
+            label="Hotel Category"
+            value={info.hotelCategory}
+            options={HOTEL_CATEGORIES}
+            onChange={(v) => b.updatePackageInfo({ hotelCategory: v })}
+          />
+        )}
         <SelectField label="Transportation" value={info.transportation} options={VEHICLE_TYPES} onChange={(v) => b.updatePackageInfo({ transportation: v })} />
       </div>
 
@@ -387,8 +408,9 @@ function StepPackage({ b }) {
 function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview }) {
   const total = b.state.pricing?.grandTotal || b.state.pricing?.total || 0;
   const info = b.state.packageInfo || {};
+  const noHotel = isNoHotelMealPlan(info.mealPlan);
   const destList = b.hotelDestination ? [{ name: b.hotelDestination }] : [];
-  const hotels = b.builderUi.skipHotel ? [] : builderUiToHotels(b.builderUi, destList);
+  const hotels = noHotel || b.builderUi.skipHotel ? [] : builderUiToHotels(b.builderUi, destList);
   const transport = builderUiToTransport(b.builderUi);
   const itinerary = b.customItinerary || [];
 
@@ -456,8 +478,12 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview }) {
             </section>
           )}
 
-          {b.builderUi.skipHotel && (
+          {b.builderUi.skipHotel && !noHotel && (
             <p className="text-sm text-content-muted italic">Hotels skipped</p>
+          )}
+
+          {noHotel && (
+            <p className="text-sm text-content-muted italic">No hotel included in this package</p>
           )}
 
           {transport.length > 0 && (

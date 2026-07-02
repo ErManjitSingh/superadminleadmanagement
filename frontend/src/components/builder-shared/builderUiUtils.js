@@ -1,5 +1,5 @@
 import { MEAL_PLANS } from '../quotations/constants';
-import { normalizeCabType } from './fleetConstants';
+import { normalizeCabType, FLEET_CATALOG } from './fleetConstants';
 
 export function defaultBuilderUi() {
   return {
@@ -14,13 +14,13 @@ export function defaultBuilderUi() {
     },
     destinationHotels: [],
     transportMode: 'fleet',
-    fleetCategory: 'SUV',
-    fleetVehicle: '',
+    fleetCategory: 'Sedan',
+    fleetVehicle: FLEET_CATALOG.Sedan[0] || 'Swift Dzire',
     vehicleCount: 1,
     perVehicleCost: 0,
     manualTransport: {
       vehicleName: '',
-      vehicleType: 'SUV',
+      vehicleType: 'Sedan',
       price: 0,
       notes: '',
     },

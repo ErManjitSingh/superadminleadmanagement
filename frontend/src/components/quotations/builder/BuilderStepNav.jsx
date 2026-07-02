@@ -2,10 +2,11 @@ import { Check } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { BUILDER_STEPS } from './builderConstants';
 
-export default function BuilderStepNav({ step, onStepChange, maxReached }) {
+export default function BuilderStepNav({ step, onStepChange, maxReached, hiddenStepIds = [] }) {
+  const steps = BUILDER_STEPS.filter((s) => !hiddenStepIds.includes(s.id));
   return (
     <nav className="space-y-1">
-      {BUILDER_STEPS.map((s) => {
+      {steps.map((s) => {
         const Icon = s.icon;
         const done = s.id < step;
         const active = s.id === step;

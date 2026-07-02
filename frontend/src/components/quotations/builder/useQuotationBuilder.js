@@ -4,6 +4,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { buildListParams, unwrapList, unwrapPagination } from '../../../utils/apiHelpers';
 import { parsePackageNights } from '../UnoHotelSelector';
 import { cleanInclusionExclusionLines } from '../InclusionExclusionEditor';
+import { isNoHotelMealPlan } from '../constants';
 import {
   defaultItineraryDay,
   defaultWizardState,
@@ -200,6 +201,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   useEffect(() => {
     if (step > maxReached) setMaxReached(step);
   }, [step, maxReached]);
+
+  useEffect(() => {
+    const skipHotel = isNoHotelMealPlan(state.packageInfo?.mealPlan);
+    setBuilderUi((ui) => (ui.skipHotel === skipHotel ? ui : { ...ui, skipHotel }));
+  }, [state.packageInfo?.mealPlan]);
 
   useEffect(() => {
     API.get(`${config.savePath}/templates`, { skipErrorToast: true })

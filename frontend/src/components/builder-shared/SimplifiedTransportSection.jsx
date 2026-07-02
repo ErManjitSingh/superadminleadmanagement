@@ -20,7 +20,7 @@ function Field({ label, children }) {
 export default function SimplifiedTransportSection({ builderUi, onChange, cabs = [] }) {
   const fleet = mergeFleetWithCabs(cabs);
   const update = (patch) => onChange({ ...builderUi, ...patch });
-  const category = builderUi.fleetCategory || 'SUV';
+  const category = builderUi.fleetCategory || 'Sedan';
   const vehicles = fleet[category] || [];
   const count = Number(builderUi.vehicleCount) || 1;
   const perVehicle = Number(builderUi.perVehicleCost) || 0;
@@ -53,7 +53,14 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
           <Field label="Vehicle Type">
             <select
               value={category}
-              onChange={(e) => update({ fleetCategory: e.target.value, fleetVehicle: '' })}
+              onChange={(e) => {
+                const fleetCategory = e.target.value;
+                const vehicles = fleet[fleetCategory] || [];
+                update({
+                  fleetCategory,
+                  fleetVehicle: vehicles[0] || '',
+                });
+              }}
               className={inputCls()}
             >
               {FLEET_CATEGORIES.map((c) => (
@@ -103,7 +110,7 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
           </Field>
           <Field label="Vehicle Type">
             <select
-              value={builderUi.manualTransport?.vehicleType || 'SUV'}
+              value={builderUi.manualTransport?.vehicleType || 'Sedan'}
               onChange={(e) => update({
                 manualTransport: { ...builderUi.manualTransport, vehicleType: e.target.value },
               })}
