@@ -293,6 +293,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                   builderUi={b.builderUi}
                   onChange={b.updateBuilderUi}
                   destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
+                  durationDays={b.state.packageInfo?.duration}
                 />
               )}
               {b.step === 4 && (

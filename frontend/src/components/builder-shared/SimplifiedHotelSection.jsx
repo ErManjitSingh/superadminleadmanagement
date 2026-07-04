@@ -33,20 +33,61 @@ function Field({ label, children, className }) {
   );
 }
 
+/** Parse YYYY-MM-DD as local date (avoids UTC off-by-one). */
+function parseDateOnly(value) {
+  if (!value) return null;
+  const s = String(value).slice(0, 10);
+  const parts = s.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !n)) return null;
+  const [y, m, d] = parts;
+  return new Date(y, m - 1, d);
+}
+
+function formatDateOnly(date) {
+  if (!date || Number.isNaN(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function nightsBetween(checkIn, checkOut) {
-  if (!checkIn || !checkOut) return 0;
-  const start = new Date(checkIn);
-  const end = new Date(checkOut);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
-  const diff = Math.round((end - start) / (1000 * 60 * 60 * 24));
+  const start = parseDateOnly(checkIn);
+  const end = parseDateOnly(checkOut);
+  if (!start || !end) return 0;
+  const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   return Math.max(0, diff);
 }
 
-function HotelFields({ hotel, onChange }) {
-  const nights = nightsBetween(hotel.checkIn, hotel.checkOut);
+function addDays(dateStr, days) {
+  const start = parseDateOnly(dateStr);
+  if (!start || !days) return '';
+  start.setDate(start.getDate() + days);
+  return formatDateOnly(start);
+}
+
+function HotelFields({ hotel, onChange, defaultNights = 0 }) {
+  const checkIn = hotel.checkIn?.slice?.(0, 10) || hotel.checkIn || '';
+  const checkOut = hotel.checkOut?.slice?.(0, 10) || hotel.checkOut || '';
+  const nights = nightsBetween(checkIn, checkOut);
 
   const setDates = (patch) => {
-    const next = { ...hotel, ...patch };
+    let next = { ...hotel, ...patch };
+    const inDate = next.checkIn?.slice?.(0, 10) || next.checkIn || '';
+    let outDate = next.checkOut?.slice?.(0, 10) || next.checkOut || '';
+
+    // Check-in set, check-out empty → auto fill from package nights
+    if (patch.checkIn && inDate && !outDate && defaultNights > 0) {
+      outDate = addDays(inDate, defaultNights);
+      next = { ...next, checkOut: outDate };
+    }
+
+    // If check-out is before check-in, push check-out forward
+    if (inDate && outDate && nightsBetween(inDate, outDate) === 0 && outDate <= inDate) {
+      outDate = addDays(inDate, Math.max(1, defaultNights || 1));
+      next = { ...next, checkOut: outDate };
+    }
+
     const n = nightsBetween(next.checkIn, next.checkOut);
     onChange({ ...next, nights: n });
   };
@@ -71,7 +112,7 @@ function HotelFields({ hotel, onChange }) {
             <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="date"
-              value={hotel.checkIn?.slice?.(0, 10) || hotel.checkIn || ''}
+              value={checkIn}
               onChange={(e) => setDates({ checkIn: e.target.value })}
               className={inputCls('pl-10')}
             />
@@ -82,16 +123,24 @@ function HotelFields({ hotel, onChange }) {
             <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             <input
               type="date"
-              value={hotel.checkOut?.slice?.(0, 10) || hotel.checkOut || ''}
+              value={checkOut}
+              min={checkIn || undefined}
               onChange={(e) => setDates({ checkOut: e.target.value })}
               className={inputCls('pl-10')}
             />
           </div>
         </Field>
         <Field label="No. of Nights">
-          <div className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Moon className="w-4 h-4 text-violet-500" />
-            {nights > 0 ? `${nights} Night${nights === 1 ? '' : 's'}` : '—'}
+          <div
+            className={cn(
+              'h-11 rounded-xl border px-3 flex items-center gap-2 text-sm font-bold',
+              nights > 0
+                ? 'border-violet-200 bg-violet-50 text-violet-800'
+                : 'border-slate-200 bg-slate-50 text-slate-400',
+            )}
+          >
+            <Moon className={cn('w-4 h-4', nights > 0 ? 'text-violet-500' : 'text-slate-400')} />
+            {nights > 0 ? `${nights} Night${nights === 1 ? '' : 's'}` : 'Auto'}
           </div>
         </Field>
       </div>
@@ -131,9 +180,15 @@ const TRUST_BADGES = [
   { icon: Building2, label: '24/7 Support' },
 ];
 
-export default function SimplifiedHotelSection({ builderUi, onChange, destinations = [] }) {
+export default function SimplifiedHotelSection({
+  builderUi,
+  onChange,
+  destinations = [],
+  durationDays = 0,
+}) {
   const update = (patch) => onChange({ ...builderUi, ...patch });
   const hotelMode = builderUi.hotelMode || 'same';
+  const defaultNights = Math.max(0, Number(durationDays) > 0 ? Number(durationDays) - 1 : 0);
 
   return (
     <div className="space-y-5">
@@ -194,6 +249,7 @@ export default function SimplifiedHotelSection({ builderUi, onChange, destinatio
             <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
               <HotelFields
                 hotel={builderUi.sameHotel || {}}
+                defaultNights={defaultNights}
                 onChange={(sameHotel) => update({ sameHotel })}
               />
             </div>
@@ -227,6 +283,7 @@ export default function SimplifiedHotelSection({ builderUi, onChange, destinatio
                   </div>
                   <HotelFields
                     hotel={hotel}
+                    defaultNights={defaultNights}
                     onChange={(next) => {
                       const list = [...builderUi.destinationHotels];
                       list[index] = next;

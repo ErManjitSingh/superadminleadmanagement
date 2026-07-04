@@ -57,6 +57,7 @@ export function builderUiToHotels(builderUi = {}, destinations = []) {
         mealPlan: h.mealPlan || '',
         checkIn: h.checkIn || '',
         checkOut: h.checkOut || '',
+        nights: h.nights || 0,
         image: '',
         alternatives: [],
       }));
@@ -75,6 +76,7 @@ export function builderUiToHotels(builderUi = {}, destinations = []) {
       mealPlan: same.mealPlan || '',
       checkIn: same.checkIn || '',
       checkOut: same.checkOut || '',
+      nights: same.nights || 0,
       image: '',
       alternatives: [],
     },
