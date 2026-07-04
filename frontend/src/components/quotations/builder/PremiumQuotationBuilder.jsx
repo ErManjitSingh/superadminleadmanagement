@@ -24,7 +24,6 @@ import { formatINR } from '../quotationUtils';
 import { cn } from '../../../lib/utils';
 import { useQuotationBuilder } from './useQuotationBuilder';
 import BuilderStepNav from './BuilderStepNav';
-import PackageSummaryPanel from './PackageSummaryPanel';
 import GlassCard from './GlassCard';
 import AiItineraryGenerator from '../../builder-shared/AiItineraryGenerator';
 import SimplifiedHotelSection from '../../builder-shared/SimplifiedHotelSection';
@@ -207,7 +206,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-slate-50">
       <div className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Link
               to={b.config.backPath}
@@ -239,7 +238,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 pb-4 pt-1">
+        <div className="max-w-6xl mx-auto px-4 pb-4 pt-1">
           <BuilderStepNav
             step={b.step}
             maxReached={b.maxReached}
@@ -266,106 +265,88 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start">
-          <div className="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm p-5 sm:p-8 min-h-[520px] w-full">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={b.step}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 sm:p-8 min-h-[520px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={b.step}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              {b.step === 1 && <StepPackage b={b} initialLeadId={initialLeadId} />}
+              {b.step === 2 && (
+                <AiItineraryGenerator
+                  prompt={b.builderUi.aiPrompt}
+                  onPromptChange={(aiPrompt) => b.updateBuilderUi({ aiPrompt })}
+                  itinerary={b.customItinerary}
+                  onItineraryChange={b.setCustomItinerary}
+                  destination={b.hotelDestination}
+                  days={b.state.packageInfo?.duration}
+                  nights={Math.max(0, (Number(b.state.packageInfo?.duration) || 4) - 1)}
+                  onDurationChange={({ days }) => b.updatePackageInfo({ duration: days })}
+                />
+              )}
+              {b.step === 3 && !noHotel && (
+                <SimplifiedHotelSection
+                  builderUi={b.builderUi}
+                  onChange={b.updateBuilderUi}
+                  destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
+                  durationDays={b.state.packageInfo?.duration}
+                />
+              )}
+              {b.step === 4 && (
+                <SimplifiedTransportSection
+                  builderUi={b.builderUi}
+                  onChange={b.updateBuilderUi}
+                  cabs={b.cabs}
+                />
+              )}
+              {b.step === 5 && (
+                <SimplifiedPricingSection
+                  totalCost={b.state.pricing?.total || 0}
+                  internalNotes={b.builderUi.internalNotes}
+                  onTotalChange={b.updatePricingTotal}
+                  onNotesChange={(internalNotes) => b.updateBuilderUi({ internalNotes })}
+                />
+              )}
+              {b.step === 6 && (
+                <StepPreviewSend
+                  b={b}
+                  shareUrl={shareUrl}
+                  onFinish={handleFinish}
+                  onOpenPreview={() => setPdfPreviewOpen(true)}
+                  onSendWhatsApp={handleSendWhatsApp}
+                  onDownloadPdf={handleDownloadPdf}
+                  sharingPdf={sharingPdf}
+                  pdfCacheReady={pdfCacheReady}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {b.step < 6 && (
+            <div className="flex justify-between mt-8 pt-5 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl gap-2 border-slate-200"
+                disabled={b.step === 1}
+                onClick={goBack}
               >
-                {b.step === 1 && <StepPackage b={b} initialLeadId={initialLeadId} />}
-                {b.step === 2 && (
-                  <AiItineraryGenerator
-                    prompt={b.builderUi.aiPrompt}
-                    onPromptChange={(aiPrompt) => b.updateBuilderUi({ aiPrompt })}
-                    itinerary={b.customItinerary}
-                    onItineraryChange={b.setCustomItinerary}
-                    destination={b.hotelDestination}
-                    days={b.state.packageInfo?.duration}
-                    nights={Math.max(0, (Number(b.state.packageInfo?.duration) || 4) - 1)}
-                    onDurationChange={({ days }) => b.updatePackageInfo({ duration: days })}
-                  />
-                )}
-                {b.step === 3 && !noHotel && (
-                  <SimplifiedHotelSection
-                    builderUi={b.builderUi}
-                    onChange={b.updateBuilderUi}
-                    destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
-                    durationDays={b.state.packageInfo?.duration}
-                  />
-                )}
-                {b.step === 4 && (
-                  <SimplifiedTransportSection
-                    builderUi={b.builderUi}
-                    onChange={b.updateBuilderUi}
-                    cabs={b.cabs}
-                  />
-                )}
-                {b.step === 5 && (
-                  <SimplifiedPricingSection
-                    totalCost={b.state.pricing?.total || 0}
-                    internalNotes={b.builderUi.internalNotes}
-                    onTotalChange={b.updatePricingTotal}
-                    onNotesChange={(internalNotes) => b.updateBuilderUi({ internalNotes })}
-                  />
-                )}
-                {b.step === 6 && (
-                  <StepPreviewSend
-                    b={b}
-                    shareUrl={shareUrl}
-                    onFinish={handleFinish}
-                    onOpenPreview={() => setPdfPreviewOpen(true)}
-                    onSendWhatsApp={handleSendWhatsApp}
-                    onDownloadPdf={handleDownloadPdf}
-                    sharingPdf={sharingPdf}
-                    pdfCacheReady={pdfCacheReady}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-
-            {b.step < 6 && (
-              <div className="flex justify-between mt-8 pt-5 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl gap-2 border-slate-200"
-                  disabled={b.step === 1}
-                  onClick={goBack}
-                >
-                  <ArrowLeft className="w-4 h-4" /> Previous
-                </Button>
-                <Button
-                  type="button"
-                  className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-500/20"
-                  disabled={!canContinue() || b.loadingPackageDetail}
-                  onClick={goNext}
-                >
-                  Next: {nextStepLabel} <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div className="w-full lg:w-72 xl:w-80 shrink-0 lg:sticky lg:top-36">
-            <PackageSummaryPanel
-              step={b.step}
-              maxReached={b.maxReached}
-              packageInfo={{
-                ...b.state.packageInfo,
-                total: b.state.pricing?.total || b.state.pricing?.grandTotal,
-              }}
-              lead={b.selectedLead}
-              itinerary={b.customItinerary}
-              builderUi={b.builderUi}
-              hiddenStepIds={noHotel ? [HOTEL_STEP] : []}
-              onStepChange={b.setStep}
-            />
-          </div>
+                <ArrowLeft className="w-4 h-4" /> Previous
+              </Button>
+              <Button
+                type="button"
+                className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-500/20"
+                disabled={!canContinue() || b.loadingPackageDetail}
+                onClick={goNext}
+              >
+                Next: {nextStepLabel} <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

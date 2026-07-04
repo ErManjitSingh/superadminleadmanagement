@@ -118,7 +118,7 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
                   type="button"
                   onClick={() => update({ fleetVehicle: name })}
                   className={cn(
-                    'relative text-left rounded-2xl border-2 overflow-hidden bg-white transition-all',
+                    'relative text-left rounded-2xl border-2 bg-white p-4 transition-all',
                     selected
                       ? 'border-violet-500 shadow-md shadow-violet-500/15 ring-2 ring-violet-500/10'
                       : 'border-slate-200 hover:border-slate-300 hover:shadow-sm',
@@ -129,32 +129,23 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
                       <Check className="w-3.5 h-3.5" strokeWidth={3} />
                     </span>
                   )}
-                  <div className="h-28 bg-slate-100 overflow-hidden">
-                    {meta.image ? (
-                      <img
-                        src={meta.image}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                        <Car className="w-10 h-10 text-slate-400" />
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                      <Car className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-900 text-sm">{name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{category}</p>
+                      <div className="flex items-center gap-3 mt-2 text-[11px] font-semibold text-slate-600">
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="w-3.5 h-3.5 text-violet-500" />
+                          {meta.seats} Seats
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Briefcase className="w-3.5 h-3.5 text-violet-500" />
+                          {meta.bags} Bags
+                        </span>
                       </div>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-bold text-slate-900 text-sm">{name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{category}</p>
-                    <div className="flex items-center gap-3 mt-2 text-[11px] font-semibold text-slate-600">
-                      <span className="inline-flex items-center gap-1">
-                        <Users className="w-3.5 h-3.5 text-violet-500" />
-                        {meta.seats} Seats
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Briefcase className="w-3.5 h-3.5 text-violet-500" />
-                        {meta.bags} Bags
-                      </span>
                     </div>
                   </div>
                 </button>
