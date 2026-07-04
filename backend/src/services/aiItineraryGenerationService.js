@@ -1,50 +1,78 @@
 const ApiError = require('../utils/apiError');
 
-const SYSTEM_PROMPT = `You are an expert Indian and international travel itinerary writer for a premium tour operator.
+/**
+ * ChatGPT-style itinerary writer.
+ * Follow the user's request exactly — do not invent a different route.
+ */
+const SYSTEM_PROMPT = `You are a senior travel consultant writing day-wise itineraries for Indian and international holidays.
 
-Write day-wise itineraries exactly as requested in the user's prompt. Do NOT reuse a fixed template — every itinerary must be unique to that request.
+Your output must feel like a high-quality ChatGPT travel plan: specific, practical, and customer-ready for a quotation PDF.
 
-FORMAT (like ChatGPT travel answers):
-- Each day: clear title with route or activity (include Approx. km | hours on transfer days when known)
-- Description uses Morning / Afternoon / Evening sections
-- Use bullet points (•) for attractions and activities
-- Mention pickup city & drop city when stated in the prompt
-- Include real landmark names for the destinations mentioned
-- Match trip type (honeymoon, family, adventure, pilgrimage, etc.)
-- Professional, warm tone suitable for customer PDF quotations
-- 80–180 words per day description
+CRITICAL RULES:
+1. Follow the USER REQUEST exactly. Do not change destinations, nights, or route unless the user is vague.
+2. If the user names cities (e.g. Shimla, Manali, Goa), use ONLY those cities in the correct order.
+3. If the user gives nights/days (e.g. 3N/4D), produce exactly that many days.
+4. If pickup/drop cities are mentioned (Delhi, Chandigarh, etc.), Day 1 and last day must include them clearly.
+5. Never default to a random Himachal template when the user asked for something else.
+6. Each day description: 120–220 words with Morning / Afternoon / Evening structure.
+7. Use real landmarks, approximate drive times (hrs) and distances (km) on transfer days.
+8. Match trip style: honeymoon, family, adventure, pilgrimage, luxury, etc.
+9. Warm, professional brochure tone — no filler, no generic "enjoy your day" lines.
 
-Return ONLY valid JSON:
+Return ONLY valid JSON (no markdown):
 {
   "days": [
     {
       "day": 1,
-      "title": "Day title with route if transfer",
-      "description": "Full formatted description...",
-      "meals": "Breakfast & Dinner",
-      "activities": "Short activity summary",
-      "transport": "Private AC cab · details"
+      "title": "Clear day title (include route on transfer days)",
+      "description": "Morning: ...\\n\\nAfternoon: ...\\n\\nEvening: ...",
+      "meals": "Breakfast / Breakfast & Dinner / etc.",
+      "activities": "Short comma-separated highlights",
+      "transport": "Private AC cab · details",
+      "accommodation": "City or hotel area if known"
     }
   ],
-  "totalDays": 5,
-  "totalNights": 4,
-  "pickup": "Delhi or null",
-  "drop": "Delhi or null"
+  "totalDays": 4,
+  "totalNights": 3,
+  "pickup": "City or empty string",
+  "drop": "City or empty string"
 }`;
 
 function buildUserMessage({ prompt, destination, days, nights, variationSeed }) {
-  const dayHint = days
-    ? `Target: ${nights ?? Math.max(0, days - 1)} Nights / ${days} Days`
-    : 'Infer suitable duration from the prompt if not specified';
+  const lines = [
+    'Create a complete day-wise travel itinerary for the following customer request.',
+    '',
+    '=== CUSTOMER REQUEST (follow exactly) ===',
+    prompt,
+    '=== END REQUEST ===',
+    '',
+    'Instructions:',
+    '- Build the itinerary ONLY from the customer request above.',
+    '- Do not substitute different destinations.',
+    '- Write detailed Morning / Afternoon / Evening content for every day.',
+    '- Titles should be specific (e.g. "Delhi → Shimla (Approx. 350 km | 8–9 hrs)").',
+  ];
 
-  return `User request (follow this exactly):
-${prompt}
+  if (days) {
+    lines.push(
+      `- Produce exactly ${days} days (${nights ?? Math.max(0, days - 1)} nights) unless the request clearly states a different duration — then follow the request.`,
+    );
+  } else {
+    lines.push('- Infer nights/days from the request if mentioned; otherwise choose a sensible duration.');
+  }
 
-${dayHint}
-${destination ? `Default region hint: ${destination}` : ''}
-Variation #${variationSeed + 1}${variationSeed > 0 ? ' — use different wording from previous draft' : ''}
+  if (destination && String(destination).trim()) {
+    lines.push(
+      `- Package destination field (hint only, do not override explicit cities in the request): ${destination}`,
+    );
+  }
 
-Build the complete day-wise itinerary for THIS specific request only.`;
+  if (variationSeed > 0) {
+    lines.push(`- This is regenerate #${variationSeed + 1}: keep the same route but fresher wording and alternate experiences.`);
+  }
+
+  lines.push('', 'Return JSON only.');
+  return lines.join('\n');
 }
 
 function parseJsonFromText(raw = '') {
@@ -58,8 +86,8 @@ function getAiProvider() {
   const forced = String(process.env.AI_ITINERARY_PROVIDER || '').toLowerCase();
   if (forced === 'gemini' && process.env.GEMINI_API_KEY) return 'gemini';
   if (forced === 'openai' && process.env.OPENAI_API_KEY) return 'openai';
-  if (process.env.GEMINI_API_KEY) return 'gemini';
   if (process.env.OPENAI_API_KEY) return 'openai';
+  if (process.env.GEMINI_API_KEY) return 'gemini';
   return null;
 }
 
@@ -67,7 +95,8 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  // Prefer a strong model; allow override via env.
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
@@ -82,7 +111,7 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
         },
       ],
       generationConfig: {
-        temperature: variationSeed > 0 ? 0.9 : 0.75,
+        temperature: variationSeed > 0 ? 0.85 : 0.65,
         maxOutputTokens: 8192,
         responseMimeType: 'application/json',
       },
@@ -112,7 +141,8 @@ async function callOpenAI({ prompt, destination, days, nights, variationSeed }) 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+  // gpt-4o is much closer to ChatGPT quality than mini.
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
 
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -122,8 +152,8 @@ async function callOpenAI({ prompt, destination, days, nights, variationSeed }) 
     },
     body: JSON.stringify({
       model,
-      temperature: variationSeed > 0 ? 0.88 : 0.72,
-      max_tokens: 6000,
+      temperature: variationSeed > 0 ? 0.8 : 0.6,
+      max_tokens: 8000,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
@@ -159,12 +189,16 @@ function normalizeDays(parsed, variationSeed) {
     meals: d.meals || 'Breakfast & Dinner',
     activities: d.activities || '',
     transport: d.transport || d.transportNotes || 'Private transfer',
-    accommodation: d.accommodation || '',
+    accommodation: d.accommodation || d.hotel || '',
+    hotel: d.hotel || d.accommodation || '',
     id: `ai-${Number(d.day) || i + 1}-v${variationSeed}-${Date.now()}-${i}`,
   }));
 
   const totalDays = Number(parsed.totalDays) || days.length;
-  const totalNights = Number(parsed.totalNights) ?? Math.max(0, totalDays - 1);
+  const totalNights =
+    parsed.totalNights != null && parsed.totalNights !== ''
+      ? Number(parsed.totalNights)
+      : Math.max(0, totalDays - 1);
 
   return {
     days,
@@ -191,13 +225,34 @@ async function generateItineraryFromPrompt({
   if (!provider) {
     return {
       source: 'unavailable',
-      reason: 'Set GEMINI_API_KEY or OPENAI_API_KEY in backend .env',
+      reason: 'Set OPENAI_API_KEY or GEMINI_API_KEY in backend .env',
     };
   }
 
-  const params = { prompt: text, destination, days, nights, variationSeed };
-  const parsed =
-    provider === 'gemini' ? await callGemini(params) : await callOpenAI(params);
+  // Prefer letting the model read duration from the prompt; only pass package days as a soft hint.
+  const params = {
+    prompt: text,
+    destination: destination || '',
+    days: days ? Number(days) : undefined,
+    nights: nights != null ? Number(nights) : undefined,
+    variationSeed,
+  };
+
+  let parsed;
+  try {
+    parsed = provider === 'gemini' ? await callGemini(params) : await callOpenAI(params);
+  } catch (err) {
+    // One retry with the other provider if both keys exist.
+    const other = provider === 'gemini' ? 'openai' : 'gemini';
+    const hasOther =
+      (other === 'openai' && process.env.OPENAI_API_KEY) ||
+      (other === 'gemini' && process.env.GEMINI_API_KEY);
+    if (!hasOther) throw err;
+    parsed = other === 'gemini' ? await callGemini(params) : await callOpenAI(params);
+    const result = normalizeDays(parsed, variationSeed);
+    if (!result) throw new ApiError('AI returned empty itinerary', 502);
+    return { source: other, ...result };
+  }
 
   const result = normalizeDays(parsed, variationSeed);
   if (!result) throw new ApiError('AI returned empty itinerary', 502);

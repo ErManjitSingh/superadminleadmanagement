@@ -32,6 +32,7 @@ export default function AiItineraryGenerator({
   const [generating, setGenerating] = useState(false);
   const [manualEdit, setManualEdit] = useState(false);
   const [error, setError] = useState('');
+  const [warning, setWarning] = useState('');
   const [regenerateCount, setRegenerateCount] = useState(0);
   const [lastLogistics, setLastLogistics] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
@@ -46,6 +47,7 @@ export default function AiItineraryGenerator({
       return;
     }
     setError('');
+    setWarning('');
     setGenerating(true);
     if (regenerate) setManualEdit(false);
 
@@ -66,10 +68,12 @@ export default function AiItineraryGenerator({
       if (onDurationChange) {
         onDurationChange({ days: result.totalDays, nights: result.totalNights });
       }
+      if (result.warning) setWarning(result.warning);
       setCollapsed(false);
       setExpandedDays({});
-    } catch {
-      setError('Could not generate itinerary. Try again or edit manually.');
+    } catch (err) {
+      const msg = err?.message || 'Could not generate itinerary. Try again or edit manually.';
+      setError(msg);
     } finally {
       setGenerating(false);
     }
@@ -133,7 +137,16 @@ export default function AiItineraryGenerator({
             )}
           />
 
-          {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600 mt-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
+          {warning && !error && (
+            <p className="text-sm text-amber-700 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+              {warning}
+            </p>
+          )}
 
           <div className="flex flex-wrap gap-2 mt-4">
             <Button

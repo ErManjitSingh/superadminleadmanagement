@@ -886,29 +886,47 @@ async function generateViaBackend({ prompt, destination, days, nights, variation
     const res = await API.post(
       "/ai-itinerary/generate",
       { prompt, destination, days, nights, variationSeed },
-      { skipSuccessToast: true },
+      { skipSuccessToast: true, skipErrorToast: true },
     );
     const data = res.data;
     if (data?.success && Array.isArray(data.days) && data.days.length) {
       return {
+        source: data.source || "api",
         days: data.days.map((d, i) => ({
-          ...defaultItineraryDay(d.day || i + 1, d.location || destination),
-          ...d,
-          id: d.id || `ai-api-${d.day || i + 1}-v${variationSeed}-${Date.now()}`,
+          day: d.day || i + 1,
+          title: String(d.title || `Day ${i + 1}`).trim(),
           description: String(d.description || "").trim(),
+          meals: d.meals || "Breakfast & Dinner",
+          activities: d.activities || "",
+          transport: d.transport || d.transportNotes || "Private transfer",
+          hotel: d.hotel || d.accommodation || "",
+          accommodation: d.accommodation || d.hotel || "",
+          id: d.id || `ai-api-${d.day || i + 1}-v${variationSeed}-${Date.now()}-${i}`,
         })),
         totalDays: data.totalDays || data.days.length,
-        totalNights: data.totalNights ?? Math.max(0, (data.totalDays || data.days.length) - 1),
+        totalNights:
+          data.totalNights ?? Math.max(0, (data.totalDays || data.days.length) - 1),
         logistics: {
           pickup: data.logistics?.pickup || "",
           drop: data.logistics?.drop || "",
         },
       };
     }
-  } catch {
-    // Backend AI unavailable — use local planner
+    return { error: data?.message || "AI returned an empty itinerary" };
+  } catch (err) {
+    const status = err?.response?.status;
+    const code = err?.response?.data?.code;
+    const message =
+      err?.response?.data?.message || err?.message || "AI itinerary request failed";
+
+    // Not configured — allow local template fallback.
+    if (status === 503 || code === "AI_NOT_CONFIGURED") {
+      return { unavailable: true, error: message };
+    }
+
+    // Real AI failure — do NOT silently use wrong local templates.
+    return { error: message };
   }
-  return null;
 }
 
 function isHoneymoonPrompt(prompt = "") {
@@ -1008,34 +1026,16 @@ function buildTransport(day, totalDays, planKey, logistics, destination) {
   return "Private transfer";
 }
 
-const OPENAI_SYSTEM_PROMPT = `You are an expert Indian travel itinerary writer for a premium tour operator (Himachal, Uttarakhand, Rajasthan, Kerala, etc.).
+const OPENAI_SYSTEM_PROMPT = `You are a senior travel consultant writing day-wise itineraries like ChatGPT.
 
-Write day-wise itineraries that read like a professional travel brochure — detailed, engaging, and practical.
+CRITICAL:
+- Follow the customer request exactly — never swap destinations.
+- Morning / Afternoon / Evening structure, 120–220 words per day.
+- Real landmarks, km & drive hours on transfer days.
+- Pickup/drop cities must appear on first/last day when mentioned.
+- Warm brochure tone for quotation PDFs.
 
-RULES:
-- Each day description must be 100–200 words (use Morning / Afternoon / Evening structure).
-- If the user mentions pickup from a city (e.g. Delhi, Chandigarh), Day 1 MUST clearly state:
-  • Exact pickup city and pickup point options (hotel/home/airport/railway)
-  • Route en route to the first destination
-  • Drive duration feel and comfort stops
-- If return/drop to a city is implied, the LAST day MUST state drop location in that city.
-- Mention specific landmarks, experiences, and local flavour.
-- Match trip type (honeymoon, family, adventure) from the prompt.
-- Use warm, professional tone for customer-facing PDF quotations.
-
-Return ONLY valid JSON:
-{
-  "days": [
-    {
-      "day": 1,
-      "title": "Pickup from Delhi → Shimla",
-      "description": "Full detailed description with pickup location...",
-      "meals": "Dinner",
-      "activities": "Pickup Delhi, drive to Shimla, check-in",
-      "transport": "Private AC cab · Pickup: Delhi → Shimla"
-    }
-  ]
-}`;
+Return ONLY valid JSON with days[], totalDays, totalNights, pickup, drop.`;
 
 function mapGeneratedDays(dayList, stops, destination, variationSeed) {
   return dayList.map((d, i) => ({
@@ -1051,12 +1051,13 @@ function mapGeneratedDays(dayList, stops, destination, variationSeed) {
 }
 
 /**
- * Generates itinerary days. Uses OpenAI when VITE_OPENAI_API_KEY is set; otherwise rich local templates.
+ * Generates itinerary days via backend AI (OpenAI/Gemini).
+ * Falls back to local templates ONLY when AI is not configured.
  * @param variationSeed — increment on regenerate for alternate wording
  */
 export async function generateItineraryFromAI({
   prompt,
-  destination = "Himachal Pradesh",
+  destination = "",
   days,
   nights,
   variationSeed = 0,
@@ -1066,35 +1067,38 @@ export async function generateItineraryFromAI({
   const parsed = parseDurationFromPrompt(prompt);
   const stops = extractDestinations(prompt, destination);
 
-  const totalDays = parsed?.days || inferred?.days || days || 4;
+  // Prefer duration from the user prompt; package days are only a soft hint.
+  const promptDays = parsed?.days || inferred?.days || null;
+  const promptNights =
+    parsed?.nights ?? inferred?.nights ?? (promptDays ? Math.max(0, promptDays - 1) : null);
+  const totalDays = promptDays || days || null;
   const totalNights =
-    parsed?.nights ?? inferred?.nights ?? nights ?? Math.max(0, totalDays - 1);
+    promptNights ?? nights ?? (totalDays ? Math.max(0, totalDays - 1) : null);
 
-  // 1) Server-side OpenAI (ChatGPT-quality, any prompt)
+  // 1) Server-side AI (ChatGPT / Gemini quality)
   const fromApi = await generateViaBackend({
     prompt,
-    destination,
-    days: totalDays,
-    nights: totalNights,
+    destination: destination || stops[0] || "",
+    days: totalDays || undefined,
+    nights: totalNights ?? undefined,
     variationSeed,
   });
-  if (fromApi) return fromApi;
+
+  if (fromApi?.days?.length) {
+    return fromApi;
+  }
+
+  // Configured AI failed — surface the error instead of wrong templates.
+  if (fromApi?.error && !fromApi?.unavailable) {
+    const err = new Error(fromApi.error);
+    err.code = "AI_FAILED";
+    throw err;
+  }
 
   // 2) Client-side OpenAI if VITE key set
   const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (apiKey) {
     try {
-      const logisticsNote = [
-        logistics.pickup
-          ? `Pickup city: ${logistics.pickup} (must appear clearly on Day 1)`
-          : "",
-        logistics.drop
-          ? `Drop city: ${logistics.drop} (must appear clearly on last day)`
-          : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
       const res = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -1102,28 +1106,28 @@ export async function generateItineraryFromAI({
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: import.meta.env.VITE_OPENAI_MODEL || "gpt-4o-mini",
-          temperature: variationSeed > 0 ? 0.9 : 0.75,
-          max_tokens: 4096,
+          model: import.meta.env.VITE_OPENAI_MODEL || "gpt-4o",
+          temperature: variationSeed > 0 ? 0.8 : 0.6,
+          max_tokens: 8000,
           response_format: { type: "json_object" },
           messages: [
             { role: "system", content: OPENAI_SYSTEM_PROMPT },
             {
               role: "user",
-              content: `Create a ${totalNights} Nights / ${totalDays} Days travel itinerary.
+              content: `Create a complete day-wise travel itinerary.
 
-User request: ${prompt}
+=== CUSTOMER REQUEST (follow exactly) ===
+${prompt}
+=== END REQUEST ===
 
-Destinations in order: ${stops.join(" → ")}
-Route: ${logistics.pickup || "Start"} → ${stops.join(" → ")} → ${logistics.drop || "End"}
-${logisticsNote}
+Rules:
+- Follow the customer request exactly — do not change destinations.
+- ${totalDays ? `Prefer ${totalNights} Nights / ${totalDays} Days if it matches the request.` : "Infer duration from the request."}
+- Morning / Afternoon / Evening structure, 120–220 words per day.
+- Real landmarks, km & drive hours on transfer days.
+- Variation #${variationSeed + 1}${variationSeed > 0 ? " with fresh wording" : ""}.
 
-Requirements:
-- Exactly ${totalDays} days — content MUST match the user request, not a generic template
-- Rich descriptions with Morning / Afternoon / Evening sections
-- Include approximate km & drive hours on transfer days
-- Mention only places relevant to THIS prompt
-- Variation #${variationSeed + 1} — ${variationSeed > 0 ? "use fresh wording" : "first draft"}`,
+Return JSON: { "days": [ { "day", "title", "description", "meals", "activities", "transport" } ], "totalDays", "totalNights", "pickup", "drop" }`,
             },
           ],
         }),
@@ -1132,36 +1136,64 @@ Requirements:
         const data = await res.json();
         const raw = data.choices?.[0]?.message?.content || "";
         const parsedJson = JSON.parse(raw);
-        const parsedDays =
-          parsedJson.days || parsedJson.itinerary || parsedJson;
-        const dayList = Array.isArray(parsedDays) ? parsedDays : [];
-        if (dayList.length) {
+        const dayList = parsedJson.days || parsedJson.itinerary || [];
+        if (Array.isArray(dayList) && dayList.length) {
           return {
-            days: mapGeneratedDays(dayList, stops, destination, variationSeed),
+            source: "openai-client",
+            days: dayList.map((d, i) => ({
+              day: d.day || i + 1,
+              title: String(d.title || `Day ${i + 1}`).trim(),
+              description: String(d.description || "").trim(),
+              meals: d.meals || "Breakfast & Dinner",
+              activities: d.activities || "",
+              transport: d.transport || "",
+              hotel: d.hotel || d.accommodation || "",
+              id: `ai-client-${d.day || i + 1}-v${variationSeed}-${Date.now()}-${i}`,
+            })),
             totalDays: dayList.length,
             totalNights: Math.max(0, dayList.length - 1),
-            logistics,
+            logistics: {
+              pickup: parsedJson.pickup || logistics.pickup || "",
+              drop: parsedJson.drop || logistics.drop || "",
+            },
           };
         }
+      } else {
+        const errText = await res.text().catch(() => "");
+        throw new Error(errText.slice(0, 160) || `OpenAI error ${res.status}`);
       }
-    } catch {
-      // Fall through to local generator
+    } catch (err) {
+      const e = new Error(err?.message || "Client AI generation failed");
+      e.code = "AI_FAILED";
+      throw e;
     }
   }
 
-  // 3) Local dynamic planner (offline fallback)
-  const days_out = buildDynamicItinerary({
-    prompt,
-    logistics,
-    totalDays,
-    stops,
-    variationSeed,
-  });
+  // 3) Local templates ONLY when no AI key is configured.
+  if (fromApi?.unavailable) {
+    const fallbackDays = totalDays || days || 4;
+    const days_out = buildDynamicItinerary({
+      prompt,
+      logistics,
+      totalDays: fallbackDays,
+      stops,
+      variationSeed,
+    });
 
-  return {
-    days: days_out,
-    totalDays: days_out.length,
-    totalNights: Math.max(0, days_out.length - 1),
-    logistics,
-  };
+    return {
+      source: "template",
+      days: days_out,
+      totalDays: days_out.length,
+      totalNights: Math.max(0, days_out.length - 1),
+      logistics,
+      warning:
+        "AI is not configured on the server. Showing a draft template — add OPENAI_API_KEY or GEMINI_API_KEY for ChatGPT-quality itineraries.",
+    };
+  }
+
+  const err = new Error(
+    fromApi?.error || "Could not generate itinerary. Please try again.",
+  );
+  err.code = "AI_FAILED";
+  throw err;
 }
