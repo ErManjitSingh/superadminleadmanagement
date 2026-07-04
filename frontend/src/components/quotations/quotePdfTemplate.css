@@ -1288,11 +1288,43 @@
    PDF v2 — clean top-to-bottom layout
    ═══════════════════════════════════════════ */
 .quote-ht-pdf-v2 {
+  position: relative;
   padding: 0;
   background: #fff;
+  overflow: hidden;
+}
+
+/* Watermark — Travel CRM @ 0.3 opacity */
+.qp-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.qp-watermark-text {
+  display: block;
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #0f172a;
+  opacity: 0.3;
+  transform: rotate(-32deg);
+  white-space: nowrap;
+  user-select: none;
 }
 
 .qp-header {
+  position: relative;
+  z-index: 1;
+}
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1342,12 +1374,50 @@
 }
 
 .qp-hero {
+  position: relative;
+  z-index: 1;
+  min-height: 220px;
+  color: #fff;
+  overflow: hidden;
+}
+
+.qp-hero-with-image {
+  min-height: 260px;
+}
+
+.qp-hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qp-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(15, 23, 42, 0.88) 0%,
+    rgba(49, 46, 129, 0.78) 50%,
+    rgba(91, 33, 182, 0.72) 100%
+  );
+}
+
+.qp-hero-content {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 16px;
   padding: 22px;
-  background: linear-gradient(135deg, #0f172a 0%, #312e81 55%, #5b21b6 100%);
-  color: #fff;
+  align-items: center;
+}
+
+.qp-gallery-wrap {
+  position: relative;
+  z-index: 1;
+  padding: 12px 22px 4px;
 }
 
 .qp-eyebrow {
@@ -1421,6 +1491,22 @@
   margin-top: 4px;
   font-size: 10px;
   color: #c4b5fd;
+}
+
+.qp-welcome,
+.qp-section,
+.qp-overview-grid,
+.qp-total-strip,
+.qp-vehicle-list,
+.qp-day,
+.qp-pay-grid,
+.qp-inc-exc,
+.qp-policies,
+.qp-bank-wrap,
+.qp-contact,
+.qp-footer {
+  position: relative;
+  z-index: 1;
 }
 
 .qp-welcome {
@@ -1631,7 +1717,22 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: #047857;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+}
+
+.qp-day-stay-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qp-day-stay-img {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  border: 1px solid #bbf7d0;
 }
 
 .qp-day-stay p {

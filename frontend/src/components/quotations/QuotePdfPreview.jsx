@@ -18,9 +18,13 @@ import {
   resolvePaymentPlan,
   resolveQuoteTotal,
 } from './quotePdfHelpers';
+import DestinationGallery from './DestinationGallery';
 
 const DEMO_QR_URL =
   'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3Ddemo%40travelcrm%26pn%3DTravel%2520CRM%26cu%3DINR';
+
+const DEFAULT_COVER =
+  'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
 
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
@@ -59,9 +63,17 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const importantNotes = quote.importantNotes || {};
   const itinerary = pkg.itinerary || [];
   const quoteNo = quote.quoteNumber || 'QUOTE';
+  const coverImage = pkg.coverImage || packageInfo.coverImage || DEFAULT_COVER;
 
   return (
     <div ref={ref} className="quote-ht-pdf quote-ht-pdf-v2">
+      {/* Watermark — Travel CRM @ 0.3 opacity */}
+      <div className="qp-watermark" aria-hidden="true">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <span key={i} className="qp-watermark-text">Travel CRM</span>
+        ))}
+      </div>
+
       {/* Header */}
       <header className="qp-header">
         <div className="qp-header-left">
@@ -83,26 +95,40 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="qp-hero">
-        <div className="qp-hero-main">
-          <p className="qp-eyebrow">Travel Quotation</p>
-          <h1 className="qp-title">{packageName}</h1>
-          <p className="qp-dest">{destination}</p>
-          <div className="qp-chips">
-            {duration > 0 && (
-              <span>{nights} Nights / {duration} Days</span>
-            )}
-            {travelDate && <span>{formatQuoteDate(travelDate)}</span>}
-            {lead.name && <span>For {lead.name}</span>}
+      {/* Hero with cover image */}
+      <section className="qp-hero qp-hero-with-image">
+        <img
+          src={coverImage}
+          alt=""
+          className="qp-hero-bg"
+          crossOrigin="anonymous"
+        />
+        <div className="qp-hero-overlay" />
+        <div className="qp-hero-content">
+          <div className="qp-hero-main">
+            <p className="qp-eyebrow">Travel Quotation</p>
+            <h1 className="qp-title">{packageName}</h1>
+            <p className="qp-dest">{destination}</p>
+            <div className="qp-chips">
+              {duration > 0 && (
+                <span>{nights} Nights / {duration} Days</span>
+              )}
+              {travelDate && <span>{formatQuoteDate(travelDate)}</span>}
+              {lead.name && <span>For {lead.name}</span>}
+            </div>
+          </div>
+          <div className="qp-hero-price">
+            <span className="qp-price-lbl">Total Package Cost</span>
+            <span className="qp-price-amt">{formatINR(displayTotal)}</span>
+            <span className="qp-price-sub">All inclusive</span>
           </div>
         </div>
-        <div className="qp-hero-price">
-          <span className="qp-price-lbl">Total Package Cost</span>
-          <span className="qp-price-amt">{formatINR(displayTotal)}</span>
-          <span className="qp-price-sub">All inclusive</span>
-        </div>
       </section>
+
+      {/* Destination images */}
+      <div className="qp-gallery-wrap">
+        <DestinationGallery quote={quote} destination={destination} compact />
+      </div>
 
       {/* Welcome */}
       <section className="qp-welcome">
@@ -201,12 +227,22 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                 {dayHotel?.name && (
                   <div className="qp-day-stay">
                     <span className="qp-day-stay-lbl">Stay</span>
-                    <p>
-                      <strong>{dayHotel.name}</strong>
-                      {dayHotel.roomType ? ` · ${dayHotel.roomType}` : ''}
-                      {dayHotel.meals ? ` · ${dayHotel.meals}` : ''}
-                      {dayHotel.city && dayHotel.city !== '—' ? ` · ${dayHotel.city}` : ''}
-                    </p>
+                    <div className="qp-day-stay-body">
+                      {(dayHotel.hotelImages?.[0] || dayHotel.thumbnailUrl || dayHotel.roomImage) && (
+                        <img
+                          src={dayHotel.hotelImages?.[0] || dayHotel.thumbnailUrl || dayHotel.roomImage}
+                          alt={dayHotel.name}
+                          className="qp-day-stay-img"
+                          crossOrigin="anonymous"
+                        />
+                      )}
+                      <p>
+                        <strong>{dayHotel.name}</strong>
+                        {dayHotel.roomType ? ` · ${dayHotel.roomType}` : ''}
+                        {dayHotel.meals ? ` · ${dayHotel.meals}` : ''}
+                        {dayHotel.city && dayHotel.city !== '—' ? ` · ${dayHotel.city}` : ''}
+                      </p>
+                    </div>
                   </div>
                 )}
               </article>
