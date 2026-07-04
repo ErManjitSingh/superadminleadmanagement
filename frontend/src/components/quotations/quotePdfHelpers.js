@@ -167,8 +167,21 @@ export function resolveDayHotelMap(quote) {
 }
 
 export function resolveDayHotelForItinerary(quote, dayNum) {
-  const { map } = resolveDayHotelMap(quote);
-  return map.get(dayNum) || null;
+  const { map, pkg } = resolveDayHotelMap(quote);
+  if (map.has(dayNum)) return map.get(dayNum);
+
+  const hotels = resolveQuoteHotels(quote);
+  if (!hotels.length) return null;
+
+  const duration = Math.max(
+    1,
+    Number(pkg.duration || quote?.packageInfo?.duration || hotels.length + 1),
+  );
+  // Last day is usually departure — no overnight hotel.
+  if (dayNum >= duration) return null;
+
+  // Same hotel for entire trip: reuse first hotel on every overnight day.
+  return hotels[0] || null;
 }
 
 export function resolveQuoteHotels(quote) {
@@ -290,24 +303,49 @@ export function resolveQuoteHotels(quote) {
 
 export function resolveQuoteVehicles(quote) {
   const pkg = resolveQuotePackage(quote);
-  if (pkg.vehicles?.length) return pkg.vehicles;
-
-  const cab = quote.selectedCabs?.[0];
-  const cabName = pkg.cabCategory || cab?.vehicleType || 'Private Cab';
   const lead = resolveQuoteLead(quote);
-  const start = lead.travelDate;
-  const end = getDayDate(lead.travelDate, (pkg.duration || 1) - 1);
+  const packageInfo = quote?.packageInfo || {};
+  const duration = Number(packageInfo.duration || pkg.duration || 1);
+  const start = packageInfo.travelDate || lead.travelDate;
+  const end = getDayDate(start, Math.max(1, duration));
 
-  if (cab) {
+  if (pkg.vehicles?.length) {
+    return pkg.vehicles.map((v) => ({
+      name: v.name || v.vehicleName || v.vehicle || 'Vehicle',
+      type: v.type || v.vehicleType || v.category || '',
+      count: v.count || v.vehicleCount || 1,
+      cost: Number(v.cost || v.price || 0),
+      seats: v.seats || '',
+      notes: v.notes || '',
+      startDate: v.startDate || start,
+      endDate: v.endDate || end || start,
+    }));
+  }
+
+  const cabs = Array.isArray(quote.selectedCabs) ? quote.selectedCabs : [];
+  if (cabs.length) {
+    return cabs.map((cab) => ({
+      name: cab.vehicleName || cab.name || cab.vehicleType || 'Private Cab',
+      type: cab.vehicleType || cab.type || pkg.cabCategory || '',
+      count: cab.vehicleCount || cab.count || 1,
+      cost: Number(cab.cost || cab.price || 0),
+      seats: cab.seats || '',
+      notes: cab.notes || '',
+      startDate: start,
+      endDate: end || start,
+    }));
+  }
+
+  if (pkg.cabCategory || packageInfo.transportation) {
     return [{
-      name: cabName,
+      name: pkg.cabCategory || packageInfo.transportation,
+      type: packageInfo.transportation || pkg.cabCategory || '',
+      count: 1,
+      cost: 0,
+      notes: '',
       startDate: start,
       endDate: end || start,
     }];
-  }
-
-  if (pkg.cabCategory) {
-    return [{ name: pkg.cabCategory, startDate: start, endDate: end || start }];
   }
 
   return [];
@@ -335,17 +373,61 @@ export function resolvePolicies(quote) {
 
 export function resolveBankAccounts(quote) {
   const pkg = resolveQuotePackage(quote);
-  return pkg.bankAccounts?.length ? pkg.bankAccounts : QUOTE_BANK_ACCOUNTS;
+  const list = pkg.bankAccounts?.length ? pkg.bankAccounts : QUOTE_BANK_ACCOUNTS;
+  return list.slice(0, 1);
+}
+
+export function resolvePaymentPlan(quote, total = 0) {
+  const amount = Number(total) || 0;
+  const plan = Array.isArray(quote?.paymentPlan) && quote.paymentPlan.length
+    ? quote.paymentPlan
+    : [
+        { label: 'Booking Amount', percent: 30 },
+        { label: 'Before Travel', percent: 50 },
+        { label: 'Before Departure', percent: 20 },
+      ];
+
+  // Prefer 30 / 50 / 20 schedule when plan is missing or outdated.
+  const percents = plan.map((row) => Number(row.percent) || 0);
+  const isLegacy4050 = percents.join(',') === '30,40,30' || percents.join(',') === '25,50,25';
+  const normalized = isLegacy4050
+    ? [
+        { label: 'Booking Amount', percent: 30 },
+        { label: 'Before Travel', percent: 50 },
+        { label: 'Before Departure', percent: 20 },
+      ]
+    : plan;
+
+  return normalized.map((row) => ({
+    label: row.label || 'Installment',
+    percent: Number(row.percent) || 0,
+    amount: row.amount != null && row.amount !== ''
+      ? Number(row.amount)
+      : Math.round((amount * (Number(row.percent) || 0)) / 100),
+  }));
+}
+
+export function resolveQuoteTotal(quote) {
+  const p = quote?.pricing || {};
+  const c = quote?.costing || {};
+  return Number(
+    p.grandTotal
+      || p.total
+      || c.grandTotal
+      || c.subtotal
+      || 0,
+  );
 }
 
 export function resolveTravelerCounts(quote) {
   const lead = resolveQuoteLead(quote);
   const pkg = resolveQuotePackage(quote);
+  const info = quote?.packageInfo || {};
   const total = Number(lead.travelers) || 2;
   return {
-    adults: pkg.adults ?? Math.max(1, total - (pkg.kids || 0)),
-    kids: pkg.kids ?? 0,
-    rooms: pkg.rooms ?? Math.ceil(total / 2),
+    adults: info.adults ?? pkg.adults ?? Math.max(1, total - (pkg.kids || info.children || 0)),
+    kids: info.children ?? pkg.kids ?? 0,
+    rooms: pkg.rooms ?? Math.ceil((Number(info.adults) || total) / 2),
     extraBeds: pkg.extraBeds ?? 0,
   };
 }

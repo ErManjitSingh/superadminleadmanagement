@@ -9,15 +9,19 @@ import {
   formatQuoteDate,
   formatQuoteDateShort,
   getDayDate,
-  resolveQuoteHotels,
   resolveQuoteVehicles,
   resolveDayHotelForItinerary,
   resolveTripPlanner,
   resolvePolicies,
   resolveBankAccounts,
   resolveTravelerCounts,
+  resolvePaymentPlan,
+  resolveQuoteTotal,
 } from './quotePdfHelpers';
 import DestinationGallery from './DestinationGallery';
+
+const DEMO_QR_URL =
+  'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi%3A%2F%2Fpay%3Fpa%3Ddemo%40travelcrm%26pn%3DTravel%2520CRM%26cu%3DINR';
 
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
@@ -45,60 +49,30 @@ function PdfImage({ src, alt, className }) {
   );
 }
 
-function DayHotelStay({ dayHotel }) {
-  if (!dayHotel?.name) return null;
-  const hotelPhoto = dayHotel.hotelImages?.[0] || dayHotel.thumbnailUrl;
-  const roomPhoto = dayHotel.roomImage || dayHotel.roomImages?.[0];
-
-  return (
-    <div className="quote-ht-day-hotel">
-      <div className="quote-ht-day-hotel-title">Accommodation</div>
-      <div className="quote-ht-day-hotel-grid">
-        {hotelPhoto && (
-          <figure className="quote-ht-day-hotel-figure">
-            <PdfImage src={hotelPhoto} alt={dayHotel.name} className="quote-ht-day-hotel-img" />
-            <figcaption>Hotel — {dayHotel.name}</figcaption>
-          </figure>
-        )}
-        {roomPhoto && (
-          <figure className="quote-ht-day-hotel-figure">
-            <PdfImage src={roomPhoto} alt={dayHotel.roomType} className="quote-ht-day-hotel-img" />
-            <figcaption>Room — {dayHotel.roomType}</figcaption>
-          </figure>
-        )}
-      </div>
-      <div className="quote-ht-day-hotel-meta">
-        <strong>{dayHotel.name}</strong>
-        {dayHotel.roomType && <span> · {dayHotel.roomType}</span>}
-        {dayHotel.meals && <span> · {dayHotel.meals}</span>}
-        {dayHotel.city && <span> · {dayHotel.city}</span>}
-      </div>
-    </div>
-  );
-}
-
 const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   if (!quote) return null;
 
   const lead = resolveQuoteLead(quote);
   const pkg = resolveQuotePackage(quote);
   const packageInfo = quote.packageInfo || {};
-  const p = quote.pricing || {};
-  const hotels = resolveQuoteHotels(quote);
   const vehicles = resolveQuoteVehicles(quote);
   const planner = resolveTripPlanner(quote);
   const policies = resolvePolicies(quote);
   const banks = resolveBankAccounts(quote);
   const pax = resolveTravelerCounts(quote);
-  const nights = Math.max(1, (pkg.duration || packageInfo.duration || 1) - 1);
-  const shortName = pkg.shortName || pkg.name?.split(' ').slice(0, 2).join(' ') || 'Package';
+  const duration = Number(packageInfo.duration || pkg.duration || 0);
+  const nights = Math.max(0, duration > 0 ? duration - 1 : 0);
+  const packageName = packageInfo.packageName || pkg.name || 'Travel Package';
+  const destination = packageInfo.destination || pkg.routing || pkg.destination || lead.destination || '—';
+  const travelDate = packageInfo.travelDate || lead.travelDate;
   const coverImage =
     pkg.coverImage ||
     packageInfo.coverImage ||
     'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
-  const displayTotal = p.grandTotal || p.total || 0;
-  const paymentPlan = quote.paymentPlan || [];
+  const displayTotal = resolveQuoteTotal(quote);
+  const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
+  const itinerary = pkg.itinerary || [];
 
   return (
     <div ref={ref} className="quote-ht-pdf">
@@ -113,16 +87,18 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             className="quote-ht-cover-logo"
             crossOrigin="anonymous"
           />
-          <p className="quote-ht-cover-eyebrow">Tailored Travel Quotation</p>
-          <h1 className="quote-ht-cover-title">{packageInfo.packageName || pkg.name}</h1>
-          <p className="quote-ht-cover-dest">{packageInfo.destination || pkg.routing || pkg.destination}</p>
+          <p className="quote-ht-cover-eyebrow">Premium Travel Quotation</p>
+          <h1 className="quote-ht-cover-title">{packageName}</h1>
+          <p className="quote-ht-cover-dest">{destination}</p>
           <div className="quote-ht-cover-chips">
-            <span>{nights} Nights · {pkg.duration || packageInfo.duration} Days</span>
+            {duration > 0 && (
+              <span>{nights} Nights · {duration} Days</span>
+            )}
             {packageInfo.hotelCategory && <span>{packageInfo.hotelCategory}</span>}
             {packageInfo.mealPlan && <span>{packageInfo.mealPlan}</span>}
           </div>
           <div className="quote-ht-cover-price">
-            <span className="lbl">Package from</span>
+            <span className="lbl">Total Package Cost</span>
             <span className="amt">{formatINR(displayTotal)}</span>
             <span className="ref">{quote.quoteNumber}</span>
           </div>
@@ -145,20 +121,21 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </div>
       </div>
 
-      {/* Package header + destination gallery */}
       <div className="quote-ht-header-block">
         <div className="quote-ht-package-hero">
           <div className="quote-ht-package-hero-main">
-            <span className="pkg-code">{shortName}</span>
-            <h2 className="pkg-title">{pkg.name}</h2>
+            <span className="pkg-code">{quote.quoteNumber}</span>
+            <h2 className="pkg-title">{packageName}</h2>
             <div className="pkg-meta-row">
-              <span className="pkg-chip pkg-chip-duration">
-                {nights} Nights · {pkg.duration} Days
-              </span>
-              <span className="pkg-chip pkg-chip-route">
-                {pkg.routing || pkg.destination}
-              </span>
-              <span className="pkg-chip pkg-chip-category">{pkg.packageCategory}</span>
+              {duration > 0 && (
+                <span className="pkg-chip pkg-chip-duration">
+                  {nights} Nights · {duration} Days
+                </span>
+              )}
+              <span className="pkg-chip pkg-chip-route">{destination}</span>
+              {lead.name && (
+                <span className="pkg-chip">For {lead.name}</span>
+              )}
             </div>
           </div>
           <div className="quote-ht-package-hero-price">
@@ -170,16 +147,13 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
         <DestinationGallery
           quote={quote}
-          destination={pkg.routing || pkg.destination}
+          destination={destination}
           compact
         />
       </div>
 
-      <h2 className="quote-ht-main-title">Detailed Day Wise Itinerary</h2>
-
-      {/* Welcome block */}
       <div className="quote-ht-welcome">
-        <strong>Hello,</strong>
+        <strong>Hello {lead.name || 'Guest'},</strong>
         <br />
         Welcome to {COMPANY_INFO.name}
         <br /><br />
@@ -191,22 +165,22 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </p>
       </div>
 
-      {/* Package Overview */}
+      {/* Package Overview — no category / package type */}
       <div className="quote-ht-section-title">Package Overview</div>
       <table className="quote-ht-overview">
         <tbody>
           {[
-            ['Name of Package', `${pkg.name} [${quote.quoteNumber}]`],
+            ['Name of Package', `${packageName} [${quote.quoteNumber}]`],
             ['Quotation Date', formatQuoteDate(quote.createdAt)],
-            ['Routing', pkg.routing || pkg.destination],
-            ['Package Category', pkg.packageCategory],
-            ['Duration', `${pkg.duration} Days & ${nights} Nights`],
-            ['No. of Rooms', `${pax.rooms}${pax.extraBeds ? ` | Extra Bed: ${pax.extraBeds}` : ''}`],
-            ['No. of Traveller', `Adult: ${pax.adults}${pax.kids ? ` | Kids: ${pax.kids}` : ''}`],
-            ...(pkg.cabCategory || vehicles[0]?.name ? [['Cab Category', pkg.cabCategory || vehicles[0]?.name]] : []),
-            ['Package Cost', `${formatINR(displayTotal)}/-`],
+            ['Destination', destination],
+            ['Travel Date', formatQuoteDate(travelDate)],
+            ['Duration', duration ? `${duration} Days & ${nights} Nights` : '—'],
+            ['No. of Travellers', `Adult: ${pax.adults}${pax.kids ? ` | Kids: ${pax.kids}` : ''}`],
+            ['Meal Plan', packageInfo.mealPlan || '—'],
+            ...(packageInfo.hotelCategory ? [['Hotel Category', packageInfo.hotelCategory]] : []),
             ['Prepared For', lead.name || 'Guest'],
             ...(lead.phone ? [['Customer Phone', lead.phone]] : []),
+            ['Total Package Cost', `${formatINR(displayTotal)}/-`],
           ].map(([label, value]) => (
             <tr key={label}>
               <td className="label">{label}</td>
@@ -216,103 +190,54 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </tbody>
       </table>
 
-      {/* Package type cost row */}
-      <table className="quote-ht-table" style={{ marginTop: 14 }}>
-        <thead>
-          <tr>
-            <th>Package Type</th>
-            <th style={{ textAlign: 'right' }}>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="quote-ht-amount-row">
-            <td style={{ fontWeight: 700 }}>{pkg.packageCategory}</td>
-            <td style={{ textAlign: 'right' }}>{formatINR(displayTotal)}</td>
-          </tr>
-        </tbody>
-      </table>
+      {/* Total cost highlight */}
+      <div className="quote-ht-total-banner">
+        <div>
+          <span className="quote-ht-total-banner-lbl">Total Package Cost</span>
+          <span className="quote-ht-total-banner-amt">{formatINR(displayTotal)}</span>
+        </div>
+        <span className="quote-ht-total-banner-note">Inclusive of taxes as applicable</span>
+      </div>
 
-      {/* Day-wise hotels — card layout with spacing between each night */}
-      {hotels.length > 0 && (
+      {/* Vehicles — clear details */}
+      {vehicles.length > 0 && (
         <>
-          <div className="quote-ht-section-title quote-ht-section-title-spaced">Day-wise Hotel Details</div>
-          <div className="quote-ht-hotel-days">
-            {hotels.map((h) => {
-              const hotelPhoto = h.hotelImages?.[0] || h.thumbnailUrl;
-              const roomPhoto = h.roomImage || h.roomImages?.[0];
-              return (
-                <article key={`${h.day}-${h.name}-${h.date || ''}`} className="quote-ht-hotel-day-card">
-                  <div className="quote-ht-hotel-day-head">
-                    <span className="quote-ht-hotel-day-badge">Day {h.day}</span>
-                    <span>{h.date ? formatQuoteDateShort(h.date) : (h.checkIn ? formatQuoteDateShort(h.checkIn) : '—')}</span>
-                    <span>{h.city}</span>
-                  </div>
-                  <div className="quote-ht-hotel-day-body">
-                    <div className="quote-ht-hotel-day-photos">
-                      {hotelPhoto ? (
-                        <figure className="quote-ht-hotel-day-photo">
-                          <PdfImage src={hotelPhoto} alt={h.name} className="quote-ht-hotel-day-img" />
-                          <figcaption>Hotel</figcaption>
-                        </figure>
-                      ) : null}
-                      {roomPhoto ? (
-                        <figure className="quote-ht-hotel-day-photo">
-                          <PdfImage src={roomPhoto} alt={h.roomType} className="quote-ht-hotel-day-img" />
-                          <figcaption>Room</figcaption>
-                        </figure>
-                      ) : null}
-                    </div>
-                    <div className="quote-ht-hotel-day-info">
-                      <h4>{h.name}</h4>
-                      {h.roomType && <p><strong>Room:</strong> {h.roomType}</p>}
-                      {h.meals && <p><strong>Meals:</strong> {h.meals}</p>}
-                      {h.price > 0 && <p className="quote-ht-hotel-day-price">{formatINR(h.price)}/night</p>}
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+          <div className="quote-ht-section-title" style={{ marginTop: 18 }}>Vehicle Details</div>
+          <div className="quote-ht-vehicle-grid">
+            {vehicles.map((v) => (
+              <div key={`${v.name}-${v.type}`} className="quote-ht-vehicle-card">
+                <div className="quote-ht-vehicle-name">{v.name}</div>
+                <div className="quote-ht-vehicle-meta">
+                  {v.type && <span>{v.type}</span>}
+                  <span>{v.count || 1} Vehicle{(v.count || 1) > 1 ? 's' : ''}</span>
+                  {v.cost > 0 && <span>{formatINR(v.cost)}</span>}
+                </div>
+                <div className="quote-ht-vehicle-dates">
+                  {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
+                  {' → '}
+                  {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
+                </div>
+                {v.notes && <div className="quote-ht-vehicle-notes">{v.notes}</div>}
+              </div>
+            ))}
           </div>
         </>
       )}
 
-      {/* Vehicles */}
-      {vehicles.length > 0 && (
+      {/* Day-wise itinerary with hotel (no separate hotel section) */}
+      {itinerary.length > 0 && (
         <>
-          <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Vehicle Details</div>
-          <table className="quote-ht-table">
-            <thead>
-              <tr>
-                <th>Vehicle</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.map((v) => (
-                <tr key={v.name}>
-                  <td>{v.name}</td>
-                  <td>{v.startDate ? formatQuoteDateShort(v.startDate) : '—'}</td>
-                  <td>{v.endDate ? formatQuoteDateShort(v.endDate) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
-
-      {/* Day-wise itinerary */}
-      {pkg.itinerary?.length > 0 && (
-        <>
-          {pkg.itinerary.map((day) => {
-            const dayDate = getDayDate(lead.travelDate, day.day);
-            const dayHotel = resolveDayHotelForItinerary(quote, day.day);
+          <div className="quote-ht-section-title" style={{ marginTop: 18 }}>Day Wise Itinerary</div>
+          {itinerary.map((day, index) => {
+            const dayNum = day.day || index + 1;
+            const dayDate = getDayDate(travelDate, dayNum);
+            const dayHotel = resolveDayHotelForItinerary(quote, dayNum);
             return (
-              <div key={day.id} className="quote-ht-day-card">
+              <div key={day.id || `day-${dayNum}`} className="quote-ht-day-card">
                 <div className="quote-ht-day-head">
                   <div className="day-title">
-                    <span className="quote-ht-day-num">{day.day}</span>
-                    <span>{day.title}</span>
+                    <span className="quote-ht-day-num">{dayNum}</span>
+                    <span>{day.title || `Day ${dayNum}`}</span>
                   </div>
                   <div className="quote-ht-day-meta">
                     {dayDate && (
@@ -320,42 +245,39 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                         <span className="lbl">Date</span> {formatQuoteDate(dayDate)}
                       </span>
                     )}
-                    {day.meals && (
+                    {(day.meals || dayHotel?.meals) && (
                       <span className="quote-ht-meta-pill">
-                        <span className="lbl">Meals</span> {day.meals}
+                        <span className="lbl">Meals</span> {day.meals || dayHotel?.meals}
                       </span>
                     )}
-                    {(dayHotel?.name || day.hotel) && (
+                    {(day.transport || vehicles[0]?.name) && (
                       <span className="quote-ht-meta-pill">
-                        <span className="lbl">Hotel</span> {dayHotel?.name || day.hotel}
-                      </span>
-                    )}
-                    {(day.transport || pkg.cabCategory) && (
-                      <span className="quote-ht-meta-pill">
-                        <span className="lbl">Cab</span> {day.transport || pkg.cabCategory}
+                        <span className="lbl">Cab</span> {day.transport || vehicles[0]?.name}
                       </span>
                     )}
                   </div>
                 </div>
+
                 {day.description && (
                   <div className="quote-ht-day-body">{day.description}</div>
                 )}
-                {(dayHotel || day.hotel) && (
-                  <DayHotelStay
-                    dayHotel={
-                      dayHotel || {
-                        name: day.hotel,
-                        roomType: '',
-                        meals: day.meals,
-                        city: pkg.destination?.split(/[,·]/)[0]?.trim(),
-                      }
-                    }
-                  />
+
+                {dayHotel?.name && (
+                  <div className="quote-ht-day-hotel-inline">
+                    <div className="quote-ht-day-hotel-inline-title">Stay</div>
+                    <div className="quote-ht-day-hotel-inline-body">
+                      <strong>{dayHotel.name}</strong>
+                      {dayHotel.roomType && <span> · {dayHotel.roomType}</span>}
+                      {dayHotel.meals && <span> · {dayHotel.meals}</span>}
+                      {dayHotel.city && dayHotel.city !== '—' && <span> · {dayHotel.city}</span>}
+                    </div>
+                  </div>
                 )}
+
                 {(day.sightseeing || day.activities || day.activityNotes) && (
                   <div className="quote-ht-day-extra">
                     {day.sightseeing && (
-                      <div><strong>Sightseeing for the day:</strong> {day.sightseeing}</div>
+                      <div><strong>Sightseeing:</strong> {day.sightseeing}</div>
                     )}
                     {day.activities && (
                       <div><strong>Activities:</strong> {day.activities}</div>
@@ -371,21 +293,17 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Payment plan */}
-      {paymentPlan.length > 0 && (
-        <>
-          <div className="quote-ht-section-title">Payment Schedule</div>
-          <div className="quote-ht-payment-grid">
-            {paymentPlan.map((row) => (
-              <div key={row.label} className="quote-ht-payment-card">
-                <span className="quote-ht-payment-pct">{row.percent}%</span>
-                <span className="quote-ht-payment-label">{row.label}</span>
-                <span className="quote-ht-payment-amt">{formatINR(row.amount)}</span>
-              </div>
-            ))}
+      {/* Payment schedule — 30 / 50 / 20 */}
+      <div className="quote-ht-section-title" style={{ marginTop: 18 }}>Payment Schedule</div>
+      <div className="quote-ht-payment-grid">
+        {paymentPlan.map((row) => (
+          <div key={row.label} className="quote-ht-payment-card">
+            <span className="quote-ht-payment-pct">{row.percent}%</span>
+            <span className="quote-ht-payment-label">{row.label}</span>
+            <span className="quote-ht-payment-amt">{formatINR(row.amount)}</span>
           </div>
-        </>
-      )}
+        ))}
+      </div>
 
       {/* Inclusion & Exclusion */}
       {(pkg.inclusions?.length || pkg.exclusions?.length) && (
@@ -412,17 +330,11 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Policies — custom notes + defaults */}
+      {/* Policies */}
       <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Policies &amp; Terms</div>
       <div className="quote-ht-body">
         {importantNotes.travelGuidelines && (
           <PolicyBlock title="Travel Guidelines" items={[importantNotes.travelGuidelines]} />
-        )}
-        {importantNotes.weather && (
-          <PolicyBlock title="Weather" items={[importantNotes.weather]} />
-        )}
-        {importantNotes.packingTips && (
-          <PolicyBlock title="Packing Tips" items={[importantNotes.packingTips]} />
         )}
         <PolicyBlock title="Remarks" items={policies.remarks} />
         <PolicyBlock
@@ -433,7 +345,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               : policies.terms
           }
         />
-        <PolicyBlock title="Confirmation Policy" items={policies.confirmation} />
         <PolicyBlock
           title="Cancellation Policy"
           items={
@@ -442,45 +353,51 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               : policies.cancellation
           }
         />
-        <PolicyBlock title="Amendment {Postpone & Prepone Policy}" items={policies.amendment} />
       </div>
 
-      {/* Bank details */}
-      <div className="quote-ht-section-title" style={{ marginTop: 8 }}>Bank Details: Cash / Cheque at Bank or Net Transfer</div>
-      <table className="quote-ht-bank-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Bank</th>
-            <th>Account Name</th>
-            <th>Account No.</th>
-            <th>IFSC</th>
-            <th>Branch</th>
-            <th>UPI</th>
-          </tr>
-        </thead>
-        <tbody>
-          {banks.map((b, i) => (
-            <tr key={b.bank}>
-              <td>{i + 1}</td>
-              <td><strong>{b.bank}</strong></td>
-              <td>{b.accountName}</td>
-              <td>{b.accountNo}</td>
-              <td>{b.ifsc}</td>
-              <td>{b.branch}</td>
-              <td>{b.upi || '—'}</td>
+      {/* Bank details — single account + QR */}
+      <div className="quote-ht-section-title" style={{ marginTop: 8 }}>Bank Details</div>
+      <div className="quote-ht-bank-qr-wrap">
+        <table className="quote-ht-bank-table quote-ht-bank-table-single">
+          <thead>
+            <tr>
+              <th>Bank</th>
+              <th>Account Name</th>
+              <th>Account No.</th>
+              <th>IFSC</th>
+              <th>Branch</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {banks.map((b) => (
+              <tr key={b.bank}>
+                <td><strong>{b.bank}</strong></td>
+                <td>{b.accountName}</td>
+                <td>{b.accountNo}</td>
+                <td>{b.ifsc}</td>
+                <td>{b.branch}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-      {/* Trip planner + address */}
+        <div className="quote-ht-qr-block">
+          <img
+            src={DEMO_QR_URL}
+            alt="Payment QR Code"
+            className="quote-ht-qr-img"
+            crossOrigin="anonymous"
+          />
+          <p className="quote-ht-qr-label">Scan to Pay</p>
+          <p className="quote-ht-qr-demo">Demo QR · UPI payment</p>
+        </div>
+      </div>
+
       <div className="quote-ht-planner">
         <div className="quote-ht-planner-box">
           <h4>Trip Planner Details</h4>
           <div><strong>Name:</strong> {planner.name}</div>
-          {planner.phone && <div><strong>Contact No.:</strong> {planner.phone}</div>}
-          {!planner.phone && <div><strong>Contact No.:</strong> {COMPANY_INFO.phone}</div>}
+          <div><strong>Contact No.:</strong> {planner.phone || COMPANY_INFO.phone}</div>
         </div>
         <div className="quote-ht-planner-box">
           <h4>Address &amp; Contact Info</h4>

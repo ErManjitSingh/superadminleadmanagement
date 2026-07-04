@@ -1284,7 +1284,163 @@
   }
 }
 
+/* Total cost banner */
+.quote-ht-total-banner {
+  margin-top: 14px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quote-ht-total-banner-lbl {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.quote-ht-total-banner-amt {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fbbf24;
+  margin-top: 2px;
+}
+
+.quote-ht-total-banner-note {
+  font-size: 10px;
+  opacity: 0.75;
+  text-align: right;
+}
+
+/* Vehicle cards */
+.quote-ht-vehicle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.quote-ht-vehicle-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.quote-ht-vehicle-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.quote-ht-vehicle-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.quote-ht-vehicle-meta span {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.quote-ht-vehicle-dates {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.quote-ht-vehicle-notes {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+/* Hotel inline inside day itinerary */
+.quote-ht-day-hotel-inline {
+  margin: 10px 12px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.quote-ht-day-hotel-inline-title {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #15803d;
+  margin-bottom: 2px;
+}
+
+.quote-ht-day-hotel-inline-body {
+  font-size: 12px;
+  color: #14532d;
+  line-height: 1.45;
+}
+
+/* Bank + QR */
+.quote-ht-bank-qr-wrap {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 14px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.quote-ht-bank-table-single {
+  margin: 0;
+}
+
+.quote-ht-qr-block {
+  text-align: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  background: #fff;
+}
+
+.quote-ht-qr-img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+}
+
+.quote-ht-qr-label {
+  margin: 8px 0 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.quote-ht-qr-demo {
+  margin: 2px 0 0;
+  font-size: 9px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
+  .quote-ht-bank-qr-wrap {
+    grid-template-columns: 1fr;
+  }
+
   .quote-ht-inc-exc,
   .quote-ht-planner {
     grid-template-columns: 1fr;

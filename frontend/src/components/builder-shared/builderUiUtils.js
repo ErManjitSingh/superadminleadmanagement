@@ -219,6 +219,7 @@ export function builderUiToSelectedCabs(builderUi = {}) {
     vehicleName: t.vehicle,
     vehicleType: builderUi.fleetCategory || builderUi.manualTransport?.vehicleType || 'SUV',
     cost: Number(t.cost) || 0,
+    vehicleCount: t.vehicleCount || Number(builderUi.vehicleCount) || 1,
     pickupLocation: '',
     dropLocation: '',
     notes: t.notes || '',
