@@ -50,27 +50,13 @@ const {
   saveQuotationVersion,
   restoreQuotationVersion,
   uploadQuotationPdf,
-  getQuotationPdfMeta,
-  downloadQuotationPdf,
-  previewQuotationPdf,
-  regenerateQuotationPdf,
-  deleteQuotationPdfHandler,
-  sendQuotationWhatsApp,
-  sendQuotationEmail,
 } = require('../controllers/quotationController');
 router.get('/quotations/templates', getQuotationTemplates);
 router.post('/quotations/autosave', autosaveQuotation);
 router.post('/quotations/:id/autosave', autosaveQuotation);
 router.post('/quotations/:id/versions', saveQuotationVersion);
 router.post('/quotations/:id/versions/:versionNumber/restore', restoreQuotationVersion);
-router.get('/quotations/:id/pdf/meta', getQuotationPdfMeta);
-router.get('/quotations/:id/pdf/download', downloadQuotationPdf);
-router.get('/quotations/:id/pdf/preview', previewQuotationPdf);
-router.post('/quotations/:id/pdf/regenerate', regenerateQuotationPdf);
-router.delete('/quotations/:id/pdf', deleteQuotationPdfHandler);
 router.post('/quotations/:id/pdf', uploadQuotationPdf);
-router.post('/quotations/:id/send-whatsapp', requirePermission('whatsapp', 'use'), sendQuotationWhatsApp);
-router.post('/quotations/:id/send-email', requirePermission('email', 'send'), sendQuotationEmail);
 
 router.get('/leads', listLeads);
 router.get('/leads/:id/quotations', getLeadQuotationsList);

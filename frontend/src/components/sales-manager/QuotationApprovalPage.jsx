@@ -141,7 +141,6 @@ export default function QuotationApprovalPage() {
         quote={selected}
         open={!!selected && !showPdf}
         onClose={() => { setSelected(null); setShowPdf(false); }}
-        savePath="/sales-manager/quotations"
         onDownloadPdf={() => setShowPdf(true)}
         actions={
           status === 'pending' && selected ? (

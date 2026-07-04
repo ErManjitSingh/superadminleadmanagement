@@ -168,32 +168,30 @@ export async function sharePdfFileNative(file, message = '') {
 }
 
 /**
- * @deprecated Quotation PDFs must be sent via server WhatsAppService
- * (POST /quotations/:id/send-whatsapp). Browsers cannot attach PDF files to
- * WhatsApp Web / wa.me automatically due to WhatsApp security restrictions.
- * This helper only opens a chat with text — it does NOT deliver a PDF document.
+ * Share quotation PDF as a file (not a link).
+ * Returns { ok, mode } where mode is native-share | download-manual | desktop.
  */
 export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName }) {
-  if (!phone) {
-    return {
-      ok: false,
-      mode: 'error',
-      reason: 'Customer phone number is missing',
-    };
+  if (!phone) return { ok: false, mode: 'error' };
+
+  const file = buildPdfFile(pdfBlob, fileName);
+
+  if (isMobileDevice() && file) {
+    await copyPhoneHint(phone);
+    const shared = await sharePdfFileNative(file, message);
+    if (shared) return { ok: true, mode: 'native-share' };
+
+    downloadBlob(pdfBlob, fileName || 'quotation.pdf');
+    openWhatsApp(phone, message);
+    return { ok: true, mode: 'download-manual' };
   }
 
-  // Never claim PDF delivery succeeded. Desktop WhatsApp Web cannot receive attachments from the browser.
   if (pdfBlob) {
     downloadBlob(pdfBlob, fileName || 'quotation.pdf');
   }
-  openWhatsApp(phone, message);
 
-  return {
-    ok: false,
-    mode: 'browser-unsupported',
-    reason:
-      'Browsers cannot automatically attach and send PDF files on WhatsApp Web. Configure WhatsApp Business API in Company Settings and use Send on WhatsApp.',
-  };
+  openWhatsApp(phone, message);
+  return { ok: true, mode: 'desktop' };
 }
 
 export function buildPublicPdfUrl(pdfPath) {

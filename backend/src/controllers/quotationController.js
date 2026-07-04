@@ -12,23 +12,7 @@ const { findQuotationsPaginated } = require('../repositories/quotationRepository
 const { getQuotationStats } = require('../repositories/roleScopedRepository');
 const { calculateQuotationPricing } = require('../services/quotationCostingService');
 const { markOnboardingStep } = require('../services/onboardingService');
-const quotationPdfService = require('../services/quotationPdfService');
-const quotationDeliveryService = require('../services/quotationDeliveryService');
-
-function requireCompanyId(req) {
-  if (!req.companyId) throw new ApiError(403, 'Company context is required');
-  return req.companyId;
-}
-
-function queuePdfSync(req, quotationId, { force = false } = {}) {
-  if (!req.companyId || !quotationId) return;
-  quotationPdfService.syncPdfOnQuotationChange({
-    quotationId,
-    companyId: req.companyId,
-    userId: req.user?._id,
-    force,
-  });
-}
+const { saveQuotationPdfBuffer, buildPublicPdfUrl } = require('../services/quotationPdfService');
 
 function pickBuilderFields(body = {}) {
   const fields = {};
@@ -147,10 +131,6 @@ const createQuotation = asyncHandler(async (req, res) => {
     await markOnboardingStep(req.companyId, 'firstQuotationCreated', true).catch(() => {});
   }
 
-  quotation.pdfStatus = 'pending';
-  await quotation.save();
-  queuePdfSync(req, quotation._id);
-
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   if (populated.status === 'pending_approval' || populated.status === 'sent') {
     notifyQuotationCreated(populated, lead).catch(() => {});
@@ -175,9 +155,7 @@ const updateQuotation = asyncHandler(async (req, res) => {
   if (!quotation.shareToken) {
     quotation.shareToken = crypto.randomBytes(16).toString('hex');
   }
-  quotation.pdfStatus = 'pending';
   await quotation.save();
-  queuePdfSync(req, quotation._id);
 
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
@@ -186,14 +164,6 @@ const updateQuotation = asyncHandler(async (req, res) => {
 const deleteQuotation = asyncHandler(async (req, res) => {
   const quotation = await Quotation.findById(req.params.id);
   if (!quotation) throw new ApiError(404, 'Quotation not found');
-
-  if (req.companyId) {
-    await quotationPdfService.syncPdfOnQuotationDelete({
-      quotationId: quotation._id,
-      companyId: req.companyId,
-    });
-  }
-
   await quotation.deleteOne();
   res.json({ message: 'Quotation deleted' });
 });
@@ -284,10 +254,7 @@ const autosaveQuotation = asyncHandler(async (req, res) => {
     quotation.shareToken = crypto.randomBytes(16).toString('hex');
   }
 
-  quotation.pdfStatus = 'pending';
   await quotation.save();
-  queuePdfSync(req, quotation._id);
-
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
 });
@@ -354,129 +321,44 @@ const restoreQuotationVersion = asyncHandler(async (req, res) => {
       notes: `Restored ${version.label || `version ${version.versionNumber}`}`,
     },
   ];
-  quotation.pdfStatus = 'pending';
   await quotation.save();
-  queuePdfSync(req, quotation._id);
 
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
 });
 
-/** @deprecated Client-side upload — kept for compatibility; regenerates server PDF instead. */
 const uploadQuotationPdf = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const result = await quotationPdfService.generateAndStorePdf({
-    quotationId: req.params.id,
-    companyId,
-    userId: req.user._id,
-    force: true,
-  });
+  const { pdfBase64 } = req.body || {};
+  if (!pdfBase64) throw new ApiError(400, 'pdfBase64 is required');
+
+  const quotation = await Quotation.findById(req.params.id);
+  if (!quotation) throw new ApiError(404, 'Quotation not found');
+
+  const buffer = Buffer.from(String(pdfBase64), 'base64');
+  if (!buffer.length) throw new ApiError(400, 'Invalid PDF data');
+  if (buffer.length > 15 * 1024 * 1024) throw new ApiError(400, 'PDF too large (max 15MB)');
+
+  if (!quotation.shareToken) {
+    quotation.shareToken = crypto.randomBytes(16).toString('hex');
+  }
+
+  const { pdfUrl } = saveQuotationPdfBuffer(quotation.shareToken, buffer);
+  quotation.pdfUrl = pdfUrl;
+  quotation.timeline = [
+    ...(quotation.timeline || []),
+    {
+      type: 'pdf_generated',
+      date: new Date(),
+      user: req.user.name,
+      notes: 'Quotation PDF generated for sharing',
+    },
+  ];
+  await quotation.save();
 
   res.json({
-    pdfFileId: result.file._id,
-    pdfVersion: result.file.version,
-    pdfStatus: 'ready',
-    fileName: result.file.originalFileName,
-    fileSize: result.file.fileSize,
-  });
-});
-
-const getQuotationPdfMeta = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const meta = await quotationPdfService.getPdfMetadata({
-    quotationId: req.params.id,
-    companyId,
-  });
-  res.json(meta);
-});
-
-const downloadQuotationPdf = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const { buffer, file, quotation } = await quotationPdfService.getPdfBuffer({
-    quotationId: req.params.id,
-    companyId,
-  });
-
-  const fileName = file.originalFileName || `${quotation.quoteNumber || 'quotation'}.pdf`;
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Length', buffer.length);
-  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-  res.setHeader('X-PDF-Version', String(file.version || 1));
-  res.send(buffer);
-});
-
-const previewQuotationPdf = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const { buffer, file, quotation } = await quotationPdfService.getPdfBuffer({
-    quotationId: req.params.id,
-    companyId,
-  });
-
-  const fileName = file.originalFileName || `${quotation.quoteNumber || 'quotation'}.pdf`;
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Length', buffer.length);
-  res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-  res.setHeader('X-PDF-Version', String(file.version || 1));
-  res.send(buffer);
-});
-
-const regenerateQuotationPdf = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const result = await quotationPdfService.generateAndStorePdf({
-    quotationId: req.params.id,
-    companyId,
-    userId: req.user._id,
-    force: true,
-  });
-
-  res.json({
-    pdfFileId: result.file._id,
-    pdfVersion: result.file.version,
-    pdfStatus: 'ready',
-    fileName: result.file.originalFileName,
-    fileSize: result.file.fileSize,
-    skipped: Boolean(result.skipped),
-  });
-});
-
-const deleteQuotationPdfHandler = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  await quotationPdfService.deleteQuotationPdf({
-    quotationId: req.params.id,
-    companyId,
-  });
-  res.json({ message: 'Quotation PDF deleted', pdfStatus: 'none' });
-});
-
-const sendQuotationWhatsApp = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const result = await quotationDeliveryService.sendQuotationWhatsApp({
-    quotationId: req.params.id,
-    companyId,
-    user: req.user,
-    phone: req.body?.phone,
-  });
-  res.json({
-    success: true,
-    message: 'Quotation PDF sent on WhatsApp',
-    ...result,
-  });
-});
-
-const sendQuotationEmail = asyncHandler(async (req, res) => {
-  const companyId = requireCompanyId(req);
-  const result = await quotationDeliveryService.sendQuotationEmail({
-    quotationId: req.params.id,
-    companyId,
-    user: req.user,
-    to: req.body?.to,
-    subject: req.body?.subject,
-    message: req.body?.message,
-  });
-  res.json({
-    success: true,
-    message: 'Quotation PDF emailed successfully',
-    ...result,
+    pdfUrl,
+    publicUrl: buildPublicPdfUrl(req, pdfUrl),
+    shareToken: quotation.shareToken,
   });
 });
 
@@ -494,11 +376,4 @@ module.exports = {
   saveQuotationVersion,
   restoreQuotationVersion,
   uploadQuotationPdf,
-  getQuotationPdfMeta,
-  downloadQuotationPdf,
-  previewQuotationPdf,
-  regenerateQuotationPdf,
-  deleteQuotationPdfHandler,
-  sendQuotationWhatsApp,
-  sendQuotationEmail,
 };

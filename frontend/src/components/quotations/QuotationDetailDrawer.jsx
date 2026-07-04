@@ -6,13 +6,9 @@ import QuotePricingPanel from './QuotePricingPanel';
 import QuoteTimeline from './QuoteTimeline';
 import { Button } from '../ui/button';
 import { formatINR } from './quotationUtils';
+import { buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
 import { toast } from '../../context/ToastContext';
-import {
-  shareQuotationWithPdf,
-  downloadServerQuotationPdf,
-  previewServerQuotationPdf,
-} from './quotationShare';
-import { getApiErrorMessage } from '../../services/quotationsApi';
+import { useAuth } from '../../context/AuthContext';
 
 function InfoRow({ icon: Icon, label, value }) {
   if (!value) return null;
@@ -38,9 +34,10 @@ export default function QuotationDetailDrawer({
   onClose,
   readOnly = false,
   onDownloadPdf,
-  savePath = '/quotations',
   actions,
 }) {
+  const { user } = useAuth();
+
   if (!quote) return null;
 
   const lead = quote.lead || {};
@@ -54,40 +51,32 @@ export default function QuotationDetailDrawer({
       toast.error('Customer phone number missing on this lead.');
       return;
     }
-    if (!quote._id) {
-      toast.error('Quotation is not saved yet.');
-      return;
-    }
-    await shareQuotationWithPdf({
-      quotationId: quote._id,
-      savePath,
-      phone: customerPhone,
+    const message = buildQuotationWhatsAppMessage({
+      lead,
+      packageName,
+      destination: lead.destination || quote.packageInfo?.destination,
+      duration: quote.packageInfo?.duration || quote.packageSnapshot?.duration,
+      total: quote.pricing?.total,
+      quoteNumber: quote.quoteNumber,
+      executiveName: user?.name,
     });
-  };
 
-  const handleDownload = async () => {
-    try {
-      await downloadServerQuotationPdf(
-        quote._id,
-        `Quotation-${quote.quoteNumber || 'quote'}.pdf`,
-        savePath
-      );
-      toast.success('PDF downloaded.');
-    } catch (err) {
-      if (onDownloadPdf) {
-        onDownloadPdf();
-        return;
+    let pdfBlob = null;
+    if (quote.pdfUrl) {
+      try {
+        const res = await fetch(quote.pdfUrl.startsWith('http') ? quote.pdfUrl : `${window.location.origin}${quote.pdfUrl}`);
+        if (res.ok) pdfBlob = await res.blob();
+      } catch {
+        /* text-only fallback */
       }
-      toast.error(getApiErrorMessage(err, 'Could not download PDF.'));
     }
-  };
 
-  const handlePreview = async () => {
-    try {
-      await previewServerQuotationPdf(quote._id, savePath);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not preview PDF.'));
-    }
+    await shareQuotationWhatsApp({
+      phone: customerPhone,
+      message,
+      pdfBlob,
+      fileName: `Quotation-${quote.quoteNumber || 'quote'}.pdf`,
+    });
   };
 
   return (
@@ -153,19 +142,18 @@ export default function QuotationDetailDrawer({
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
-          <Button onClick={handlePreview} variant="outline" className="rounded-xl gap-2 flex-1">
-            Preview PDF
-          </Button>
-          <Button onClick={handleDownload} variant="sky" className="rounded-xl gap-2 flex-1">
-            <Download className="w-4 h-4" /> Download PDF
-          </Button>
+          {onDownloadPdf && (
+            <Button onClick={onDownloadPdf} variant="sky" className="rounded-xl gap-2 flex-1">
+              <Download className="w-4 h-4" /> View PDF
+            </Button>
+          )}
           {customerPhone && (
             <Button
               type="button"
               onClick={handleWhatsApp}
               className="rounded-xl gap-2 flex-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
             >
-              <MessageCircle className="w-4 h-4" /> Send on WhatsApp
+              <MessageCircle className="w-4 h-4" /> WhatsApp
             </Button>
           )}
           {!readOnly && actions}

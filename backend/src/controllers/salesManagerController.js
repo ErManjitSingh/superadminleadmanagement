@@ -332,18 +332,7 @@ const updateQuotation = asyncHandler(async (req, res) => {
     Object.assign(quotation, req.body);
   }
 
-  const contentChanged = !action || !['approve', 'reject', 'changes'].includes(action);
   await quotation.save();
-
-  if (contentChanged && req.companyId) {
-    const quotationPdfService = require('../services/quotationPdfService');
-    await quotationPdfService.markPendingAndQueue({
-      quotationId: quotation._id,
-      companyId: req.companyId,
-      userId: req.user._id,
-    });
-  }
-
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   const lead = populated.lead;
 
