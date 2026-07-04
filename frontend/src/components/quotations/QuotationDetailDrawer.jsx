@@ -1,13 +1,14 @@
-import { Download, Mail, MapPin, Phone, User, Users, Calendar, Send, MessageCircle } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Download, Mail, MapPin, Phone, User, Users, Calendar, Send, MessageCircle, Loader2 } from 'lucide-react';
 import AppDrawer from '../ui/AppDrawer';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
 import QuotePricingPanel from './QuotePricingPanel';
 import QuoteTimeline from './QuoteTimeline';
+import QuotePdfPreview from './QuotePdfPreview';
 import { Button } from '../ui/button';
 import { formatINR } from './quotationUtils';
-import { buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
-import { toast } from '../../context/ToastContext';
+import { shareQuoteObjectOnWhatsApp } from './quotationShare';
 import { useAuth } from '../../context/AuthContext';
 
 function InfoRow({ icon: Icon, label, value }) {
@@ -34,9 +35,12 @@ export default function QuotationDetailDrawer({
   onClose,
   readOnly = false,
   onDownloadPdf,
+  savePath = '/quotations',
   actions,
 }) {
   const { user } = useAuth();
+  const pdfRef = useRef(null);
+  const [sending, setSending] = useState(false);
 
   if (!quote) return null;
 
@@ -47,40 +51,34 @@ export default function QuotationDetailDrawer({
   const sentEvent = [...(quote.timeline || [])].reverse().find((t) => t.type === 'sent');
 
   const handleWhatsApp = async () => {
-    if (!customerPhone) {
-      toast.error('Customer phone number missing on this lead.');
-      return;
+    if (!customerPhone) return;
+    setSending(true);
+    try {
+      // Let hidden preview paint before capture.
+      await new Promise((r) => setTimeout(r, 300));
+      await shareQuoteObjectOnWhatsApp({
+        quote,
+        pdfRef,
+        phone: customerPhone,
+        executiveName: user?.name,
+        savePath,
+      });
+    } finally {
+      setSending(false);
     }
-    const message = buildQuotationWhatsAppMessage({
-      lead,
-      packageName,
-      destination: lead.destination || quote.packageInfo?.destination,
-      duration: quote.packageInfo?.duration || quote.packageSnapshot?.duration,
-      total: quote.pricing?.total,
-      quoteNumber: quote.quoteNumber,
-      executiveName: user?.name,
-    });
-
-    let pdfBlob = null;
-    if (quote.pdfUrl) {
-      try {
-        const res = await fetch(quote.pdfUrl.startsWith('http') ? quote.pdfUrl : `${window.location.origin}${quote.pdfUrl}`);
-        if (res.ok) pdfBlob = await res.blob();
-      } catch {
-        /* text-only fallback */
-      }
-    }
-
-    await shareQuotationWhatsApp({
-      phone: customerPhone,
-      message,
-      pdfBlob,
-      fileName: `Quotation-${quote.quoteNumber || 'quote'}.pdf`,
-    });
   };
 
   return (
     <AppDrawer open={open} onClose={onClose} className="max-w-xl overflow-y-auto">
+      {/* Hidden brochure DOM used only to build the PDF file for WhatsApp */}
+      <div
+        aria-hidden
+        className="fixed top-0 left-0 w-[794px] -z-10 pointer-events-none overflow-visible"
+        style={{ opacity: 0.01, visibility: 'visible' }}
+      >
+        <QuotePdfPreview ref={pdfRef} quote={quote} />
+      </div>
+
       <div className="p-5 border-b border-subtle bg-gradient-to-r from-sky-500/10 to-indigo-500/10">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -151,9 +149,11 @@ export default function QuotationDetailDrawer({
             <Button
               type="button"
               onClick={handleWhatsApp}
+              disabled={sending}
               className="rounded-xl gap-2 flex-1 bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0"
             >
-              <MessageCircle className="w-4 h-4" /> WhatsApp
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+              {sending ? 'PDF…' : 'WhatsApp'}
             </Button>
           )}
           {!readOnly && actions}

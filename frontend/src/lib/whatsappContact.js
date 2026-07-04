@@ -60,13 +60,7 @@ export function buildQuotationWhatsAppMessage({
   if (quoteNumber && quoteNumber !== 'DRAFT' && quoteNumber !== 'PREVIEW') {
     lines.push(`Quote #: ${quoteNumber}`);
   }
-  lines.push(
-    '',
-    'Please find the quotation PDF attached.',
-    'Let us know if you would like any changes.',
-    '',
-    'Thank you!',
-  );
+  lines.push('', 'Please find the quotation PDF.', 'Thank you!');
   return lines.join('\n');
 }
 
@@ -131,15 +125,29 @@ async function copyPhoneHint(phone) {
 }
 
 function buildPdfFile(pdfBlob, fileName) {
-  if (!pdfBlob) return null;
+  if (!pdfBlob?.size) return null;
   return new File([pdfBlob], fileName || 'quotation.pdf', {
     type: 'application/pdf',
     lastModified: Date.now(),
   });
 }
 
+function canShareFiles(file) {
+  if (!file || typeof navigator === 'undefined' || !navigator.share) return false;
+  if (typeof navigator.canShare !== 'function') {
+    // Older Android Chrome often supports files without canShare.
+    return isMobileDevice();
+  }
+  try {
+    return navigator.canShare({ files: [file] });
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Native OS share with PDF file. Must run soon after user tap — do not await slow work before this.
+ * Native OS share with PDF file attached.
+ * On phone: pick WhatsApp → PDF document is attached.
  */
 export async function sharePdfFileNative(file, message = '') {
   if (!file || !navigator.share) return false;
@@ -158,6 +166,7 @@ export async function sharePdfFileNative(file, message = '') {
 
   for (const payload of attempts) {
     try {
+      if (navigator.canShare && !navigator.canShare(payload)) continue;
       await navigator.share(payload);
       return true;
     } catch (err) {
@@ -168,30 +177,28 @@ export async function sharePdfFileNative(file, message = '') {
 }
 
 /**
- * Share quotation PDF as a file (not a link).
- * Returns { ok, mode } where mode is native-share | download-manual | desktop.
+ * Share quotation PDF as a real file (not a link).
+ * Uses the phone share sheet so WhatsApp receives the PDF document.
  */
 export async function shareQuotationWhatsApp({ phone, message, pdfBlob, fileName }) {
-  if (!phone) return { ok: false, mode: 'error' };
+  if (!phone) return { ok: false, mode: 'error', reason: 'Phone missing' };
+  if (!pdfBlob?.size) return { ok: false, mode: 'error', reason: 'PDF not ready' };
 
   const file = buildPdfFile(pdfBlob, fileName);
+  if (!file) return { ok: false, mode: 'error', reason: 'PDF not ready' };
 
-  if (isMobileDevice() && file) {
+  // Best path: OS share sheet with PDF file → user selects WhatsApp → PDF is attached.
+  if (canShareFiles(file)) {
     await copyPhoneHint(phone);
     const shared = await sharePdfFileNative(file, message);
     if (shared) return { ok: true, mode: 'native-share' };
-
-    downloadBlob(pdfBlob, fileName || 'quotation.pdf');
-    openWhatsApp(phone, message);
-    return { ok: true, mode: 'download-manual' };
   }
 
-  if (pdfBlob) {
-    downloadBlob(pdfBlob, fileName || 'quotation.pdf');
-  }
-
+  // Fallback (desktop / share cancelled): download PDF and open chat.
+  // Browser cannot auto-attach files to WhatsApp Web.
+  downloadBlob(pdfBlob, fileName || 'quotation.pdf');
   openWhatsApp(phone, message);
-  return { ok: true, mode: 'desktop' };
+  return { ok: true, mode: 'download-manual' };
 }
 
 export function buildPublicPdfUrl(pdfPath) {

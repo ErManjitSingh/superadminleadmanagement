@@ -15,9 +15,10 @@ import {
 } from './executivePageStyles';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
-import { buildPublicPdfUrl, buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
 import { toast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { shareQuoteObjectOnWhatsApp } from '../quotations/quotationShare';
+import QuotePdfPreview from '../quotations/QuotePdfPreview';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
 import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
@@ -50,7 +51,9 @@ export default function ExecutiveQuotationsPage() {
   const [flash, setFlash] = useState(location.state?.message || '');
   const [selected, setSelected] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
+  const [sendTarget, setSendTarget] = useState(null);
   const pdfRef = useRef(null);
+  const sendPdfRef = useRef(null);
 
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
 
@@ -95,35 +98,18 @@ export default function ExecutiveQuotationsPage() {
         return;
       }
 
-      const pdfPublicUrl = row?.pdfUrl ? buildPublicPdfUrl(row.pdfUrl) : '';
-      const message = buildQuotationWhatsAppMessage({
-        lead,
-        packageName: row?.package?.name || row?.packageSnapshot?.name,
-        destination: lead.destination || row?.packageInfo?.destination,
-        duration: row?.packageInfo?.duration || row?.packageSnapshot?.duration,
-        total: row?.pricing?.total,
-        quoteNumber: row?.quoteNumber,
-        executiveName: user?.name,
-      });
-
-      let pdfBlob = null;
-      if (pdfPublicUrl) {
-        try {
-          const res = await fetch(pdfPublicUrl);
-          if (res.ok) pdfBlob = await res.blob();
-        } catch {
-          /* text-only fallback */
-        }
-      }
-
-      await shareQuotationWhatsApp({
+      setSendTarget(row);
+      await new Promise((r) => setTimeout(r, 400));
+      await shareQuoteObjectOnWhatsApp({
+        quote: row,
+        pdfRef: sendPdfRef,
         phone,
-        message,
-        pdfBlob,
-        fileName: `Quotation-${row?.quoteNumber || 'quote'}.pdf`,
+        executiveName: user?.name,
+        savePath: '/sales-executive/quotations',
       });
+      setSendTarget(null);
     } catch (err) {
-      /* toast via axios */
+      setSendTarget(null);
     }
   };
 
@@ -265,10 +251,21 @@ export default function ExecutiveQuotationsPage() {
         </div>
       </div>
 
+      {sendTarget && (
+        <div
+          aria-hidden
+          className="fixed top-0 left-0 w-[794px] -z-10 pointer-events-none overflow-visible"
+          style={{ opacity: 0.01, visibility: 'visible' }}
+        >
+          <QuotePdfPreview ref={sendPdfRef} quote={sendTarget} />
+        </div>
+      )}
+
       <QuotationDetailDrawer
         quote={selected}
         open={!!selected && !showPdf}
         onClose={() => { setSelected(null); setShowPdf(false); }}
+        savePath="/sales-executive/quotations"
         onDownloadPdf={() => setShowPdf(true)}
         actions={
           selected?.status === 'draft' ? (
