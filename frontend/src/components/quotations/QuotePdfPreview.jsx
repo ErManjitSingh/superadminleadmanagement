@@ -69,7 +69,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
     <div ref={ref} className="quote-ht-pdf quote-ht-pdf-v2">
       {/* Watermark — Travel CRM @ 0.3 opacity */}
       <div className="qp-watermark" aria-hidden="true">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <span key={i} className="qp-watermark-text">Travel CRM</span>
         ))}
       </div>

@@ -16,7 +16,7 @@ export function buildQuotationPrintDocument(contentHtml, title = 'Quotation') {
   <title>${safeTitle}</title>
   <style>
 ${quotePdfCss}
-    @page { margin: 8mm; size: A4 portrait; }
+    @page { margin: 6mm; size: A4 portrait; }
     html, body {
       margin: 0 !important;
       padding: 0 !important;
