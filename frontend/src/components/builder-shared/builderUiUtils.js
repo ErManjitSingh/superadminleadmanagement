@@ -10,7 +10,7 @@ export function defaultBuilderUi() {
       checkIn: '',
       checkOut: '',
       roomType: 'Deluxe',
-      mealPlan: MEAL_PLANS[2] || 'MAP (Breakfast & Dinner)',
+      mealPlan: MEAL_PLANS[2] || 'MAP (Breakfast + Dinner)',
     },
     destinationHotels: [],
     transportMode: 'fleet',
@@ -37,7 +37,7 @@ export function emptyDestinationHotel(destination = '') {
     checkIn: '',
     checkOut: '',
     roomType: 'Deluxe',
-    mealPlan: MEAL_PLANS[2] || 'MAP (Breakfast & Dinner)',
+    mealPlan: MEAL_PLANS[2] || 'MAP (Breakfast + Dinner)',
   };
 }
 
