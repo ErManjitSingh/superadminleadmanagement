@@ -193,16 +193,45 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
 
   const draftQuote = useMemo(() => {
     if (!selectedLead) return null;
-    const total = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
+    const transportCost = builderUiToSelectedCabs(builderUi).reduce(
+      (sum, cab) => sum + (Number(cab.cost) || 0),
+      0,
+    );
+    const priced =
+      Number(state.pricing?.total)
+      || Number(state.pricing?.grandTotal)
+      || Number(state.pricing?.baseCost)
+      || 0;
+    // Prefer explicit package total; fall back to transport cost only if pricing not set.
+    const total = priced > 0 ? priced : transportCost;
     const destList = hotelDestination ? [{ name: hotelDestination }] : [];
     return {
-      quoteNumber: draftId ? 'DRAFT' : 'PREVIEW',
+      quoteNumber: draftId ? `DRAFT` : 'PREVIEW',
       createdAt: new Date().toISOString(),
       lead: selectedLead,
       package: buildPackageSnapshot(activePkg || {}),
-      pricing: { ...state.pricing, total, grandTotal: total },
-      packageInfo: state.packageInfo,
-      paymentPlan: syncPaymentAmounts(state.paymentPlan, total),
+      pricing: {
+        ...state.pricing,
+        total,
+        grandTotal: total,
+        baseCost: total,
+      },
+      costing: {
+        grandTotal: total,
+        subtotal: total,
+      },
+      packageInfo: {
+        ...state.packageInfo,
+        totalCost: total,
+      },
+      paymentPlan: syncPaymentAmounts(
+        [
+          { label: 'Booking Amount', percent: 30, amount: 0 },
+          { label: 'Before Travel', percent: 50, amount: 0 },
+          { label: 'Before Departure', percent: 20, amount: 0 },
+        ],
+        total,
+      ),
       importantNotes: state.importantNotes,
       selectedHotels: builderUiToSelectedHotelsSnapshot(builderUi, destList),
       selectedCabs: builderUiToSelectedCabs(builderUi),
@@ -564,10 +593,16 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   }, []);
 
   const updatePricingTotal = useCallback((total) => {
+    const amount = Math.max(0, Number(total) || 0);
     setState((s) => ({
       ...s,
-      pricing: { ...s.pricing, total, grandTotal: total, baseCost: total },
-      paymentPlan: syncPaymentAmounts(s.paymentPlan, total),
+      pricing: {
+        ...s.pricing,
+        total: amount,
+        grandTotal: amount,
+        baseCost: amount,
+      },
+      paymentPlan: syncPaymentAmounts(s.paymentPlan, amount),
     }));
   }, []);
 

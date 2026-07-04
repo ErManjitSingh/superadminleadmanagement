@@ -18,10 +18,9 @@ import {
   resolvePaymentPlan,
   resolveQuoteTotal,
 } from './quotePdfHelpers';
-import DestinationGallery from './DestinationGallery';
 
 const DEMO_QR_URL =
-  'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=upi%3A%2F%2Fpay%3Fpa%3Ddemo%40travelcrm%26pn%3DTravel%2520CRM%26cu%3DINR';
+  'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3Ddemo%40travelcrm%26pn%3DTravel%2520CRM%26cu%3DINR';
 
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
@@ -30,22 +29,10 @@ function PolicyBlock({ title, items }) {
       <div className="quote-ht-policy-head">{title}</div>
       <ul>
         {items.map((item) => (
-          <li key={item}>{item}</li>
+          <li key={String(item).slice(0, 40)}>{item}</li>
         ))}
       </ul>
     </div>
-  );
-}
-
-function PdfImage({ src, alt, className }) {
-  if (!src) return null;
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      crossOrigin={src.startsWith('data:') ? undefined : 'anonymous'}
-    />
   );
 }
 
@@ -59,267 +46,202 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const planner = resolveTripPlanner(quote);
   const policies = resolvePolicies(quote);
   const banks = resolveBankAccounts(quote);
+  const bank = banks[0] || null;
   const pax = resolveTravelerCounts(quote);
   const duration = Number(packageInfo.duration || pkg.duration || 0);
   const nights = Math.max(0, duration > 0 ? duration - 1 : 0);
   const packageName = packageInfo.packageName || pkg.name || 'Travel Package';
-  const destination = packageInfo.destination || pkg.routing || pkg.destination || lead.destination || '—';
+  const destination =
+    packageInfo.destination || pkg.routing || pkg.destination || lead.destination || '—';
   const travelDate = packageInfo.travelDate || lead.travelDate;
-  const coverImage =
-    pkg.coverImage ||
-    packageInfo.coverImage ||
-    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
   const displayTotal = resolveQuoteTotal(quote);
   const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
   const itinerary = pkg.itinerary || [];
+  const quoteNo = quote.quoteNumber || 'QUOTE';
 
   return (
-    <div ref={ref} className="quote-ht-pdf">
-      {/* Premium cover */}
-      <section className="quote-ht-cover">
-        <PdfImage src={coverImage} alt="" className="quote-ht-cover-bg" />
-        <div className="quote-ht-cover-overlay" />
-        <div className="quote-ht-cover-content">
+    <div ref={ref} className="quote-ht-pdf quote-ht-pdf-v2">
+      {/* Header */}
+      <header className="qp-header">
+        <div className="qp-header-left">
           <img
             src={COMPANY_INFO.logoUrl}
             alt={COMPANY_INFO.name}
-            className="quote-ht-cover-logo"
+            className="qp-logo"
             crossOrigin="anonymous"
           />
-          <p className="quote-ht-cover-eyebrow">Premium Travel Quotation</p>
-          <h1 className="quote-ht-cover-title">{packageName}</h1>
-          <p className="quote-ht-cover-dest">{destination}</p>
-          <div className="quote-ht-cover-chips">
+          <div>
+            <p className="qp-brand">{COMPANY_INFO.name}</p>
+            <p className="qp-tagline">{COMPANY_INFO.tagline}</p>
+          </div>
+        </div>
+        <div className="qp-header-right">
+          <p className="qp-quote-no">{quoteNo}</p>
+          <p>{formatQuoteDate(quote.createdAt)}</p>
+          <p>{COMPANY_INFO.phone}</p>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="qp-hero">
+        <div className="qp-hero-main">
+          <p className="qp-eyebrow">Travel Quotation</p>
+          <h1 className="qp-title">{packageName}</h1>
+          <p className="qp-dest">{destination}</p>
+          <div className="qp-chips">
             {duration > 0 && (
-              <span>{nights} Nights · {duration} Days</span>
+              <span>{nights} Nights / {duration} Days</span>
             )}
-            {packageInfo.hotelCategory && <span>{packageInfo.hotelCategory}</span>}
-            {packageInfo.mealPlan && <span>{packageInfo.mealPlan}</span>}
+            {travelDate && <span>{formatQuoteDate(travelDate)}</span>}
+            {lead.name && <span>For {lead.name}</span>}
           </div>
-          <div className="quote-ht-cover-price">
-            <span className="lbl">Total Package Cost</span>
-            <span className="amt">{formatINR(displayTotal)}</span>
-            <span className="ref">{quote.quoteNumber}</span>
-          </div>
+        </div>
+        <div className="qp-hero-price">
+          <span className="qp-price-lbl">Total Package Cost</span>
+          <span className="qp-price-amt">{formatINR(displayTotal)}</span>
+          <span className="qp-price-sub">All inclusive</span>
         </div>
       </section>
 
-      <div className="quote-ht-topbar">
-        <div className="quote-ht-brand-row">
-          <img
-            src={COMPANY_INFO.logoUrl}
-            alt={COMPANY_INFO.name}
-            className="quote-ht-logo-img"
-            crossOrigin="anonymous"
-          />
-        </div>
-        <div className="quote-ht-quote-meta">
-          <div className="qnum">{quote.quoteNumber}</div>
-          <div>{COMPANY_INFO.phone}</div>
-          <div>{COMPANY_INFO.email}</div>
-        </div>
-      </div>
-
-      <div className="quote-ht-header-block">
-        <div className="quote-ht-package-hero">
-          <div className="quote-ht-package-hero-main">
-            <span className="pkg-code">{quote.quoteNumber}</span>
-            <h2 className="pkg-title">{packageName}</h2>
-            <div className="pkg-meta-row">
-              {duration > 0 && (
-                <span className="pkg-chip pkg-chip-duration">
-                  {nights} Nights · {duration} Days
-                </span>
-              )}
-              <span className="pkg-chip pkg-chip-route">{destination}</span>
-              {lead.name && (
-                <span className="pkg-chip">For {lead.name}</span>
-              )}
-            </div>
-          </div>
-          <div className="quote-ht-package-hero-price">
-            <span className="price-label">Grand Total</span>
-            <span className="price-value">{formatINR(displayTotal)}</span>
-            <span className="price-note">All inclusive · {quote.quoteNumber}</span>
-          </div>
-        </div>
-
-        <DestinationGallery
-          quote={quote}
-          destination={destination}
-          compact
-        />
-      </div>
-
-      <div className="quote-ht-welcome">
-        <strong>Hello {lead.name || 'Guest'},</strong>
-        <br />
-        Welcome to {COMPANY_INFO.name}
-        <br /><br />
-        {QUOTE_WELCOME_TEXT.split('\n\n').map((para) => (
-          <p key={para.slice(0, 24)} style={{ margin: '0 0 8px' }}>{para}</p>
+      {/* Welcome */}
+      <section className="qp-welcome">
+        <p><strong>Hello {lead.name || 'Guest'},</strong></p>
+        <p>Welcome to {COMPANY_INFO.name}.</p>
+        {QUOTE_WELCOME_TEXT.split('\n\n').slice(0, 2).map((para) => (
+          <p key={para.slice(0, 20)}>{para}</p>
         ))}
-        <p style={{ margin: 0 }}>
-          For assistance call us 24/7: <strong>{COMPANY_INFO.phone}</strong>
-        </p>
+      </section>
+
+      {/* Package Overview */}
+      <h2 className="qp-section">Package Overview</h2>
+      <div className="qp-overview-grid">
+        {[
+          ['Package', packageName],
+          ['Quote No.', quoteNo],
+          ['Destination', destination],
+          ['Travel Date', formatQuoteDate(travelDate)],
+          ['Duration', duration ? `${duration} Days / ${nights} Nights` : '—'],
+          ['Travellers', `Adults: ${pax.adults}${pax.kids ? ` · Kids: ${pax.kids}` : ''}`],
+          ['Meal Plan', packageInfo.mealPlan || '—'],
+          ['Customer', lead.name || 'Guest'],
+          ...(lead.phone ? [['Phone', lead.phone]] : []),
+        ].map(([label, value]) => (
+          <div key={label} className="qp-overview-item">
+            <span className="qp-overview-lbl">{label}</span>
+            <span className="qp-overview-val">{value}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Package Overview — no category / package type */}
-      <div className="quote-ht-section-title">Package Overview</div>
-      <table className="quote-ht-overview">
-        <tbody>
-          {[
-            ['Name of Package', `${packageName} [${quote.quoteNumber}]`],
-            ['Quotation Date', formatQuoteDate(quote.createdAt)],
-            ['Destination', destination],
-            ['Travel Date', formatQuoteDate(travelDate)],
-            ['Duration', duration ? `${duration} Days & ${nights} Nights` : '—'],
-            ['No. of Travellers', `Adult: ${pax.adults}${pax.kids ? ` | Kids: ${pax.kids}` : ''}`],
-            ['Meal Plan', packageInfo.mealPlan || '—'],
-            ...(packageInfo.hotelCategory ? [['Hotel Category', packageInfo.hotelCategory]] : []),
-            ['Prepared For', lead.name || 'Guest'],
-            ...(lead.phone ? [['Customer Phone', lead.phone]] : []),
-            ['Total Package Cost', `${formatINR(displayTotal)}/-`],
-          ].map(([label, value]) => (
-            <tr key={label}>
-              <td className="label">{label}</td>
-              <td className="value">{value}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {/* Total cost highlight */}
-      <div className="quote-ht-total-banner">
+      {/* Total cost strip */}
+      <div className="qp-total-strip">
         <div>
-          <span className="quote-ht-total-banner-lbl">Total Package Cost</span>
-          <span className="quote-ht-total-banner-amt">{formatINR(displayTotal)}</span>
+          <span className="qp-total-strip-lbl">Total Package Cost</span>
+          <span className="qp-total-strip-amt">{formatINR(displayTotal)}</span>
         </div>
-        <span className="quote-ht-total-banner-note">Inclusive of taxes as applicable</span>
+        <span className="qp-total-strip-note">Taxes as applicable</span>
       </div>
 
-      {/* Vehicles — clear details */}
+      {/* Vehicles */}
       {vehicles.length > 0 && (
         <>
-          <div className="quote-ht-section-title" style={{ marginTop: 18 }}>Vehicle Details</div>
-          <div className="quote-ht-vehicle-grid">
+          <h2 className="qp-section">Vehicle Details</h2>
+          <div className="qp-vehicle-list">
             {vehicles.map((v) => (
-              <div key={`${v.name}-${v.type}`} className="quote-ht-vehicle-card">
-                <div className="quote-ht-vehicle-name">{v.name}</div>
-                <div className="quote-ht-vehicle-meta">
-                  {v.type && <span>{v.type}</span>}
-                  <span>{v.count || 1} Vehicle{(v.count || 1) > 1 ? 's' : ''}</span>
-                  {v.cost > 0 && <span>{formatINR(v.cost)}</span>}
+              <div key={`${v.name}-${v.type}`} className="qp-vehicle-row">
+                <div>
+                  <p className="qp-vehicle-name">{v.name}</p>
+                  <p className="qp-vehicle-meta">
+                    {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                  <p className="qp-vehicle-dates">
+                    {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
+                    {' → '}
+                    {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
+                  </p>
                 </div>
-                <div className="quote-ht-vehicle-dates">
-                  {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
-                  {' → '}
-                  {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
-                </div>
-                {v.notes && <div className="quote-ht-vehicle-notes">{v.notes}</div>}
+                {v.cost > 0 && (
+                  <p className="qp-vehicle-cost">{formatINR(v.cost)}</p>
+                )}
               </div>
             ))}
           </div>
         </>
       )}
 
-      {/* Day-wise itinerary with hotel (no separate hotel section) */}
+      {/* Day-wise itinerary + hotel */}
       {itinerary.length > 0 && (
         <>
-          <div className="quote-ht-section-title" style={{ marginTop: 18 }}>Day Wise Itinerary</div>
+          <h2 className="qp-section">Day Wise Itinerary</h2>
           {itinerary.map((day, index) => {
             const dayNum = day.day || index + 1;
             const dayDate = getDayDate(travelDate, dayNum);
             const dayHotel = resolveDayHotelForItinerary(quote, dayNum);
             return (
-              <div key={day.id || `day-${dayNum}`} className="quote-ht-day-card">
-                <div className="quote-ht-day-head">
-                  <div className="day-title">
-                    <span className="quote-ht-day-num">{dayNum}</span>
-                    <span>{day.title || `Day ${dayNum}`}</span>
-                  </div>
-                  <div className="quote-ht-day-meta">
-                    {dayDate && (
-                      <span className="quote-ht-meta-pill">
-                        <span className="lbl">Date</span> {formatQuoteDate(dayDate)}
-                      </span>
-                    )}
-                    {(day.meals || dayHotel?.meals) && (
-                      <span className="quote-ht-meta-pill">
-                        <span className="lbl">Meals</span> {day.meals || dayHotel?.meals}
-                      </span>
-                    )}
-                    {(day.transport || vehicles[0]?.name) && (
-                      <span className="quote-ht-meta-pill">
-                        <span className="lbl">Cab</span> {day.transport || vehicles[0]?.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {day.description && (
-                  <div className="quote-ht-day-body">{day.description}</div>
-                )}
-
-                {dayHotel?.name && (
-                  <div className="quote-ht-day-hotel-inline">
-                    <div className="quote-ht-day-hotel-inline-title">Stay</div>
-                    <div className="quote-ht-day-hotel-inline-body">
-                      <strong>{dayHotel.name}</strong>
-                      {dayHotel.roomType && <span> · {dayHotel.roomType}</span>}
-                      {dayHotel.meals && <span> · {dayHotel.meals}</span>}
-                      {dayHotel.city && dayHotel.city !== '—' && <span> · {dayHotel.city}</span>}
+              <article key={day.id || `day-${dayNum}`} className="qp-day">
+                <div className="qp-day-head">
+                  <span className="qp-day-num">Day {dayNum}</span>
+                  <div className="qp-day-title-wrap">
+                    <h3>{day.title || `Day ${dayNum}`}</h3>
+                    <div className="qp-day-pills">
+                      {dayDate && <span>{formatQuoteDate(dayDate)}</span>}
+                      {(day.meals || dayHotel?.meals) && (
+                        <span>{day.meals || dayHotel?.meals}</span>
+                      )}
+                      {(day.transport || vehicles[0]?.name) && (
+                        <span>{day.transport || vehicles[0]?.name}</span>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {(day.sightseeing || day.activities || day.activityNotes) && (
-                  <div className="quote-ht-day-extra">
-                    {day.sightseeing && (
-                      <div><strong>Sightseeing:</strong> {day.sightseeing}</div>
-                    )}
-                    {day.activities && (
-                      <div><strong>Activities:</strong> {day.activities}</div>
-                    )}
-                    {day.activityNotes && (
-                      <div style={{ marginTop: 4, fontStyle: 'italic' }}>{day.activityNotes}</div>
-                    )}
+                </div>
+                {day.description && <p className="qp-day-desc">{day.description}</p>}
+                {dayHotel?.name && (
+                  <div className="qp-day-stay">
+                    <span className="qp-day-stay-lbl">Stay</span>
+                    <p>
+                      <strong>{dayHotel.name}</strong>
+                      {dayHotel.roomType ? ` · ${dayHotel.roomType}` : ''}
+                      {dayHotel.meals ? ` · ${dayHotel.meals}` : ''}
+                      {dayHotel.city && dayHotel.city !== '—' ? ` · ${dayHotel.city}` : ''}
+                    </p>
                   </div>
                 )}
-              </div>
+              </article>
             );
           })}
         </>
       )}
 
-      {/* Payment schedule — 30 / 50 / 20 */}
-      <div className="quote-ht-section-title" style={{ marginTop: 18 }}>Payment Schedule</div>
-      <div className="quote-ht-payment-grid">
+      {/* Payment 30 / 50 / 20 */}
+      <h2 className="qp-section">Payment Schedule</h2>
+      <div className="qp-pay-grid">
         {paymentPlan.map((row) => (
-          <div key={row.label} className="quote-ht-payment-card">
-            <span className="quote-ht-payment-pct">{row.percent}%</span>
-            <span className="quote-ht-payment-label">{row.label}</span>
-            <span className="quote-ht-payment-amt">{formatINR(row.amount)}</span>
+          <div key={row.label} className="qp-pay-card">
+            <span className="qp-pay-pct">{row.percent}%</span>
+            <span className="qp-pay-lbl">{row.label}</span>
+            <span className="qp-pay-amt">{formatINR(row.amount)}</span>
           </div>
         ))}
       </div>
 
-      {/* Inclusion & Exclusion */}
-      {(pkg.inclusions?.length || pkg.exclusions?.length) && (
+      {/* Inclusions / Exclusions */}
+      {(pkg.inclusions?.length > 0 || pkg.exclusions?.length > 0) && (
         <>
-          <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Inclusion &amp; Exclusion</div>
-          <div className="quote-ht-inc-exc">
-            <div className="inc">
-              <h4>Inclusion</h4>
+          <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
+          <div className="qp-inc-exc">
+            <div className="qp-inc">
+              <h4>Inclusions</h4>
               <ul>
                 {(pkg.inclusions || []).map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
-            <div className="exc">
-              <h4>Exclusion</h4>
+            <div className="qp-exc">
+              <h4>Exclusions</h4>
               <ul>
                 {(pkg.exclusions || []).map((item) => (
                   <li key={item}>{item}</li>
@@ -330,96 +252,83 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Policies */}
-      <div className="quote-ht-section-title" style={{ marginTop: 16 }}>Policies &amp; Terms</div>
-      <div className="quote-ht-body">
+      {/* Terms */}
+      <h2 className="qp-section">Terms &amp; Policies</h2>
+      <div className="qp-policies">
         {importantNotes.travelGuidelines && (
           <PolicyBlock title="Travel Guidelines" items={[importantNotes.travelGuidelines]} />
         )}
-        <PolicyBlock title="Remarks" items={policies.remarks} />
+        <PolicyBlock title="Remarks" items={policies.remarks?.slice?.(0, 5) || policies.remarks} />
         <PolicyBlock
           title="Terms & Conditions"
           items={
             importantNotes.termsAndConditions
-              ? [importantNotes.termsAndConditions, ...(policies.terms || [])]
-              : policies.terms
+              ? [importantNotes.termsAndConditions]
+              : (policies.terms || []).slice(0, 4)
           }
         />
         <PolicyBlock
           title="Cancellation Policy"
           items={
             importantNotes.cancellationPolicy
-              ? [importantNotes.cancellationPolicy, ...(policies.cancellation || [])]
-              : policies.cancellation
+              ? [importantNotes.cancellationPolicy]
+              : (policies.cancellation || []).slice(0, 4)
           }
         />
       </div>
 
-      {/* Bank details — single account + QR */}
-      <div className="quote-ht-section-title" style={{ marginTop: 8 }}>Bank Details</div>
-      <div className="quote-ht-bank-qr-wrap">
-        <table className="quote-ht-bank-table quote-ht-bank-table-single">
-          <thead>
-            <tr>
-              <th>Bank</th>
-              <th>Account Name</th>
-              <th>Account No.</th>
-              <th>IFSC</th>
-              <th>Branch</th>
-            </tr>
-          </thead>
-          <tbody>
-            {banks.map((b) => (
-              <tr key={b.bank}>
-                <td><strong>{b.bank}</strong></td>
-                <td>{b.accountName}</td>
-                <td>{b.accountNo}</td>
-                <td>{b.ifsc}</td>
-                <td>{b.branch}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="quote-ht-qr-block">
+      {/* Bank details — card layout, one account + QR */}
+      <h2 className="qp-section">Bank Details</h2>
+      <div className="qp-bank-wrap">
+        {bank ? (
+          <div className="qp-bank-card">
+            <p className="qp-bank-name">{bank.bank}</p>
+            <div className="qp-bank-rows">
+              <div><span>Account Name</span><strong>{bank.accountName}</strong></div>
+              <div><span>Account No.</span><strong>{bank.accountNo}</strong></div>
+              <div><span>IFSC</span><strong>{bank.ifsc}</strong></div>
+              <div><span>Branch</span><strong>{bank.branch}</strong></div>
+              {bank.upi && bank.upi !== '—' && (
+                <div><span>UPI</span><strong>{bank.upi}</strong></div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="qp-bank-card">
+            <p className="qp-bank-name">Bank details unavailable</p>
+          </div>
+        )}
+        <div className="qp-qr-card">
           <img
             src={DEMO_QR_URL}
-            alt="Payment QR Code"
-            className="quote-ht-qr-img"
+            alt="Scan to pay"
+            className="qp-qr-img"
             crossOrigin="anonymous"
           />
-          <p className="quote-ht-qr-label">Scan to Pay</p>
-          <p className="quote-ht-qr-demo">Demo QR · UPI payment</p>
+          <p className="qp-qr-title">Scan to Pay</p>
+          <p className="qp-qr-demo">Demo QR Code</p>
         </div>
       </div>
 
-      <div className="quote-ht-planner">
-        <div className="quote-ht-planner-box">
-          <h4>Trip Planner Details</h4>
-          <div><strong>Name:</strong> {planner.name}</div>
-          <div><strong>Contact No.:</strong> {planner.phone || COMPANY_INFO.phone}</div>
+      {/* Contact */}
+      <div className="qp-contact">
+        <div>
+          <h4>Trip Planner</h4>
+          <p>{planner.name}</p>
+          <p>{planner.phone || COMPANY_INFO.phone}</p>
         </div>
-        <div className="quote-ht-planner-box">
-          <h4>Address &amp; Contact Info</h4>
-          <div>{COMPANY_INFO.address}</div>
-          <div className="quote-ht-contact-line">Phone: {COMPANY_INFO.phone}</div>
-          <div className="quote-ht-contact-line">Email: {COMPANY_INFO.email}</div>
-          <div className="quote-ht-contact-line">Web: {COMPANY_INFO.website}</div>
+        <div>
+          <h4>Contact Us</h4>
+          <p>{COMPANY_INFO.address}</p>
+          <p>{COMPANY_INFO.phone}</p>
+          <p>{COMPANY_INFO.email}</p>
         </div>
       </div>
 
-      <div className="quote-ht-footer">
-        <img
-          src={COMPANY_INFO.logoUrl}
-          alt={COMPANY_INFO.name}
-          className="quote-ht-footer-logo"
-          crossOrigin="anonymous"
-        />
-        <p>{COMPANY_INFO.tagline}</p>
-        <p>{COMPANY_INFO.address}</p>
-        <p>{COMPANY_INFO.phone} · {COMPANY_INFO.email}</p>
-        <p style={{ marginTop: 8, opacity: 0.9 }}>Thank you for choosing {COMPANY_INFO.name}</p>
-      </div>
+      <footer className="qp-footer">
+        <p>Thank you for choosing {COMPANY_INFO.name}</p>
+        <p>{COMPANY_INFO.phone} · {COMPANY_INFO.email} · {COMPANY_INFO.website}</p>
+      </footer>
     </div>
   );
 });

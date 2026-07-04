@@ -378,45 +378,51 @@ export function resolveBankAccounts(quote) {
 }
 
 export function resolvePaymentPlan(quote, total = 0) {
-  const amount = Number(total) || 0;
-  const plan = Array.isArray(quote?.paymentPlan) && quote.paymentPlan.length
-    ? quote.paymentPlan
-    : [
-        { label: 'Booking Amount', percent: 30 },
-        { label: 'Before Travel', percent: 50 },
-        { label: 'Before Departure', percent: 20 },
-      ];
+  const amount = Math.max(0, Number(total) || 0);
+  // Always use 30 / 50 / 20 schedule.
+  const schedule = [
+    { label: 'Booking Amount', percent: 30 },
+    { label: 'Before Travel', percent: 50 },
+    { label: 'Before Departure', percent: 20 },
+  ];
 
-  // Prefer 30 / 50 / 20 schedule when plan is missing or outdated.
-  const percents = plan.map((row) => Number(row.percent) || 0);
-  const isLegacy4050 = percents.join(',') === '30,40,30' || percents.join(',') === '25,50,25';
-  const normalized = isLegacy4050
-    ? [
-        { label: 'Booking Amount', percent: 30 },
-        { label: 'Before Travel', percent: 50 },
-        { label: 'Before Departure', percent: 20 },
-      ]
-    : plan;
-
-  return normalized.map((row) => ({
-    label: row.label || 'Installment',
-    percent: Number(row.percent) || 0,
-    amount: row.amount != null && row.amount !== ''
-      ? Number(row.amount)
-      : Math.round((amount * (Number(row.percent) || 0)) / 100),
+  return schedule.map((row) => ({
+    label: row.label,
+    percent: row.percent,
+    amount: Math.round((amount * row.percent) / 100),
   }));
 }
 
 export function resolveQuoteTotal(quote) {
   const p = quote?.pricing || {};
   const c = quote?.costing || {};
-  return Number(
-    p.grandTotal
-      || p.total
-      || c.grandTotal
-      || c.subtotal
-      || 0,
+
+  const candidates = [
+    p.grandTotal,
+    p.total,
+    p.baseCost,
+    c.grandTotal,
+    c.subtotal,
+    quote?.totalPrice,
+    quote?.packageInfo?.totalCost,
+  ];
+
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+
+  const planSum = (quote?.paymentPlan || []).reduce(
+    (sum, row) => sum + (Number(row.amount) || 0),
+    0,
   );
+  if (planSum > 0) return planSum;
+
+  const cabSum = (quote?.selectedCabs || []).reduce(
+    (sum, cab) => sum + (Number(cab.cost) || Number(cab.price) || 0),
+    0,
+  );
+  return cabSum > 0 ? cabSum : 0;
 }
 
 export function resolveTravelerCounts(quote) {
