@@ -15,9 +15,8 @@ import {
 } from './executivePageStyles';
 import { cn } from '../../lib/utils';
 import { formatCurrency, QUOTE_STATUS_STYLES } from './executiveUtils';
-import { buildPublicPdfUrl, buildQuotationWhatsAppMessage, shareQuotationWhatsApp } from '../../lib/whatsappContact';
 import { toast } from '../../context/ToastContext';
-import { useAuth } from '../../context/AuthContext';
+import { shareQuotationWithPdf } from '../quotations/quotationShare';
 import QuotationFiltersPanel from '../quotations/QuotationFiltersPanel';
 import QuotationDetailDrawer from '../quotations/QuotationDetailDrawer';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
@@ -41,7 +40,6 @@ const STATUS_LABELS = {
 
 export default function ExecutiveQuotationsPage() {
   const location = useLocation();
-  const { user } = useAuth();
   const [quotes, setQuotes] = useState([]);
   const [statusTab, setStatusTab] = useState('all');
   const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
@@ -95,35 +93,13 @@ export default function ExecutiveQuotationsPage() {
         return;
       }
 
-      const pdfPublicUrl = row?.pdfUrl ? buildPublicPdfUrl(row.pdfUrl) : '';
-      const message = buildQuotationWhatsAppMessage({
-        lead,
-        packageName: row?.package?.name || row?.packageSnapshot?.name,
-        destination: lead.destination || row?.packageInfo?.destination,
-        duration: row?.packageInfo?.duration || row?.packageSnapshot?.duration,
-        total: row?.pricing?.total,
-        quoteNumber: row?.quoteNumber,
-        executiveName: user?.name,
-      });
-
-      let pdfBlob = null;
-      if (pdfPublicUrl) {
-        try {
-          const res = await fetch(pdfPublicUrl);
-          if (res.ok) pdfBlob = await res.blob();
-        } catch {
-          /* text-only fallback */
-        }
-      }
-
-      await shareQuotationWhatsApp({
+      await shareQuotationWithPdf({
+        quotationId: id,
+        savePath: '/sales-executive/quotations',
         phone,
-        message,
-        pdfBlob,
-        fileName: `Quotation-${row?.quoteNumber || 'quote'}.pdf`,
       });
     } catch (err) {
-      /* toast via axios */
+      /* toast via axios / shareQuotationWithPdf */
     }
   };
 
@@ -269,6 +245,7 @@ export default function ExecutiveQuotationsPage() {
         quote={selected}
         open={!!selected && !showPdf}
         onClose={() => { setSelected(null); setShowPdf(false); }}
+        savePath="/sales-executive/quotations"
         onDownloadPdf={() => setShowPdf(true)}
         actions={
           selected?.status === 'draft' ? (

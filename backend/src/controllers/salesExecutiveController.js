@@ -406,6 +406,15 @@ const createQuotation = asyncHandler(async (req, res) => {
     });
   }
 
+  if (req.companyId) {
+    const quotationPdfService = require('../services/quotationPdfService');
+    await quotationPdfService.markPendingAndQueue({
+      quotationId: quotation._id,
+      companyId: req.companyId,
+      userId: req.user._id,
+    });
+  }
+
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   if (status === 'pending_approval') {
     notifyQuotationCreated(populated, lead, { approverIds: teamLeader ? [teamLeader._id] : [] }).catch(() => {});
@@ -468,7 +477,18 @@ const updateQuotation = asyncHandler(async (req, res) => {
     Object.assign(quotation, req.body);
   }
 
+  const contentChanged = action === 'edit' || (!action && Object.keys(req.body || {}).length > 0);
   await quotation.save();
+
+  if (contentChanged && req.companyId && action !== 'send' && action !== 'submit') {
+    const quotationPdfService = require('../services/quotationPdfService');
+    await quotationPdfService.markPendingAndQueue({
+      quotationId: quotation._id,
+      companyId: req.companyId,
+      userId: req.user._id,
+    });
+  }
+
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
 });

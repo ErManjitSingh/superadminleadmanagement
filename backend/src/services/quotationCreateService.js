@@ -87,6 +87,15 @@ async function persistQuotation({
     });
   }
 
+  if (req.companyId) {
+    const quotationPdfService = require('./quotationPdfService');
+    await quotationPdfService.markPendingAndQueue({
+      quotationId: quotation._id,
+      companyId: req.companyId,
+      userId: req.user?._id,
+    });
+  }
+
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   if (status === 'pending_approval') {
     notifyQuotationCreated(populated, lead, {

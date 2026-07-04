@@ -197,6 +197,7 @@ export default function LeaderQuotationsPage() {
         quote={selected}
         open={!!selected && !showPdf}
         onClose={() => { setSelected(null); setShowPdf(false); }}
+        savePath="/team-leader/quotations"
         onDownloadPdf={() => setShowPdf(true)}
         actions={
           status === 'pending' && selected?.status === 'pending_approval' ? (

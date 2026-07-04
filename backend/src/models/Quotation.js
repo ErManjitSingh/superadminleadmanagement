@@ -35,6 +35,16 @@ const quotationSchema = new mongoose.Schema(
     templateKey: { type: String, default: '' },
     shareToken: { type: String, index: true, sparse: true },
     pdfUrl: { type: String, trim: true, default: '' },
+    pdfFileId: { type: mongoose.Schema.Types.ObjectId, ref: 'QuotationFile', default: null },
+    pdfVersion: { type: Number, default: 0 },
+    pdfStatus: {
+      type: String,
+      enum: ['none', 'pending', 'generating', 'ready', 'failed'],
+      default: 'none',
+      index: true,
+    },
+    pdfContentHash: { type: String, default: '' },
+    pdfError: { type: String, default: '' },
     packageInfo: {
       packageName: { type: String, default: '' },
       destination: { type: String, default: '' },
