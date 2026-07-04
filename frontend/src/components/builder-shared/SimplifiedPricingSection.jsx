@@ -10,8 +10,8 @@ export default function SimplifiedPricingSection({ totalCost, internalNotes, onT
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-black">Pricing</h2>
-        <p className="text-sm text-content-muted">One total — no complex breakdown needed</p>
+        <h2 className="text-xl font-bold text-slate-900">Pricing</h2>
+        <p className="text-sm text-slate-500">One total — no complex breakdown needed</p>
       </div>
 
       <GlassCard className="p-6 sm:p-8 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/20">

@@ -29,8 +29,8 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-xl font-black">Transport</h2>
-        <p className="text-sm text-content-muted">Select from fleet or enter a custom vehicle</p>
+        <h2 className="text-xl font-bold text-slate-900">Transport</h2>
+        <p className="text-sm text-slate-500">Select from fleet or enter a custom vehicle</p>
       </div>
 
       <div className="flex flex-wrap gap-2">

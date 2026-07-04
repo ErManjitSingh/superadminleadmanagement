@@ -200,22 +200,25 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
     });
   };
 
+  const nextStepMeta = visibleSteps.find((s) => s.id === getNextStep(b.step, noHotel));
+  const nextStepLabel = nextStepMeta?.title || 'Next';
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-gradient-to-br from-slate-100 via-sky-50/80 to-indigo-100/60 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/40">
-      <div className="sticky top-0 z-30 border-b border-white/30 bg-white/60 dark:bg-slate-900/70 backdrop-blur-xl">
-        <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div className="min-h-[calc(100vh-4rem)] bg-slate-50">
+      <div className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Link
               to={b.config.backPath}
-              className="p-2 rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-600 shrink-0"
+              className="p-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 shrink-0"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div className="min-w-0">
-              <h1 className="text-lg font-black text-content-primary truncate">Quotation Builder</h1>
-              <p className="text-xs text-content-muted truncate">
+              <h1 className="text-lg font-bold text-slate-900 truncate">Quotation Builder</h1>
+              <p className="text-xs text-slate-500 truncate">
                 {b.selectedLead?.name ? `${b.selectedLead.name} · ` : ''}
-                Premium travel brochure
+                Build & customize your travel package.
               </p>
             </div>
           </div>
@@ -226,7 +229,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-xl gap-1.5 border-sky-400/40 bg-white/80"
+              className="rounded-xl gap-1.5 border-slate-200 bg-white hover:bg-slate-50"
               disabled={!b.draftQuote}
               onClick={() => setPdfPreviewOpen(true)}
             >
@@ -235,20 +238,13 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 pb-3 lg:hidden">
-          <div className="flex gap-1 overflow-x-auto">
-            {visibleSteps.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => s.id <= b.maxReached && b.setStep(s.id)}
-                className={cn(
-                  'shrink-0 h-1.5 rounded-full transition-all',
-                  b.step === s.id ? 'w-8 bg-sky-500' : s.id <= b.maxReached ? 'w-4 bg-sky-300' : 'w-4 bg-slate-200'
-                )}
-              />
-            ))}
-          </div>
+        <div className="max-w-6xl mx-auto px-4 pb-4 pt-1">
+          <BuilderStepNav
+            step={b.step}
+            maxReached={b.maxReached}
+            onStepChange={b.setStep}
+            hiddenStepIds={noHotel ? [HOTEL_STEP] : []}
+          />
         </div>
       </div>
 
@@ -269,102 +265,88 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto p-4 flex gap-4">
-        <aside className="hidden lg:block w-56 shrink-0">
-          <GlassCard className="p-3 sticky top-20">
-            <BuilderStepNav
-              step={b.step}
-              maxReached={b.maxReached}
-              onStepChange={b.setStep}
-              hiddenStepIds={noHotel ? [HOTEL_STEP] : []}
-            />
-          </GlassCard>
-        </aside>
+      <div className="max-w-6xl mx-auto p-4 sm:p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 sm:p-8 min-h-[520px]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={b.step}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+            >
+              {b.step === 1 && <StepPackage b={b} initialLeadId={initialLeadId} />}
+              {b.step === 2 && (
+                <AiItineraryGenerator
+                  prompt={b.builderUi.aiPrompt}
+                  onPromptChange={(aiPrompt) => b.updateBuilderUi({ aiPrompt })}
+                  itinerary={b.customItinerary}
+                  onItineraryChange={b.setCustomItinerary}
+                  destination={b.hotelDestination}
+                  days={b.state.packageInfo?.duration}
+                  nights={Math.max(0, (Number(b.state.packageInfo?.duration) || 4) - 1)}
+                  onDurationChange={({ days }) => b.updatePackageInfo({ duration: days })}
+                />
+              )}
+              {b.step === 3 && !noHotel && (
+                <SimplifiedHotelSection
+                  builderUi={b.builderUi}
+                  onChange={b.updateBuilderUi}
+                  destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
+                />
+              )}
+              {b.step === 4 && (
+                <SimplifiedTransportSection
+                  builderUi={b.builderUi}
+                  onChange={b.updateBuilderUi}
+                  cabs={b.cabs}
+                />
+              )}
+              {b.step === 5 && (
+                <SimplifiedPricingSection
+                  totalCost={b.state.pricing?.total || 0}
+                  internalNotes={b.builderUi.internalNotes}
+                  onTotalChange={b.updatePricingTotal}
+                  onNotesChange={(internalNotes) => b.updateBuilderUi({ internalNotes })}
+                />
+              )}
+              {b.step === 6 && (
+                <StepPreviewSend
+                  b={b}
+                  shareUrl={shareUrl}
+                  onFinish={handleFinish}
+                  onOpenPreview={() => setPdfPreviewOpen(true)}
+                  onSendWhatsApp={handleSendWhatsApp}
+                  onDownloadPdf={handleDownloadPdf}
+                  sharingPdf={sharingPdf}
+                  pdfCacheReady={pdfCacheReady}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
 
-        <main className="flex-1 min-w-0">
-          <GlassCard className="p-6 sm:p-8 min-h-[520px]">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={b.step}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
+          {b.step < 6 && (
+            <div className="flex justify-between mt-8 pt-5 border-t border-slate-100">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl gap-2 border-slate-200"
+                disabled={b.step === 1}
+                onClick={goBack}
               >
-                {b.step === 1 && <StepPackage b={b} initialLeadId={initialLeadId} />}
-                {b.step === 2 && (
-                  <AiItineraryGenerator
-                    prompt={b.builderUi.aiPrompt}
-                    onPromptChange={(aiPrompt) => b.updateBuilderUi({ aiPrompt })}
-                    itinerary={b.customItinerary}
-                    onItineraryChange={b.setCustomItinerary}
-                    destination={b.hotelDestination}
-                    days={b.state.packageInfo?.duration}
-                    nights={Math.max(0, (Number(b.state.packageInfo?.duration) || 4) - 1)}
-                    onDurationChange={({ days, nights }) => b.updatePackageInfo({ duration: days })}
-                  />
-                )}
-                {b.step === 3 && !noHotel && (
-                  <SimplifiedHotelSection
-                    builderUi={b.builderUi}
-                    onChange={b.updateBuilderUi}
-                    destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
-                  />
-                )}
-                {b.step === 4 && (
-                  <SimplifiedTransportSection
-                    builderUi={b.builderUi}
-                    onChange={b.updateBuilderUi}
-                    cabs={b.cabs}
-                  />
-                )}
-                {b.step === 5 && (
-                  <SimplifiedPricingSection
-                    totalCost={b.state.pricing?.total || 0}
-                    internalNotes={b.builderUi.internalNotes}
-                    onTotalChange={b.updatePricingTotal}
-                    onNotesChange={(internalNotes) => b.updateBuilderUi({ internalNotes })}
-                  />
-                )}
-                {b.step === 6 && (
-                  <StepPreviewSend
-                    b={b}
-                    shareUrl={shareUrl}
-                    onFinish={handleFinish}
-                    onOpenPreview={() => setPdfPreviewOpen(true)}
-                    onSendWhatsApp={handleSendWhatsApp}
-                    onDownloadPdf={handleDownloadPdf}
-                    sharingPdf={sharingPdf}
-                    pdfCacheReady={pdfCacheReady}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-
-            {b.step < 6 && (
-              <div className="flex justify-between mt-8 pt-6 border-t border-white/30">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="rounded-xl gap-2"
-                  disabled={b.step === 1}
-                  onClick={goBack}
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back
-                </Button>
-                <Button
-                  type="button"
-                  variant="sky"
-                  className="rounded-xl gap-2 shadow-lg shadow-sky-500/20"
-                  disabled={!canContinue() || b.loadingPackageDetail}
-                  onClick={goNext}
-                >
-                  Continue <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-          </GlassCard>
-        </main>
+                <ArrowLeft className="w-4 h-4" /> Previous
+              </Button>
+              <Button
+                type="button"
+                className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-500/20"
+                disabled={!canContinue() || b.loadingPackageDetail}
+                onClick={goNext}
+              >
+                Next: {nextStepLabel} <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -373,21 +355,21 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
 function AutosaveBadge({ status }) {
   if (status === 'saving') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-content-muted px-2 py-1 rounded-lg bg-white/50">
+      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
         <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving…
       </span>
     );
   }
   if (status === 'saved') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 px-2 py-1 rounded-lg bg-emerald-500/10">
+      <span className="inline-flex items-center gap-1.5 text-xs text-emerald-700 px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
         <Cloud className="w-3.5 h-3.5" /> Auto-saved
       </span>
     );
   }
   if (status === 'error') {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-red-600 px-2 py-1 rounded-lg bg-red-500/10">
+      <span className="inline-flex items-center gap-1.5 text-xs text-red-600 px-2.5 py-1.5 rounded-lg bg-red-50 border border-red-100">
         <CloudOff className="w-3.5 h-3.5" /> Save failed
       </span>
     );
@@ -400,8 +382,8 @@ function StepPackage({ b, initialLeadId }) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-black">Package Information</h2>
-        <p className="text-sm text-content-muted mt-1">Start from a template or pick a catalog package</p>
+        <h2 className="text-xl font-bold text-slate-900">Package Information</h2>
+        <p className="text-sm text-slate-500 mt-1">Start from a template or pick a catalog package</p>
       </div>
 
       {initialLeadId && b.loadingLead && (
@@ -557,8 +539,8 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black">Preview & Send</h2>
-          <p className="text-sm text-content-muted">Review itinerary, hotels, transport & pricing before sharing</p>
+          <h2 className="text-xl font-bold text-slate-900">Preview & Send</h2>
+          <p className="text-sm text-slate-500">Review itinerary, hotels, transport & pricing before sharing</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1.5" onClick={() => b.saveVersion()}>
@@ -644,12 +626,11 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
           </Button>
           <Button
             type="button"
-            variant="sky"
-            className="rounded-xl gap-2 shadow-lg shadow-sky-500/25"
+            className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-500/20"
             disabled={!b.draftQuote}
             onClick={onOpenPreview}
           >
-            <Eye className="w-5 h-5" /> Generate PDF
+            <Eye className="w-5 h-5" /> Preview PDF
           </Button>
         </div>
       </GlassCard>

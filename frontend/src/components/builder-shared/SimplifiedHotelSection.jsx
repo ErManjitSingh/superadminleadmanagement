@@ -180,8 +180,8 @@ function Header({ skipHotel, onToggleSkip }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-xl font-black">Hotels</h2>
-        <p className="text-sm text-content-muted">Optional — skip if not including accommodation</p>
+        <h2 className="text-xl font-bold text-slate-900">Hotels</h2>
+        <p className="text-sm text-slate-500">Optional — skip if not including accommodation</p>
       </div>
       <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-subtle bg-white/50 cursor-pointer text-sm font-medium">
         <input type="checkbox" checked={skipHotel} onChange={onToggleSkip} className="rounded" />
