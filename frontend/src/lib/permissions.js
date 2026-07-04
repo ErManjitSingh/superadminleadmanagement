@@ -51,6 +51,8 @@ export function filterNavItems(items, user) {
     }
 
     if (item.children) {
+      if (item.roles?.length && !item.roles.includes(user?.role)) return acc;
+      if (item.permission && !canAccess(user, item.permission.module, item.permission.action)) return acc;
       const children = filterSectionItems(item.children, user);
       if (!children.length) return acc;
       acc.push({ ...item, children });

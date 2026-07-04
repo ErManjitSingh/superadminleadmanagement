@@ -19,6 +19,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { operationsAdminMenuChildren } from '../operations-manager/operations-nav-config';
+import { paymentsMenuChildren } from '../payments/payments-nav-config';
 import { leadManagementSections } from './lead-management-config';
 
 export const reportsAnalyticsItems = [
@@ -130,10 +131,12 @@ export const mainNavItems = [
     permission: { module: 'operations', action: 'view' },
   },
   {
-    path: '/payments',
+    id: 'payments',
     label: 'Payments',
     icon: CreditCard,
     roles: ['admin', 'accountant'],
+    permission: { module: 'payments', action: 'view' },
+    children: paymentsMenuChildren,
   },
   {
     path: '/email-activity',

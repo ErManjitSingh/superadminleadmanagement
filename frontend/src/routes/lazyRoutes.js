@@ -21,6 +21,7 @@ export const WhatsAppLeads = lazy(() => import('../pages/WhatsAppLeads'));
 export const Packages = lazy(() => import('../pages/Packages'));
 export const Quotations = lazy(() => import('../pages/Quotations'));
 export const Reports = lazy(() => import('../pages/Reports'));
+export const Payments = lazy(() => import('../pages/Payments'));
 export const Team = lazy(() => import('../pages/Team'));
 export const TeamUserProfile = lazy(() => import('../pages/TeamUserProfile'));
 export const AdminAttendancePage = lazy(() => import('../pages/AdminAttendancePage'));
