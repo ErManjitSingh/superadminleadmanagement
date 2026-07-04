@@ -39,16 +39,24 @@ async function urlToDataUrl(url) {
 }
 
 /** Convert a loaded img element to a data URL for reliable print/PDF. */
-export function imgElementToDataUrl(img) {
+export function imgElementToDataUrl(img, maxEdge = 480, quality = 0.5) {
   if (!img?.naturalWidth) return null;
   try {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    const longest = Math.max(w, h);
+    const ratio = longest > maxEdge ? maxEdge / longest : 1;
+    const tw = Math.max(1, Math.round(w * ratio));
+    const th = Math.max(1, Math.round(h * ratio));
     const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    canvas.width = tw;
+    canvas.height = th;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(img, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.88);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, tw, th);
+    ctx.drawImage(img, 0, 0, tw, th);
+    return canvas.toDataURL('image/jpeg', quality);
   } catch {
     return null;
   }

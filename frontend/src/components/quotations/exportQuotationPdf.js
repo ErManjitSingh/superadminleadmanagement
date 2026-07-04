@@ -2,16 +2,20 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 
-const CAPTURE_WIDTH_PX = 794;
+/** Target max PDF size (~500KB). */
+const TARGET_MAX_BYTES = 500 * 1024;
 
-function isMobileCapture() {
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-}
+/** Capture profiles — lightest first that still looks acceptable. */
+const PROFILES = [
+  { width: 560, scale: 1, quality: 0.48 },
+  { width: 520, scale: 0.9, quality: 0.4 },
+  { width: 480, scale: 0.85, quality: 0.34 },
+  { width: 440, scale: 0.8, quality: 0.28 },
+];
 
-/** html2canvas skips invisible nodes — force visible styles on clone. */
-function prepareForCapture(root) {
+function prepareForCapture(root, widthPx) {
   root.style.cssText = [
-    `width:${CAPTURE_WIDTH_PX}px`,
+    `width:${widthPx}px`,
     'visibility:visible',
     'opacity:1',
     'display:block',
@@ -20,9 +24,9 @@ function prepareForCapture(root) {
     'margin:0',
     'padding:0',
   ].join(';');
+
   root.querySelectorAll('*').forEach((node) => {
     if (node.style?.visibility === 'hidden') node.style.visibility = 'visible';
-    // Keep watermark opacity — do not force all nodes to opacity 1.
     if (node.classList?.contains('qp-watermark') || node.classList?.contains('qp-watermark-text')) {
       return;
     }
@@ -30,13 +34,45 @@ function prepareForCapture(root) {
   });
 }
 
-function mountCaptureHost(viewport) {
+/** Downscale/compress inline images so the capture canvas stays small. */
+function compressImagesInClone(root, maxEdge = 360, quality = 0.45) {
+  root.querySelectorAll('img').forEach((img) => {
+    try {
+      const w = img.naturalWidth || img.width || 0;
+      const h = img.naturalHeight || img.height || 0;
+      if (!w || !h) return;
+
+      const longest = Math.max(w, h);
+      const ratio = longest > maxEdge ? maxEdge / longest : 1;
+      const tw = Math.max(1, Math.round(w * ratio));
+      const th = Math.max(1, Math.round(h * ratio));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = tw;
+      canvas.height = th;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, tw, th);
+      ctx.drawImage(img, 0, 0, tw, th);
+      img.src = canvas.toDataURL('image/jpeg', quality);
+      img.style.width = '';
+      img.style.height = '';
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+    } catch {
+      /* keep original */
+    }
+  });
+}
+
+function mountCaptureHost(viewport, widthPx) {
   const host = document.createElement('div');
   host.style.cssText = [
     'position:fixed',
     'left:0',
     'top:0',
-    `width:${CAPTURE_WIDTH_PX}px`,
+    `width:${widthPx}px`,
     'z-index:-1',
     'pointer-events:none',
     'opacity:0.01',
@@ -57,54 +93,46 @@ function canvasToJpeg(canvas, quality) {
   }
 }
 
-async function captureFullContent(viewport, scale) {
+/**
+ * Shrink a page canvas before encoding if it is still wide.
+ */
+function downscaleCanvas(source, maxWidth) {
+  if (source.width <= maxWidth) return source;
+  const ratio = maxWidth / source.width;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(source.width * ratio));
+  canvas.height = Math.max(1, Math.round(source.height * ratio));
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+async function captureFullContent(viewport, widthPx, scale) {
   return html2canvas(viewport, {
     scale,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
     logging: false,
-    imageTimeout: 15000,
-    width: CAPTURE_WIDTH_PX,
+    imageTimeout: 10000,
+    width: widthPx,
     height: viewport.scrollHeight || viewport.offsetHeight || 1,
-    windowWidth: CAPTURE_WIDTH_PX,
+    windowWidth: widthPx,
     windowHeight: viewport.scrollHeight || viewport.offsetHeight || 1,
   });
 }
 
-/**
- * Capture once, then slice canvas into A4 pages with zero gap between pages.
- */
-async function buildPdfContinuous(embedded, viewport) {
-  await waitForImages(embedded, 12000);
-  if (document.fonts?.ready) {
-    try {
-      await document.fonts.ready;
-    } catch {
-      /* ignore */
-    }
-  }
-  await new Promise((r) => setTimeout(r, 300));
-
-  viewport.style.height = 'auto';
-  viewport.style.overflow = 'visible';
-  embedded.style.marginTop = '0';
-
-  const mobile = isMobileCapture();
-  const totalHeight = Math.max(embedded.scrollHeight, embedded.offsetHeight, 1);
-  const scale = mobile ? 1 : totalHeight > 12000 ? 1.25 : 1.75;
-  const jpegQuality = mobile ? 0.74 : 0.86;
-
-  const canvas = await captureFullContent(viewport, scale);
-  if (!canvas?.width || !canvas?.height) {
-    throw new Error('PDF render failed');
-  }
-
-  const pdf = new jsPDF('p', 'mm', 'a4');
+async function buildPdfFromCanvas(canvas, quality) {
+  const pdf = new jsPDF({
+    orientation: 'p',
+    unit: 'mm',
+    format: 'a4',
+    compress: true,
+  });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-
-  // How many source pixels map to one full A4 page height.
   const pageHeightPx = Math.max(1, Math.round((canvas.width * pageHeight) / pageWidth));
 
   let y = 0;
@@ -118,24 +146,14 @@ async function buildPdfContinuous(embedded, viewport) {
     const ctx = pageCanvas.getContext('2d');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-    ctx.drawImage(
-      canvas,
-      0,
-      y,
-      canvas.width,
-      sliceH,
-      0,
-      0,
-      canvas.width,
-      sliceH,
-    );
+    ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
 
-    const imgData = canvasToJpeg(pageCanvas, jpegQuality);
-    // Exact height for this slice — no stretch, no extra blank band.
+    const encoded = downscaleCanvas(pageCanvas, 900);
+    const imgData = canvasToJpeg(encoded, quality);
     const imgHeightMm = (sliceH * pageWidth) / canvas.width;
 
     if (page > 0) pdf.addPage();
-    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm);
+    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, 'FAST');
 
     y += pageHeightPx;
     page += 1;
@@ -145,18 +163,14 @@ async function buildPdfContinuous(embedded, viewport) {
   return pdf.output('blob');
 }
 
-/**
- * Render quotation DOM to a multi-page A4 PDF blob (no page gaps).
- */
-export async function exportQuotationPdfBlob(contentEl) {
-  if (!contentEl) throw new Error('Quotation preview is not ready');
-
+async function renderWithProfile(contentEl, profile) {
   const embedded = (await cloneWithEmbeddedImages(contentEl)) || contentEl.cloneNode(true);
-  prepareForCapture(embedded);
+  prepareForCapture(embedded, profile.width);
+  compressImagesInClone(embedded, 320, 0.42);
 
   const viewport = document.createElement('div');
   viewport.style.cssText = [
-    `width:${CAPTURE_WIDTH_PX}px`,
+    `width:${profile.width}px`,
     'overflow:visible',
     'position:relative',
     'background:#ffffff',
@@ -166,13 +180,57 @@ export async function exportQuotationPdfBlob(contentEl) {
   ].join(';');
   viewport.appendChild(embedded);
 
-  const host = mountCaptureHost(viewport);
+  const host = mountCaptureHost(viewport, profile.width);
 
   try {
-    return await buildPdfContinuous(embedded, viewport);
+    await waitForImages(embedded, 8000);
+    if (document.fonts?.ready) {
+      try {
+        await document.fonts.ready;
+      } catch {
+        /* ignore */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 150));
+
+    viewport.style.height = 'auto';
+    viewport.style.overflow = 'visible';
+
+    const canvas = await captureFullContent(viewport, profile.width, profile.scale);
+    if (!canvas?.width || !canvas?.height) {
+      throw new Error('PDF render failed');
+    }
+
+    // Extra safety: never keep a huge master canvas.
+    const master = downscaleCanvas(canvas, Math.round(profile.width * profile.scale));
+    return buildPdfFromCanvas(master, profile.quality);
   } finally {
     host.remove();
   }
+}
+
+/**
+ * Render quotation DOM to a multi-page A4 PDF blob under ~500KB.
+ */
+export async function exportQuotationPdfBlob(contentEl) {
+  if (!contentEl) throw new Error('Quotation preview is not ready');
+
+  let bestBlob = null;
+
+  for (const profile of PROFILES) {
+    try {
+      const blob = await renderWithProfile(contentEl, profile);
+      bestBlob = blob;
+      if (blob.size <= TARGET_MAX_BYTES) {
+        return blob;
+      }
+    } catch (err) {
+      console.warn('PDF profile failed', profile, err);
+    }
+  }
+
+  if (!bestBlob) throw new Error('PDF render failed');
+  return bestBlob;
 }
 
 export async function downloadQuotationPdf(contentEl, fileName = 'quotation.pdf') {
