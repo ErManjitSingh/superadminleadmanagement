@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { authStorage } from '../auth/authStorage';
 import { requiresRestrictedSession } from '../auth/sessionPolicy';
+import { goToLogin } from '../auth/paths';
 import { toast } from '../context/ToastContext';
 
 const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
@@ -25,13 +26,13 @@ export function useRestrictedSessionTimeout(user, logout) {
     const intervalId = window.setInterval(async () => {
       if (!authStorage.isRestrictedSessionExpired()) return;
       try {
-        await logout();
+        await logout({ redirect: false });
       } catch {
         authStorage.clearSession();
       }
       toast.info('Your session ended due to inactivity. Please sign in again.');
-      if (window.location.pathname !== '/login') {
-        window.location.replace('/login');
+      if (!window.location.pathname.endsWith('/login')) {
+        goToLogin();
       }
     }, CHECK_INTERVAL_MS);
 

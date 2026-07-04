@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { canAccess } from '../lib/permissions';
 import { authService, AuthError } from '../auth';
 import { authStorage } from '../auth/authStorage';
+import { goToLogin } from '../auth/paths';
 import store from '../store';
 import { setCredentials, clearCredentials } from '../store/slices/authSlice';
 import { useRestrictedSessionTimeout } from '../hooks/useRestrictedSessionTimeout';
@@ -12,10 +13,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const logout = useCallback(async () => {
-    await authService.logout();
-    setUser(null);
-    store.dispatch(clearCredentials());
+  const logout = useCallback(async ({ redirect = false } = {}) => {
+    try {
+      await authService.logout();
+    } finally {
+      setUser(null);
+      store.dispatch(clearCredentials());
+      if (redirect) goToLogin();
+    }
   }, []);
 
   useRestrictedSessionTimeout(user, logout);

@@ -34,7 +34,7 @@ export default function Unauthorized() {
               <Button variant="outline"><LogIn className="w-4 h-4 mr-1.5" /> Sign In</Button>
             </Link>
           )}
-          <Button variant="ghost" onClick={() => logout().then(() => window.location.assign('/login'))} className="text-content-muted">
+          <Button variant="ghost" onClick={() => logout({ redirect: true })} className="text-content-muted">
             Sign out
           </Button>
         </div>

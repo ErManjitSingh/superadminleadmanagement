@@ -9,8 +9,8 @@ import PermissionRoute from './components/PermissionRoute';
 import RoleRoute, { RoleDashboardRedirect } from './components/RoleRoute';
 import Layout from './components/Layout';
 import ComingSoon from './components/ui/ComingSoon';
+import Login from './pages/Login';
 import {
-  Login,
   Signup,
   Register,
   Unauthorized,

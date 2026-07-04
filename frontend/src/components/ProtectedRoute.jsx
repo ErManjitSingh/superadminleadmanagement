@@ -5,10 +5,10 @@ import AttendanceLoginGate from './attendance/AttendanceLoginGate';
 
 function AuthLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-app">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-9 h-9 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-content-muted">Loading session…</p>
+        <div className="w-9 h-9 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-slate-600">Loading session…</p>
       </div>
     </div>
   );

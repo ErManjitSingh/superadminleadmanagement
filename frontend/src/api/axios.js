@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { authStorage } from '../auth/authStorage';
+import { goToLogin } from '../auth/paths';
 import { toast } from '../context/ToastContext';
 import { getApiSuccessMessage, getApiErrorMessage, shouldSkipSuccessToast } from './toastMessages';
 import {
@@ -43,8 +44,8 @@ API.interceptors.response.use(
     const isLogoutRequest = error.config?.url?.includes('/auth/logout');
     if (error.response?.status === 401 && !isLogoutRequest) {
       authStorage.clearSession();
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (!window.location.pathname.endsWith('/login')) {
+        goToLogin();
       }
     } else if (!error.config?.skipErrorToast) {
       toast.error(getApiErrorMessage(error));

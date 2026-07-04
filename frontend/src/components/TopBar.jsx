@@ -66,11 +66,7 @@ export default function TopBar({ onMenuClick }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleLogout = async () => {
-    try {
-      await logout();
-    } finally {
-      navigate('/login', { replace: true });
-    }
+    await logout({ redirect: true });
   };
 
   const handleAppRefresh = () => {
