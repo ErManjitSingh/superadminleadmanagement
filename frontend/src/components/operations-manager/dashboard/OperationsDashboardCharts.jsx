@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import {
   ArrowRight,
   ClipboardList,
-  LogIn,
-  LogOut,
+  MapPin,
   Users,
 } from 'lucide-react';
 import OperationsDonutChart from './OperationsDonutChart';
@@ -106,25 +105,18 @@ export default function OperationsDashboardCharts({ branchStats, bookingsByStatu
       >
         <div>
           <ScheduleRow
-            icon={LogIn}
-            iconClass="bg-violet-100 text-violet-600"
-            title="Arrivals"
-            count={schedule.arrivals?.count ?? 0}
-            subtitle={schedule.arrivals?.subtitle || 'No arrivals today'}
-          />
-          <ScheduleRow
-            icon={LogOut}
-            iconClass="bg-blue-100 text-blue-600"
-            title="Departures"
-            count={schedule.departures?.count ?? 0}
-            subtitle={schedule.departures?.subtitle || 'No departures today'}
-          />
-          <ScheduleRow
-            icon={Users}
+            icon={MapPin}
             iconClass="bg-emerald-100 text-emerald-600"
             title="Guests On Trip"
             count={schedule.guestsOnTrip?.count ?? 0}
             subtitle={schedule.guestsOnTrip?.subtitle || 'No guests on trip'}
+          />
+          <ScheduleRow
+            icon={Users}
+            iconClass="bg-sky-100 text-sky-600"
+            title="Active Trips"
+            count={schedule.activeTrips?.count ?? schedule.guestsOnTrip?.count ?? 0}
+            subtitle={schedule.activeTrips?.subtitle || 'Trips currently running'}
           />
           <ScheduleRow
             icon={ClipboardList}

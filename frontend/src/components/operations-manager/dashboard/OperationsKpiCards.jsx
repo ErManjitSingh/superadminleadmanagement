@@ -1,34 +1,27 @@
 import {
-  Calendar,
   Car,
   CircleCheck,
   Clock,
-  Compass,
   Hotel,
   Plane,
-  Ticket,
 } from 'lucide-react';
 import KpiCard from '../../dashboard/KpiCard';
 import { buildSparkline } from '../bookings/bookingListUtils';
 
+/** Matches Operations Command Center design — 5 status cards only. */
 const KPI_CONFIG = [
-  { key: 'todaysArrivals', label: "Today's Arrivals", icon: Calendar, iconColor: 'bg-blue-500', sparkColor: '#3B82F6' },
-  { key: 'todaysDepartures', label: "Today's Departures", icon: Plane, iconColor: 'bg-violet-500', sparkColor: '#8B5CF6' },
-  { key: 'upcomingTours', label: 'Upcoming Tours', icon: Compass, iconColor: 'bg-teal-500', sparkColor: '#14B8A6' },
   { key: 'pendingBookings', label: 'Pending Bookings', icon: Clock, iconColor: 'bg-orange-500', sparkColor: '#F97316' },
   { key: 'hotelPending', label: 'Hotel Pending', icon: Hotel, iconColor: 'bg-sky-500', sparkColor: '#0EA5E9' },
   { key: 'cabPending', label: 'Cab Pending', icon: Car, iconColor: 'bg-pink-500', sparkColor: '#EC4899' },
-  { key: 'activityPending', label: 'Activity Pending', icon: Compass, iconColor: 'bg-red-500', sparkColor: '#EF4444' },
-  { key: 'voucherPending', label: 'Voucher Pending', icon: Ticket, iconColor: 'bg-purple-500', sparkColor: '#A855F7' },
   { key: 'activeTrips', label: 'Active Trips', icon: Plane, iconColor: 'bg-emerald-500', sparkColor: '#22C55E' },
-  { key: 'completedTrips', label: 'Completed', icon: CircleCheck, iconColor: 'bg-slate-500', sparkColor: '#64748B' },
+  { key: 'completedTrips', label: 'Completed Trips', icon: CircleCheck, iconColor: 'bg-slate-500', sparkColor: '#64748B' },
 ];
 
 export default function OperationsKpiCards({ kpis, kpiTrends, sparklines, loading }) {
   if (loading && !kpis) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
-        {[...Array(10)].map((_, i) => (
+        {[...Array(5)].map((_, i) => (
           <div key={i} className="rounded-2xl bg-white border border-subtle animate-pulse h-[148px]" />
         ))}
       </div>

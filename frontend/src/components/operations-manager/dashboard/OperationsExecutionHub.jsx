@@ -1,27 +1,12 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Bus, Plane, TowerControl } from 'lucide-react';
-
-function HubStat({ dotClass, label, value, subtitle }) {
-  return (
-    <div className="text-center px-4">
-      <div className="flex items-center justify-center gap-2 mb-1">
-        <span className={`w-2 h-2 rounded-full ${dotClass}`} />
-        <span className="text-xs font-semibold text-content-secondary uppercase tracking-wide">{label}</span>
-      </div>
-      <p className="text-3xl font-bold text-content-primary tabular-nums">{value}</p>
-      <p className="text-xs text-content-muted mt-0.5">{subtitle}</p>
-    </div>
-  );
-}
+import { ArrowRight, Bus, MapPin, Plane, TowerControl } from 'lucide-react';
 
 export default function OperationsExecutionHub({ kpis, hubStats }) {
   const pending = kpis?.pendingBookings ?? 0;
   const hotel = kpis?.hotelConfirmations ?? kpis?.hotelPending ?? 0;
   const cab = kpis?.cabConfirmations ?? kpis?.cabPending ?? 0;
   const onTrip = hubStats?.onTrip ?? kpis?.activeTrips ?? 0;
-  const departures = hubStats?.departuresToday ?? kpis?.todaysDepartures ?? 0;
-  const arrivals = hubStats?.arrivalsToday ?? kpis?.todaysArrivals ?? 0;
 
   return (
     <motion.div
@@ -29,7 +14,7 @@ export default function OperationsExecutionHub({ kpis, hubStats }) {
       animate={{ opacity: 1, y: 0 }}
       className="relative overflow-hidden rounded-2xl border border-sky-200/80 bg-gradient-to-r from-sky-50 via-blue-50/80 to-indigo-50 p-6 sm:p-8"
     >
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.2fr_auto_1fr] gap-6 items-center">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.4fr_auto_1fr] gap-6 items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-sky-600 mb-2">
             Trip Execution Hub
@@ -42,32 +27,24 @@ export default function OperationsExecutionHub({ kpis, hubStats }) {
           </p>
           <Link
             to="/operations-manager/bookings/pending"
-            className="inline-flex items-center gap-1.5 mt-4 text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+            className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl border border-blue-200 bg-white/80 text-sm font-semibold text-blue-600 hover:bg-white hover:text-blue-700 transition-colors shadow-sm"
           >
             View Pending Bookings
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="hidden lg:flex items-center justify-center gap-6 border-x border-sky-200/60 px-6">
-          <HubStat
-            dotClass="bg-emerald-500"
-            label="On Trip"
-            value={onTrip}
-            subtitle="Bookings in progress"
-          />
-          <HubStat
-            dotClass="bg-blue-500"
-            label="Departures Today"
-            value={departures}
-            subtitle={departures ? 'Departing today' : 'No departures'}
-          />
-          <HubStat
-            dotClass="bg-violet-500"
-            label="Arrivals Today"
-            value={arrivals}
-            subtitle={arrivals ? 'Arriving today' : 'No arrivals'}
-          />
+        <div className="flex items-center justify-center lg:border-x border-sky-200/60 lg:px-10 py-2">
+          <div className="text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2 shadow-sm ring-4 ring-emerald-50">
+              <MapPin className="w-6 h-6" />
+            </div>
+            <p className="text-[11px] font-semibold text-content-secondary uppercase tracking-wide">
+              On Trip
+            </p>
+            <p className="text-3xl font-bold text-content-primary tabular-nums mt-0.5">{onTrip}</p>
+            <p className="text-xs text-content-muted mt-0.5">Bookings in progress</p>
+          </div>
         </div>
 
         <div className="hidden lg:flex justify-end">
@@ -84,12 +61,6 @@ export default function OperationsExecutionHub({ kpis, hubStats }) {
             <div className="absolute bottom-0 left-0 right-0 h-3 rounded-full bg-emerald-200/60" />
           </div>
         </div>
-      </div>
-
-      <div className="lg:hidden grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-sky-200/60">
-        <HubStat dotClass="bg-emerald-500" label="On Trip" value={onTrip} subtitle="In progress" />
-        <HubStat dotClass="bg-blue-500" label="Departures" value={departures} subtitle="Today" />
-        <HubStat dotClass="bg-violet-500" label="Arrivals" value={arrivals} subtitle="Today" />
       </div>
     </motion.div>
   );
