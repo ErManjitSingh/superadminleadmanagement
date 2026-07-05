@@ -16,6 +16,10 @@ import {
   User,
   MapPin,
   ListTodo,
+  BookOpen,
+  PlaneTakeoff,
+  Bell,
+  AlertTriangle,
 } from 'lucide-react';
 
 export const operationsBookingsChildren = [
@@ -25,17 +29,34 @@ export const operationsBookingsChildren = [
   { path: '/operations-manager/bookings/completed', label: 'Completed Trips', icon: CircleCheck, countKey: 'bookings.completed' },
 ];
 
-export const operationsExecutionChildren = [
-  { path: '/operations-manager/trip-tracker', label: 'Trip Tracker', icon: MapPin },
-  { path: '/operations-manager/tasks', label: 'Tasks', icon: ListTodo, badgeKey: 'tasks.pending' },
-  { path: '/operations-manager/hotels', label: 'Hotels', icon: Hotel },
-  { path: '/operations-manager/transport', label: 'Transport', icon: Car },
-  { path: '/operations-manager/activities', label: 'Activities', icon: Compass },
+export const tripExecutionChildren = [
+  { path: '/operations-manager/trip-execution', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/operations-manager/trips/active', label: 'Active Trips', icon: Plane },
+  { path: '/operations-manager/trips/upcoming', label: 'Upcoming Trips', icon: Clock },
+  { path: '/operations-manager/trips/completed', label: 'Completed Trips', icon: CircleCheck },
 ];
 
-export const operationsResourcesChildren = [
-  { path: '/operations-manager/vendors', label: 'Vendors', icon: Building2 },
-  { path: '/operations-manager/vouchers', label: 'Vouchers', icon: Ticket },
+export const vouchersNavChildren = [
+  { path: '/operations-manager/vouchers', label: 'All Vouchers', icon: Ticket },
+  { path: '/operations-manager/vouchers/hotel', label: 'Hotel Vouchers', icon: Hotel },
+  { path: '/operations-manager/vouchers/cab', label: 'Cab Vouchers', icon: Car },
+  { path: '/operations-manager/vouchers/activity', label: 'Activity Vouchers', icon: Compass },
+  { path: '/operations-manager/vouchers/flight', label: 'Flight Vouchers', icon: PlaneTakeoff },
+  { path: '/operations-manager/vouchers/travel-kit', label: 'Customer Travel Kits', icon: BookOpen },
+];
+
+export const vendorsNavChildren = [
+  { path: '/operations-manager/vendors', label: 'All Vendors', icon: Building2 },
+  { path: '/operations-manager/hotels', label: 'Hotels', icon: Hotel },
+  { path: '/operations-manager/transport', label: 'Cab Vendors', icon: Car },
+  { path: '/operations-manager/activities', label: 'Activity Vendors', icon: Compass },
+  { path: '/operations-manager/vendors/confirmations', label: 'Vendor Confirmations', icon: CheckCircle2 },
+];
+
+export const operationsNavChildren = [
+  { path: '/operations-manager/tasks', label: 'Tasks', icon: ListTodo, badgeKey: 'tasks.pending' },
+  { path: '/operations-manager/operations/alerts', label: 'Alerts', icon: Bell },
+  { path: '/operations-manager/operations/escalations', label: 'Escalations', icon: AlertTriangle },
   { path: '/operations-manager/support', label: 'Support Tickets', icon: Headphones, badgeKey: 'support.open' },
 ];
 
@@ -44,12 +65,14 @@ export const operationsInsightsChildren = [
   { path: '/operations-manager/reports', label: 'Reports', icon: BarChart3 },
 ];
 
-/** Flat list for admin sidebar — all operations routes in one group */
+/** Flat list for admin sidebar */
 export const operationsAdminMenuChildren = [
   { path: '/operations-manager/dashboard', label: 'Ops Dashboard', icon: LayoutDashboard },
   ...operationsBookingsChildren,
-  ...operationsExecutionChildren,
-  ...operationsResourcesChildren,
+  ...tripExecutionChildren,
+  ...vouchersNavChildren,
+  ...vendorsNavChildren,
+  ...operationsNavChildren,
   ...operationsInsightsChildren,
 ];
 
@@ -63,16 +86,28 @@ export const operationsManagerNavItems = [
     children: operationsBookingsChildren,
   },
   {
-    id: 'ops-execution',
+    id: 'ops-trip-execution',
     label: 'Trip Execution',
     icon: MapPin,
-    children: operationsExecutionChildren,
+    children: tripExecutionChildren,
   },
   {
-    id: 'ops-resources',
-    label: 'Resources',
+    id: 'ops-vouchers',
+    label: 'Vouchers',
+    icon: Ticket,
+    children: vouchersNavChildren,
+  },
+  {
+    id: 'ops-vendors',
+    label: 'Vendors',
     icon: Building2,
-    children: operationsResourcesChildren,
+    children: vendorsNavChildren,
+  },
+  {
+    id: 'ops-operations',
+    label: 'Operations',
+    icon: ListTodo,
+    children: operationsNavChildren,
   },
   {
     id: 'ops-insights',
@@ -83,11 +118,14 @@ export const operationsManagerNavItems = [
   { path: '/operations-manager/profile', label: 'Profile', icon: User },
 ];
 
-/** Sidebar quick actions — operations workflows only (no sales/quotation) */
 export const operationsQuickActions = [
-  { path: '/operations-manager/bookings/pending', label: 'Pending Bookings', icon: Clock },
-  { path: '/operations-manager/trip-tracker', label: 'Trip Tracker', icon: MapPin },
+  { path: '/operations-manager/trip-execution', label: 'Trip Execution', icon: MapPin },
+  { path: '/operations-manager/vouchers', label: 'Voucher Center', icon: Ticket },
+  { path: '/operations-manager/trips/active', label: 'Active Trips', icon: Plane },
+  { path: '/operations-manager/vendors/confirmations', label: 'Vendor Confirmations', icon: Building2 },
   { path: '/operations-manager/tasks', label: 'Assign Tasks', icon: ListTodo },
-  { path: '/operations-manager/vendors', label: 'Vendor Follow-up', icon: Building2 },
-  { path: '/operations-manager/vouchers', label: 'Generate Voucher', icon: Ticket },
 ];
+
+// Legacy exports for backward compatibility
+export const operationsExecutionChildren = tripExecutionChildren;
+export const operationsResourcesChildren = vouchersNavChildren;

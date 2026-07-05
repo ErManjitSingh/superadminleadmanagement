@@ -44,7 +44,19 @@ const {
   getReports,
   getProfile,
   getCalendar,
-} = require('../controllers/operationsController');
+const {
+  getExecutionAnalytics,
+  getBookingExecutionHub,
+  generateBookingVoucher,
+  generateAllBookingVouchers,
+  generateTravelKit,
+  getVoucher,
+  downloadVoucherPdf,
+  regenerateVoucherHandler,
+  sendVoucherEmailHandler,
+  sendVoucherWhatsAppHandler,
+  listVouchersEnhanced,
+} = require('../controllers/voucherExecutionController');
 
 router.use(protect, requireFeature('bookings'), authorize('operations_manager', 'admin'));
 
@@ -80,9 +92,20 @@ router.post('/vendors', requirePermission('operations', 'create'), createVendor)
 router.put('/vendors/:id', requirePermission('operations', 'edit'), updateVendor);
 router.delete('/vendors/:id', requirePermission('operations', 'delete'), deleteVendor);
 
-router.get('/vouchers', requirePermission('operations', 'view'), listVouchers);
+router.get('/vouchers/analytics', requirePermission('operations', 'view'), getExecutionAnalytics);
+router.get('/vouchers', requirePermission('operations', 'view'), listVouchersEnhanced);
+router.get('/vouchers/:id', requirePermission('operations', 'view'), getVoucher);
+router.get('/vouchers/:id/download', requirePermission('operations', 'view'), downloadVoucherPdf);
+router.post('/vouchers/:id/regenerate', requirePermission('operations', 'edit'), regenerateVoucherHandler);
+router.post('/vouchers/:id/send-email', requirePermission('operations', 'edit'), sendVoucherEmailHandler);
+router.post('/vouchers/:id/send-whatsapp', requirePermission('operations', 'edit'), sendVoucherWhatsAppHandler);
 router.post('/vouchers', requirePermission('operations', 'create'), createVoucher);
 router.put('/vouchers/:id', requirePermission('operations', 'edit'), updateVoucher);
+
+router.get('/bookings/:id/execution', requirePermission('operations', 'view'), getBookingExecutionHub);
+router.post('/bookings/:id/vouchers/generate', requirePermission('operations', 'edit'), generateBookingVoucher);
+router.post('/bookings/:id/vouchers/generate-all', requirePermission('operations', 'edit'), generateAllBookingVouchers);
+router.post('/bookings/:id/travel-kit', requirePermission('operations', 'edit'), generateTravelKit);
 
 router.get('/tasks', requirePermission('operations', 'view'), listTasks);
 router.post('/tasks', requirePermission('operations', 'create'), createTask);

@@ -199,48 +199,24 @@ const deleteVendor = asyncHandler(async (req, res) => {
 });
 
 const listVouchers = asyncHandler(async (req, res) => {
-  const vouchers = await Voucher.find()
-    .populate('booking', 'bookingNumber customerName destination')
-    .sort({ createdAt: -1 })
-    .lean();
+  const { listVouchersFiltered } = require('../services/operationsVoucherExecutionService');
+  const vouchers = await listVouchersFiltered(req.query);
   res.json(vouchers);
 });
 
 const createVoucher = asyncHandler(async (req, res) => {
-  const booking = req.body.bookingId ? await Booking.findById(req.body.bookingId).lean() : null;
-  if (!booking) throw new ApiError(400, 'Valid booking is required');
+  const { generateVoucherForAssignment } = require('../services/operationsVoucherExecutionService');
+  const bookingId = req.body.bookingId;
+  if (!bookingId) throw new ApiError(400, 'Valid booking is required');
 
-  const type = req.body.type === 'cab' ? 'transport' : req.body.type;
-  const count = await Voucher.countDocuments();
-  const voucherNumber = `VCH-${(type?.[0] || 'M').toUpperCase()}-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
+  const type = req.body.type === 'cab' ? 'transport' : (req.body.type || 'hotel');
+  const assignmentIndex = Number(req.body.assignmentIndex || 0);
 
-  const details = {
-    title: req.body.title || `${booking.destination} ${type} voucher`,
-    validFrom: req.body.validFrom || booking.travelDate,
-    validUntil: req.body.validUntil || booking.returnDate,
-  };
-
-  const voucherDoc = {
+  const voucher = await generateVoucherForAssignment(bookingId, {
     type,
-    booking: booking._id,
-    voucherNumber,
-    bookingNumber: booking.bookingNumber,
-    customerName: booking.customerName,
-    branchId: booking.branchId || req.branchId,
-    status: 'issued',
-    issuedAt: new Date(),
-    issuedBy: req.user._id,
-    details,
-  };
-
-  const pdfUrl = generateVoucherDocument(voucherDoc, booking);
-  voucherDoc.pdfUrl = pdfUrl;
-
-  const voucher = await Voucher.create(voucherDoc);
-
-  if (type === 'master' || req.body.type === 'master') {
-    await Booking.findByIdAndUpdate(booking._id, { voucherStatus: 'issued' });
-  }
+    assignmentIndex,
+    actor: req.user,
+  });
 
   await cacheService.invalidate('ops:');
   res.status(201).json(voucher);

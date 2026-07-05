@@ -39,7 +39,20 @@ export const VOUCHER_STATUS_CONFIG = {
   draft: { label: 'Draft', className: 'bg-slate-500/15 text-slate-600' },
   issued: { label: 'Issued', className: 'bg-sky-500/15 text-sky-700' },
   sent: { label: 'Sent', className: 'bg-teal-500/15 text-teal-700' },
+  vendor_pending: { label: 'Vendor Pending', className: 'bg-amber-500/15 text-amber-700' },
+  vendor_confirmed: { label: 'Vendor Confirmed', className: 'bg-emerald-500/15 text-emerald-700' },
+  vendor_rejected: { label: 'Vendor Rejected', className: 'bg-rose-500/15 text-rose-700' },
+  vendor_changes: { label: 'Changes Requested', className: 'bg-orange-500/15 text-orange-700' },
+  delivered: { label: 'Delivered', className: 'bg-indigo-500/15 text-indigo-700' },
+  archived: { label: 'Archived', className: 'bg-slate-500/15 text-slate-500' },
   redeemed: { label: 'Redeemed', className: 'bg-emerald-500/15 text-emerald-700' },
+};
+
+export const VENDOR_STATUS_CONFIG = {
+  pending: { label: 'Pending', className: 'bg-amber-500/15 text-amber-700' },
+  confirmed: { label: 'Confirmed', className: 'bg-emerald-500/15 text-emerald-700' },
+  rejected: { label: 'Rejected', className: 'bg-rose-500/15 text-rose-700' },
+  changes_requested: { label: 'Changes Needed', className: 'bg-orange-500/15 text-orange-700' },
 };
 
 export const VENDOR_TYPES = [

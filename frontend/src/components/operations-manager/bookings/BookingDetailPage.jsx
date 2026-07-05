@@ -17,6 +17,7 @@ import {
   BookingTransportEditor,
   BookingItineraryTimeline,
 } from './BookingFulfillmentSections';
+import VoucherCenter from '../vouchers/VoucherCenter';
 
 const DOC_TYPES = [
   { value: 'customer_id', label: 'Customer ID' },
@@ -226,6 +227,8 @@ export default function BookingDetailPage() {
         onSync={syncFromQuotation}
       />
 
+      <VoucherCenter bookingId={id} booking={booking} />
+
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <div className="xl:col-span-8 space-y-6">
           <BookingItineraryTimeline
@@ -346,11 +349,11 @@ export default function BookingDetailPage() {
                 Mark Completed
               </Button>
             )}
-            <Link to="/operations-manager/vouchers">
+            <a href="#voucher-center">
               <Button variant="outline" className="w-full rounded-xl gap-2">
-                <Ticket className="w-4 h-4" /> Generate Voucher
+                <Ticket className="w-4 h-4" /> Voucher Center
               </Button>
-            </Link>
+            </a>
           </div>
 
           {(booking.tasks?.length > 0) && (

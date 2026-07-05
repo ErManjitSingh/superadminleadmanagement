@@ -100,6 +100,11 @@ import {
   OperationsProfilePage,
   TripTrackerPage,
   OperationsTasksPage,
+  TripExecutionDashboard,
+  TripExecutionTripsPage,
+  VendorConfirmationsPage,
+  OperationsAlertsPage,
+  VendorConfirmationPage,
 } from './routes/lazyRoutes';
 
 function App() {
@@ -116,6 +121,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/vendor-confirm/:token" element={<VendorConfirmationPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/accept-invite/:token" element={<AcceptInvite />} />
             <Route path="/auth/impersonate" element={<ImpersonationCallback />} />
@@ -209,13 +215,25 @@ function App() {
               <Route path="dashboard" element={<OperationsDashboard />} />
               <Route path="bookings/:status" element={<BookingsListPage />} />
               <Route path="booking/:id" element={<BookingDetailPage />} />
+              <Route path="trip-execution" element={<TripExecutionDashboard />} />
+              <Route path="trips/active" element={<TripExecutionTripsPage mode="active" />} />
+              <Route path="trips/upcoming" element={<TripExecutionTripsPage mode="upcoming" />} />
+              <Route path="trips/completed" element={<TripExecutionTripsPage mode="completed" />} />
               <Route path="trip-tracker" element={<TripTrackerPage />} />
               <Route path="tasks" element={<OperationsTasksPage />} />
               <Route path="hotels" element={<OperationsHotelsPage />} />
               <Route path="transport" element={<OperationsTransportPage />} />
               <Route path="activities" element={<OperationsActivitiesPage />} />
               <Route path="vendors" element={<VendorsPage />} />
+              <Route path="vendors/confirmations" element={<VendorConfirmationsPage />} />
               <Route path="vouchers" element={<VouchersPage />} />
+              <Route path="vouchers/hotel" element={<VouchersPage typeFilter="hotel" />} />
+              <Route path="vouchers/cab" element={<VouchersPage typeFilter="transport" />} />
+              <Route path="vouchers/activity" element={<VouchersPage typeFilter="activity" />} />
+              <Route path="vouchers/flight" element={<VouchersPage typeFilter="flight" />} />
+              <Route path="vouchers/travel-kit" element={<VouchersPage typeFilter="travel_kit" />} />
+              <Route path="operations/alerts" element={<OperationsAlertsPage />} />
+              <Route path="operations/escalations" element={<OperationsAlertsPage />} />
               <Route path="support" element={<SupportTicketsPage />} />
               <Route path="calendar" element={<OperationsCalendarPage />} />
               <Route path="reports" element={<OperationsReportsPage />} />

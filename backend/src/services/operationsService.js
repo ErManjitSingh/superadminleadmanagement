@@ -930,6 +930,9 @@ async function updateBooking(id, payload, actor) {
   const booking = await Booking.findByIdAndUpdate(id, payload, { new: true });
   if (!booking) return null;
 
+  const { autoRegenerateOnBookingUpdate } = require('./operationsVoucherExecutionService');
+  await autoRegenerateOnBookingUpdate(prev, booking.toObject(), actor).catch(() => {});
+
   const wasNotConfirmed = !['confirmed', 'in_progress'].includes(prev.status);
   if (wasNotConfirmed && booking.status === 'confirmed') {
     await createOperationsTasksForBooking(booking, actor);
