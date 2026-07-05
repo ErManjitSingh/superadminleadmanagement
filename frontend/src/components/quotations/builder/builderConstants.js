@@ -41,6 +41,20 @@ export const EXCLUSION_PRESETS = [
 
 export const VEHICLE_TYPES = ['Cab', 'Tempo Traveller', 'SUV', 'Sedan', 'Luxury Car'];
 
+/** Short taglines shown on Quick Template cards */
+export const TEMPLATE_TAGLINES = {
+  himachal: 'Mountains & Serenity',
+  kashmir: 'Paradise on Earth',
+  goa: 'Sun, Sand & Sea',
+  kerala: "God's Own Country",
+  thailand: 'Land of Smiles',
+  dubai: 'Luxury & Adventure',
+  bali: 'Island of the Gods',
+  europe: 'Culture & Charm',
+};
+
+export const GUEST_COUNT_OPTIONS = Array.from({ length: 21 }, (_, i) => i);
+
 export const QUOTE_STATUS_OPTIONS = [
   { value: 'draft', label: 'Draft', color: 'bg-slate-500/15 text-slate-700' },
   { value: 'sent', label: 'Sent', color: 'bg-sky-500/15 text-sky-700' },

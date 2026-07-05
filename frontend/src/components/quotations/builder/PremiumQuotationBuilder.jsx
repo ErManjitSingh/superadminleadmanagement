@@ -4,6 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   ArrowRight,
+  Building2,
+  Calendar,
+  Car,
+  ChevronDown,
   Cloud,
   CloudOff,
   Download,
@@ -12,11 +16,17 @@ import {
   FileText,
   Loader2,
   Mail,
+  MapPin,
   MessageCircle,
   Pencil,
+  Phone,
   Sparkles,
+  Tag,
+  Users,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
+import Avatar from '../../ui/Avatar';
 import QuotationPdfOverlay from '../QuotationPdfOverlay';
 import QuotePdfPreview from '../QuotePdfPreview';
 import { HOTEL_CATEGORIES, MEAL_PLANS, isNoHotelMealPlan } from '../constants';
@@ -30,7 +40,7 @@ import SimplifiedHotelSection from '../../builder-shared/SimplifiedHotelSection'
 import SimplifiedTransportSection from '../../builder-shared/SimplifiedTransportSection';
 import SimplifiedPricingSection from '../../builder-shared/SimplifiedPricingSection';
 import { builderUiToHotels, builderUiToTransport } from '../../builder-shared/builderUiUtils';
-import { BUILDER_STEPS, VEHICLE_TYPES } from './builderConstants';
+import { BUILDER_STEPS, GUEST_COUNT_OPTIONS, TEMPLATE_TAGLINES, VEHICLE_TYPES } from './builderConstants';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from '../../../context/ToastContext';
 import { buildQuotationShareUrl } from '../../../lib/whatsappContact';
@@ -204,7 +214,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const nextStepLabel = nextStepMeta?.title || 'Next';
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#f8f9fd]">
       <div className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -266,7 +276,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
       )}
 
       <div className="max-w-6xl mx-auto p-4 sm:p-6">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-5 sm:p-8 min-h-[520px]">
+        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm p-5 sm:p-8 min-h-[520px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={b.step}
@@ -331,7 +341,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-xl gap-2 border-slate-200"
+                className="rounded-xl gap-2 border-slate-200 bg-white hover:bg-slate-50 px-5"
                 disabled={b.step === 1}
                 onClick={goBack}
               >
@@ -339,7 +349,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
               </Button>
               <Button
                 type="button"
-                className="rounded-xl gap-2 bg-violet-600 hover:bg-violet-500 text-white shadow-md shadow-violet-500/20"
+                variant="gradient"
+                className="rounded-xl gap-2 px-6"
                 disabled={!canContinue() || b.loadingPackageDetail}
                 onClick={goNext}
               >
@@ -380,76 +391,98 @@ function AutosaveBadge({ status }) {
 
 function StepPackage({ b, initialLeadId }) {
   const info = b.state.packageInfo;
+  const [showCatalog, setShowCatalog] = useState(false);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Package Information</h2>
-        <p className="text-sm text-slate-500 mt-1">Start from a template or pick a catalog package</p>
-      </div>
-
       {initialLeadId && b.loadingLead && (
-        <GlassCard className="p-4">
-          <p className="text-sm text-content-muted flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin shrink-0" /> Loading lead details…
+        <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-4">
+          <p className="text-sm text-slate-600 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin shrink-0 text-violet-600" /> Loading lead details…
           </p>
-        </GlassCard>
+        </div>
       )}
 
       {initialLeadId && !b.loadingLead && b.leadLoadError && (
-        <GlassCard className="p-4 border border-red-500/30 bg-red-500/5">
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-700">{b.leadLoadError}</p>
           <Link
             to={b.config.leadDetailPath?.(initialLeadId) || b.config.backPath}
-            className="text-sm text-sky-600 font-semibold mt-2 inline-block"
+            className="text-sm text-violet-600 font-semibold mt-2 inline-block"
           >
             Back to lead
           </Link>
-        </GlassCard>
+        </div>
       )}
 
       {b.selectedLead && (
-        <GlassCard className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] uppercase font-bold text-content-muted">Lead</p>
-            <p className="font-bold">{b.selectedLead.name}</p>
-            <p className="text-xs text-content-muted">
-              {b.selectedLead.phone} · {b.selectedLead.destination}
-            </p>
+        <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-indigo-50/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <Avatar name={b.selectedLead.name} size="lg" className="ring-2 ring-violet-200" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-slate-900 text-lg capitalize">{b.selectedLead.name}</p>
+                <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md bg-violet-600 text-white">
+                  Lead
+                </span>
+              </div>
+              <p className="text-sm text-slate-600 mt-0.5 flex items-center gap-3 flex-wrap">
+                {b.selectedLead.phone && (
+                  <span className="inline-flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5 text-violet-500" />
+                    {b.selectedLead.phone}
+                  </span>
+                )}
+                {b.selectedLead.destination && (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-violet-500" />
+                    {b.selectedLead.destination}
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
           <Link
             to={b.config.leadDetailPath?.(b.selectedLead._id) || '#'}
-            className="text-xs text-sky-600 flex items-center gap-1"
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-violet-200 bg-white text-sm font-semibold text-violet-700 hover:bg-violet-50 shadow-sm shrink-0"
           >
-            View <ExternalLink className="w-3 h-3" />
+            View Lead <ExternalLink className="w-3.5 h-3.5" />
           </Link>
-        </GlassCard>
+        </div>
       )}
 
       {!initialLeadId && !b.selectedLead && (
-        <GlassCard className="p-4 text-center space-y-2">
-          <p className="text-sm text-content-muted">Open the quotation builder from a lead to continue.</p>
-          <Link to={b.config.backPath} className="text-sm text-sky-600 font-semibold">
+        <div className="rounded-2xl border border-violet-100 bg-violet-50/60 p-6 text-center space-y-2">
+          <p className="text-sm text-slate-600">Open the quotation builder from a lead to continue.</p>
+          <Link to={b.config.backPath} className="text-sm text-violet-600 font-semibold">
             Back to leads
           </Link>
-        </GlassCard>
+        </div>
       )}
 
       <div>
-        <p className="text-sm font-bold mb-2">Quick Templates</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <h3 className="text-base font-bold text-slate-900 mb-3">Quick Templates</h3>
+        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x scrollbar-thin">
           {b.templates.map((t) => (
             <button
               key={t.key}
               type="button"
               onClick={() => b.applyTemplate(t)}
               className={cn(
-                'relative rounded-xl overflow-hidden border aspect-[4/3] text-left group',
-                b.state.templateKey === t.key ? 'ring-2 ring-sky-500' : 'border-subtle'
+                'relative shrink-0 w-[130px] sm:w-[150px] aspect-[4/5] rounded-2xl overflow-hidden border text-left snap-start transition-all',
+                b.state.templateKey === t.key
+                  ? 'ring-2 ring-violet-500 ring-offset-2 border-violet-300 shadow-lg shadow-violet-500/20'
+                  : 'border-slate-200 hover:border-violet-300 hover:shadow-md',
               )}
             >
               <img src={t.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-              <span className="absolute bottom-2 left-2 right-2 text-white text-xs font-bold">{t.name}</span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-3">
+                <p className="text-white text-sm font-bold leading-tight">{t.name}</p>
+                <p className="text-white/80 text-[10px] mt-0.5 leading-snug">
+                  {TEMPLATE_TAGLINES[t.key] || t.destination}
+                </p>
+              </div>
             </button>
           ))}
         </div>
@@ -457,44 +490,95 @@ function StepPackage({ b, initialLeadId }) {
 
       {b.packages.length > 0 && (
         <div>
-          <p className="text-sm font-bold mb-2">Your Packages & Catalog</p>
-          <div className="grid sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-            {b.packages.map((p) => (
-              <button
-                key={`${p._catalog || 'pkg'}-${p._id}`}
-                type="button"
-                onClick={() => b.selectPackage(p)}
-                className={cn(
-                  'p-3 rounded-xl border text-left text-sm',
-                  b.state.packageId === p._id ? 'border-amber-500/50 bg-amber-500/10' : 'border-subtle'
-                )}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-bold truncate">{p.name}</p>
-                  <span className={cn(
-                    'text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0',
-                    p._catalog === 'local' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-sky-500/15 text-sky-700'
-                  )}>
-                    {p._catalog === 'local' ? 'CRM' : 'UNO'}
-                  </span>
-                </div>
-                <p className="text-xs text-content-muted">{formatINR(p.startingPrice)} · {p.duration || '—'} days</p>
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowCatalog((v) => !v)}
+            className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-violet-700 transition-colors"
+          >
+            <ChevronDown className={cn('w-4 h-4 transition-transform', showCatalog && 'rotate-180')} />
+            Your Packages & Catalog
+            <span className="text-xs font-medium text-slate-400">({b.packages.length})</span>
+          </button>
+          {showCatalog && (
+            <div className="grid sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto mt-2">
+              {b.packages.map((p) => (
+                <button
+                  key={`${p._catalog || 'pkg'}-${p._id}`}
+                  type="button"
+                  onClick={() => b.selectPackage(p)}
+                  className={cn(
+                    'p-3 rounded-xl border text-left text-sm',
+                    b.state.packageId === p._id ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white hover:border-violet-200',
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-bold truncate">{p.name}</p>
+                    <span className={cn(
+                      'text-[9px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0',
+                      p._catalog === 'local' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-sky-500/15 text-sky-700',
+                    )}>
+                      {p._catalog === 'local' ? 'CRM' : 'UNO'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">{formatINR(p.startingPrice)} · {p.duration || '—'} days</p>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        <Field label="Package Name" value={info.packageName} onChange={(v) => b.updatePackageInfo({ packageName: v })} />
-        <Field label="Destination" value={info.destination} onChange={(v) => b.updatePackageInfo({ destination: v })} />
-        <Field label="Duration (days)" type="number" value={info.duration} onChange={(v) => b.updatePackageInfo({ duration: Number(v) })} />
-        <Field label="Travel Date" type="date" value={info.travelDate?.slice?.(0, 10) || info.travelDate || ''} onChange={(v) => b.updatePackageInfo({ travelDate: v })} />
-        <Field label="Adults" type="number" value={info.adults} onChange={(v) => b.updatePackageInfo({ adults: Number(v) })} />
-        <Field label="Children" type="number" value={info.children} onChange={(v) => b.updatePackageInfo({ children: Number(v) })} />
-        <Field label="Infants" type="number" value={info.infants} onChange={(v) => b.updatePackageInfo({ infants: Number(v) })} />
-        <SelectField
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <IconField
+          label="Package Name"
+          icon={Tag}
+          value={info.packageName}
+          onChange={(v) => b.updatePackageInfo({ packageName: v })}
+        />
+        <IconField
+          label="Destination"
+          icon={MapPin}
+          value={info.destination}
+          onChange={(v) => b.updatePackageInfo({ destination: v })}
+        />
+        <IconField
+          label="Duration (Days)"
+          icon={Calendar}
+          type="number"
+          value={info.duration}
+          onChange={(v) => b.updatePackageInfo({ duration: Number(v) })}
+        />
+        <IconField
+          label="Travel Date"
+          icon={Calendar}
+          type="date"
+          value={info.travelDate?.slice?.(0, 10) || info.travelDate || ''}
+          onChange={(v) => b.updatePackageInfo({ travelDate: v })}
+        />
+        <IconSelectField
+          label="Adults"
+          icon={Users}
+          value={info.adults}
+          options={GUEST_COUNT_OPTIONS}
+          onChange={(v) => b.updatePackageInfo({ adults: Number(v) })}
+        />
+        <IconSelectField
+          label="Children"
+          icon={Users}
+          value={info.children}
+          options={GUEST_COUNT_OPTIONS}
+          onChange={(v) => b.updatePackageInfo({ children: Number(v) })}
+        />
+        <IconSelectField
+          label="Infants"
+          icon={Users}
+          value={info.infants}
+          options={GUEST_COUNT_OPTIONS}
+          onChange={(v) => b.updatePackageInfo({ infants: Number(v) })}
+        />
+        <IconSelectField
           label="Meal Plan"
+          icon={UtensilsCrossed}
           value={info.mealPlan}
           options={MEAL_PLANS}
           onChange={(v) => {
@@ -507,17 +591,24 @@ function StepPackage({ b, initialLeadId }) {
           }}
         />
         {!isNoHotelMealPlan(info.mealPlan) && (
-          <SelectField
+          <IconSelectField
             label="Hotel Category"
+            icon={Building2}
             value={info.hotelCategory}
             options={HOTEL_CATEGORIES}
             onChange={(v) => b.updatePackageInfo({ hotelCategory: v })}
           />
         )}
-        <SelectField label="Transportation" value={info.transportation} options={VEHICLE_TYPES} onChange={(v) => b.updatePackageInfo({ transportation: v })} />
+        <IconSelectField
+          label="Transportation"
+          icon={Car}
+          value={info.transportation}
+          options={VEHICLE_TYPES}
+          onChange={(v) => b.updatePackageInfo({ transportation: v })}
+        />
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 pt-1">
         <Toggle label="Flight Included" checked={info.flightIncluded} onChange={(v) => b.updatePackageInfo({ flightIncluded: v })} />
         <Toggle label="Visa Included" checked={info.visaIncluded} onChange={(v) => b.updatePackageInfo({ visaIncluded: v })} />
         <Toggle label="Insurance" checked={info.insuranceIncluded} onChange={(v) => b.updatePackageInfo({ insuranceIncluded: v })} />
@@ -711,33 +802,44 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
   );
 }
 
-function Field({ label, value, onChange, type = 'text' }) {
+function IconField({ label, icon: Icon, value, onChange, type = 'text' }) {
   return (
     <div>
-      <label className="text-[10px] uppercase font-bold text-content-muted">{label}</label>
-      <input
-        type={type}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        className="input-premium w-full h-10 rounded-xl text-sm mt-1"
-      />
+      <label className="text-sm font-semibold text-slate-700 mb-1.5 block">{label}</label>
+      <div className="relative">
+        {Icon && (
+          <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 pointer-events-none" />
+        )}
+        <input
+          type={type}
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-11 pl-10 pr-4 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15"
+        />
+      </div>
     </div>
   );
 }
 
-function SelectField({ label, value, options, onChange }) {
+function IconSelectField({ label, icon: Icon, value, options, onChange }) {
   return (
     <div>
-      <label className="text-[10px] uppercase font-bold text-content-muted">{label}</label>
-      <select
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className="input-premium w-full h-10 rounded-xl text-sm mt-1"
-      >
-        {options.map((o) => (
-          <option key={o} value={o}>{o}</option>
-        ))}
-      </select>
+      <label className="text-sm font-semibold text-slate-700 mb-1.5 block">{label}</label>
+      <div className="relative">
+        {Icon && (
+          <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 pointer-events-none z-10" />
+        )}
+        <select
+          value={value ?? ''}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-11 pl-10 pr-9 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all appearance-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15"
+        >
+          {options.map((o) => (
+            <option key={o} value={o}>{o}</option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+      </div>
     </div>
   );
 }
