@@ -32,6 +32,21 @@ function prepareForCapture(root, widthPx) {
     }
     if (node.style?.opacity === '0') node.style.opacity = '1';
   });
+
+  root.querySelectorAll('a[href]').forEach((anchor) => {
+    const text = document.createElement('span');
+    text.textContent = anchor.textContent || '';
+    text.className = anchor.className || '';
+    anchor.replaceWith(text);
+  });
+
+  root.querySelectorAll('img').forEach((img) => {
+    if (!img.src?.startsWith('data:')) {
+      const placeholder = document.createElement('div');
+      placeholder.className = `${img.className || ''} qp-img-placeholder`.trim();
+      img.replaceWith(placeholder);
+    }
+  });
 }
 
 /** Downscale/compress inline images so the capture canvas stays small. */
@@ -135,9 +150,11 @@ async function buildPdfFromCanvas(canvas, quality) {
   const pageHeight = pdf.internal.pageSize.getHeight();
   const pageHeightPx = Math.max(1, Math.round((canvas.width * pageHeight) / pageWidth));
 
+  const pageOverlapPx = 6;
   let y = 0;
   let page = 0;
   while (y < canvas.height) {
+    if (page > 0) y = Math.max(0, y - pageOverlapPx);
     const sliceH = Math.min(pageHeightPx, canvas.height - y);
     const pageCanvas = document.createElement('canvas');
     pageCanvas.width = canvas.width;

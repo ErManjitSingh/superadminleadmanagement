@@ -76,10 +76,20 @@ export async function cloneWithEmbeddedImages(contentEl) {
     const srcImg = srcImgs[i];
     const cloneImg = cloneImgs[i];
     let dataUrl = imgElementToDataUrl(srcImg);
-    if (!dataUrl && srcImg?.src) {
+    if (!dataUrl && srcImg?.src && !srcImg.src.startsWith('data:')) {
       dataUrl = await urlToDataUrl(srcImg.src);
     }
-    if (dataUrl) cloneImg.src = dataUrl;
+    if (dataUrl) {
+      cloneImg.src = dataUrl;
+      cloneImg.removeAttribute('srcset');
+      continue;
+    }
+
+    // Never leave remote URLs in print/PDF — they render as visible link text when broken.
+    const placeholder = document.createElement('div');
+    placeholder.className = `${cloneImg.className || ''} qp-img-placeholder`.trim();
+    placeholder.setAttribute('aria-hidden', 'true');
+    cloneImg.replaceWith(placeholder);
   }
 
   return clone;

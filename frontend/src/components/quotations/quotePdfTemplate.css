@@ -1,5 +1,4 @@
 /* PTW / Himachal Tour style quotation — screen preview + print (identical) */
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700;800;900&display=swap');
 
 .quote-pdf-preview-shell {
   padding: 28px 16px 48px;
@@ -1011,11 +1010,13 @@
 
 /* Policies inside v2 PDF */
 .quote-ht-pdf-v2 .quote-ht-policy {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   border: 1px solid #e3eaf0;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 1px 4px rgba(11, 34, 57, 0.04);
+  page-break-inside: avoid;
+  break-inside: avoid-page;
 }
 
 .quote-ht-pdf-v2 .quote-ht-policy-head {
@@ -1333,6 +1334,18 @@
   -webkit-font-smoothing: antialiased;
 }
 
+.quote-ht-pdf-v2 a {
+  color: inherit;
+  text-decoration: none;
+  pointer-events: none;
+}
+
+.qp-img-placeholder {
+  background: #eef2f6;
+  border: 1px solid #e3eaf0;
+  min-height: 48px;
+}
+
 /* Watermark — Travel CRM @ 0.3 opacity */
 .qp-watermark {
   position: absolute;
@@ -1459,7 +1472,77 @@
 .qp-gallery-wrap {
   position: relative;
   z-index: 1;
-  padding: 10px 20px 0;
+  padding: 8px 20px 0;
+}
+
+/* Destination gallery inside v2 PDF */
+.quote-ht-pdf-v2 .quote-ht-dest-compact {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-gallery {
+  margin: 0;
+  min-height: 160px;
+  height: 160px;
+  border: 1px solid #e3eaf0;
+  border-radius: 12px;
+  box-shadow: none;
+  opacity: 1;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-hero {
+  min-height: 160px;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-stack {
+  min-height: 160px;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-hero-overlay {
+  background: linear-gradient(
+    to top,
+    rgba(8, 28, 52, 0.88) 0%,
+    rgba(0, 82, 155, 0.35) 60%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  padding: 12px 14px;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-badge {
+  background: #008cff;
+  box-shadow: none;
+  font-size: 8px;
+  margin-bottom: 6px;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-hero-title {
+  font-size: 15px;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-hero-sub {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.quote-ht-pdf-v2 .quote-ht-dest-thumb-label {
+  font-size: 9px;
+  background: rgba(8, 28, 52, 0.72);
+}
+
+.qp-section-block {
+  margin: 0;
+  padding: 0 0 4px;
+}
+
+.qp-section-block-keep {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.qp-section-block + .qp-section-block {
+  margin-top: 0;
 }
 
 .qp-eyebrow {
@@ -1574,8 +1657,8 @@
 }
 
 .qp-section {
-  margin: 16px 0 0;
-  padding: 0 20px 8px;
+  margin: 10px 0 0;
+  padding: 0 20px 6px;
   font-size: 15px;
   font-weight: 800;
   color: #0b2239;
@@ -1584,8 +1667,19 @@
   border-left: none;
   background: transparent;
   page-break-after: avoid;
-  break-after: avoid;
+  break-after: avoid-page;
   position: relative;
+}
+
+.qp-section + .qp-overview-grid,
+.qp-section + .qp-vehicle-list,
+.qp-section + .qp-day,
+.qp-section + .qp-pay-grid,
+.qp-section + .qp-inc-exc-premium,
+.qp-section + .qp-policies,
+.qp-section + .qp-bank-wrap {
+  page-break-before: avoid;
+  break-before: avoid-page;
 }
 
 .qp-section::after {
@@ -1602,7 +1696,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
-  margin: 0 20px 12px;
+  margin: 0 20px 8px;
   border: 1px solid #e3eaf0;
   border-radius: 12px;
   overflow: hidden;
@@ -1635,7 +1729,7 @@
 }
 
 .qp-vehicle-list {
-  margin: 0 20px 12px;
+  margin: 0 20px 8px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1686,14 +1780,14 @@
 }
 
 .qp-day {
-  margin: 0 20px 10px;
+  margin: 0 20px 8px;
   border: 1px solid #e3eaf0;
   border-radius: 12px;
   overflow: hidden;
   background: #fff;
   box-shadow: 0 2px 6px rgba(11, 34, 57, 0.04);
-  page-break-inside: auto;
-  break-inside: auto;
+  page-break-inside: avoid;
+  break-inside: avoid-page;
 }
 
 .qp-day-head {
@@ -1792,7 +1886,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin: 0 20px 12px;
+  margin: 0 20px 8px;
 }
 
 .qp-pay-card {
@@ -1825,7 +1919,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 0 20px 14px;
+  margin: 0 20px 8px;
 }
 
 .qp-inc-panel,
@@ -1932,14 +2026,14 @@
 }
 
 .qp-policies {
-  margin: 0 20px 12px;
+  margin: 0 20px 8px;
 }
 
 .qp-bank-wrap {
   display: grid;
   grid-template-columns: 1fr 130px;
   gap: 12px;
-  margin: 0 20px 12px;
+  margin: 0 20px 8px;
   align-items: stretch;
 }
 
@@ -2027,7 +2121,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin: 0 20px 12px;
+  margin: 8px 20px 8px;
 }
 
 .qp-contact > div {
@@ -2073,26 +2167,63 @@
 }
 
 @media print {
-  .quote-ht-pdf-v2,
-  .quote-ht-pdf {
+  @page {
+    margin: 5mm;
+    size: A4 portrait;
+  }
+
+  html, body {
     margin: 0 !important;
     padding: 0 !important;
   }
 
+  .quote-ht-pdf-v2,
+  .quote-ht-pdf {
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .quote-pdf-preview-shell {
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  .quote-pdf-preview-paper {
+    box-shadow: none !important;
+    max-width: none !important;
+  }
+
+  .qp-section-block-keep,
   .qp-day,
   .qp-pay-card,
   .qp-bank-wrap,
   .qp-vehicle-row,
   .qp-inc-panel,
   .qp-exc-panel,
-  .qp-section {
-    page-break-inside: auto;
-    break-inside: auto;
+  .quote-ht-pdf-v2 .quote-ht-policy {
+    page-break-inside: avoid;
+    break-inside: avoid-page;
   }
 
   .qp-section {
     page-break-after: avoid;
-    break-after: avoid;
+    break-after: avoid-page;
+  }
+
+  .qp-section + .qp-overview-grid,
+  .qp-section + .qp-vehicle-list,
+  .qp-section + .qp-pay-grid,
+  .qp-section + .qp-inc-exc-premium,
+  .qp-section + .qp-policies,
+  .qp-section + .qp-bank-wrap {
+    page-break-before: avoid;
+    break-before: avoid-page;
+  }
+
+  .qp-inc-exc-list li {
+    orphans: 2;
+    widows: 2;
   }
 }
 

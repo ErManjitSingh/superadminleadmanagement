@@ -140,29 +140,31 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       </section>
 
       {/* Package Overview */}
-      <h2 className="qp-section">Package Overview</h2>
-      <div className="qp-overview-grid">
-        {[
-          ['Package', packageName],
-          ['Quote No.', quoteNo],
-          ['Destination', destination],
-          ['Travel Date', formatQuoteDate(travelDate)],
-          ['Duration', duration ? `${duration} Days / ${nights} Nights` : '—'],
-          ['Travellers', `Adults: ${pax.adults}${pax.kids ? ` · Kids: ${pax.kids}` : ''}`],
-          ['Meal Plan', packageInfo.mealPlan || '—'],
-          ['Customer', lead.name || 'Guest'],
-          ...(lead.phone ? [['Phone', lead.phone]] : []),
-        ].map(([label, value]) => (
-          <div key={label} className="qp-overview-item">
-            <span className="qp-overview-lbl">{label}</span>
-            <span className="qp-overview-val">{value}</span>
-          </div>
-        ))}
-      </div>
+      <section className="qp-section-block qp-section-block-keep">
+        <h2 className="qp-section">Package Overview</h2>
+        <div className="qp-overview-grid">
+          {[
+            ['Package', packageName],
+            ['Quote No.', quoteNo],
+            ['Destination', destination],
+            ['Travel Date', formatQuoteDate(travelDate)],
+            ['Duration', duration ? `${duration} Days / ${nights} Nights` : '—'],
+            ['Travellers', `Adults: ${pax.adults}${pax.kids ? ` · Kids: ${pax.kids}` : ''}`],
+            ['Meal Plan', packageInfo.mealPlan || '—'],
+            ['Customer', lead.name || 'Guest'],
+            ...(lead.phone ? [['Phone', lead.phone]] : []),
+          ].map(([label, value]) => (
+            <div key={label} className="qp-overview-item">
+              <span className="qp-overview-lbl">{label}</span>
+              <span className="qp-overview-val">{value}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Vehicles */}
       {vehicles.length > 0 && (
-        <>
+        <section className="qp-section-block">
           <h2 className="qp-section">Vehicle Details</h2>
           <div className="qp-vehicle-list">
             {vehicles.map((v) => (
@@ -184,12 +186,12 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               </div>
             ))}
           </div>
-        </>
+        </section>
       )}
 
       {/* Day-wise itinerary + hotel */}
       {itinerary.length > 0 && (
-        <>
+        <section className="qp-section-block">
           <h2 className="qp-section">Day Wise Itinerary</h2>
           {itinerary.map((day, index) => {
             const dayNum = day.day || index + 1;
@@ -237,23 +239,26 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               </article>
             );
           })}
-        </>
+        </section>
       )}
 
       {/* Payment schedule — percentage only, no line-item amounts */}
-      <h2 className="qp-section">Payment Schedule</h2>
-      <div className="qp-pay-grid">
-        {paymentPlan.map((row) => (
-          <div key={row.label} className="qp-pay-card">
-            <span className="qp-pay-pct">{row.percent}%</span>
-            <span className="qp-pay-lbl">{row.label}</span>
-          </div>
-        ))}
-      </div>
+      <section className="qp-section-block qp-section-block-keep">
+        <h2 className="qp-section">Payment Schedule</h2>
+        <div className="qp-pay-grid">
+          {paymentPlan.map((row) => (
+            <div key={row.label} className="qp-pay-card">
+              <span className="qp-pay-pct">{row.percent}%</span>
+              <span className="qp-pay-lbl">{row.label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Inclusions & Exclusions — premium side-by-side */}
-      <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
-      <div className="qp-inc-exc-premium">
+      <section className="qp-section-block qp-section-block-keep">
+        <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
+        <div className="qp-inc-exc-premium">
         <div className="qp-inc-panel">
           <div className="qp-inc-exc-head qp-inc-head">
             <span className="qp-inc-exc-badge">✓</span>
@@ -283,27 +288,33 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           </ul>
         </div>
       </div>
+      </section>
 
       {/* Payment details text */}
-      <h2 className="qp-section">Payment Details</h2>
-      <div className="qp-policies">
-        <PolicyBlock title="Payment Instructions" items={policies.paymentDetails} />
-      </div>
+      <section className="qp-section-block">
+        <h2 className="qp-section">Payment Details</h2>
+        <div className="qp-policies">
+          <PolicyBlock title="Payment Instructions" items={policies.paymentDetails} />
+        </div>
+      </section>
 
       {/* Terms & Conditions */}
-      <h2 className="qp-section">Terms &amp; Conditions</h2>
-      <div className="qp-policies">
-        {policies.termsAndConditions.map((section) => (
-          <PolicyBlock key={section.title} title={section.title} items={section.items} />
-        ))}
-        {importantNotes.termsAndConditions && (
-          <PolicyBlock title="Additional Notes" items={[importantNotes.termsAndConditions]} />
-        )}
-      </div>
+      <section className="qp-section-block">
+        <h2 className="qp-section">Terms &amp; Conditions</h2>
+        <div className="qp-policies">
+          {policies.termsAndConditions.map((section) => (
+            <PolicyBlock key={section.title} title={section.title} items={section.items} />
+          ))}
+          {importantNotes.termsAndConditions && (
+            <PolicyBlock title="Additional Notes" items={[importantNotes.termsAndConditions]} />
+          )}
+        </div>
+      </section>
 
       {/* Bank details — card layout, one account + QR */}
-      <h2 className="qp-section">Bank Details</h2>
-      <div className="qp-bank-wrap">
+      <section className="qp-section-block qp-section-block-keep">
+        <h2 className="qp-section">Bank Details</h2>
+        <div className="qp-bank-wrap">
         {bank ? (
           <div className="qp-bank-card">
             <p className="qp-bank-name">{bank.bank}</p>
@@ -333,6 +344,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           <p className="qp-qr-demo">Demo QR Code</p>
         </div>
       </div>
+      </section>
 
       {/* Contact */}
       <div className="qp-contact">
@@ -351,7 +363,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
       <footer className="qp-footer">
         <p>Thank you for choosing {COMPANY_INFO.name}</p>
-        <p>{COMPANY_INFO.phone} · {COMPANY_INFO.email} · {COMPANY_INFO.website}</p>
+        <p>{COMPANY_INFO.phone} · {COMPANY_INFO.email}</p>
       </footer>
     </div>
   );

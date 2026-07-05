@@ -19,7 +19,7 @@ export function buildQuotationPrintDocument(contentHtml, title = 'Quotation') {
   <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
 ${quotePdfCss}
-    @page { margin: 6mm; size: A4 portrait; }
+    @page { margin: 5mm; size: A4 portrait; }
     html, body {
       margin: 0 !important;
       padding: 0 !important;
