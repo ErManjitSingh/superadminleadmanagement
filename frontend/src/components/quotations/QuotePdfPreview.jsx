@@ -286,30 +286,20 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </div>
       </div>
 
-      {/* Refund Policy */}
-      <h2 className="qp-section">Our Refund Policy</h2>
-      <div className="qp-policies">
-        <PolicyBlock title="Cancellation & Refund" items={policies.refundPolicy} />
-      </div>
-
       {/* Payment details text */}
       <h2 className="qp-section">Payment Details</h2>
       <div className="qp-policies">
         <PolicyBlock title="Payment Instructions" items={policies.paymentDetails} />
       </div>
 
-      {/* Terms of Service */}
-      <h2 className="qp-section">Terms of Service &amp; Important Instructions</h2>
+      {/* Terms & Conditions */}
+      <h2 className="qp-section">Terms &amp; Conditions</h2>
       <div className="qp-policies">
-        {importantNotes.travelGuidelines && (
-          <PolicyBlock title="Travel Guidelines" items={[importantNotes.travelGuidelines]} />
-        )}
-        <PolicyBlock title="Important Instructions" items={policies.termsOfService} />
+        {policies.termsAndConditions.map((section) => (
+          <PolicyBlock key={section.title} title={section.title} items={section.items} />
+        ))}
         {importantNotes.termsAndConditions && (
-          <PolicyBlock title="Additional Terms" items={[importantNotes.termsAndConditions]} />
-        )}
-        {importantNotes.cancellationPolicy && (
-          <PolicyBlock title="Additional Cancellation Notes" items={[importantNotes.cancellationPolicy]} />
+          <PolicyBlock title="Additional Notes" items={[importantNotes.termsAndConditions]} />
         )}
       </div>
 

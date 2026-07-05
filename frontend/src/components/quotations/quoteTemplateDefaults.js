@@ -18,49 +18,100 @@ export const QUOTE_DEFAULT_EXCLUSIONS = [
   'Any cost incurred due to extension, change of itinerary due to natural calamities, road blocks, vehicle breakdown, union issues and factors beyond our control.',
 ];
 
-export const QUOTE_REFUND_POLICY = [
-  'Before 30 days of starting of tour: 90% of amount paid will be refunded. Afterwards 50% of amount will be refunded.',
-  '30-15 days before starting of tour: 50% of amount will be refunded.',
-  '15 days before starting of the tour: 30% of the amount will be refunded.',
-  '1 week before starting of your tour: 10% of the amount will be refunded.',
-  'Day before or same day of tour commencement: No refund.',
-  'Cancellation after the day of commencement of tour: You won\'t get any refund if cancellation is done on or after the day of starting of tour.',
-  'There will be no refund in case your taxi faces technical or mechanical issues during tour.',
-  'No refund in case sightseeing is restricted as a result of natural calamities such as landslides, earthquake, heavy rainfall or snowfall and any other possibilities which are beyond our control.',
-  'Token money will not be refunded in any case.',
-  'You\'ll be refunded within 2 months from date of initiation of refund.',
-];
-
 export const QUOTE_PAYMENT_DETAILS = [
-  'Please pay advance 30% of total amount and rest of the amount 3 days prior to your trip.',
+  'A minimum 50% non-refundable advance payment is mandatory to confirm any booking.',
+  'The remaining balance must be paid before the tour begins.',
   'We\'ll mail you our company\'s voucher and final itinerary as your payment reflects in our account. Please share screenshots of payment for convenience.',
 ];
 
-export const QUOTE_TERMS_OF_SERVICE = [
-  'Please take a printout of this itinerary and bring it along with you on tour. Only the itinerary will be applicable for future reference.',
-  'Please note that sightseeing timing in Himachal is 9:00 a.m. to 5 p.m. in winter season and 8 a.m. to 6 p.m. in rest of the year. You\'ll go for sightseeing in these specified hours.',
-  'All sites mentioned in package will be covered once during the tour. Please note that you won\'t be driven for a particular sight more than once.',
-  'Check-In time in hotels is 12:00 p.m. or after and Check-Out time is 11:00 a.m. or before. In case of early Check-In or late Check-Out, you might be charged early check-in fee or late check-out fee respectively by hotels, which will be directly payable on-spot.',
-  'Himachal govt. has introduced a \'No-Smoking\' legislation for hotels, restaurants and all public places. As a consequence, smoking is prohibited in all parts of hotel/s.',
-  'In Himachali culture, we respect food utmost and wastage of food or drinkables is considered as disgrace. We request you not to waste any eatables or drinkables in hotel or outside during sightseeing once you enter Himachal Pradesh.',
-  'Please note that in winter and rainy seasons, access to certain places for sightseeing falling outside of National Highways might be blocked due to snow or landslides. In such case, sightseeing of that particular spot might not be possible.',
-  'Because of heavy tourist rush in famous spots like Shimla and Manali, sometimes it is not possible to cover all the sights we have mentioned in the package due to traffic jams. But we assure you that important places will be covered.',
-  'Sometimes it is difficult to provide said taxi because of lesser availability. In such case you\'ll be provided with similar taxi if not same.',
-  'If you are visiting Kufri, please note that Himalayan Nature Park is closed on Tuesdays.',
-  'Note that Rohtang Pass tour is possible only in the months between May and October. Also it is closed on Tuesdays.',
-  'Please note that hotel in Shimla and Manali are not like hotels in metro cities. Hotels here are smaller in dimensions as they are structured in hilly area. We request you to inspect every element of hotels we provide.',
-  'You might catch cold here in Himachal or can suffer from headache, stomach ache etc. because of temperature difference. Journey in curvy roads of Himachal can lead to vomiting as well. We suggest you to carry personal medics during your tour for all these ailments.',
-  'We have prepared the package as per your requirement and request. Note that our quotation is customizable only before finalization of the quote. When package gets finalize, no change will be entertained in this final package itinerary.',
-  'In case customer refuses to take the benefits of the service on commencement of the tour or during the tour, s/he still have to pay according to voucher we have created and shared with the customer. No relaxation will be given in the amount whether s/he accomplish whole tour according to quotation or not.',
-  'It is advisable for clients not to modify the tour plan or quote during tour. But in case customer wishes to include new place for sightseeing which is not mentioned in final quote or package, s/he will be charged accordingly on spot for sightseeing s/he wishes for. Explore My Bharat would assist you in this case, but should not be held responsible for failure of service or any other issue arose during modified tour.',
-  'In case customer wishes to terminate the tour in between travel dates, s/he still have to pay the amount according to voucher we have created and shared with the customer.',
-  'Client will have to pay according to voucher even if s/he does not check in to hotels we provide.',
-  'In case you have paid for MAP plan and upon check-in to hotel decide not to have breakfast and dinner, you still have to pay as per your voucher.',
-  'We take utmost care of our service, be it the cab we provide, our drivers or hotels we have booked for you. We request you not to misbehave or abuse with our drivers and hotel staff that you are staying in at any circumstances. If you face any problems with our driver or hotel we have provided, call us anytime, we will surely assist you in resolving the issue.',
-  'A valid photo ID is required during check-in to hotel, kindly carry a valid ID proof with you during tour.',
-  'AC service will be switched off in hilly areas. In case you want to enable AC during journey in hilly areas, you have to pay extra, which will be charged on-spot.',
-  'Explore My Bharat in any case what so ever, is not responsible for the damage or misplacement of the belongings of the client.',
-  'Call or WhatsApp +91 62305 57851 for any queries. We assure you that any issues raised before or during tour will be resolved at earliest note.',
+/** Official Terms & Conditions — Explore My Bharat Tours */
+export const QUOTE_TERMS_AND_CONDITIONS = [
+  {
+    title: '1. Booking Confirmation',
+    items: [
+      'A minimum 50% non-refundable advance payment is mandatory to confirm any booking.',
+      'Bookings are confirmed only after receipt of the advance payment and written confirmation from Explore My Bharat Tours.',
+    ],
+  },
+  {
+    title: '2. Full Payment',
+    items: [
+      'The remaining balance must be paid before the tour begins.',
+      'Failure to make full payment may result in automatic cancellation without any refund of the advance amount.',
+    ],
+  },
+  {
+    title: '3. Cancellation Policy',
+    items: [
+      'More than 30 days before departure: 25% cancellation charges',
+      '15–30 days before departure: 50% cancellation charges',
+      '7–14 days before departure: 75% cancellation charges',
+      'Less than 7 days before departure or No Show: 100% cancellation charges',
+      'No refund will be provided after the tour has commenced or for any unused services.',
+    ],
+  },
+  {
+    title: '4. Itinerary Changes',
+    items: [
+      'The company reserves the right to modify the itinerary, hotel, vehicle, sightseeing order, or route due to weather, road conditions, government restrictions, operational requirements, or force majeure without prior notice.',
+      'No refund or compensation shall be payable for such changes.',
+    ],
+  },
+  {
+    title: '5. Vehicle Usage',
+    items: [
+      'The vehicle will operate strictly as per the confirmed itinerary.',
+      'Extra sightseeing, route diversions, waiting charges, or additional kilometers will be charged separately.',
+      'Night driving (after 9:00 PM) is subject to driver discretion, local regulations, and additional charges.',
+    ],
+  },
+  {
+    title: '6. Hill Area Operations',
+    items: [
+      'Air conditioning may be switched off on steep mountain roads for safety and vehicle performance.',
+      'Rohtang Pass, Nathula Pass, and other restricted destinations are subject to permits, weather, and government regulations. No refund shall be applicable if access is denied.',
+    ],
+  },
+  {
+    title: '7. Hotel Policy',
+    items: [
+      'Hotels are subject to availability. In case of non-availability, an equivalent category hotel will be provided.',
+      'Early check-in and late check-out are subject to hotel policies and additional charges.',
+    ],
+  },
+  {
+    title: '8. Force Majeure',
+    items: [
+      'The company shall not be responsible for delays, cancellations, road closures, landslides, snowfall, floods, strikes, political disturbances, flight/train delays, pandemics, or any circumstances beyond its control.',
+      'Any additional expenses arising from such situations shall be borne entirely by the guest.',
+    ],
+  },
+  {
+    title: '9. Guest Responsibility',
+    items: [
+      'Guests must carry valid government-issued photo identification throughout the tour.',
+      'The company is not responsible for the loss, theft, or damage of luggage, valuables, cash, or personal belongings.',
+      'Any damage caused by the guest to the vehicle or hotel property shall be recovered from the guest.',
+    ],
+  },
+  {
+    title: '10. Liability',
+    items: [
+      'Explore My Bharat Tours acts only as a travel organizer and shall not be liable for any accident, injury, illness, death, loss, delay, or consequential damages arising during the tour.',
+    ],
+  },
+  {
+    title: '11. Jurisdiction',
+    items: [
+      'All disputes shall be subject exclusively to the jurisdiction of the courts at Solan, Himachal Pradesh.',
+    ],
+  },
+  {
+    title: '12. Acceptance',
+    items: [
+      'Payment of the booking amount shall be deemed as unconditional acceptance of all the above Terms & Conditions.',
+    ],
+  },
 ];
 
 export const QUOTE_BANK_ACCOUNTS = [
@@ -76,12 +127,12 @@ export const QUOTE_BANK_ACCOUNTS = [
 
 export const QUOTE_SUPPORT_PHONE = '+91 62305 57851';
 
-/** @deprecated — legacy policy buckets; PDF uses structured defaults above */
+/** @deprecated — legacy policy buckets */
 export const QUOTE_POLICIES = {
   remarks: [],
-  terms: QUOTE_TERMS_OF_SERVICE.slice(0, 4),
+  terms: [],
   confirmation: QUOTE_PAYMENT_DETAILS,
-  cancellation: QUOTE_REFUND_POLICY.slice(0, 4),
+  cancellation: QUOTE_TERMS_AND_CONDITIONS.find((s) => s.title.includes('Cancellation'))?.items || [],
   amendment: [],
 };
 
