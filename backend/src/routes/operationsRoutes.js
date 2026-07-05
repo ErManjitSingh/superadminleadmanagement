@@ -44,6 +44,8 @@ const {
   getReports,
   getProfile,
   getCalendar,
+} = require('../controllers/operationsController');
+
 const {
   getExecutionAnalytics,
   getBookingExecutionHub,
