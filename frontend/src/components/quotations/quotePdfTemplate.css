@@ -1,4 +1,5 @@
 /* PTW / Himachal Tour style quotation — screen preview + print (identical) */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700;800;900&display=swap');
 
 .quote-pdf-preview-shell {
   padding: 28px 16px 48px;
@@ -52,9 +53,9 @@
   margin: 0 auto;
   background: #ffffff;
   color: var(--uno-text);
-  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
-  font-size: 11px;
-  line-height: 1.55;
+  font-family: 'Lato', 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 /* ── Cover page ── */
@@ -1008,6 +1009,36 @@
   font-weight: 800;
 }
 
+/* Policies inside v2 PDF */
+.quote-ht-pdf-v2 .quote-ht-policy {
+  margin: 0 0 10px;
+  border: 1px solid #e3eaf0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(11, 34, 57, 0.04);
+}
+
+.quote-ht-pdf-v2 .quote-ht-policy-head {
+  background: #f5f9fc;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 12px;
+  color: #0b2239;
+  border-bottom: 1px solid #e3eaf0;
+}
+
+.quote-ht-pdf-v2 .quote-ht-policy ul {
+  margin: 0;
+  padding: 10px 14px 12px 28px;
+  font-size: 12px;
+  color: #3d4f63;
+  line-height: 1.6;
+}
+
+.quote-ht-pdf-v2 .quote-ht-policy li {
+  margin-bottom: 6px;
+}
+
 /* ── Policies ── */
 .quote-ht-policy {
   margin: 0 20px 12px;
@@ -1288,13 +1319,18 @@
 }
 
 /* ═══════════════════════════════════════════
-   PDF v2 — clean top-to-bottom layout
+   PDF v2 — premium travel quotation (MMT-style)
    ═══════════════════════════════════════════ */
 .quote-ht-pdf-v2 {
   position: relative;
   padding: 0;
   background: #fff;
   overflow: hidden;
+  font-family: 'Lato', 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* Watermark — Travel CRM @ 0.3 opacity */
@@ -1331,9 +1367,10 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  border-bottom: 3px solid #7c3aed;
-  background: #faf5ff;
+  padding: 14px 20px;
+  border-bottom: none;
+  background: #fff;
+  box-shadow: 0 1px 0 #e8edf2;
 }
 
 .qp-header-left {
@@ -1343,36 +1380,39 @@
 }
 
 .qp-logo {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
 }
 
 .qp-brand {
   margin: 0;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0b2239;
+  letter-spacing: -0.01em;
 }
 
 .qp-tagline {
   margin: 2px 0 0;
   font-size: 11px;
-  color: #64748b;
+  color: #6b7c93;
+  font-weight: 600;
 }
 
 .qp-header-right {
   text-align: right;
   font-size: 11px;
-  color: #475569;
+  color: #4a5f75;
+  font-weight: 600;
   line-height: 1.5;
 }
 
 .qp-quote-no {
-  margin: 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
-  color: #7c3aed;
+  color: #008cff;
+  margin: 0 0 2px;
 }
 
 .qp-hero {
@@ -1399,10 +1439,10 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    120deg,
-    rgba(15, 23, 42, 0.88) 0%,
-    rgba(49, 46, 129, 0.78) 50%,
-    rgba(91, 33, 182, 0.72) 100%
+    105deg,
+    rgba(8, 28, 52, 0.92) 0%,
+    rgba(0, 82, 155, 0.78) 55%,
+    rgba(0, 140, 255, 0.55) 100%
   );
 }
 
@@ -1411,98 +1451,102 @@
   z-index: 1;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 16px;
+  padding: 22px 20px;
   align-items: center;
 }
 
 .qp-gallery-wrap {
   position: relative;
   z-index: 1;
-  padding: 6px 14px 0;
+  padding: 10px 20px 0;
 }
 
 .qp-eyebrow {
-  margin: 0 0 6px;
-  font-size: 10px;
+  margin: 0 0 8px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #c4b5fd;
+  color: #b8d9ff;
 }
 
 .qp-title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.2;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .qp-dest {
-  margin: 6px 0 0;
-  font-size: 14px;
-  color: #e9d5ff;
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: #e8f4ff;
   font-weight: 600;
 }
 
 .qp-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .qp-chips span {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .qp-hero-price {
-  min-width: 180px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  min-width: 200px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   text-align: right;
   align-self: center;
+  backdrop-filter: blur(6px);
 }
 
 .qp-price-lbl {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #ddd6fe;
+  letter-spacing: 0.1em;
+  color: #d6ebff;
+  font-weight: 700;
 }
 
 .qp-price-amt {
   display: block;
-  margin-top: 4px;
-  font-size: 26px;
-  font-weight: 800;
-  color: #fde68a;
-  line-height: 1.1;
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .qp-price-sub {
   display: block;
-  margin-top: 4px;
-  font-size: 10px;
-  color: #c4b5fd;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #b8d9ff;
+  font-weight: 600;
 }
 
 .qp-welcome,
 .qp-section,
 .qp-overview-grid,
-.qp-total-strip,
 .qp-vehicle-list,
 .qp-day,
 .qp-pay-grid,
-.qp-inc-exc,
+.qp-inc-exc-premium,
 .qp-policies,
 .qp-bank-wrap,
 .qp-contact,
@@ -1512,347 +1556,408 @@
 }
 
 .qp-welcome {
-  padding: 8px 14px;
-  font-size: 11px;
-  color: #334155;
-  line-height: 1.4;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 20px;
+  font-size: 12px;
+  color: #3d4f63;
+  line-height: 1.65;
+  border-bottom: 1px solid #eef2f6;
+  background: #fafbfd;
 }
 
 .qp-welcome p {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
+}
+
+.qp-welcome strong {
+  color: #0b2239;
+  font-weight: 800;
 }
 
 .qp-section {
-  margin: 0;
-  padding: 8px 14px 4px;
-  font-size: 12px;
+  margin: 16px 0 0;
+  padding: 0 20px 8px;
+  font-size: 15px;
   font-weight: 800;
-  color: #0f172a;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-left: 4px solid #7c3aed;
-  background: #f8fafc;
+  color: #0b2239;
+  text-transform: none;
+  letter-spacing: -0.01em;
+  border-left: none;
+  background: transparent;
   page-break-after: avoid;
   break-after: avoid;
+  position: relative;
+}
+
+.qp-section::after {
+  content: '';
+  display: block;
+  width: 48px;
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #008cff, #00b4d8);
 }
 
 .qp-overview-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
-  margin: 0 14px 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  margin: 0 20px 12px;
+  border: 1px solid #e3eaf0;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(11, 34, 57, 0.04);
 }
 
 .qp-overview-item {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 6px 10px;
-  border-bottom: 1px solid #f1f5f9;
-  border-right: 1px solid #f1f5f9;
+  gap: 3px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f0f4f8;
+  border-right: 1px solid #f0f4f8;
   background: #fff;
 }
 
 .qp-overview-lbl {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #94a3b8;
+  letter-spacing: 0.07em;
+  color: #8a9bb0;
 }
 
 .qp-overview-val {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0b2239;
   word-break: break-word;
 }
 
-.qp-total-strip {
-  margin: 0 14px 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0f172a, #1e1b4b);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.qp-total-strip-lbl {
-  display: block;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  opacity: 0.8;
-}
-
-.qp-total-strip-amt {
-  display: block;
-  margin-top: 1px;
-  font-size: 20px;
-  font-weight: 800;
-  color: #fbbf24;
-}
-
-.qp-total-strip-note {
-  font-size: 10px;
-  opacity: 0.75;
-}
-
 .qp-vehicle-list {
-  margin: 0 14px 8px;
+  margin: 0 20px 12px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .qp-vehicle-row {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid #e2e8f0;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e3eaf0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fafbfd 0%, #fff 100%);
+  box-shadow: 0 2px 6px rgba(11, 34, 57, 0.04);
+}
+
+.qp-vehicle-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
   border-radius: 10px;
-  background: #fafafa;
+  background: #e8f4ff;
+  border: 1px solid #c5e3ff;
+}
+
+.qp-vehicle-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .qp-vehicle-name {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0b2239;
 }
 
 .qp-vehicle-meta,
 .qp-vehicle-dates {
-  margin: 3px 0 0;
-  font-size: 11px;
-  color: #64748b;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #5a6f85;
   font-weight: 600;
 }
 
-.qp-vehicle-cost {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  color: #7c3aed;
-  white-space: nowrap;
-}
-
 .qp-day {
-  margin: 0 14px 6px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  margin: 0 20px 10px;
+  border: 1px solid #e3eaf0;
+  border-radius: 12px;
   overflow: hidden;
   background: #fff;
+  box-shadow: 0 2px 6px rgba(11, 34, 57, 0.04);
   page-break-inside: auto;
   break-inside: auto;
 }
 
 .qp-day-head {
   display: flex;
-  gap: 10px;
-  padding: 8px 10px;
-  background: #f8fafc;
-  border-bottom: 1px solid #eef2f7;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f5f9fc;
+  border-bottom: 1px solid #e8edf2;
 }
 
 .qp-day-num {
   flex-shrink: 0;
   height: fit-content;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 8px;
-  background: #7c3aed;
+  background: #008cff;
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .qp-day-title-wrap h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0b2239;
 }
 
 .qp-day-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .qp-day-pills span {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: #ede9fe;
-  color: #5b21b6;
+  background: #e8f4ff;
+  color: #0066cc;
 }
 
 .qp-day-desc {
   margin: 0;
-  padding: 8px 10px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #334155;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #3d4f63;
   white-space: pre-wrap;
 }
 
 .qp-day-stay {
-  margin: 0 10px 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  margin: 0 14px 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f0faf5;
+  border: 1px solid #c8ead8;
 }
 
 .qp-day-stay-lbl {
   display: block;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: #047857;
-  margin-bottom: 6px;
+  letter-spacing: 0.07em;
+  color: #0d7a4e;
+  margin-bottom: 8px;
 }
 
 .qp-day-stay-body {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .qp-day-stay-img {
-  width: 72px;
-  height: 54px;
+  width: 80px;
+  height: 58px;
   object-fit: cover;
   border-radius: 8px;
   flex-shrink: 0;
-  border: 1px solid #bbf7d0;
+  border: 1px solid #b8e6cf;
 }
 
 .qp-day-stay p {
   margin: 0;
   font-size: 12px;
-  color: #065f46;
+  color: #0d5c3a;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .qp-pay-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin: 0 14px 8px;
+  gap: 10px;
+  margin: 0 20px 12px;
 }
 
 .qp-pay-card {
-  padding: 10px 8px;
-  border-radius: 10px;
-  border: 1px solid #ddd6fe;
-  background: linear-gradient(180deg, #f5f3ff, #fff);
+  padding: 14px 10px;
+  border-radius: 12px;
+  border: 1px solid #d6e8f8;
+  background: linear-gradient(180deg, #f0f8ff, #fff);
   text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 140, 255, 0.06);
 }
 
 .qp-pay-pct {
   display: block;
-  font-size: 18px;
-  font-weight: 800;
-  color: #7c3aed;
+  font-size: 22px;
+  font-weight: 900;
+  color: #008cff;
+  letter-spacing: -0.02em;
 }
 
 .qp-pay-lbl {
   display: block;
-  margin-top: 2px;
-  font-size: 11px;
+  margin-top: 4px;
+  font-size: 12px;
   font-weight: 700;
-  color: #475569;
+  color: #4a5f75;
 }
 
-.qp-pay-amt {
-  display: block;
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.qp-inc-exc {
+/* Premium inclusions & exclusions */
+.qp-inc-exc-premium {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 0 14px 8px;
+  gap: 12px;
+  margin: 0 20px 14px;
 }
 
-.qp-inc-full,
-.qp-exc-full {
-  grid-column: 1 / -1;
+.qp-inc-panel,
+.qp-exc-panel {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e3eaf0;
+  box-shadow: 0 2px 10px rgba(11, 34, 57, 0.05);
 }
 
-.qp-inc,
-.qp-exc {
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
+.qp-inc-panel {
+  background: #fff;
 }
 
-.qp-inc {
-  background: #f0fdf4;
+.qp-exc-panel {
+  background: #fff;
 }
 
-.qp-exc {
-  background: #fff7ed;
+.qp-inc-exc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
 }
 
-.qp-inc h4,
-.qp-exc h4 {
-  margin: 0 0 8px;
-  font-size: 12px;
+.qp-inc-head {
+  background: linear-gradient(135deg, #e8f8ef 0%, #f4fcf7 100%);
+  border-bottom: 1px solid #c8ead8;
+}
+
+.qp-exc-head {
+  background: linear-gradient(135deg, #fff0f0 0%, #fff8f8 100%);
+  border-bottom: 1px solid #f5d0d0;
+}
+
+.qp-inc-exc-badge {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #0d9f5a;
+  color: #fff;
+  font-size: 14px;
   font-weight: 800;
 }
 
-.qp-inc ul,
-.qp-exc ul {
+.qp-exc-badge {
+  background: #e53935;
+}
+
+.qp-inc-exc-head h3 {
   margin: 0;
-  padding-left: 16px;
-  font-size: 11px;
-  color: #334155;
-  line-height: 1.45;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0b2239;
+}
+
+.qp-inc-exc-list {
+  margin: 0;
+  padding: 10px 14px 12px;
+  list-style: none;
+}
+
+.qp-inc-exc-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #3d4f63;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.qp-inc-exc-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.qp-list-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 800;
+  margin-top: 1px;
+}
+
+.qp-list-icon-inc {
+  background: #d4f5e4;
+  color: #0d9f5a;
+}
+
+.qp-list-icon-exc {
+  background: #fde0e0;
+  color: #e53935;
 }
 
 .qp-policies {
-  margin: 0 14px 8px;
+  margin: 0 20px 12px;
 }
 
 .qp-bank-wrap {
   display: grid;
   grid-template-columns: 1fr 130px;
-  gap: 10px;
-  margin: 0 14px 10px;
+  gap: 12px;
+  margin: 0 20px 12px;
   align-items: stretch;
 }
 
 .qp-bank-card {
-  padding: 12px;
+  padding: 14px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e3eaf0;
   background: #fff;
+  box-shadow: 0 2px 8px rgba(11, 34, 57, 0.04);
 }
 
 .qp-bank-name {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0b2239;
   padding-bottom: 8px;
-  border-bottom: 2px solid #7c3aed;
+  border-bottom: 2px solid #008cff;
 }
 
 .qp-bank-rows {
@@ -1872,14 +1977,14 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #94a3b8;
+  letter-spacing: 0.05em;
+  color: #8a9bb0;
 }
 
 .qp-bank-rows strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: #0b2239;
   word-break: break-all;
 }
 
@@ -1888,10 +1993,10 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: #fafafa;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #e3eaf0;
+  background: #fafbfd;
   text-align: center;
 }
 
@@ -1906,61 +2011,64 @@
 
 .qp-qr-title {
   margin: 8px 0 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  color: #0f172a;
+  color: #0b2239;
 }
 
 .qp-qr-demo {
   margin: 2px 0 0;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #8a9bb0;
 }
 
 .qp-contact {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin: 0 14px 8px;
+  gap: 10px;
+  margin: 0 20px 12px;
 }
 
 .qp-contact > div {
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #f5f9fc;
+  border: 1px solid #e3eaf0;
 }
 
 .qp-contact h4 {
-  margin: 0 0 6px;
-  font-size: 11px;
+  margin: 0 0 8px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  color: #7c3aed;
+  letter-spacing: 0.05em;
+  color: #008cff;
 }
 
 .qp-contact p {
-  margin: 0 0 2px;
-  font-size: 11px;
-  color: #334155;
-  line-height: 1.4;
+  margin: 0 0 3px;
+  font-size: 12px;
+  color: #3d4f63;
+  line-height: 1.5;
+  font-weight: 600;
 }
 
 .qp-footer {
-  padding: 10px 14px 12px;
+  padding: 14px 20px 16px;
   text-align: center;
-  background: #0f172a;
-  color: #cbd5e1;
+  background: linear-gradient(135deg, #0b2239 0%, #0a3d6e 100%);
+  color: #c5d9eb;
 }
 
 .qp-footer p {
   margin: 0 0 4px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .qp-footer p:first-child {
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 13px;
   color: #fff;
 }
 
@@ -1975,8 +2083,9 @@
   .qp-pay-card,
   .qp-bank-wrap,
   .qp-vehicle-row,
-  .qp-section,
-  .qp-total-strip {
+  .qp-inc-panel,
+  .qp-exc-panel,
+  .qp-section {
     page-break-inside: auto;
     break-inside: auto;
   }

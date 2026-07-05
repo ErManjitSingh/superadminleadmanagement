@@ -160,15 +160,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         ))}
       </div>
 
-      {/* Total cost strip */}
-      <div className="qp-total-strip">
-        <div>
-          <span className="qp-total-strip-lbl">Total Package Cost</span>
-          <span className="qp-total-strip-amt">{formatINR(displayTotal)}</span>
-        </div>
-        <span className="qp-total-strip-note">Taxes as applicable</span>
-      </div>
-
       {/* Vehicles */}
       {vehicles.length > 0 && (
         <>
@@ -176,7 +167,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           <div className="qp-vehicle-list">
             {vehicles.map((v) => (
               <div key={`${v.name}-${v.type}`} className="qp-vehicle-row">
-                <div>
+                <span className="qp-vehicle-icon" aria-hidden="true">🚐</span>
+                <div className="qp-vehicle-body">
                   <p className="qp-vehicle-name">{v.name}</p>
                   <p className="qp-vehicle-meta">
                     {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
@@ -189,9 +181,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                     {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
                   </p>
                 </div>
-                {v.cost > 0 && (
-                  <p className="qp-vehicle-cost">{formatINR(v.cost)}</p>
-                )}
               </div>
             ))}
           </div>
@@ -251,36 +240,45 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Payment 30% advance + 70% balance */}
+      {/* Payment schedule — percentage only, no line-item amounts */}
       <h2 className="qp-section">Payment Schedule</h2>
       <div className="qp-pay-grid">
         {paymentPlan.map((row) => (
           <div key={row.label} className="qp-pay-card">
             <span className="qp-pay-pct">{row.percent}%</span>
             <span className="qp-pay-lbl">{row.label}</span>
-            <span className="qp-pay-amt">{formatINR(row.amount)}</span>
           </div>
         ))}
       </div>
 
-      {/* This Cost Includes / Excludes — always shown */}
-      <h2 className="qp-section">This Cost Includes</h2>
-      <div className="qp-inc-exc">
-        <div className="qp-inc qp-inc-full">
-          <ul>
+      {/* Inclusions & Exclusions — premium side-by-side */}
+      <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
+      <div className="qp-inc-exc-premium">
+        <div className="qp-inc-panel">
+          <div className="qp-inc-exc-head qp-inc-head">
+            <span className="qp-inc-exc-badge">✓</span>
+            <h3>What&apos;s Included</h3>
+          </div>
+          <ul className="qp-inc-exc-list">
             {policies.inclusions.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item}>
+                <span className="qp-list-icon qp-list-icon-inc" aria-hidden="true">✓</span>
+                <span>{item}</span>
+              </li>
             ))}
           </ul>
         </div>
-      </div>
-
-      <h2 className="qp-section">This Cost Excludes</h2>
-      <div className="qp-inc-exc">
-        <div className="qp-exc qp-exc-full">
-          <ul>
+        <div className="qp-exc-panel">
+          <div className="qp-inc-exc-head qp-exc-head">
+            <span className="qp-inc-exc-badge qp-exc-badge">✕</span>
+            <h3>What&apos;s Not Included</h3>
+          </div>
+          <ul className="qp-inc-exc-list">
             {policies.exclusions.map((item) => (
-              <li key={item}>{item}</li>
+              <li key={item}>
+                <span className="qp-list-icon qp-list-icon-exc" aria-hidden="true">✕</span>
+                <span>{item}</span>
+              </li>
             ))}
           </ul>
         </div>
