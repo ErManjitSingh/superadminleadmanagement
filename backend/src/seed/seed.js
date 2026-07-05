@@ -1,6 +1,6 @@
 /**
  * Production seed — run: npm run seed
- * Uses MONGO_URI from backend/.env (default: mongodb://127.0.0.1:27017/testing_unotrips_crm)
+ * Uses MONGO_URI from backend/.env (default: mongodb://127.0.0.1:27017/indiaholidaydestination_crm)
  *
  * Sales Manager & Sales Executive demo users are NOT seeded — add them via Admin → Team.
  */

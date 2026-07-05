@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const DEFAULT_MONGO_URI = 'mongodb://127.0.0.1:27017/testing_unotrips_crm';
+const DEFAULT_MONGO_URI = 'mongodb://127.0.0.1:27017/indiaholidaydestination_crm';
 
 module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',

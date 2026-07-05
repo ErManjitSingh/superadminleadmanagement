@@ -1,11 +1,11 @@
 /**
- * Local / generic PM2 config (relative paths).
- * On VPS use: deploy/ecosystem.config.cjs (absolute paths).
+ * Local PM2 config (relative paths).
+ * On VPS use: deploy/ecosystem.ihd.config.cjs
  */
 module.exports = {
   apps: [
     {
-      name: 'testing-unotrips-api',
+      name: 'ihd-crm-api',
       cwd: './backend',
       script: 'src/server.js',
       instances: 1,
