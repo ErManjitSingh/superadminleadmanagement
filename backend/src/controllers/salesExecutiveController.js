@@ -1,4 +1,5 @@
 const Lead = require('../models/Lead');
+const Booking = require('../models/Booking');
 const LeadNote = require('../models/LeadNote');
 const FollowUp = require('../models/FollowUp');
 const Quotation = require('../models/Quotation');
@@ -184,10 +185,16 @@ const updateLead = asyncHandler(async (req, res) => {
     });
   }
 
-  if (status === 'converted' && prevStatus !== 'converted') {
-    await onLeadConverted(lead, req.user).catch((err) => {
-      console.error('[LeadConversion]', err.message);
-    });
+  if (status === 'converted') {
+    let needsBooking = prevStatus !== 'converted';
+    if (!needsBooking) {
+      needsBooking = !(await Booking.exists({ lead: lead._id }));
+    }
+    if (needsBooking) {
+      await onLeadConverted(lead, req.user).catch((err) => {
+        console.error('[LeadConversion]', err.message);
+      });
+    }
   } else if (status !== prevStatus) {
     invalidateDashboardCache('sales_executive');
     invalidateDashboardCache('sales_manager');

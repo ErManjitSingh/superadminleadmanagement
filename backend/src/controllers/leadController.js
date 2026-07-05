@@ -2,6 +2,7 @@ const Lead = require('../models/Lead');
 const LeadNote = require('../models/LeadNote');
 const FollowUp = require('../models/FollowUp');
 const Quotation = require('../models/Quotation');
+const Booking = require('../models/Booking');
 const User = require('../models/User');
 const Branch = require('../models/Branch');
 const ApiError = require('../utils/apiError');
@@ -473,10 +474,16 @@ const updateLead = asyncHandler(async (req, res) => {
     }
   }
 
-  if (data.status === 'converted' && prevStatus !== 'converted') {
-    await onLeadConverted(lead, req.user).catch((err) => {
-      console.error('[LeadConversion]', err.message);
-    });
+  if (data.status === 'converted') {
+    let needsBooking = prevStatus !== 'converted';
+    if (!needsBooking) {
+      needsBooking = !(await Booking.exists({ lead: lead._id }));
+    }
+    if (needsBooking) {
+      await onLeadConverted(lead, req.user).catch((err) => {
+        console.error('[LeadConversion]', err.message);
+      });
+    }
   } else if (data.status && data.status !== prevStatus) {
     invalidateDashboardCache('admin');
     invalidateDashboardCache('sales_manager');
@@ -623,12 +630,19 @@ const updateReactivationStage = asyncHandler(async (req, res) => {
   const stage = req.body.stage;
   if (!REACTIVATION_STAGES.includes(stage)) throw new ApiError(400, 'Invalid reactivation stage');
 
+  const prevStatus = lead.status;
   setReactivationStage(lead, stage, req.user._id, (req.body.note || '').trim());
   if (stage === 'contacted') lead.status = 'contacted';
   if (stage === 'follow_up_scheduled') lead.status = 'follow_up';
   if (stage === 'quotation_sent') lead.status = 'quotation_sent';
   if (stage === 'converted') lead.status = 'converted';
   await lead.save();
+
+  if (stage === 'converted' && prevStatus !== 'converted') {
+    await onLeadConverted(lead, req.user).catch((err) => {
+      console.error('[LeadConversion]', err.message);
+    });
+  }
 
   await logActivity({
     type: 'lead_reactivation_progress',

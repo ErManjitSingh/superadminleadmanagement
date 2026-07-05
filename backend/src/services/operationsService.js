@@ -961,8 +961,8 @@ async function buildBookingPayloadFromPayment(payment) {
   }
 
   return {
-    branchId: payment.branchId,
-    lead: payment.lead,
+    branchId: payment.branchId || lead?.branchId,
+    lead: payment.lead || lead?._id,
     quotation: payment.quotation,
     customerName: payment.customerName || lead?.name || 'Customer',
     customerPhone: lead?.phone || '',
@@ -994,7 +994,6 @@ async function createBookingFromPayment(paymentId, actor) {
   const payment = await Payment.findById(paymentId).lean();
   if (!payment) return null;
   if (payment.booking) return Booking.findById(payment.booking);
-  if (!['paid', 'partial'].includes(payment.status)) return null;
 
   const payload = await buildBookingPayloadFromPayment(payment);
   const booking = await createBooking(payload, actor);
