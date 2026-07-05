@@ -4,6 +4,7 @@ export const FLEET_CATEGORIES = [
   { value: 'SUV', label: 'SUV' },
   { value: 'Tempo Traveller', label: 'Tempo Traveller' },
   { value: 'Luxury', label: 'Luxury' },
+  { value: 'Urbania', label: 'Urbania' },
   { value: 'Mini Bus', label: 'Mini Bus' },
   { value: 'Bus', label: 'Bus' },
 ];
@@ -11,8 +12,15 @@ export const FLEET_CATEGORIES = [
 export const FLEET_CATALOG = {
   Sedan: ['Swift Dzire', 'Honda Amaze', 'Toyota Etios', 'Hyundai Aura'],
   SUV: ['Ertiga', 'Innova', 'Innova Crysta', 'Scorpio', 'Xylo', 'Fortuner'],
-  'Tempo Traveller': ['12 Seater', '17 Seater', '26 Seater'],
+  'Tempo Traveller': [
+    '12 Seater',
+    '17 Seater',
+    '26 Seater',
+    'Tempo Traveller 1x1 (10 Seater)',
+    'Tempo Traveller 1x1 (12 Seater)',
+  ],
   Luxury: ['Mercedes E-Class', 'BMW 5 Series', 'Audi A6'],
+  Urbania: ['Urbania 12 Seater', 'Urbania 17 Seater'],
   'Mini Bus': ['20 Seater Mini Bus', '25 Seater Mini Bus'],
   Bus: ['35 Seater Bus', '45 Seater Bus', '52 Seater Bus'],
 };
@@ -32,6 +40,10 @@ export const VEHICLE_META = {
   '12 Seater': { seats: 12, bags: 8 },
   '17 Seater': { seats: 17, bags: 10 },
   '26 Seater': { seats: 26, bags: 14 },
+  'Tempo Traveller 1x1 (10 Seater)': { seats: 10, bags: 6 },
+  'Tempo Traveller 1x1 (12 Seater)': { seats: 12, bags: 8 },
+  'Urbania 12 Seater': { seats: 12, bags: 8 },
+  'Urbania 17 Seater': { seats: 17, bags: 10 },
   'Mercedes E-Class': { seats: 4, bags: 3 },
   'BMW 5 Series': { seats: 4, bags: 3 },
   'Audi A6': { seats: 4, bags: 3 },
@@ -54,6 +66,7 @@ export function getVehicleMeta(name, category = 'Sedan') {
     SUV: { seats: 6, bags: 3 },
     'Tempo Traveller': { seats: 12, bags: 8 },
     Luxury: { seats: 4, bags: 3 },
+    Urbania: { seats: 12, bags: 8 },
     'Mini Bus': { seats: 20, bags: 12 },
     Bus: { seats: 40, bags: 20 },
   };
@@ -76,6 +89,7 @@ export function normalizeCabType(type = '') {
   const t = String(type).toLowerCase();
   if (t.includes('sedan')) return 'Sedan';
   if (t.includes('suv') || t.includes('innova') || t.includes('ertiga')) return 'SUV';
+  if (t.includes('urbania')) return 'Urbania';
   if (t.includes('tempo') || t.includes('seater')) return 'Tempo Traveller';
   if (t.includes('luxury')) return 'Luxury';
   if (t.includes('mini')) return 'Mini Bus';

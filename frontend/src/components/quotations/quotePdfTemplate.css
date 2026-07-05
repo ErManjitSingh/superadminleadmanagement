@@ -1791,6 +1791,11 @@
   margin: 0 14px 8px;
 }
 
+.qp-inc-full,
+.qp-exc-full {
+  grid-column: 1 / -1;
+}
+
 .qp-inc,
 .qp-exc {
   padding: 8px 10px;

@@ -251,7 +251,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </>
       )}
 
-      {/* Payment 30 / 50 / 20 */}
+      {/* Payment 30% advance + 70% balance */}
       <h2 className="qp-section">Payment Schedule</h2>
       <div className="qp-pay-grid">
         {paymentPlan.map((row) => (
@@ -263,54 +263,54 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         ))}
       </div>
 
-      {/* Inclusions / Exclusions */}
-      {(pkg.inclusions?.length > 0 || pkg.exclusions?.length > 0) && (
-        <>
-          <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
-          <div className="qp-inc-exc">
-            <div className="qp-inc">
-              <h4>Inclusions</h4>
-              <ul>
-                {(pkg.inclusions || []).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-            <div className="qp-exc">
-              <h4>Exclusions</h4>
-              <ul>
-                {(pkg.exclusions || []).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </>
-      )}
+      {/* This Cost Includes / Excludes — always shown */}
+      <h2 className="qp-section">This Cost Includes</h2>
+      <div className="qp-inc-exc">
+        <div className="qp-inc qp-inc-full">
+          <ul>
+            {policies.inclusions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
-      {/* Terms */}
-      <h2 className="qp-section">Terms &amp; Policies</h2>
+      <h2 className="qp-section">This Cost Excludes</h2>
+      <div className="qp-inc-exc">
+        <div className="qp-exc qp-exc-full">
+          <ul>
+            {policies.exclusions.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Refund Policy */}
+      <h2 className="qp-section">Our Refund Policy</h2>
+      <div className="qp-policies">
+        <PolicyBlock title="Cancellation & Refund" items={policies.refundPolicy} />
+      </div>
+
+      {/* Payment details text */}
+      <h2 className="qp-section">Payment Details</h2>
+      <div className="qp-policies">
+        <PolicyBlock title="Payment Instructions" items={policies.paymentDetails} />
+      </div>
+
+      {/* Terms of Service */}
+      <h2 className="qp-section">Terms of Service &amp; Important Instructions</h2>
       <div className="qp-policies">
         {importantNotes.travelGuidelines && (
           <PolicyBlock title="Travel Guidelines" items={[importantNotes.travelGuidelines]} />
         )}
-        <PolicyBlock title="Remarks" items={policies.remarks?.slice?.(0, 5) || policies.remarks} />
-        <PolicyBlock
-          title="Terms & Conditions"
-          items={
-            importantNotes.termsAndConditions
-              ? [importantNotes.termsAndConditions]
-              : (policies.terms || []).slice(0, 4)
-          }
-        />
-        <PolicyBlock
-          title="Cancellation Policy"
-          items={
-            importantNotes.cancellationPolicy
-              ? [importantNotes.cancellationPolicy]
-              : (policies.cancellation || []).slice(0, 4)
-          }
-        />
+        <PolicyBlock title="Important Instructions" items={policies.termsOfService} />
+        {importantNotes.termsAndConditions && (
+          <PolicyBlock title="Additional Terms" items={[importantNotes.termsAndConditions]} />
+        )}
+        {importantNotes.cancellationPolicy && (
+          <PolicyBlock title="Additional Cancellation Notes" items={[importantNotes.cancellationPolicy]} />
+        )}
       </div>
 
       {/* Bank details — card layout, one account + QR */}

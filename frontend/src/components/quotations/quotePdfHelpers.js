@@ -1,5 +1,5 @@
 import { getPackageTypeConfig } from './quotationUtils';
-import { getPackageCategoryLabel, QUOTE_POLICIES, QUOTE_BANK_ACCOUNTS } from './quoteTemplateDefaults';
+import { getPackageCategoryLabel, QUOTE_BANK_ACCOUNTS, QUOTE_PAYMENT_DETAILS, QUOTE_POLICIES, QUOTE_REFUND_POLICY, QUOTE_TERMS_OF_SERVICE, resolveQuoteExclusions, resolveQuoteInclusions } from './quoteTemplateDefaults';
 
 export function resolveQuotePackage(quote) {
   const snap = quote?.packageSnapshot && typeof quote.packageSnapshot === 'object' ? quote.packageSnapshot : {};
@@ -364,10 +364,15 @@ export function resolvePolicies(quote) {
   const p = pkg.policies || {};
   return {
     remarks: p.remarks || QUOTE_POLICIES.remarks,
-    terms: p.terms || QUOTE_POLICIES.terms,
-    confirmation: p.confirmation || QUOTE_POLICIES.confirmation,
-    cancellation: p.cancellation || QUOTE_POLICIES.cancellation,
+    terms: p.terms?.length ? p.terms : QUOTE_TERMS_OF_SERVICE,
+    confirmation: p.confirmation?.length ? p.confirmation : QUOTE_PAYMENT_DETAILS,
+    cancellation: p.cancellation?.length ? p.cancellation : QUOTE_REFUND_POLICY,
     amendment: p.amendment || QUOTE_POLICIES.amendment,
+    inclusions: resolveQuoteInclusions(quote),
+    exclusions: resolveQuoteExclusions(quote),
+    refundPolicy: QUOTE_REFUND_POLICY,
+    paymentDetails: QUOTE_PAYMENT_DETAILS,
+    termsOfService: QUOTE_TERMS_OF_SERVICE,
   };
 }
 
@@ -379,11 +384,9 @@ export function resolveBankAccounts(quote) {
 
 export function resolvePaymentPlan(quote, total = 0) {
   const amount = Math.max(0, Number(total) || 0);
-  // Always use 30 / 50 / 20 schedule.
   const schedule = [
-    { label: 'Booking Amount', percent: 30 },
-    { label: 'Before Travel', percent: 50 },
-    { label: 'Before Departure', percent: 20 },
+    { label: 'Advance (Booking Amount)', percent: 30 },
+    { label: 'Balance (3 days prior to trip)', percent: 70 },
   ];
 
   return schedule.map((row) => ({

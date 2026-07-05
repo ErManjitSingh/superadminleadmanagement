@@ -70,9 +70,8 @@ export const defaultPackageInfo = {
 };
 
 export const DEFAULT_PAYMENT_PLAN = [
-  { label: 'Booking Amount', percent: 30, amount: 0 },
-  { label: 'Before Travel', percent: 50, amount: 0 },
-  { label: 'Before Departure', percent: 20, amount: 0 },
+  { label: 'Advance (Booking Amount)', percent: 30, amount: 0 },
+  { label: 'Balance (3 days prior to trip)', percent: 70, amount: 0 },
 ];
 
 export const defaultImportantNotes = {

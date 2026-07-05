@@ -17,29 +17,37 @@ export const BUILDER_STEPS = [
   { id: 6, title: 'Preview', subtitle: 'Review & Save', key: 'preview', icon: Eye },
 ];
 
+export const VEHICLE_TYPES = [
+  'Sedan (Dzire/Etios)',
+  'SUV',
+  'Cab',
+  'Urbania',
+  'Tempo Traveller (12 Seater)',
+  'Tempo Traveller (17 Seater)',
+  'Tempo Traveller 1x1 (10 Seater)',
+  'Tempo Traveller 1x1 (12 Seater)',
+  'Luxury Car',
+];
+
 export const INCLUSION_PRESETS = [
-  'Hotel accommodation',
-  'Breakfast',
-  'Dinner',
-  'Private cab',
-  'Sightseeing',
+  'Transportation for all sightseeing as per tour itinerary on non-sharable basis',
+  'Fuel charges, road tax, toll tax, driver\'s allowance, interstate taxes & parking fee',
+  'Hotel accommodation as per schedule',
+  'Meals as per meal plan (veg only)',
   'Pickup & drop',
-  'Guide',
+  'Sightseeing as per itinerary',
   'All applicable taxes',
-  'Parking',
-  'Driver allowance',
 ];
 
 export const EXCLUSION_PRESETS = [
-  'Airfare',
-  'Personal expenses',
-  'Lunch',
-  'Entry tickets',
-  'Travel insurance',
-  'Anything not mentioned in inclusions',
+  'Meals outside hotels and beverages during tour',
+  'Travel insurance and personal expenses',
+  'Air/rail/bus fare or entry fee to parks and monument',
+  'Adventurous activities (rafting, paragliding, toy train, yak ride, horse ride, skiing, skating, etc.)',
+  'Laundry and personal guide',
+  'Increase in taxes or fuel price prior to departure',
+  'Services not mentioned in tour package',
 ];
-
-export const VEHICLE_TYPES = ['Cab', 'Tempo Traveller', 'SUV', 'Sedan', 'Luxury Car'];
 
 /** Short taglines shown on Quick Template cards */
 export const TEMPLATE_TAGLINES = {
