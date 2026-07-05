@@ -10,6 +10,15 @@ function addDays(date, days) {
   return d;
 }
 
+function asTextValue(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') {
+    return value.label || value.name || value.value || value.title || '';
+  }
+  return String(value);
+}
+
 function mapQuoteItinerary(quotation, travelDate) {
   const snap = quotation?.packageSnapshot || {};
   const days = snap.itinerary || [];
@@ -29,7 +38,7 @@ function mapQuoteItinerary(quotation, travelDate) {
           destination: hotelForDay?.location || hotelForDay?.city || hotelForDay?.destination || '',
           location: hotelForDay?.location || hotelForDay?.city || '',
           roomType: hotelForDay?.room?.name || hotelForDay?.room || hotelForDay?.roomType || '',
-          mealPlan: hotelForDay?.mealPlan || '',
+          mealPlan: asTextValue(hotelForDay?.mealPlan),
           source: hotelForDay ? 'manual' : 'manual',
         }
       : undefined;
@@ -57,7 +66,7 @@ function mapQuoteHotels(quotation, travelDate) {
       destination: h.location || h.destination || '',
       category: h.category || '',
       roomType: h.roomType || h.room?.name || '',
-      mealPlan: h.mealPlan || '',
+      mealPlan: asTextValue(h.mealPlan),
       status: 'pending',
     }));
   }
@@ -72,7 +81,7 @@ function mapQuoteHotels(quotation, travelDate) {
       destination: h.location || h.city || h.destination || '',
       category: h.category || '',
       roomType: h.room?.name || h.room || h.roomType || '',
-      mealPlan: h.mealPlan || '',
+      mealPlan: asTextValue(h.mealPlan),
       day: h.day,
       nights,
       checkIn,
