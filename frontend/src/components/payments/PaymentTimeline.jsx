@@ -33,6 +33,10 @@ const COLORS = {
   receipt_resent: 'bg-indigo-400',
 };
 
+const VISIBLE_COUNT = 6;
+// ~104px per event row (card + gap) × 6 visible items
+const SCROLL_MAX_HEIGHT = 'max-h-[39rem]';
+
 export default function PaymentTimeline({ events = [], loading }) {
   if (loading) {
     return (
@@ -54,7 +58,7 @@ export default function PaymentTimeline({ events = [], loading }) {
   }
 
   return (
-    <div className="relative pl-6">
+    <div className={cn('relative pl-6 overflow-y-auto pr-1 scrollbar-thin', events.length > VISIBLE_COUNT && SCROLL_MAX_HEIGHT)}>
       <div className="absolute left-[11px] top-2 bottom-2 w-px bg-gradient-to-b from-violet-300 via-indigo-200 to-transparent dark:from-violet-700 dark:via-indigo-800" />
       <div className="space-y-4">
         {events.map((event, idx) => {

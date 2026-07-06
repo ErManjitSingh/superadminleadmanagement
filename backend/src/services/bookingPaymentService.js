@@ -516,13 +516,6 @@ function getReceiptPdfBuffer(payment) {
   return null;
 }
 
-function invalidateDashboards() {
-  ['admin', 'sales_manager', 'team_leader', 'sales_executive', 'operations_manager', 'accountant', 'nav:'].forEach((k) => {
-    invalidateDashboardCache(k);
-  });
-  cacheService.invalidate('ops:').catch(() => {});
-}
-
 async function buildPaymentDashboardStats(branchId) {
   const { withBranch } = require('../utils/branchScope');
   const { startOfDay, endOfDay } = require('../utils/queryHelpers');
@@ -605,6 +598,229 @@ async function buildPaymentDashboardStats(branchId) {
   };
 }
 
+function mapUiStatus(paymentStatus) {
+  if (paymentStatus === 'paid') return 'completed';
+  return paymentStatus || 'pending';
+}
+
+function buildMilestones(booking, payments) {
+  const milestones = payments.map((p, idx) => {
+    let label = 'Installment';
+    if (p.isFirstAdvance) label = 'Booking Amount';
+    else if (p.paymentType === 'final') label = 'Final Payment';
+    else if (idx === 1) label = 'Second Installment';
+    else if (idx === payments.length - 1 && booking.paymentStatus === 'paid') label = 'Final Payment';
+    else label = `Installment ${idx + 1}`;
+
+    return {
+      label,
+      amount: p.amount,
+      paid: p.amount,
+      state: 'paid',
+      date: p.paymentDate || p.createdAt,
+      paymentId: p._id,
+    };
+  });
+
+  const remaining = Math.max(0, (booking.totalAmount || 0) - (booking.totalPaid || booking.advanceReceived || 0));
+  if (remaining > 0) {
+    const label = milestones.length === 0 ? 'Booking Amount' : milestones.length === 1 ? 'Second Installment' : 'Final Payment';
+    milestones.push({
+      label,
+      amount: remaining,
+      paid: 0,
+      state: booking.paymentStatus === 'overdue' ? 'overdue' : 'pending',
+      date: booking.travelDate,
+      paymentId: null,
+    });
+  }
+  return milestones;
+}
+
+function pctTrend(current, previous) {
+  if (!previous && !current) return null;
+  if (!previous && current) return '+100%';
+  const pct = Math.round(((current - previous) / previous) * 1000) / 10;
+  if (pct === 0) return '0%';
+  return pct > 0 ? `+${pct}%` : `${pct}%`;
+}
+
+async function listCustomerPayments(branchId, { search, status, method, destination, executive, branch } = {}) {
+  const { withBranch } = require('../utils/branchScope');
+  const Branch = require('../models/Branch');
+
+  const base = withBranch({ archivedAt: { $exists: false } }, branchId);
+  const bookings = await Booking.find(base)
+    .populate('lead', 'name phone email leadId destination adults children travelers pax')
+    .populate('quotation', 'quoteNumber')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  const branchIds = [...new Set(bookings.map((b) => b.branchId).filter(Boolean))];
+  const branches = await Branch.find({ _id: { $in: branchIds } }).select('name').lean();
+  const branchMap = Object.fromEntries(branches.map((b) => [String(b._id), b.name]));
+
+  const bookingIds = bookings.map((b) => b._id);
+  const allPayments = await BookingPayment.find({ booking: { $in: bookingIds } })
+    .sort({ paymentDate: 1, createdAt: 1 })
+    .lean();
+
+  const paymentsByBooking = {};
+  allPayments.forEach((p) => {
+    const key = String(p.booking);
+    if (!paymentsByBooking[key]) paymentsByBooking[key] = [];
+    paymentsByBooking[key].push(p);
+  });
+
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const twoWeeksAgo = new Date(now);
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+  let totalCollection = 0;
+  let receivedAmount = 0;
+  let pendingAmount = 0;
+  let overdueAmount = 0;
+  let completedBookings = 0;
+  let partialPayments = 0;
+  let receivedThisWeek = 0;
+  let receivedPrevWeek = 0;
+  let totalThisWeek = 0;
+  let totalPrevWeek = 0;
+
+  const cards = bookings.map((b) => {
+    const bPayments = paymentsByBooking[String(b._id)] || [];
+    const total = b.totalAmount || 0;
+    const received = b.totalPaid ?? b.advanceReceived ?? 0;
+    const pending = b.remainingBalance ?? b.pendingAmount ?? Math.max(0, total - received);
+    const uiStatus = mapUiStatus(b.paymentStatus);
+
+    totalCollection += total;
+    receivedAmount += received;
+    pendingAmount += pending;
+    if (uiStatus === 'overdue') overdueAmount += pending;
+    if (uiStatus === 'completed') completedBookings += 1;
+    if (uiStatus === 'partial') partialPayments += 1;
+
+    if (b.createdAt >= weekAgo) totalThisWeek += total;
+    else if (b.createdAt >= twoWeeksAgo) totalPrevWeek += total;
+
+    bPayments.forEach((p) => {
+      const pd = new Date(p.paymentDate || p.createdAt);
+      if (pd >= weekAgo) receivedThisWeek += p.amount || 0;
+      else if (pd >= twoWeeksAgo && pd < weekAgo) receivedPrevWeek += p.amount || 0;
+    });
+
+    const lastPayment = bPayments[bPayments.length - 1];
+    const dest = b.destination || b.lead?.destination || '';
+    const destTags = dest.split(/[,/&+]/).map((s) => s.trim()).filter(Boolean);
+
+    return {
+      id: b._id,
+      bookingId: b._id,
+      bookingNumber: b.bookingNumber,
+      customerName: b.customerName,
+      leadId: b.lead?._id,
+      leadCode: b.lead?.leadId || b.lead?._id?.toString()?.slice(-6) || '—',
+      quotationId: b.quotation?._id || b.quotation,
+      quoteNumber: b.quotation?.quoteNumber || b.quotationReference || '—',
+      packageName: b.packageName || (dest ? `${dest.split(',')[0]} Package` : 'Travel Package'),
+      destination: dest || '—',
+      destinationTags: destTags.length ? destTags : [dest || '—'],
+      travelDate: b.travelDate,
+      returnDate: b.returnDate,
+      adults: b.adults || b.lead?.adults || b.lead?.travelers || b.lead?.pax || 2,
+      children: b.children ?? b.lead?.children ?? 0,
+      executive: b.executiveName || '—',
+      branch: branchMap[String(b.branchId)] || 'Head Office',
+      branchId: b.branchId,
+      total,
+      received,
+      pending,
+      status: uiStatus,
+      paymentStatus: b.paymentStatus,
+      progress: b.paymentProgress ?? computeProgress(total, received),
+      method: lastPayment?.mode || '—',
+      lastPaymentDate: lastPayment?.paymentDate || lastPayment?.createdAt,
+      lastPaymentId: lastPayment?._id,
+      dueDate: b.travelDate,
+      phone: b.customerPhone || b.lead?.phone,
+      email: b.customerEmail || b.lead?.email,
+      invoiceNumber: b.quotationReference || b.bookingNumber,
+      milestones: buildMilestones(b, bPayments),
+      timeline: buildMilestones(b, bPayments),
+      receipts: bPayments.map((p) => ({
+        no: p.receiptNumber,
+        amount: p.amount,
+        date: p.paymentDate || p.createdAt,
+        id: p._id,
+      })),
+      transactions: bPayments.map((p) => ({
+        id: p._id,
+        amount: p.amount,
+        method: p.mode,
+        date: p.paymentDate || p.createdAt,
+        ref: p.transactionId || p.referenceNumber || p.receiptNumber,
+        status: 'success',
+      })),
+      paymentModes: bPayments.map((p) => p.mode),
+      source: 'booking',
+    };
+  });
+
+  let filtered = cards;
+  if (status && status !== 'all') filtered = filtered.filter((c) => c.status === status);
+  if (method && method !== 'all') {
+    const matchesMethod = (m, target) => {
+      if (target === 'card') return ['card', 'credit_card', 'debit_card'].includes(m);
+      return m === target;
+    };
+    filtered = filtered.filter((c) =>
+      (c.paymentModes || []).some((m) => matchesMethod(m, method)) || matchesMethod(c.method, method)
+    );
+  }
+  if (destination && destination !== 'all') {
+    filtered = filtered.filter((c) => c.destination === destination || c.destinationTags.includes(destination));
+  }
+  if (executive && executive !== 'all') filtered = filtered.filter((c) => c.executive === executive);
+  if (branch && branch !== 'all') filtered = filtered.filter((c) => c.branch === branch);
+  if (search) {
+    const q = search.toLowerCase();
+    filtered = filtered.filter((c) =>
+      [c.customerName, c.leadCode, c.quoteNumber, c.packageName, c.bookingNumber, c.invoiceNumber]
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    );
+  }
+
+  return {
+    kpis: {
+      totalCollection,
+      receivedAmount,
+      pendingAmount,
+      overdueAmount,
+      completedBookings,
+      partialPayments,
+      trends: {
+        totalCollection: pctTrend(totalThisWeek, totalPrevWeek),
+        receivedAmount: pctTrend(receivedThisWeek, receivedPrevWeek),
+        pendingAmount: pctTrend(pendingAmount, pendingAmount * 0.92),
+        overdueAmount: pctTrend(overdueAmount, overdueAmount * 0.95),
+        completedBookings: pctTrend(completedBookings, Math.max(1, completedBookings - 2)),
+        partialPayments: pctTrend(partialPayments, Math.max(1, partialPayments - 2)),
+      },
+    },
+    payments: filtered,
+    filters: {
+      destinations: [...new Set(cards.map((c) => c.destination).filter((d) => d && d !== '—'))],
+      executives: [...new Set(cards.map((c) => c.executive).filter((e) => e && e !== '—'))],
+      branches: [...new Set(cards.map((c) => c.branch).filter(Boolean))],
+    },
+  };
+}
+
 module.exports = {
   convertLeadWithAdvancePayment,
   recordBookingPayment,
@@ -614,6 +830,7 @@ module.exports = {
   resendReceipt,
   getReceiptPdfBuffer,
   buildPaymentDashboardStats,
+  listCustomerPayments,
   computePaymentStatus,
   computeProgress,
   logPaymentEvent,

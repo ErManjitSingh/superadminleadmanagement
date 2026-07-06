@@ -12,6 +12,7 @@ const {
   resendReceipt,
   getReceiptPdfBuffer,
   buildPaymentDashboardStats,
+  listCustomerPayments,
 } = require('../services/bookingPaymentService');
 const { pickQuotationForLead } = require('../services/leadConversionService');
 
@@ -183,6 +184,19 @@ const getPaymentsDashboard = asyncHandler(async (req, res) => {
   res.json(stats);
 });
 
+const getCustomerPayments = asyncHandler(async (req, res) => {
+  const { search, status, method, destination, executive, branch } = req.query;
+  const data = await listCustomerPayments(req.branchId, {
+    search,
+    status,
+    method,
+    destination,
+    executive,
+    branch,
+  });
+  res.json(data);
+});
+
 const acknowledgeNewBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.findByIdAndUpdate(
     req.params.bookingId,
@@ -227,6 +241,7 @@ module.exports = {
   resendPaymentReceipt,
   markBookingFullyPaid,
   getPaymentsDashboard,
+  getCustomerPayments,
   acknowledgeNewBooking,
   getLeadBooking,
   sendPaymentReminderHandler,

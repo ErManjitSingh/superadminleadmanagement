@@ -15,11 +15,13 @@ const {
   acknowledgeNewBooking,
   getLeadBooking,
   sendPaymentReminderHandler,
+  getCustomerPayments,
 } = require('../controllers/bookingPaymentController');
 
 router.use(protect);
 
 router.get('/dashboard', requirePermission('payments', 'view'), getPaymentsDashboard);
+router.get('/customer-payments', requirePermission('payments', 'view'), getCustomerPayments);
 
 router.get('/leads/:id/booking', requirePermission('leads', 'view'), getLeadBooking);
 router.get('/leads/:id/convert-preview', requirePermission('leads', 'view'), getConvertPreview);

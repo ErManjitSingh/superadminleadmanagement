@@ -67,6 +67,11 @@ export async function getPaymentsDashboard() {
   return data;
 }
 
+export async function getCustomerPayments(params = {}) {
+  const { data } = await API.get('/booking-payments/customer-payments', { params, skipSuccessToast: true });
+  return data;
+}
+
 export async function getLeadBooking(leadId) {
   const { data } = await API.get(`/booking-payments/leads/${leadId}/booking`, { skipSuccessToast: true });
   return data;

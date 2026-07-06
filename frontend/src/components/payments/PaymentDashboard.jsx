@@ -44,7 +44,7 @@ const tooltipStyle = {
 };
 
 export default function PaymentDashboard() {
-  const { payments } = useCustomerPayments();
+  const { payments } = useCustomerPayments({});
   const { data: dashData, loading: dashLoading, reload } = usePaymentsDashboard();
   const [remindingId, setRemindingId] = useState(null);
   const kpis = dashData?.kpis || {};
@@ -184,8 +184,13 @@ export default function PaymentDashboard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SectionCard title="Recent Transactions">
-          <ol className="space-y-0">
+        <SectionCard
+          title="Recent Transactions"
+          action={recentTx.length > 6 ? (
+            <span className="text-[11px] text-content-muted">{recentTx.length} total · scroll for more</span>
+          ) : null}
+        >
+          <ol className={cn('space-y-0', recentTx.length > 6 && 'max-h-[26rem] overflow-y-auto pr-1 scrollbar-thin')}>
             {recentTx.length === 0 && (
               <p className="text-sm text-content-muted py-8 text-center">No transactions yet</p>
             )}
