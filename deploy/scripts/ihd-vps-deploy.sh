@@ -58,6 +58,18 @@ EOF
 systemctl start mongod 2>/dev/null || true
 systemctl start redis-server 2>/dev/null || true
 
+# Chromium libs for Puppeteer voucher PDF rendering (idempotent)
+if ! dpkg -s libnss3 >/dev/null 2>&1; then
+  echo "==> Install Puppeteer/Chromium system dependencies..."
+  apt-get update -qq
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+    ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 \
+    libcairo2 libcups2 libdbus-1-3 libdrm2 libgbm1 libglib2.0-0 libgtk-3-0 \
+    libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcb1 libxcomposite1 libxdamage1 \
+    libxext6 libxfixes3 libxrandr2 libxrender1 libxss1 libxtst6 wget xdg-utils \
+    >/dev/null 2>&1 || true
+fi
+
 echo "==> Backend..."
 cd "$APP_ROOT/backend"
 npm install --omit=dev
