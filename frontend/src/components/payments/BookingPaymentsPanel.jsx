@@ -33,10 +33,11 @@ export default function BookingPaymentsPanel({
   summary: summaryProp,
   addOpen: addOpenProp,
   onAddOpenChange,
+  paymentsData: paymentsDataProp,
 }) {
   const { user } = useAuth();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(paymentsDataProp ?? null);
+  const [loading, setLoading] = useState(!paymentsDataProp);
   const [addOpenInternal, setAddOpenInternal] = useState(false);
   const [resending, setResending] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(false);
@@ -57,9 +58,21 @@ export default function BookingPaymentsPanel({
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [bookingId]);
+  useEffect(() => {
+    if (paymentsDataProp) {
+      setData(paymentsDataProp);
+      setLoading(false);
+      return;
+    }
+    load();
+  }, [bookingId, paymentsDataProp]);
 
-  useDataRefresh(['operations', `booking:${bookingId}`], () => load());
+  useDataRefresh(
+    ['operations', `booking:${bookingId}`],
+    () => { if (!paymentsDataProp) load(); },
+    !paymentsDataProp,
+    400,
+  );
 
   const handleResend = async (paymentId, channel = 'both') => {
     setResending(`${paymentId}-${channel}`);

@@ -96,7 +96,12 @@ export default function VoucherCenter({
     if (!executionProp && bookingId) load();
   }, [bookingId, executionProp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useDataRefresh(['operations', `booking:${bookingId}`], () => load(true));
+  useDataRefresh(
+    ['operations', `booking:${bookingId}`],
+    () => load(true),
+    !executionProp,
+    400,
+  );
 
   const patchVoucher = useCallback((voucher) => {
     const base = executionProp ?? localExecution;
@@ -124,7 +129,7 @@ export default function VoucherCenter({
         const list = Array.isArray(result) ? result : [result];
         list.filter(Boolean).forEach(patchVoucher);
       }
-      await load(true);
+      if (!executionProp) await load(true);
     } finally {
       setActionLoading(null);
     }

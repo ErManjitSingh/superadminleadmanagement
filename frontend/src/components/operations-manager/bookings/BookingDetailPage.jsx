@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import API from '../../../api/axios';
@@ -11,7 +11,6 @@ import {
 import VoucherCenter from '../vouchers/VoucherCenter';
 import ExecutionTimeline from '../vouchers/ExecutionTimeline';
 import BookingPaymentsPanel from '../../payments/BookingPaymentsPanel';
-import QuotationPdfOverlay from '../../quotations/QuotationPdfOverlay';
 import { acknowledgeNewBooking, getBookingPayments } from '../../../services/bookingPaymentsApi';
 import { fetchBookingExecution } from '../../../services/operationsVoucherApi';
 import { useAuth } from '../../../context/AuthContext';
@@ -25,6 +24,8 @@ import {
 } from './BookingDetailSections';
 import { buildBookingProgressSteps, computeNextPaymentDue, hasLinkedQuotation } from './bookingDetailUtils';
 import { useDataRefresh } from '../../../hooks/useDataRefresh';
+
+const QuotationPdfOverlay = lazy(() => import('../../quotations/QuotationPdfOverlay'));
 
 function applyBookingState(data, setters) {
   const { setBooking, setItinerary, setHotels, setTransport } = setters;
@@ -62,14 +63,6 @@ export default function BookingDetailPage() {
   const setters = { setBooking, setItinerary, setHotels, setTransport };
   const canAddPayment = ['operations_manager', 'admin', 'accountant'].includes(user?.role);
 
-  const reloadPayments = useCallback(() => {
-    getBookingPayments(id).then(setPaymentData).catch(() => setPaymentData(null));
-  }, [id]);
-
-  const reloadExecution = useCallback(() => {
-    fetchBookingExecution(id).then(setExecution).catch(() => setExecution(null));
-  }, [id]);
-
   const refreshBookingData = useCallback(async (silent = true) => {
     try {
       const [bookingRes, exec, payments] = await Promise.all([
@@ -88,24 +81,31 @@ export default function BookingDetailPage() {
   const fetchBooking = async () => {
     setLoading(true);
     try {
-      const r = await API.get(`/operations-manager/bookings/${id}`);
-      let data = r.data;
+      const [bookingRes, exec, payments] = await Promise.all([
+        API.get(`/operations-manager/bookings/${id}`),
+        fetchBookingExecution(id).catch(() => null),
+        getBookingPayments(id).catch(() => null),
+      ]);
+      let data = bookingRes.data;
       if (data?.isNewBooking && ['operations_manager', 'admin'].includes(user?.role)) {
         await acknowledgeNewBooking(id, { skipSuccessToast: true }).catch(() => {});
         data = { ...data, isNewBooking: false };
       }
       applyBookingState(data, setters);
-      await Promise.all([reloadExecution(), reloadPayments()]);
+      if (exec) setExecution(exec);
+      if (payments) setPaymentData(payments);
     } finally {
       setLoading(false);
     }
   };
 
-  useDataRefresh(['operations', `booking:${id}`], () => refreshBookingData(true));
+  useDataRefresh(['operations', `booking:${id}`], () => refreshBookingData(true), true, 400);
 
   useEffect(() => { fetchBooking(); }, [id, user?.role]);
 
   useEffect(() => {
+    if (!manageOpen) return;
+    if (catalogHotels.length && catalogCabs.length) return;
     Promise.all([
       API.get('/operations-manager/hotels', { params: { limit: 500 }, skipSuccessToast: true }),
       API.get('/operations-manager/transport', { params: { catalog: true }, skipSuccessToast: true }),
@@ -113,14 +113,14 @@ export default function BookingDetailPage() {
       setCatalogHotels(hotelsRes.data?.data ?? hotelsRes.data ?? []);
       setCatalogCabs(transportRes.data?.cabs || []);
     }).catch(() => {});
-  }, []);
+  }, [manageOpen, catalogHotels.length, catalogCabs.length]);
 
   const syncFromQuotation = async () => {
     setSyncingQuote(true);
     try {
       const r = await API.post(`/operations-manager/bookings/${id}/sync-quotation`, { force: true });
       applyBookingState(r.data, setters);
-      reloadExecution();
+      refreshBookingData(true);
     } finally {
       setSyncingQuote(false);
     }
@@ -263,6 +263,7 @@ export default function BookingDetailPage() {
       <BookingPaymentsPanel
         bookingId={id}
         variant="history"
+        paymentsData={paymentData}
         onUpdated={(updated) => {
           if (updated) setBooking((b) => ({ ...b, ...updated }));
           refreshBookingData(true);
@@ -321,12 +322,16 @@ export default function BookingDetailPage() {
         showPayment={canAddPayment && paymentSummary?.paymentStatus !== 'paid'}
       />
 
-      <QuotationPdfOverlay
-        quote={pdfQuote}
-        open={!!pdfQuote}
-        onClose={() => setPdfQuote(null)}
-        pdfRef={pdfRef}
-      />
+      <Suspense fallback={null}>
+        {pdfQuote && (
+          <QuotationPdfOverlay
+            quote={pdfQuote}
+            open={!!pdfQuote}
+            onClose={() => setPdfQuote(null)}
+            pdfRef={pdfRef}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

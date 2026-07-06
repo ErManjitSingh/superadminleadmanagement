@@ -228,17 +228,24 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
     fileMeta = await generateVoucherPdfFile(voucherDoc, booking, payload || {});
   }
 
-  const htmlUrl = normalizedType === 'travel_kit' ? '' : await generateVoucherDocument(voucherDoc, booking);
-
   const voucher = await Voucher.create({
     ...voucherDoc,
     filePath: fileMeta.filePath,
     fileName: fileMeta.fileName,
     fileSize: fileMeta.fileSize,
     pdfUrl: fileMeta.pdfUrl,
-    htmlUrl,
+    htmlUrl: '',
     mimeType: 'application/pdf',
   });
+
+  if (normalizedType !== 'travel_kit') {
+    generateVoucherDocument({ ...voucherDoc, _id: voucher._id }, booking)
+      .then((htmlUrl) => {
+        if (htmlUrl) return Voucher.findByIdAndUpdate(voucher._id, { htmlUrl });
+        return null;
+      })
+      .catch(() => {});
+  }
 
   await linkVoucherToAssignment(bookingId, normalizedType, assignmentIndex, voucher._id);
   await Booking.findByIdAndUpdate(bookingId, { voucherStatus: 'issued' });
@@ -308,6 +315,38 @@ async function repairVoucherPdfFile(voucher) {
   };
 }
 
+const repairLocks = new Map();
+const pdfBufferCache = new Map();
+const PDF_CACHE_TTL_MS = 2 * 60 * 1000;
+
+function getCachedPdfBuffer(voucher) {
+  const key = String(voucher._id);
+  const hit = pdfBufferCache.get(key);
+  if (!hit) return null;
+  if (hit.filePath !== voucher.filePath || Date.now() - hit.at > PDF_CACHE_TTL_MS) {
+    pdfBufferCache.delete(key);
+    return null;
+  }
+  return hit.buffer;
+}
+
+function setCachedPdfBuffer(voucher, buffer) {
+  if (!buffer) return;
+  pdfBufferCache.set(String(voucher._id), {
+    buffer,
+    filePath: voucher.filePath,
+    at: Date.now(),
+  });
+}
+
+async function repairVoucherPdfFileLocked(voucher) {
+  const key = String(voucher._id);
+  if (repairLocks.has(key)) return repairLocks.get(key);
+  const task = repairVoucherPdfFile(voucher).finally(() => repairLocks.delete(key));
+  repairLocks.set(key, task);
+  return task;
+}
+
 async function getVoucherPdfBuffer(voucherId) {
   let voucher = await Voucher.findById(voucherId).lean();
   if (!voucher) throw new Error('Voucher not found');
@@ -322,13 +361,14 @@ async function getVoucherPdfBuffer(voucherId) {
     if (active) voucher = active;
   }
 
-  let buffer = readPdfBuffer(voucher.filePath);
+  let buffer = getCachedPdfBuffer(voucher) || readPdfBuffer(voucher.filePath);
   if (!buffer) {
-    const repaired = await repairVoucherPdfFile(voucher);
+    const repaired = await repairVoucherPdfFileLocked(voucher);
     voucher = repaired.voucher;
     buffer = repaired.buffer;
   }
 
+  if (buffer) setCachedPdfBuffer(voucher, buffer);
   return { voucher, buffer };
 }
 
