@@ -3,6 +3,7 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const branding = require('../config/branding');
 const { generateCabVoucherPdf } = require('./cabVoucherPdfService');
+const { generateHotelVoucherPdf } = require('./hotelVoucherPdfService');
 
 const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
 const VOUCHER_DIR = path.join(UPLOADS_ROOT, 'vouchers');
@@ -75,6 +76,10 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
 
   if (type === 'transport') {
     return generateCabVoucherPdf(voucher, booking, payload);
+  }
+
+  if (type === 'hotel') {
+    return generateHotelVoucherPdf(voucher, booking, payload);
   }
 
   const typeLabels = {

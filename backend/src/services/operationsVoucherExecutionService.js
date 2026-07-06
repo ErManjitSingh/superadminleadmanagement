@@ -64,7 +64,18 @@ function extractPayload(booking, type, index = 0) {
       mealPlan: h.mealPlan,
       checkIn: h.checkIn,
       checkOut: h.checkOut,
+      checkInTime: h.checkInTime || '02:00 PM',
+      checkOutTime: h.checkOutTime || '11:00 AM',
       destination: h.destination,
+      address: h.address || h.location,
+      location: h.location,
+      hotelPhone: h.hotelPhone || h.phone,
+      hotelEmail: h.hotelEmail || h.email,
+      frontOfficePhone: h.frontOfficePhone,
+      roomCount: h.roomCount || 1,
+      starRating: h.starRating || h.category,
+      category: h.category,
+      image: h.image,
       status: h.status,
     };
   }
@@ -136,7 +147,26 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
 
   const normalizedType = type === 'cab' ? 'transport' : type;
   const key = assignmentKey(normalizedType, assignmentIndex);
-  const payload = extractPayload(booking, normalizedType, assignmentIndex);
+  let payload = extractPayload(booking, normalizedType, assignmentIndex);
+
+  if (normalizedType === 'hotel' && payload?.hotelId) {
+    const Hotel = require('../models/Hotel');
+    const catalog = await Hotel.findById(payload.hotelId)
+      .select('name image phone email address location category mealPlan')
+      .lean();
+    if (catalog) {
+      payload = {
+        ...payload,
+        hotelName: payload.hotelName || catalog.name,
+        image: payload.image || catalog.image,
+        hotelPhone: payload.hotelPhone || catalog.phone,
+        hotelEmail: payload.hotelEmail || catalog.email,
+        address: payload.address || catalog.address || catalog.location,
+        starRating: payload.starRating || catalog.category,
+        mealPlan: payload.mealPlan || catalog.mealPlan,
+      };
+    }
+  }
 
   if (!payload && normalizedType !== 'travel_kit' && normalizedType !== 'master') {
     throw new Error(`No ${normalizedType} assignment found at index ${assignmentIndex}`);

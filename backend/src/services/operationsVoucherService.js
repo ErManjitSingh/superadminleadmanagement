@@ -122,9 +122,99 @@ function buildCabVoucherHtml(voucher, booking) {
 </div></body></html>`;
 }
 
+function buildHotelVoucherHtml(voucher, booking) {
+  const p = voucher.payload || booking.hotels?.[0] || {};
+  const vendorUrl = voucher.vendorConfirmationUrl || '';
+  const hotelName = p.hotelName || p.name || 'Hotel';
+  const stars = (String(p.starRating || p.category || '5').match(/\d/) || ['5'])[0];
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>${esc(voucher.voucherNumber)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0} body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;padding:20px;color:#0f172a}
+  .page{max-width:820px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(91,33,182,.12)}
+  .head{background:#5b21b6;color:#fff;padding:20px 24px 16px}
+  .brand{font-size:14px;font-weight:800}.tag{font-size:10px;opacity:.85}
+  .title{text-align:center;font-size:20px;font-weight:900;margin:10px 0 8px;letter-spacing:.04em}
+  .pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+  .pill{background:#fff;color:#5b21b6;padding:4px 12px;border-radius:999px;font-size:10px;font-weight:800}
+  .pill.outline{background:transparent;border:1px solid #c4b5fd;color:#fff}
+  .issued{text-align:center;font-size:10px;opacity:.9;margin-top:6px}
+  .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:12px 16px}
+  .strip label{display:block;font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase}
+  .strip p{font-size:11px;font-weight:700;margin-top:2px}
+  .main{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;padding:16px}
+  .card{border:1px solid #e2e8f0;border-radius:10px;padding:12px}
+  .card h3{font-size:11px;color:#5b21b6;text-transform:uppercase;margin-bottom:10px}
+  .hotel-card{display:flex;gap:10px;margin-bottom:12px;padding:10px;background:#fafafa;border-radius:8px;border:1px solid #e2e8f0}
+  .thumb{width:72px;height:54px;border-radius:6px;object-fit:cover;background:#e2e8f0}
+  .stars{color:#f59e0b;font-size:12px;margin:4px 0}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .cell{border:1px solid #e2e8f0;border-radius:8px;padding:8px}
+  .cell label{font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase}
+  .cell p{font-size:11px;font-weight:700;margin-top:4px}
+  .note{font-size:11px;margin:6px 0;padding-left:14px;position:relative}
+  .note:before{content:'✓';position:absolute;left:0;color:#5b21b6;font-weight:800}
+  .emerg{margin-top:10px;background:#f5f3ff;border-radius:8px;padding:10px;font-size:11px}
+  .emerg-row{display:flex;justify-content:space-between;margin:4px 0}
+  .vendor{margin:0 16px 16px;border:1px solid #e2e8f0;border-radius:10px;padding:14px}
+  .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .btn{padding:8px 14px;border-radius:8px;color:#fff;font-size:11px;font-weight:800;text-decoration:none}
+  .g{background:#059669}.o{background:#d97706}.r{background:#dc2626}
+  .help{background:#f5f3ff;color:#5b21b6;text-align:center;padding:10px;font-size:11px;font-weight:700}
+  .foot{background:#1e3a8a;color:#fff;padding:10px 16px;font-size:10px;display:flex;justify-content:space-between}
+</style></head><body>
+<div class="page">
+  <div class="head">
+    <div class="brand">${esc(branding.brandName)}</div><div class="tag">Journey Beyond Limits</div>
+    <div class="title">HOTEL VOUCHER</div>
+    <div class="pills"><span class="pill">Voucher ID: ${esc(voucher.voucherNumber)}</span><span class="pill outline">Booking ID: ${esc(booking.bookingNumber)}</span></div>
+    <div class="issued">Issued On: ${fmtDate(voucher.createdAt || new Date())}</div>
+  </div>
+  <div class="strip">
+    <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
+    <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
+    <div><label>Travel Dates</label><p>${fmtDate(booking.travelDate)} to ${fmtDate(booking.returnDate)}</p></div>
+    <div><label>Guests</label><p>${booking.adults || 0} Adults, ${booking.children || 0} Children</p></div>
+  </div>
+  <div class="main">
+    <div class="card"><h3>Hotel Details</h3>
+      <div class="hotel-card">
+        <img class="thumb" src="${esc(p.image || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200')}" alt=""/>
+        <div><strong>${esc(hotelName)}</strong><div class="stars">${'★'.repeat(Number(stars))}</div><div style="font-size:10px;color:#64748b">${esc(p.address || p.location || booking.destination)}</div></div>
+      </div>
+      <div class="grid">
+        <div class="cell"><label>Room Type</label><p>${esc(p.roomType || 'Deluxe')}</p></div>
+        <div class="cell"><label>Meal Plan</label><p>${esc(p.mealPlan || 'Breakfast & Dinner')}</p></div>
+        <div class="cell"><label>No. of Rooms</label><p>1 Room</p></div>
+        <div class="cell"><label>Check In</label><p>${fmtDate(p.checkIn)}</p></div>
+        <div class="cell"><label>Check Out</label><p>${fmtDate(p.checkOut)}</p></div>
+        <div class="cell"><label>Guests</label><p>${booking.adults || 0} Adults</p></div>
+      </div>
+    </div>
+    <div class="card"><h3>Important Notes</h3>
+      <div class="note">Check-in 2:00 PM and check-out 11:00 AM unless specified.</div>
+      <div class="note">Valid photo ID required at check-in.</div>
+      <div class="note">Present this voucher at the hotel front desk.</div>
+      <div class="emerg"><strong>Emergency Contacts</strong>
+        <div class="emerg-row"><span>Support</span><span>${esc(branding.salesEmail)}</span></div>
+        <div class="emerg-row"><span>Hotel</span><span>${esc(p.hotelPhone || p.phone || '—')}</span></div>
+      </div>
+    </div>
+  </div>
+  ${vendorUrl ? `<div class="vendor"><strong>Vendor Confirmation</strong><div class="btns">
+    <a class="btn g" href="${esc(vendorUrl)}&action=accept">Accept Booking</a>
+    <a class="btn o" href="${esc(vendorUrl)}&action=changes">Request Changes</a>
+    <a class="btn r" href="${esc(vendorUrl)}&action=reject">Reject Booking</a>
+  </div></div>` : ''}
+  <div class="help">Present this voucher at check-in. For support contact your travel executive.</div>
+  <div class="foot"><span>Phone · Email · ${esc(branding.websiteUrl)}</span><span>Thank you for choosing ${esc(branding.brandName)}</span></div>
+</div></body></html>`;
+}
+
 function buildVoucherHtml(voucher, booking) {
   const type = voucher.type || 'hotel';
   if (type === 'transport') return buildCabVoucherHtml(voucher, booking);
+  if (type === 'hotel') return buildHotelVoucherHtml(voucher, booking);
   const typeLabel = { hotel: 'Hotel Voucher', transport: 'Cab / Transport Voucher', activity: 'Activity Voucher', master: 'Master Travel Voucher' }[type] || 'Travel Voucher';
   const details = voucher.details || {};
 
