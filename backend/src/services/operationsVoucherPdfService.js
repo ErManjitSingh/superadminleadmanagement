@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const branding = require('../config/branding');
+const { generateCabVoucherPdf } = require('./cabVoucherPdfService');
 
 const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
 const VOUCHER_DIR = path.join(UPLOADS_ROOT, 'vouchers');
@@ -71,6 +72,11 @@ function drawFooter(doc) {
 
 async function generateVoucherPdfFile(voucher, booking, payload = {}) {
   const type = voucher.type || 'hotel';
+
+  if (type === 'transport') {
+    return generateCabVoucherPdf(voucher, booking, payload);
+  }
+
   const typeLabels = {
     hotel: 'Hotel Voucher',
     transport: 'Cab / Transport Voucher',
@@ -110,19 +116,7 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
     drawField(doc, 'Check Out', fmtDate(h.checkOut), 48 + colW + 16, rowY, colW);
     doc.y = rowY + 44;
   } else if (type === 'transport') {
-    const t = payload;
-    rowY = doc.y;
-    drawField(doc, 'Vehicle Type', (t.vehicleType || '').replace(/_/g, ' '), 48, rowY, colW);
-    drawField(doc, 'Vehicle', t.vehicleName || t.vehicleNumber, 48 + colW + 16, rowY, colW);
-    rowY += 44;
-    drawField(doc, 'Driver', t.driverName, 48, rowY, colW);
-    drawField(doc, 'Driver Phone', t.driverPhone, 48 + colW + 16, rowY, colW);
-    rowY += 44;
-    drawField(doc, 'Pickup', t.pickupLocation, 48, rowY, colW);
-    drawField(doc, 'Drop', t.dropLocation, 48 + colW + 16, rowY, colW);
-    rowY += 44;
-    drawField(doc, 'Reporting Time', fmtDate(t.pickupDate || t.reportingTime), 48, rowY, colW);
-    doc.y = rowY + 44;
+    // handled by cabVoucherPdfService
   } else if (type === 'activity') {
     const a = payload;
     rowY = doc.y;

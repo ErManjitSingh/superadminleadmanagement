@@ -47,8 +47,84 @@ const BASE_STYLES = `
   @media print { body { background: #fff; padding: 0; } .page { border: none; border-radius: 0; } }
 `;
 
+function buildCabVoucherHtml(voucher, booking) {
+  const p = voucher.payload || booking.transport?.[0] || {};
+  const vendorUrl = voucher.vendorConfirmationUrl || '';
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>${esc(voucher.voucherNumber)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0} body{font-family:'Segoe UI',system-ui,sans-serif;background:#f1f5f9;padding:20px;color:#0f172a}
+  .page{max-width:820px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(91,33,182,.12)}
+  .head{background:#5b21b6;color:#fff;padding:20px 24px 16px;position:relative}
+  .brand{font-size:14px;font-weight:800}.tag{font-size:10px;opacity:.85}
+  .title{text-align:center;font-size:20px;font-weight:900;margin:10px 0 8px;letter-spacing:.04em}
+  .pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+  .pill{background:#fff;color:#5b21b6;padding:4px 12px;border-radius:999px;font-size:10px;font-weight:800}
+  .pill.outline{background:transparent;border:1px solid #c4b5fd;color:#fff}
+  .issued{text-align:center;font-size:10px;opacity:.9;margin-top:6px}
+  .strip{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:12px 16px}
+  .strip label{display:block;font-size:9px;color:#64748b;font-weight:700;text-transform:uppercase}
+  .strip p{font-size:11px;font-weight:700;margin-top:2px}
+  .main{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;padding:16px}
+  .card{border:1px solid #e2e8f0;border-radius:10px;padding:12px}
+  .card h3{font-size:11px;color:#5b21b6;text-transform:uppercase;margin-bottom:10px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .cell{border:1px solid #e2e8f0;border-radius:8px;padding:8px}
+  .cell label{font-size:8px;color:#64748b;font-weight:700;text-transform:uppercase}
+  .cell p{font-size:11px;font-weight:700;margin-top:4px}
+  .note{font-size:11px;margin:6px 0;padding-left:14px;position:relative}
+  .note:before{content:'✓';position:absolute;left:0;color:#5b21b6;font-weight:800}
+  .emerg{margin-top:10px;background:#f5f3ff;border-radius:8px;padding:10px;font-size:11px}
+  .vendor{margin:0 16px 16px;border:1px solid #e2e8f0;border-radius:10px;padding:14px}
+  .btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .btn{padding:8px 14px;border-radius:8px;color:#fff;font-size:11px;font-weight:800;text-decoration:none}
+  .g{background:#059669}.o{background:#d97706}.r{background:#dc2626}
+  .foot{background:#5b21b6;color:#fff;padding:10px 16px;font-size:10px;display:flex;justify-content:space-between}
+</style></head><body>
+<div class="page">
+  <div class="head">
+    <div class="brand">${esc(branding.brandName)}</div><div class="tag">Journey Beyond Limits</div>
+    <div class="title">CAB / TRANSPORT VOUCHER</div>
+    <div class="pills"><span class="pill">Voucher ID: ${esc(voucher.voucherNumber)}</span><span class="pill outline">Booking ID: ${esc(booking.bookingNumber)}</span></div>
+    <div class="issued">Issued On: ${fmtDate(voucher.createdAt || new Date())}</div>
+  </div>
+  <div class="strip">
+    <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
+    <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
+    <div><label>Travel Date</label><p>${fmtDate(booking.travelDate)}</p></div>
+    <div><label>Return Date</label><p>${fmtDate(booking.returnDate)}</p></div>
+    <div><label>Travelers</label><p>${booking.adults || 0} Adults, ${booking.children || 0} Child</p></div>
+  </div>
+  <div class="main">
+    <div class="card"><h3>Service Details</h3><div class="grid">
+      <div class="cell"><label>Vehicle Type</label><p>${esc((p.vehicleType || '').replace(/_/g, ' '))}</p></div>
+      <div class="cell"><label>Vehicle Reg. No.</label><p>${esc(p.vehicleNumber || p.vehicleName)}</p></div>
+      <div class="cell"><label>Driver Name</label><p>${esc(p.driverName)}</p></div>
+      <div class="cell"><label>Driver Phone</label><p>${esc(p.driverPhone)}</p></div>
+      <div class="cell"><label>Pickup Location</label><p>${esc(p.pickupLocation)}</p></div>
+      <div class="cell"><label>Drop Location</label><p>${esc(p.dropLocation)}</p></div>
+      <div class="cell"><label>Reporting Time</label><p>${esc(p.reportingTime || '09:30 AM')}</p></div>
+      <div class="cell"><label>Trip Type</label><p>Airport Transfer</p></div>
+    </div></div>
+    <div class="card"><h3>Important Notes</h3>
+      <div class="note">Driver will wait at the arrival gate with a name placard.</div>
+      <div class="note">Vehicle is available for the mentioned route & reporting time only.</div>
+      <div class="note">Please carry a valid photo ID during travel.</div>
+      <div class="emerg"><strong>Emergency Contacts</strong><br/>Support: ${esc(branding.salesEmail)}<br/>Driver: ${esc(p.driverPhone)}</div>
+    </div>
+  </div>
+  ${vendorUrl ? `<div class="vendor"><strong>Vendor Confirmation</strong><div class="btns">
+    <a class="btn g" href="${esc(vendorUrl)}&action=accept">Accept Booking</a>
+    <a class="btn o" href="${esc(vendorUrl)}&action=changes">Request Changes</a>
+    <a class="btn r" href="${esc(vendorUrl)}&action=reject">Reject Booking</a>
+  </div><p style="font-size:10px;margin-top:8px;color:#64748b">${esc(vendorUrl)}</p></div>` : ''}
+  <div class="foot"><span>Phone · Email · ${esc(branding.websiteUrl)}</span><span>Thank you for choosing ${esc(branding.brandName)}</span></div>
+</div></body></html>`;
+}
+
 function buildVoucherHtml(voucher, booking) {
   const type = voucher.type || 'hotel';
+  if (type === 'transport') return buildCabVoucherHtml(voucher, booking);
   const typeLabel = { hotel: 'Hotel Voucher', transport: 'Cab / Transport Voucher', activity: 'Activity Voucher', master: 'Master Travel Voucher' }[type] || 'Travel Voucher';
   const details = voucher.details || {};
 

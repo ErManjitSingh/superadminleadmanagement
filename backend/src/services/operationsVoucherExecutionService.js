@@ -71,15 +71,24 @@ function extractPayload(booking, type, index = 0) {
   if (type === 'transport') {
     const t = booking.transport?.[index];
     if (!t) return null;
+    const vehicleType = t.vehicleType || 'suv';
     return {
-      vehicleType: t.vehicleType,
+      vehicleType,
       vehicleName: t.vehicleNumber,
       vehicleNumber: t.vehicleNumber,
+      vehicleDisplayName: t.vehicleDisplayName || (vehicleType === 'innova' ? 'Toyota Innova Crysta (White)' : undefined),
       driverName: t.driverName,
       driverPhone: t.driverPhone,
+      driverLicense: t.driverLicense,
       pickupLocation: t.pickupLocation,
       dropLocation: t.dropLocation,
       pickupDate: t.pickupDate,
+      pickupTime: t.pickupTime,
+      dropDate: t.dropDate,
+      dropTime: t.dropTime,
+      reportingTime: t.reportingTime || '09:30 AM',
+      tripType: t.tripType,
+      vehicleCount: t.vehicleCount || 1,
       vendorName: t.vendorName,
       status: t.status,
     };
