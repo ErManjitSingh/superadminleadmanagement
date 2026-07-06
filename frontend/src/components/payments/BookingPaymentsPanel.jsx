@@ -31,13 +31,18 @@ export default function BookingPaymentsPanel({
   onUpdated,
   variant = 'full',
   summary: summaryProp,
+  addOpen: addOpenProp,
+  onAddOpenChange,
 }) {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [addOpen, setAddOpen] = useState(false);
+  const [addOpenInternal, setAddOpenInternal] = useState(false);
   const [resending, setResending] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(false);
+
+  const addOpen = addOpenProp ?? addOpenInternal;
+  const setAddOpen = onAddOpenChange ?? setAddOpenInternal;
 
   const canAddPayment = ['operations_manager', 'admin', 'accountant'].includes(user?.role);
   const canSendReminder = ['operations_manager', 'admin'].includes(user?.role);

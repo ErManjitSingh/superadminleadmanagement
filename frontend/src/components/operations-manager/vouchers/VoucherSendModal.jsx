@@ -3,6 +3,7 @@ import { Loader2, Mail, MessageCircle } from 'lucide-react';
 import AppModal from '../../ui/AppModal';
 import { Button } from '../../ui/button';
 import { sendVoucherEmail, sendVoucherWhatsApp } from '../../../services/operationsVoucherApi';
+import { normalizeWaPhone } from '../../../lib/phoneUtils';
 
 function defaultRecipient(type, voucher, booking) {
   const p = voucher?.payload || {};
@@ -46,7 +47,9 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
     setSending(true);
     try {
       if (channel === 'whatsapp') {
-        await sendVoucherWhatsApp(voucher._id, phone);
+        const normalized = normalizeWaPhone(phone);
+        if (!normalized) return;
+        await sendVoucherWhatsApp(voucher._id, normalized);
       } else {
         await sendVoucherEmail(voucher._id, email);
       }
@@ -97,7 +100,7 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
           <Button variant="secondary" onClick={onClose} disabled={sending}>Cancel</Button>
           <Button
             onClick={handleSend}
-            disabled={sending || (isWa ? !phone.trim() : !email.trim())}
+            disabled={sending || (isWa ? !normalizeWaPhone(phone) : !email.trim())}
             className={isWa ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-violet-600 hover:bg-violet-700 text-white'}
           >
             {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}

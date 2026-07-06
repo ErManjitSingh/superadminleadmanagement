@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import API from '../../../api/axios';
@@ -11,6 +11,7 @@ import {
 import VoucherCenter from '../vouchers/VoucherCenter';
 import ExecutionTimeline from '../vouchers/ExecutionTimeline';
 import BookingPaymentsPanel from '../../payments/BookingPaymentsPanel';
+import QuotationPdfOverlay from '../../quotations/QuotationPdfOverlay';
 import { acknowledgeNewBooking, getBookingPayments } from '../../../services/bookingPaymentsApi';
 import { fetchBookingExecution } from '../../../services/operationsVoucherApi';
 import { useAuth } from '../../../context/AuthContext';
@@ -20,8 +21,9 @@ import {
   BookingPaymentOverview,
   BookingProgressStepper,
   BookingInfoColumns,
+  BookingDetailMobileBar,
 } from './BookingDetailSections';
-import { buildBookingProgressSteps, computeNextPaymentDue } from './bookingDetailUtils';
+import { buildBookingProgressSteps, computeNextPaymentDue, hasLinkedQuotation } from './bookingDetailUtils';
 import { useDataRefresh } from '../../../hooks/useDataRefresh';
 
 function applyBookingState(data, setters) {
@@ -51,8 +53,14 @@ export default function BookingDetailPage() {
   const [catalogHotels, setCatalogHotels] = useState([]);
   const [catalogCabs, setCatalogCabs] = useState([]);
   const [manageOpen, setManageOpen] = useState(false);
+  const [pdfQuote, setPdfQuote] = useState(null);
+  const [quotationLoading, setQuotationLoading] = useState(false);
+  const [addPaymentOpen, setAddPaymentOpen] = useState(false);
+  const pdfRef = useRef(null);
+  const manageRef = useRef(null);
 
   const setters = { setBooking, setItinerary, setHotels, setTransport };
+  const canAddPayment = ['operations_manager', 'admin', 'accountant'].includes(user?.role);
 
   const reloadPayments = useCallback(() => {
     getBookingPayments(id).then(setPaymentData).catch(() => setPaymentData(null));
@@ -160,6 +168,26 @@ export default function BookingDetailPage() {
     }
   };
 
+  const openQuotation = async () => {
+    if (!hasLinkedQuotation(booking)) return;
+    setQuotationLoading(true);
+    try {
+      const { data } = await API.get(`/operations-manager/bookings/${id}/quotation`, { skipSuccessToast: true });
+      setPdfQuote(data);
+    } finally {
+      setQuotationLoading(false);
+    }
+  };
+
+  const scrollTo = (selector) => {
+    document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const openManage = () => {
+    setManageOpen(true);
+    setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
+
   const paymentSummary = paymentData?.summary;
   const progressSteps = useMemo(
     () => buildBookingProgressSteps(booking, execution, paymentSummary),
@@ -170,11 +198,7 @@ export default function BookingDetailPage() {
     [booking, paymentData, paymentSummary],
   );
 
-  const quoteLink = booking?.quotation
-    ? `/quotations/${booking.quotation}`
-    : booking?.quotationReference
-      ? null
-      : null;
+  const showQuotation = hasLinkedQuotation(booking);
 
   if (loading) {
     return (
@@ -188,10 +212,14 @@ export default function BookingDetailPage() {
   if (!booking) return <div className="text-center py-20 text-content-muted">Booking not found</div>;
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-6 pb-24 lg:pb-10">
       <BookingDetailHeader booking={booking} onPrint={() => window.print()} />
 
-      <BookingPackageHero booking={booking} quoteLink={quoteLink} />
+      <BookingPackageHero
+        booking={booking}
+        onViewQuotation={showQuotation ? openQuotation : undefined}
+        quotationLoading={quotationLoading}
+      />
 
       <BookingPaymentOverview summary={paymentSummary} nextDue={nextDue} />
 
@@ -217,11 +245,13 @@ export default function BookingDetailPage() {
         <div className="lg:col-span-8">
           <ExecutionTimeline events={execution?.timeline || []} compact />
         </div>
-        <div className="lg:col-span-4 lg:sticky lg:top-20">
+        <div className="lg:col-span-4 lg:sticky lg:top-20" id="booking-payments">
           <BookingPaymentsPanel
             bookingId={id}
             variant="sidebar"
             summary={paymentSummary}
+            addOpen={addPaymentOpen}
+            onAddOpenChange={setAddPaymentOpen}
             onUpdated={(updated) => {
               if (updated) setBooking((b) => ({ ...b, ...updated }));
               refreshBookingData(true);
@@ -239,7 +269,7 @@ export default function BookingDetailPage() {
         }}
       />
 
-      <div className="rounded-2xl border border-subtle bg-surface overflow-hidden">
+      <div ref={manageRef} className="rounded-2xl border border-subtle bg-surface overflow-hidden">
         <button
           type="button"
           onClick={() => setManageOpen((o) => !o)}
@@ -278,6 +308,25 @@ export default function BookingDetailPage() {
           </div>
         )}
       </div>
+
+      <BookingDetailMobileBar
+        onVouchers={() => scrollTo('#voucher-center')}
+        onPayment={() => {
+          scrollTo('#booking-payments');
+          setAddPaymentOpen(true);
+        }}
+        onQuotation={openQuotation}
+        onManage={openManage}
+        showQuotation={showQuotation}
+        showPayment={canAddPayment && paymentSummary?.paymentStatus !== 'paid'}
+      />
+
+      <QuotationPdfOverlay
+        quote={pdfQuote}
+        open={!!pdfQuote}
+        onClose={() => setPdfQuote(null)}
+        pdfRef={pdfRef}
+      />
     </div>
   );
 }

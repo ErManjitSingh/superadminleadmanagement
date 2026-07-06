@@ -383,14 +383,23 @@ function normalizePhone(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
+function normalizeWaPhone(phone) {
+  let digits = normalizePhone(phone);
+  if (!digits) return '';
+  if (digits.length === 10) digits = `91${digits}`;
+  if (digits.length === 11 && digits.startsWith('0')) digits = `91${digits.slice(1)}`;
+  return digits;
+}
+
 async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
   const { voucher, buffer } = await getVoucherPdfBuffer(voucherId);
+  if (!buffer) throw new Error('PDF file could not be generated');
   const booking = await Booking.findById(voucher.booking).lean();
-  const recipientPhone = normalizePhone(phone || booking?.customerPhone);
+  const recipientPhone = normalizeWaPhone(phone || booking?.customerPhone);
   if (!recipientPhone) throw new Error('Recipient phone is required');
 
   const payload = voucher.payload || {};
-  const isVendor = phone && normalizePhone(phone) !== normalizePhone(booking?.customerPhone);
+  const isVendor = phone && normalizeWaPhone(phone) !== normalizeWaPhone(booking?.customerPhone);
   const typeLabel = voucher.type === 'hotel' ? 'Hotel' : voucher.type === 'transport' ? 'Cab' : 'Travel';
 
   const message = isVendor
@@ -422,7 +431,8 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
       ].join('\n');
 
   const now = new Date();
-  await Voucher.findByIdAndUpdate(voucherId, {
+  const resolvedVoucherId = voucher._id;
+  await Voucher.findByIdAndUpdate(resolvedVoucherId, {
     status: 'sent',
     sentAt: now,
     sentBy: actor?._id,
@@ -433,7 +443,7 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
 
   await logEvent({
     bookingId: voucher.booking,
-    voucherId,
+    voucherId: resolvedVoucherId,
     type: 'whatsapp_sent',
     title: 'Voucher prepared for WhatsApp',
     description: `To ${recipientPhone}`,
@@ -441,7 +451,7 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
   });
   await logEvent({
     bookingId: voucher.booking,
-    voucherId,
+    voucherId: resolvedVoucherId,
     type: 'voucher_sent',
     title: 'Voucher sent via WhatsApp',
     description: voucher.voucherNumber,
@@ -459,7 +469,7 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
     fileName: voucher.fileName,
     pdfUrl: voucher.pdfUrl,
     pdfBase64: buffer.toString('base64'),
-    voucherId,
+    voucherId: resolvedVoucherId,
   };
 }
 

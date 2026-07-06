@@ -14,6 +14,7 @@ const { generateVoucherDocument, generateItineraryDocument } = require('../servi
 const {
   enrichBookingWithQuotation,
   syncBookingFromQuotation,
+  resolveQuotationForBooking,
 } = require('../services/operationsQuotationSyncService');
 
 const getDashboard = asyncHandler(async (req, res) => {
@@ -60,6 +61,14 @@ const syncBookingQuotation = asyncHandler(async (req, res) => {
     quotationMeta: result.quotationPreview?.meta,
     syncedFromQuotation: result.synced,
   });
+});
+
+const getBookingQuotation = asyncHandler(async (req, res) => {
+  const booking = await Booking.findById(req.params.id).lean();
+  if (!booking) throw new ApiError(404, 'Booking not found');
+  const quotation = await resolveQuotationForBooking(booking);
+  if (!quotation) throw new ApiError(404, 'No quotation linked to this booking');
+  res.json(quotation);
 });
 
 const updateBooking = asyncHandler(async (req, res) => {
@@ -332,6 +341,7 @@ module.exports = {
   createBooking,
   generateItineraryPdf,
   getBooking,
+  getBookingQuotation,
   syncBookingQuotation,
   updateBooking,
   confirmHotel,

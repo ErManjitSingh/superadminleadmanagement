@@ -30,6 +30,17 @@ export function destinationTags(destination = '') {
     .split(/[,/&+]/).map((s) => s.trim()).filter(Boolean);
 }
 
+export function getExecutiveDisplayName(booking) {
+  return booking?.executiveName
+    || booking?.quotationPreview?.executiveName
+    || booking?.assignedExecutiveName
+    || '';
+}
+
+export function hasLinkedQuotation(booking) {
+  return !!(booking?.quotation || booking?.quotationReference || booking?.quotationMeta?.quoteId);
+}
+
 export function buildBookingProgressSteps(booking, execution, paymentSummary) {
   const vouchers = execution?.activeVouchers || [];
   const voucherDone = vouchers.some((v) => v.status !== 'draft');

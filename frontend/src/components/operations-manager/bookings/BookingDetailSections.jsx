@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Printer, Download, MoreHorizontal, MapPin, Users, User, Calendar, CheckCircle2, Circle, Hotel, Car,
+  ArrowLeft, Printer, Download, MoreHorizontal, Users, User, Calendar, CheckCircle2, Circle, Hotel, Car,
+  Ticket, FileText, Plus, Settings2,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import BookingStatusBadge from './BookingStatusBadge';
 import { formatINR, formatDate, formatPax, formatTravelRange } from '../operationsUtils';
-import { destinationTags, getDestinationImage } from './bookingDetailUtils';
+import { destinationTags, getDestinationImage, getExecutiveDisplayName } from './bookingDetailUtils';
 import { cn } from '../../../lib/utils';
 
 export function BookingDetailHeader({ booking, onPrint }) {
@@ -31,13 +32,13 @@ export function BookingDetailHeader({ booking, onPrint }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-2 shrink-0">
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={onPrint}>
+        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl hidden sm:inline-flex" onClick={onPrint}>
           <Printer className="w-3.5 h-3.5" /> Print
         </Button>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl">
+        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl hidden sm:inline-flex">
           <Download className="w-3.5 h-3.5" /> Download
         </Button>
-        <Button variant="outline" size="icon" className="rounded-xl h-9 w-9">
+        <Button variant="outline" size="icon" className="rounded-xl h-9 w-9 hidden sm:inline-flex">
           <MoreHorizontal className="w-4 h-4" />
         </Button>
       </div>
@@ -45,10 +46,12 @@ export function BookingDetailHeader({ booking, onPrint }) {
   );
 }
 
-export function BookingPackageHero({ booking, quoteLink }) {
+export function BookingPackageHero({ booking, onViewQuotation, quotationLoading }) {
   const tags = destinationTags(booking.destination);
   const image = booking.coverImage || booking.quotationPreview?.meta?.coverImage || getDestinationImage(booking.destination);
   const amount = booking.totalAmount ?? booking.amount ?? 0;
+  const executiveName = getExecutiveDisplayName(booking) || '—';
+  const canViewQuote = !!onViewQuotation;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-subtle bg-surface shadow-sm">
@@ -68,20 +71,24 @@ export function BookingPackageHero({ booking, quoteLink }) {
               </span>
             ))}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
             <MetaItem icon={Calendar} label="Travel Date" value={formatTravelRange(booking)} />
             <MetaItem icon={Users} label="Travelers" value={`${booking.adults || 0} Adults + ${booking.children || 0} Child`} />
-            <MetaItem icon={User} label="Executive" value={booking.executiveName || '—'} />
-            <MetaItem icon={MapPin} label="Branch" value={booking.branchName || 'Head Office'} />
+            <MetaItem icon={User} label="Executive" value={executiveName} />
           </div>
         </div>
         <div className="border-t lg:border-t-0 lg:border-l border-subtle p-5 sm:p-6 flex flex-col justify-center bg-violet-500/5 min-w-[200px]">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-content-muted">Total Package Cost</p>
           <p className="text-2xl sm:text-3xl font-black text-violet-600 tabular-nums mt-1">{formatINR(amount)}</p>
-          {quoteLink && (
-            <a href={quoteLink} className="mt-3 text-xs font-semibold text-violet-600 hover:underline">
-              View Quotation →
-            </a>
+          {canViewQuote && (
+            <button
+              type="button"
+              onClick={onViewQuotation}
+              disabled={quotationLoading}
+              className="mt-3 text-left text-xs font-semibold text-violet-600 hover:underline disabled:opacity-60"
+            >
+              {quotationLoading ? 'Loading quotation…' : 'View Quotation →'}
+            </button>
           )}
         </div>
       </div>
@@ -252,5 +259,52 @@ function InfoRow({ label, value }) {
       <dt className="text-content-muted shrink-0">{label}</dt>
       <dd className="font-medium text-content-primary text-right truncate">{value || '—'}</dd>
     </div>
+  );
+}
+
+export function BookingDetailMobileBar({
+  onVouchers,
+  onPayment,
+  onQuotation,
+  onManage,
+  showQuotation,
+  showPayment,
+}) {
+  const actions = [
+    { key: 'vouchers', icon: Ticket, label: 'Vouchers', onClick: onVouchers },
+    showPayment && { key: 'payment', icon: Plus, label: 'Payment', onClick: onPayment, accent: 'violet' },
+    showQuotation && { key: 'quote', icon: FileText, label: 'Quote', onClick: onQuotation },
+    { key: 'manage', icon: Settings2, label: 'Manage', onClick: onManage },
+  ].filter(Boolean);
+
+  return (
+    <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-subtle bg-surface/95 backdrop-blur-xl safe-area-pb">
+      <div
+        className="grid gap-1 p-2 max-w-lg mx-auto"
+        style={{ gridTemplateColumns: `repeat(${actions.length}, minmax(0, 1fr))` }}
+      >
+        {actions.map((action) => (
+          <MobileBarBtn key={action.key} {...action} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileBarBtn({ icon: Icon, label, onClick, accent }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex flex-col items-center justify-center gap-1 rounded-xl py-2 px-1 text-[10px] font-bold transition-colors',
+        accent === 'violet'
+          ? 'text-violet-600 bg-violet-500/10'
+          : 'text-content-muted hover:bg-surface-muted hover:text-content-primary',
+      )}
+    >
+      <Icon className="w-5 h-5" />
+      {label}
+    </button>
   );
 }

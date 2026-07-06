@@ -142,6 +142,17 @@ async function extractFulfillmentFromQuotation(quotation, booking = {}) {
     executiveName = exec?.name || '';
   }
 
+  if (!executiveName) {
+    const leadId = quotation?.lead || booking?.lead;
+    if (leadId) {
+      const lead = await Lead.findById(leadId).select('assignedTo').lean();
+      if (lead?.assignedTo) {
+        const exec = await User.findById(lead.assignedTo).select('name').lean();
+        executiveName = exec?.name || '';
+      }
+    }
+  }
+
   return {
     itinerary: mapQuoteItinerary(quotation, travelDate),
     hotels: mapQuoteHotels(quotation, travelDate),
@@ -220,6 +231,7 @@ async function enrichBookingWithQuotation(booking) {
     if (result?.booking) {
       return {
         ...result.booking,
+        executiveName: result.booking.executiveName || result.quotationPreview?.executiveName || '',
         quotationPreview: result.quotationPreview,
         quotationMeta: result.quotationPreview?.meta,
         autoSyncedFromQuotation: result.synced,
@@ -229,6 +241,9 @@ async function enrichBookingWithQuotation(booking) {
 
   return {
     ...booking,
+    executiveName: booking.executiveName || preview.executiveName || '',
+    quotation: booking.quotation || quotation._id,
+    quotationReference: booking.quotationReference || preview.quotationReference || '',
     quotationPreview: preview,
     quotationMeta: preview.meta,
   };
