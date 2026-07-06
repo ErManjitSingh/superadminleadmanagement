@@ -24,6 +24,9 @@ export function useDataRefresh(keys, onRefresh, enabled = true) {
         if (typeof w === 'string' && w.startsWith('lead:')) {
           return changed?.includes(w) || changed?.includes('leads');
         }
+        if (typeof w === 'string' && w.startsWith('booking:')) {
+          return changed?.includes(w) || changed?.includes('operations');
+        }
         return matchesDataKeys(w, changed);
       });
       if (matched) {

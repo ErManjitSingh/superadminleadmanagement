@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Ticket, Sparkles, Loader2 } from 'lucide-react';
+import { Ticket, Sparkles, Loader2, Hotel, Car } from 'lucide-react';
 import { Button } from '../../ui/button';
 import VoucherCompactCard from './VoucherCompactCard';
 import {
@@ -10,18 +10,47 @@ import {
 
 const SLOT_TYPES = ['hotel', 'transport'];
 
-export default function VoucherCenter({ bookingId, booking: bookingProp, showTimeline = false, TimelineComponent = null }) {
+const SLOT_META = {
+  hotel: {
+    label: 'Hotel Voucher',
+    icon: Hotel,
+    gradient: 'from-violet-600 via-purple-600 to-indigo-700',
+    accent: 'text-violet-600',
+    ring: 'ring-violet-500/20',
+  },
+  transport: {
+    label: 'Cab Voucher',
+    icon: Car,
+    gradient: 'from-sky-600 via-blue-600 to-indigo-700',
+    accent: 'text-sky-600',
+    ring: 'ring-sky-500/20',
+  },
+};
+
+function pickActiveVoucher(activeVouchers, type) {
+  return activeVouchers
+    .filter((v) => v.type === type && v.isActive !== false)
+    .sort((a, b) => (b.version || 0) - (a.version || 0))[0] || null;
+}
+
+export default function VoucherCenter({ bookingId, booking: bookingProp, onUpdated, showTimeline = false, TimelineComponent = null }) {
   const [execution, setExecution] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
 
-  const load = useCallback(() => {
-    if (!bookingId) return;
-    setLoading(true);
-    fetchBookingExecution(bookingId)
-      .then(setExecution)
-      .finally(() => setLoading(false));
-  }, [bookingId]);
+  const load = useCallback((silent = false) => {
+    if (!bookingId) return Promise.resolve();
+    if (!silent) setLoading(true);
+    return fetchBookingExecution(bookingId)
+      .then((data) => {
+        setExecution(data);
+        onUpdated?.(data);
+        return data;
+      })
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
+  }, [bookingId, onUpdated]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -31,7 +60,8 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
   const slots = useMemo(
     () => SLOT_TYPES.map((type) => ({
       type,
-      voucher: activeVouchers.find((v) => v.type === type) || null,
+      meta: SLOT_META[type],
+      voucher: pickActiveVoucher(activeVouchers, type),
     })),
     [activeVouchers],
   );
@@ -40,7 +70,7 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
     setActionLoading(key);
     try {
       await fn();
-      load();
+      await load(true);
     } finally {
       setActionLoading(null);
     }
@@ -67,12 +97,12 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
             <Ticket className="w-5 h-5 text-violet-600" />
             Voucher Center
           </h3>
-          <p className="text-sm text-content-muted mt-0.5">Hotel & cab vouchers — generate and send to partners</p>
+          <p className="text-sm text-content-muted mt-0.5">Hotel & cab vouchers — generate, send & track partners</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
-            className="rounded-xl gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white"
+            className="rounded-xl gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/25"
             disabled={!!actionLoading}
             onClick={() => runAction('all', () => generateAllVouchers(bookingId))}
           >
@@ -82,22 +112,19 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
         </div>
       </div>
 
-      <div className="overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin snap-x snap-mandatory">
-        <div className="flex gap-3 w-max min-w-full pr-2">
-          {slots.map(({ type, voucher }) => (
-            <VoucherCompactCard
-              key={type}
-              type={type}
-              voucher={voucher}
-              booking={booking}
-              generating={actionLoading === type}
-              onRefresh={load}
-              onGenerate={() => (voucher?.pdfUrl || voucher?.htmlUrl)
-                ? window.open(voucher.pdfUrl || voucher.htmlUrl, '_blank')
-                : handleGenerate(type)}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {slots.map(({ type, meta, voucher }) => (
+          <VoucherCompactCard
+            key={type}
+            type={type}
+            meta={meta}
+            voucher={voucher}
+            booking={booking}
+            generating={actionLoading === type}
+            onRefresh={() => load(true)}
+            onGenerate={() => handleGenerate(type)}
+          />
+        ))}
       </div>
 
       {showTimeline && TimelineComponent}

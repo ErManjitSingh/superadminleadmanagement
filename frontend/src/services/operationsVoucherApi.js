@@ -36,6 +36,16 @@ export async function regenerateVoucher(voucherId) {
   return data;
 }
 
+export async function previewVoucherPdf(voucherId) {
+  const { data } = await API.get(`/operations-manager/vouchers/${voucherId}/download`, {
+    responseType: 'blob',
+    skipSuccessToast: true,
+  });
+  const url = URL.createObjectURL(data);
+  window.open(url, '_blank', 'noopener,noreferrer');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
 export async function sendVoucherEmail(voucherId, to) {
   const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-email`, { to });
   return data;

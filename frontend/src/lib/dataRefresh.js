@@ -104,9 +104,11 @@ export function keysFromMutationUrl(url, _method) {
     keys.add('leads');
   }
 
-  if (/\/operations-manager/.test(path) || /\/payments/.test(path)) {
+  if (/\/operations-manager/.test(path) || /\/payments/.test(path) || /\/booking-payments/.test(path)) {
     keys.add('operations');
     keys.add('dashboard');
+    const bookingMatch = path.match(/\/bookings\/([a-f0-9]{24})/);
+    if (bookingMatch) keys.add(`booking:${bookingMatch[1]}`);
   }
 
   if (/\/dashboard/.test(path)) {

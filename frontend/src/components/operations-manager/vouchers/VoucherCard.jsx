@@ -12,6 +12,7 @@ import {
   sendVoucherEmail,
   sendVoucherWhatsApp,
   downloadVoucherPdf,
+  previewVoucherPdf,
 } from '../../../services/operationsVoucherApi';
 
 const TYPE_META = {
@@ -153,10 +154,8 @@ export default function VoucherCard({ voucher, booking, onUpdated }) {
           </Button>
         )}
         {previewUrl && (
-          <Button size="sm" variant="outline" className="rounded-xl h-8 gap-1" asChild>
-            <a href={previewUrl} target="_blank" rel="noreferrer">
-              <Eye className="w-3.5 h-3.5" /> Preview
-            </a>
+          <Button size="sm" variant="outline" className="rounded-xl h-8 gap-1" disabled={!!loading} onClick={() => run('preview', () => previewVoucherPdf(voucher._id))}>
+            {loading === 'preview' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />} Preview
           </Button>
         )}
         <Button

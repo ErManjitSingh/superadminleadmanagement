@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import API from '../../../api/axios';
@@ -22,6 +22,7 @@ import {
   BookingInfoColumns,
 } from './BookingDetailSections';
 import { buildBookingProgressSteps, computeNextPaymentDue } from './bookingDetailUtils';
+import { useDataRefresh } from '../../../hooks/useDataRefresh';
 
 function applyBookingState(data, setters) {
   const { setBooking, setItinerary, setHotels, setTransport } = setters;
@@ -53,13 +54,28 @@ export default function BookingDetailPage() {
 
   const setters = { setBooking, setItinerary, setHotels, setTransport };
 
-  const reloadPayments = () => {
+  const reloadPayments = useCallback(() => {
     getBookingPayments(id).then(setPaymentData).catch(() => setPaymentData(null));
-  };
+  }, [id]);
 
-  const reloadExecution = () => {
+  const reloadExecution = useCallback(() => {
     fetchBookingExecution(id).then(setExecution).catch(() => setExecution(null));
-  };
+  }, [id]);
+
+  const refreshBookingData = useCallback(async (silent = true) => {
+    try {
+      const [bookingRes, exec, payments] = await Promise.all([
+        API.get(`/operations-manager/bookings/${id}`, { skipSuccessToast: true }),
+        fetchBookingExecution(id).catch(() => null),
+        getBookingPayments(id).catch(() => null),
+      ]);
+      if (bookingRes.data) applyBookingState(bookingRes.data, setters);
+      if (exec) setExecution(exec);
+      if (payments) setPaymentData(payments);
+    } catch {
+      if (!silent) setBooking(null);
+    }
+  }, [id]);
 
   const fetchBooking = async () => {
     setLoading(true);
@@ -76,6 +92,8 @@ export default function BookingDetailPage() {
       setLoading(false);
     }
   };
+
+  useDataRefresh(['operations', `booking:${id}`], () => refreshBookingData(true));
 
   useEffect(() => { fetchBooking(); }, [id, user?.role]);
 
@@ -177,7 +195,7 @@ export default function BookingDetailPage() {
         onSync={syncFromQuotation}
       />
 
-      <VoucherCenter bookingId={id} booking={booking} />
+      <VoucherCenter bookingId={id} booking={booking} onUpdated={reloadExecution} />
 
       <BookingInfoColumns booking={booking} />
 
@@ -192,7 +210,7 @@ export default function BookingDetailPage() {
             summary={paymentSummary}
             onUpdated={(updated) => {
               if (updated) setBooking((b) => ({ ...b, ...updated }));
-              reloadPayments();
+              refreshBookingData(true);
             }}
           />
         </div>
@@ -203,7 +221,7 @@ export default function BookingDetailPage() {
         variant="history"
         onUpdated={(updated) => {
           if (updated) setBooking((b) => ({ ...b, ...updated }));
-          reloadPayments();
+          refreshBookingData(true);
         }}
       />
 

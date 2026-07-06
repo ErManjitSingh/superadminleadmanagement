@@ -282,16 +282,27 @@ async function regenerateVoucher(voucherId, actor) {
 }
 
 async function getVoucherPdfBuffer(voucherId) {
-  const voucher = await Voucher.findById(voucherId).lean();
+  let voucher = await Voucher.findById(voucherId).lean();
   if (!voucher) throw new Error('Voucher not found');
+
+  if (!voucher.isActive) {
+    const active = await Voucher.findOne({
+      booking: voucher.booking,
+      type: voucher.type,
+      assignmentIndex: voucher.assignmentIndex,
+      isActive: true,
+    }).lean();
+    if (active) voucher = active;
+  }
+
   let buffer = readPdfBuffer(voucher.filePath);
-  if (!buffer) {
-    const booking = await Booking.findById(voucher.booking).lean();
+  if (!buffer && voucher.isActive) {
     const regen = await generateVoucherForAssignment(voucher.booking, {
       type: voucher.type,
       assignmentIndex: voucher.assignmentIndex,
       force: true,
     });
+    voucher = regen;
     buffer = readPdfBuffer(regen.filePath);
   }
   return { voucher, buffer };
