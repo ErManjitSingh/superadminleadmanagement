@@ -16,6 +16,7 @@ import {
   sendPaymentReminder,
 } from '../../services/bookingPaymentsApi';
 import { useAuth } from '../../context/AuthContext';
+import { useDataRefresh } from '../../hooks/useDataRefresh';
 
 const MODE_LABELS = {
   cash: 'Cash', upi: 'UPI', bank_transfer: 'Bank Transfer',
@@ -52,6 +53,8 @@ export default function BookingPaymentsPanel({
   };
 
   useEffect(() => { load(); }, [bookingId]);
+
+  useDataRefresh(['operations', `booking:${bookingId}`], () => load());
 
   const handleResend = async (paymentId, channel = 'both') => {
     setResending(`${paymentId}-${channel}`);

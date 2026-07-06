@@ -7,6 +7,7 @@ import {
   generateAllVouchers,
   generateVoucher,
 } from '../../../services/operationsVoucherApi';
+import { useDataRefresh } from '../../../hooks/useDataRefresh';
 
 const SLOT_TYPES = ['hotel', 'transport'];
 
@@ -27,32 +28,81 @@ const SLOT_META = {
   },
 };
 
+function normalizeVoucherType(type) {
+  return type === 'cab' ? 'transport' : type;
+}
+
 function pickActiveVoucher(activeVouchers, type) {
+  const slotType = normalizeVoucherType(type);
   return activeVouchers
-    .filter((v) => v.type === type && v.isActive !== false)
+    .filter((v) => normalizeVoucherType(v.type) === slotType && v.isActive !== false)
     .sort((a, b) => (b.version || 0) - (a.version || 0))[0] || null;
 }
 
-export default function VoucherCenter({ bookingId, booking: bookingProp, onUpdated, showTimeline = false, TimelineComponent = null }) {
-  const [execution, setExecution] = useState(null);
+function mergeVoucherIntoExecution(execution, voucher) {
+  if (!execution || !voucher) return execution;
+  const slotType = normalizeVoucherType(voucher.type);
+  const normalizedNew = { ...voucher, type: slotType, isActive: true };
+  const activeVouchers = [
+    ...(execution.activeVouchers || []).filter(
+      (v) => normalizeVoucherType(v.type) !== slotType,
+    ),
+    normalizedNew,
+  ];
+  const vouchers = [
+    ...(execution.vouchers || []).map((v) => (
+      normalizeVoucherType(v.type) === slotType && v.isActive !== false
+        ? { ...v, isActive: false }
+        : v
+    )),
+    normalizedNew,
+  ];
+  return { ...execution, activeVouchers, vouchers };
+}
+
+export default function VoucherCenter({
+  bookingId,
+  booking: bookingProp,
+  execution: executionProp,
+  onExecutionChange,
+  showTimeline = false,
+  TimelineComponent = null,
+}) {
+  const [localExecution, setLocalExecution] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+
+  const execution = executionProp ?? localExecution;
+
+  const commitExecution = useCallback((data) => {
+    setLocalExecution(data);
+    onExecutionChange?.(data);
+  }, [onExecutionChange]);
 
   const load = useCallback((silent = false) => {
     if (!bookingId) return Promise.resolve();
     if (!silent) setLoading(true);
     return fetchBookingExecution(bookingId)
       .then((data) => {
-        setExecution(data);
-        onUpdated?.(data);
+        commitExecution(data);
         return data;
       })
       .finally(() => {
         if (!silent) setLoading(false);
       });
-  }, [bookingId, onUpdated]);
+  }, [bookingId, commitExecution]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!executionProp && bookingId) load();
+  }, [bookingId, executionProp]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useDataRefresh(['operations', `booking:${bookingId}`], () => load(true));
+
+  const patchVoucher = useCallback((voucher) => {
+    const base = executionProp ?? localExecution;
+    if (!base || !voucher) return;
+    commitExecution(mergeVoucherIntoExecution(base, voucher));
+  }, [commitExecution, executionProp, localExecution]);
 
   const booking = execution?.booking || bookingProp;
   const activeVouchers = execution?.activeVouchers || [];
@@ -69,7 +119,11 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, onUpdat
   const runAction = async (key, fn) => {
     setActionLoading(key);
     try {
-      await fn();
+      const result = await fn();
+      if (result) {
+        const list = Array.isArray(result) ? result : [result];
+        list.filter(Boolean).forEach(patchVoucher);
+      }
       await load(true);
     } finally {
       setActionLoading(null);
@@ -78,7 +132,10 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, onUpdat
 
   const handleGenerate = (type) => {
     const index = 0;
-    runAction(type, () => generateVoucher(bookingId, { type: type === 'transport' ? 'transport' : type, assignmentIndex: index }));
+    runAction(type, () => generateVoucher(bookingId, {
+      type: type === 'transport' ? 'transport' : type,
+      assignmentIndex: index,
+    }));
   };
 
   if (loading && !execution) {
@@ -123,6 +180,7 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, onUpdat
             generating={actionLoading === type}
             onRefresh={() => load(true)}
             onGenerate={() => handleGenerate(type)}
+            onVoucherPatched={patchVoucher}
           />
         ))}
       </div>

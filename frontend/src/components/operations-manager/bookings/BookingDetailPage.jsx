@@ -120,23 +120,32 @@ export default function BookingDetailPage() {
 
   const saveItinerary = async () => {
     setSavingItinerary(true);
-    await API.put(`/operations-manager/bookings/${id}`, { itinerary });
-    fetchBooking();
-    setSavingItinerary(false);
+    try {
+      await API.put(`/operations-manager/bookings/${id}`, { itinerary });
+      await refreshBookingData(true);
+    } finally {
+      setSavingItinerary(false);
+    }
   };
 
   const saveHotels = async () => {
     setSavingHotels(true);
-    await API.put(`/operations-manager/bookings/${id}`, { hotels });
-    fetchBooking();
-    setSavingHotels(false);
+    try {
+      await API.put(`/operations-manager/bookings/${id}`, { hotels });
+      await refreshBookingData(true);
+    } finally {
+      setSavingHotels(false);
+    }
   };
 
   const saveTransport = async () => {
     setSavingTransport(true);
-    await API.put(`/operations-manager/bookings/${id}`, { transport });
-    fetchBooking();
-    setSavingTransport(false);
+    try {
+      await API.put(`/operations-manager/bookings/${id}`, { transport });
+      await refreshBookingData(true);
+    } finally {
+      setSavingTransport(false);
+    }
   };
 
   const generateItineraryPdf = async () => {
@@ -195,7 +204,12 @@ export default function BookingDetailPage() {
         onSync={syncFromQuotation}
       />
 
-      <VoucherCenter bookingId={id} booking={booking} onUpdated={reloadExecution} />
+      <VoucherCenter
+        bookingId={id}
+        booking={booking}
+        execution={execution}
+        onExecutionChange={setExecution}
+      />
 
       <BookingInfoColumns booking={booking} />
 

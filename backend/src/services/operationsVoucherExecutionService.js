@@ -547,7 +547,7 @@ async function getBookingExecution(bookingId) {
     TripExecutionEvent.find({ booking: bookingId }).sort({ createdAt: -1 }).limit(100).lean(),
   ]);
 
-  const activeVouchers = vouchers.filter((v) => v.isActive);
+  const activeVouchers = vouchers.filter((v) => v.isActive !== false);
   const progress = computeProgress(booking, activeVouchers);
 
   const operationStatus = progress.currentStage;

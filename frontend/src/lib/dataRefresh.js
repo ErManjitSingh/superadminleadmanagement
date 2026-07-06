@@ -111,6 +111,12 @@ export function keysFromMutationUrl(url, _method) {
     if (bookingMatch) keys.add(`booking:${bookingMatch[1]}`);
   }
 
+  const bookingPaymentsMatch = path.match(/\/booking-payments\/bookings\/([a-f0-9]{24})/);
+  if (bookingPaymentsMatch) {
+    keys.add('operations');
+    keys.add(`booking:${bookingPaymentsMatch[1]}`);
+  }
+
   if (/\/dashboard/.test(path)) {
     keys.add('dashboard');
   }

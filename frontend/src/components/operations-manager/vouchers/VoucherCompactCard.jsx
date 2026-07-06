@@ -18,6 +18,7 @@ export default function VoucherCompactCard({
   onGenerate,
   generating,
   onRefresh,
+  onVoucherPatched,
 }) {
   const [sendChannel, setSendChannel] = useState(null);
   const [previewing, setPreviewing] = useState(false);
@@ -59,10 +60,11 @@ export default function VoucherCompactCard({
     setRegenerating(true);
     try {
       const updated = await regenerateVoucher(voucher._id);
-      await onRefresh?.();
       if (updated?._id) {
+        onVoucherPatched?.(updated);
         await previewVoucherPdf(updated._id);
       }
+      await onRefresh?.();
     } finally {
       setRegenerating(false);
     }
