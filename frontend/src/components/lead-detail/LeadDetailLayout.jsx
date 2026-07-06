@@ -29,9 +29,11 @@ export default function LeadDetailLayout({
   onLogCallNote,
   onAssign,
   onChangeStatus,
+  onConvertLead,
   canCreateFollowUp,
   canEditLead,
   canChangeStatus,
+  canConvertLead,
   editHref,
   headerExtra,
   sidebarExtra,
@@ -59,7 +61,7 @@ export default function LeadDetailLayout({
       <LeadDetailHeader lead={lead} backHref={backHref} backLabel={backLabel} />
       {headerExtra}
       <LeadStatusPipeline status={lead.status} />
-      <LeadConvertedBanner status={lead.status} />
+      <LeadConvertedBanner status={lead.status} leadId={leadId} />
 
       <LeadContactActions
         lead={lead}
@@ -90,6 +92,8 @@ export default function LeadDetailLayout({
             onLogCallNote={onLogCallNote}
             onAssign={onAssign}
             onChangeStatus={onChangeStatus}
+            onConvertLead={onConvertLead}
+            canConvertLead={canConvertLead}
             canCreateFollowUp={canCreateFollowUp}
             canEditLead={canEditLead}
             canChangeStatus={canChangeStatus}

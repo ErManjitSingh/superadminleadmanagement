@@ -3,6 +3,8 @@ import OperationsDashboardHeader from './dashboard/OperationsDashboardHeader';
 import OperationsExecutionHub from './dashboard/OperationsExecutionHub';
 import OperationsKpiCards from './dashboard/OperationsKpiCards';
 import OperationsDashboardCharts from './dashboard/OperationsDashboardCharts';
+import NewBookingsPanel from './dashboard/NewBookingsPanel';
+import OperationsDashboardPanels from './dashboard/OperationsDashboardPanels';
 
 export default function OperationsDashboard() {
   const { data, isLoading, isFetching, isError, error, refetch } = useDashboardQuery('/operations-manager/dashboard');
@@ -43,6 +45,8 @@ export default function OperationsDashboard() {
 
       <OperationsExecutionHub kpis={data?.kpis} hubStats={data?.hubStats} />
 
+      <NewBookingsPanel bookings={data?.newBookings} />
+
       <OperationsKpiCards
         kpis={data?.kpis}
         kpiTrends={data?.kpiTrends}
@@ -55,6 +59,8 @@ export default function OperationsDashboard() {
         bookingsByStatus={data?.bookingsByStatus}
         todaySchedule={data?.todaySchedule}
       />
+
+      <OperationsDashboardPanels data={data} />
     </div>
   );
 }

@@ -415,6 +415,9 @@ const updateLead = asyncHandler(async (req, res) => {
   if (data.status && data.status !== prevStatus && isLeadStatusLocked(prevStatus)) {
     throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
   }
+  if (data.status === 'converted' && data.status !== prevStatus) {
+    throw new ApiError(400, 'Use "Convert Lead" with advance payment to convert this lead into a booking');
+  }
 
   Object.assign(lead, data);
   if (!lead.firstContactAt && (data.status === 'contacted' || ['contacted', 'working_progress', 'follow_up'].includes(nextStatus))) {

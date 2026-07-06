@@ -22,3 +22,10 @@ export const LOCKED_LEAD_STATUSES = ['converted', 'lost', 'booked_from_another_c
 export function isLeadStatusLocked(status) {
   return LOCKED_LEAD_STATUSES.includes(normalizeLeadStatus(status));
 }
+
+/** Pipeline stages where lead can be converted with first advance payment */
+export const CONVERT_ELIGIBLE_STATUSES = ['quotation_sent', 'negotiation', 'follow_up'];
+
+export function canConvertLead(status) {
+  return !isLeadStatusLocked(status) && CONVERT_ELIGIBLE_STATUSES.includes(normalizeLeadStatus(status));
+}

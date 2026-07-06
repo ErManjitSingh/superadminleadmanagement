@@ -18,6 +18,9 @@ import {
   BookingItineraryTimeline,
 } from './BookingFulfillmentSections';
 import VoucherCenter from '../vouchers/VoucherCenter';
+import BookingPaymentsPanel from '../../payments/BookingPaymentsPanel';
+import { acknowledgeNewBooking } from '../../../services/bookingPaymentsApi';
+import { useAuth } from '../../../context/AuthContext';
 
 const DOC_TYPES = [
   { value: 'customer_id', label: 'Customer ID' },
@@ -46,6 +49,7 @@ function applyBookingState(data, setters) {
 
 export default function BookingDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -65,14 +69,22 @@ export default function BookingDetailPage() {
 
   const setters = { setBooking, setItinerary, setHotels, setTransport };
 
-  const fetchBooking = () => {
+  const fetchBooking = async () => {
     setLoading(true);
-    API.get(`/operations-manager/bookings/${id}`)
-      .then((r) => applyBookingState(r.data, setters))
-      .finally(() => setLoading(false));
+    try {
+      const r = await API.get(`/operations-manager/bookings/${id}`);
+      let data = r.data;
+      if (data?.isNewBooking && ['operations_manager', 'admin'].includes(user?.role)) {
+        await acknowledgeNewBooking(id, { skipSuccessToast: true }).catch(() => {});
+        data = { ...data, isNewBooking: false };
+      }
+      applyBookingState(data, setters);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchBooking(); }, [id]);
+  useEffect(() => { fetchBooking(); }, [id, user?.role]);
 
   useEffect(() => {
     Promise.all([
@@ -231,6 +243,11 @@ export default function BookingDetailPage() {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <div className="xl:col-span-8 space-y-6">
+          <BookingPaymentsPanel
+            bookingId={id}
+            onUpdated={(updated) => updated && setBooking((b) => ({ ...b, ...updated }))}
+          />
+
           <BookingItineraryTimeline
             itinerary={itinerary}
             onChange={setItinerary}
@@ -312,16 +329,6 @@ export default function BookingDetailPage() {
             <div className="mt-3 space-y-2 text-sm text-content-secondary">
               <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-teal-600" />{booking.customerPhone || '—'}</p>
               <p className="flex items-center gap-2"><Mail className="w-4 h-4 text-teal-600" />{booking.customerEmail || '—'}</p>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-subtle bg-gradient-to-br from-emerald-500/10 to-teal-500/5 p-5">
-            <h3 className="font-bold mb-3 flex items-center gap-2"><Wallet className="w-4 h-4 text-emerald-600" /> Payment</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-content-muted">Advance</span><span className="font-bold">{formatINR(booking.advanceReceived)}</span></div>
-              <div className="flex justify-between"><span className="text-content-muted">Pending</span><span className="font-bold text-amber-600">{formatINR(booking.pendingAmount)}</span></div>
-              <div className="h-px bg-subtle my-2" />
-              <div className="flex justify-between"><span className="font-medium">Total</span><span className="font-black text-lg">{formatINR(amount)}</span></div>
             </div>
           </div>
 

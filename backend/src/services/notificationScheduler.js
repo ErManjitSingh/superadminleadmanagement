@@ -81,12 +81,15 @@ async function processMissedFollowUps() {
 }
 
 function startNotificationScheduler() {
+  const { processPaymentReminders } = require('./paymentReminderService');
+
   const tick = async () => {
     try {
       await processFollowUpReminders();
       await processMissedFollowUps();
       await processFollowUpEscalations();
       await processSlaBreaches();
+      await processPaymentReminders();
     } catch (err) {
       console.error('[NotificationScheduler]', err.message);
     }

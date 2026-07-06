@@ -29,6 +29,10 @@ const LEAD_ACTIVITY_TYPES = [
   'call_note_added',
   'sla_breached',
   'escalation_created',
+  'advance_payment_received',
+  'payment_received',
+  'receipt_sent',
+  'booking_created',
 ];
 
 const leadActivitySchema = new mongoose.Schema(

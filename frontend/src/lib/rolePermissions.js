@@ -51,11 +51,12 @@ const ROLE_PERMISSIONS = {
   },
   sales_executive: {
     ...noPerms(),
-    leads: { view: true, create: false, edit: false, delete: false },
+    leads: { view: true, create: false, edit: true, delete: false },
     customers: { view: true, create: false, edit: false, delete: false },
     quotations: { view: true, create: true, edit: true, delete: false, approve: false },
     reports: { view: true, export: false },
     packages: { view: true, create: false, edit: false, delete: false },
+    payments: { view: true, create: false, edit: false, delete: false },
     whatsapp: { use: true, manage: false },
     email: { send: true, manage: false },
   },
@@ -68,6 +69,7 @@ const ROLE_PERMISSIONS = {
   operations_manager: {
     ...noPerms(),
     packages: { view: true, create: true, edit: true, delete: true },
+    payments: { view: true, create: true, edit: true, delete: false },
     operations: {
       view: true,
       create: true,

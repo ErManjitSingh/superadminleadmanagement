@@ -28,6 +28,10 @@ const ACTIVITY_TITLES = {
   call_note_added: 'Call Note Added',
   sla_breached: 'SLA Breached',
   escalation_created: 'Escalation Created',
+  advance_payment_received: 'Advance Payment Received',
+  payment_received: 'Payment Received',
+  receipt_sent: 'Receipt Sent',
+  booking_created: 'Booking Created',
 };
 
 async function logLeadActivity({

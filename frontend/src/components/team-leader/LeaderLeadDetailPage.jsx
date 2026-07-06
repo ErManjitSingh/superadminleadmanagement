@@ -10,6 +10,8 @@ import { useLeadReactivate } from '../../hooks/useLeadReactivate';
 import AdminAssignLeadModal from '../leads/AdminAssignLeadModal';
 import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import { LeadDetailLayout } from '../lead-detail';
+import ConvertLeadModal from '../payments/ConvertLeadModal';
+import { canConvertLead } from '../../utils/leadUtils';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 import LeadEmailHistory from '../email/LeadEmailHistory';
 
@@ -19,6 +21,7 @@ export default function LeaderLeadDetailPage() {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [executives, setExecutives] = useState([]);
 
   const loadLead = useCallback(() => {
@@ -104,6 +107,8 @@ export default function LeaderLeadDetailPage() {
         onContactLogged={loadLead}
         onEmailSent={loadLead}
         onAssign={() => setAssignOpen(true)}
+        onConvertLead={canConvertLead(lead.status) ? () => setConvertModalOpen(true) : undefined}
+        canConvertLead={canConvertLead(lead.status)}
         headerExtra={headerExtra}
         sidebarExtra={sidebarExtra}
         bottomExtra={(
@@ -128,6 +133,19 @@ export default function LeaderLeadDetailPage() {
         executives={executives}
         onClose={reactivate.close}
         onSubmit={reactivate.submit}
+      />
+
+      <ConvertLeadModal
+        open={convertModalOpen}
+        onClose={() => setConvertModalOpen(false)}
+        leadId={id}
+        onSuccess={async (result) => {
+          setConvertModalOpen(false);
+          await loadLead();
+          if (result?.booking?._id) {
+            navigate(`/operations-manager/booking/${result.booking._id}`);
+          }
+        }}
       />
     </motion.div>
   );

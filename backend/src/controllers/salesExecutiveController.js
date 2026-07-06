@@ -159,6 +159,9 @@ const updateLead = asyncHandler(async (req, res) => {
   if (isLeadStatusLocked(lead.status)) {
     throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
   }
+  if (status === 'converted') {
+    throw new ApiError(400, 'Use "Convert Lead" with advance payment to convert this lead into a booking');
+  }
 
   const prevStatus = lead.status;
   lead.status = status;

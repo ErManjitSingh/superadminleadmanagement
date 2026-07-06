@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Phone, CalendarPlus, UserCheck, Pencil } from 'lucide-react';
+import { Phone, CalendarPlus, UserCheck, Pencil, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { DETAIL_CARD } from './leadDetailUtils';
@@ -14,9 +14,11 @@ export default function LeadActionPanel({
   onLogCallNote,
   onAssign,
   onChangeStatus,
+  onConvertLead,
   canCreateFollowUp = true,
   canEditLead = true,
   canChangeStatus = true,
+  canConvertLead = false,
   editHref,
 }) {
   return (
@@ -57,6 +59,15 @@ export default function LeadActionPanel({
             </button>
           );
         })}
+        {canConvertLead && onConvertLead && (
+          <Button
+            type="button"
+            onClick={onConvertLead}
+            className="w-full rounded-xl justify-start gap-2.5 h-auto py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 font-bold shadow-lg shadow-violet-500/20"
+          >
+            <Sparkles className="w-4 h-4" /> Convert Lead
+          </Button>
+        )}
         {canChangeStatus && onChangeStatus && (
           <Button
             type="button"

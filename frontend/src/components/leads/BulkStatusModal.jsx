@@ -29,7 +29,7 @@ export default function BulkStatusModal({ open, onClose, count, onSubmit }) {
           </p>
         </div>
         <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
-          {LEAD_STATUSES.map((s) => (
+          {LEAD_STATUSES.filter((s) => s.value !== 'converted').map((s) => (
             <button
               key={s.value}
               type="button"

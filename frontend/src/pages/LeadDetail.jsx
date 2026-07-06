@@ -25,7 +25,8 @@ import MergeLeadModal from '../components/leads/MergeLeadModal';
 import { checkLeadDuplicate } from '../services/leadEnterpriseApi';
 import LeadEmailHistory from '../components/email/LeadEmailHistory';
 import AddFollowUpModal from '../components/followups/AddFollowUpModal';
-import { createExecutiveFollowUp, buildFollowUpPayload } from '../components/followups/followupApi';
+import { canConvertLead } from '../utils/leadUtils';
+import ConvertLeadModal from '../components/payments/ConvertLeadModal';
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -43,6 +44,7 @@ export default function LeadDetail() {
   const [reactivationExecs, setReactivationExecs] = useState([]);
   const [callNoteOpen, setCallNoteOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [hasDuplicates, setHasDuplicates] = useState(false);
   const leadQuery = useLeadQuery(id);
 
@@ -164,6 +166,8 @@ export default function LeadDetail() {
         onEmailSent={refreshLead}
         onLogCallNote={() => setCallNoteOpen(true)}
         onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
+        onConvertLead={canEditLead && canConvertLead(lead.status) ? () => setConvertModalOpen(true) : undefined}
+        canConvertLead={canEditLead && canConvertLead(lead.status)}
         canCreateFollowUp={canCreateFollowUp}
         canEditLead={canEditLead}
         editHref={canEditLead ? `/leads/${id}/edit` : undefined}
@@ -224,6 +228,19 @@ export default function LeadDetail() {
         executives={reactivationExecs}
         onClose={() => setReactivationMode('')}
         onSubmit={handleReactivationAction}
+      />
+
+      <ConvertLeadModal
+        open={convertModalOpen}
+        onClose={() => setConvertModalOpen(false)}
+        leadId={id}
+        onSuccess={async (result) => {
+          setConvertModalOpen(false);
+          await refreshLead();
+          if (result?.booking?._id) {
+            navigate(`/operations-manager/booking/${result.booking._id}`);
+          }
+        }}
       />
     </motion.div>
   );

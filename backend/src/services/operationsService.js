@@ -199,7 +199,7 @@ async function buildDashboard(branchId) {
       { $group: { _id: '$branchId', count: { $sum: 1 } } },
     ]),
     Booking.find(base).sort({ createdAt: -1 }).limit(8).select(
-      'bookingNumber customerName destination travelDate returnDate status totalAmount hotelConfirmation cabConfirmation'
+      'bookingNumber customerName destination travelDate returnDate status totalAmount hotelConfirmation cabConfirmation advanceReceived totalPaid remainingBalance paymentStatus paymentProgress isNewBooking priority operationsStatus'
     ).lean(),
     TripTask.countDocuments({ status: { $in: ['pending', 'in_progress'] } }),
     Booking.find({
@@ -378,6 +378,11 @@ async function buildDashboard(branchId) {
       },
     },
     recentBookings,
+    newBookings: await Booking.find({ ...base, isNewBooking: true })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('bookingNumber customerName destination travelDate returnDate status totalAmount advanceReceived totalPaid remainingBalance paymentStatus paymentProgress isNewBooking priority operationsStatus')
+      .lean(),
     pendingConfirmations,
     openTickets: openTicketsList,
     upcomingTrips: await Booking.find({
@@ -897,13 +902,18 @@ async function listBookings(query = {}, { branchId } = {}) {
 
 async function createBooking(payload, actor) {
   const bookingNumber = await nextBookingNumber();
-  const pendingAmount = Math.max(0, Number(payload.totalAmount || 0) - Number(payload.advanceReceived || 0));
+  const advance = Number(payload.advanceReceived || 0);
+  const total = Number(payload.totalAmount || 0);
+  const pendingAmount = Math.max(0, total - advance);
 
   const booking = await Booking.create({
     ...payload,
     bookingNumber,
     status: payload.status || 'booking_received',
     pendingAmount,
+    remainingBalance: payload.remainingBalance ?? pendingAmount,
+    totalPaid: payload.totalPaid ?? advance,
+    paymentProgress: payload.paymentProgress ?? (total > 0 ? Math.round((advance / total) * 100) : 0),
     assignedTo: payload.assignedTo || actor?._id,
     createdBy: actor?._id,
   });

@@ -14,7 +14,10 @@ const BOOKING_STATUSES = [
   'pending',
 ];
 
-const PAYMENT_STATUSES = ['pending', 'partial', 'paid', 'refund_pending', 'refund_completed'];
+const PAYMENT_STATUSES = ['pending', 'partial', 'paid', 'overdue', 'refund_pending', 'refund_completed'];
+
+const OPERATIONS_STATUSES = ['new', 'in_progress', 'ready', 'completed'];
+const BOOKING_PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 
 const hotelAssignmentSchema = new mongoose.Schema(
   {
@@ -163,8 +166,18 @@ const bookingSchema = new mongoose.Schema(
     voucherStatus: { type: String, default: 'pending' },
     totalAmount: { type: Number, default: 0 },
     advanceReceived: { type: Number, default: 0 },
+    totalPaid: { type: Number, default: 0 },
     pendingAmount: { type: Number, default: 0 },
+    remainingBalance: { type: Number, default: 0 },
+    paymentProgress: { type: Number, default: 0, min: 0, max: 100 },
+    receiptIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'BookingPayment' }],
+    firstAdvancePaymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'BookingPayment' },
+    isNewBooking: { type: Boolean, default: true, index: true },
+    priority: { type: String, enum: BOOKING_PRIORITIES, default: 'normal' },
+    operationsStatus: { type: String, enum: OPERATIONS_STATUSES, default: 'new' },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    operationsManagerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     archivedAt: { type: Date, index: true },
   },
   { timestamps: true }
@@ -181,3 +194,5 @@ bookingSchema.plugin(tenantPlugin);
 module.exports = mongoose.model('Booking', bookingSchema);
 module.exports.BOOKING_STATUSES = BOOKING_STATUSES;
 module.exports.PAYMENT_STATUSES = PAYMENT_STATUSES;
+module.exports.OPERATIONS_STATUSES = OPERATIONS_STATUSES;
+module.exports.BOOKING_PRIORITIES = BOOKING_PRIORITIES;

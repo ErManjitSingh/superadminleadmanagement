@@ -9,7 +9,9 @@ import { LeadDetailLayout } from '../lead-detail';
 import AddFollowUpModal from '../followups/AddFollowUpModal';
 import { createExecutiveFollowUp, buildFollowUpPayload } from '../followups/followupApi';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
-import { isLeadStatusLocked } from '../../utils/leadUtils';
+import { isLeadStatusLocked, canConvertLead } from '../../utils/leadUtils';
+
+import ConvertLeadModal from '../payments/ConvertLeadModal';
 
 const STATUSES = [
   'new',
@@ -18,7 +20,6 @@ const STATUSES = [
   'follow_up',
   'quotation_sent',
   'negotiation',
-  'converted',
   'lost',
   'booked_from_another_company',
 ];
@@ -30,6 +31,7 @@ export default function ExecutiveLeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [followUpModalOpen, setFollowUpModalOpen] = useState(false);
   const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [modalStatus, setModalStatus] = useState('contacted');
   const [modalStatusReason, setModalStatusReason] = useState('');
 
@@ -121,7 +123,22 @@ export default function ExecutiveLeadDetailPage() {
           setModalStatusReason(lead.statusReason || '');
           setStatusModalOpen(true);
         } : undefined}
+        onConvertLead={!isLeadStatusLocked(lead.status) ? () => setConvertModalOpen(true) : undefined}
+        canConvertLead={canConvertLead(lead.status)}
         canChangeStatus={!isLeadStatusLocked(lead.status)}
+      />
+
+      <ConvertLeadModal
+        open={convertModalOpen}
+        onClose={() => setConvertModalOpen(false)}
+        leadId={id}
+        onSuccess={async (result) => {
+          setConvertModalOpen(false);
+          await loadLead();
+          if (result?.booking?._id) {
+            navigate(`/operations-manager/booking/${result.booking._id}`);
+          }
+        }}
       />
 
       <AddFollowUpModal

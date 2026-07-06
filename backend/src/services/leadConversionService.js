@@ -94,30 +94,16 @@ async function onLeadConverted(lead, actor) {
     return { booking: existingBooking, skipped: true };
   }
 
-  let quotation = await pickQuotationForLead(lead._id);
-  quotation = await ensureQuotationApproved(quotation, actor);
-
-  if (quotation) {
-    const total = quotation.pricing?.total || quotation.costing?.grandTotal || 0;
-    if (total > 0 && (!lead.budget || lead.budget < total)) {
-      lead.budget = total;
-      await Lead.findByIdAndUpdate(lead._id, { budget: total });
-    }
-  }
-
-  const payment = await ensurePaymentForConversion(lead, quotation, actor);
-  const booking = await createBookingFromPayment(payment._id, actor);
-
-  if (booking) {
-    await notifyOperationsTeam(lead, booking);
-  }
-
+  // Booking creation now requires advance payment via convertLeadWithAdvancePayment.
+  // Status-only conversion no longer auto-creates bookings or stub payments.
   invalidateDashboards();
-  return { booking, payment, quotation };
+  return { booking: null, requiresPayment: true };
 }
 
 module.exports = {
   onLeadConverted,
   isLeadStatusLocked,
   TERMINAL_STATUSES,
+  pickQuotationForLead,
+  ensureQuotationApproved,
 };

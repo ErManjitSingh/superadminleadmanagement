@@ -281,7 +281,7 @@ function App() {
               <Route path="team" element={<PermissionRoute module="users"><Team /></PermissionRoute>} />
               <Route path="team/users/:id" element={<PermissionRoute module="users"><TeamUserProfile /></PermissionRoute>} />
               <Route path="reports" element={<PermissionRoute module="reports"><Reports /></PermissionRoute>} />
-              <Route path="payments/*" element={<RoleRoute roles={['admin', 'accountant']}><Payments /></RoleRoute>} />
+              <Route path="payments/*" element={<RoleRoute roles={['admin', 'accountant', 'operations_manager']}><Payments /></RoleRoute>} />
               <Route path="calendar" element={<ComingSoon title="Calendar" description="Travel dates, follow-ups, and team schedule" />} />
               <Route path="notifications" element={<PermissionRoute module="leads"><Notifications /></PermissionRoute>} />
               <Route path="settings" element={<SettingsPage />} />
