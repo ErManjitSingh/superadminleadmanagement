@@ -9,6 +9,7 @@ import { getVoucherTypeImage } from '../bookings/bookingDetailUtils';
 import VoucherSendModal from './VoucherSendModal';
 import { previewVoucherPdf, regenerateVoucher } from '../../../services/operationsVoucherApi';
 import { formatDate } from '../operationsUtils';
+import { toast } from '../../../context/ToastContext';
 
 export default function VoucherCompactCard({
   type,
@@ -50,6 +51,8 @@ export default function VoucherCompactCard({
     setPreviewing(true);
     try {
       await previewVoucherPdf(voucher._id);
+    } catch (err) {
+      toast.error(err?.message || 'Could not open voucher PDF');
     } finally {
       setPreviewing(false);
     }

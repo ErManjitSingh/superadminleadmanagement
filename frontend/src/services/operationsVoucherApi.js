@@ -37,13 +37,39 @@ export async function regenerateVoucher(voucherId) {
 }
 
 export async function previewVoucherPdf(voucherId) {
-  const { data } = await API.get(`/operations-manager/vouchers/${voucherId}/download`, {
-    responseType: 'blob',
-    skipSuccessToast: true,
-  });
-  const url = URL.createObjectURL(data);
-  window.open(url, '_blank', 'noopener,noreferrer');
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  try {
+    const { data } = await API.get(`/operations-manager/vouchers/${voucherId}/download`, {
+      responseType: 'blob',
+      skipSuccessToast: true,
+      skipErrorToast: true,
+    });
+    if (data?.type && data.type !== 'application/pdf') {
+      const text = await data.text();
+      let message = 'PDF could not be loaded';
+      try {
+        const parsed = JSON.parse(text);
+        message = parsed.message || message;
+      } catch {
+        if (text) message = text;
+      }
+      throw new Error(message);
+    }
+    const url = URL.createObjectURL(data);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (err) {
+    const blob = err.response?.data;
+    if (blob instanceof Blob) {
+      const text = await blob.text();
+      try {
+        const parsed = JSON.parse(text);
+        throw new Error(parsed.message || 'PDF could not be loaded');
+      } catch (parseErr) {
+        if (parseErr.message && !parseErr.message.startsWith('Unexpected')) throw parseErr;
+      }
+    }
+    throw new Error(err.response?.data?.message || err.message || 'PDF could not be loaded');
+  }
 }
 
 export async function sendVoucherEmail(voucherId, to) {

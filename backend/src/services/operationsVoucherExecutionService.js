@@ -281,30 +281,54 @@ async function regenerateVoucher(voucherId, actor) {
   });
 }
 
+async function repairVoucherPdfFile(voucher) {
+  const booking = await Booking.findById(voucher.booking).lean();
+  if (!booking) return { voucher, buffer: null };
+
+  let payload = voucher.payload;
+  if (!payload || !Object.keys(payload).length) {
+    payload = extractPayload(booking, voucher.type, voucher.assignmentIndex || 0) || {};
+  }
+
+  const fileMeta = await generateVoucherPdfFile(voucher, booking, payload);
+  const buffer = readPdfBuffer(fileMeta?.filePath);
+  if (!buffer) return { voucher, buffer: null };
+
+  await Voucher.findByIdAndUpdate(voucher._id, {
+    filePath: fileMeta.filePath,
+    fileName: fileMeta.fileName,
+    fileSize: fileMeta.fileSize,
+    pdfUrl: fileMeta.pdfUrl,
+    mimeType: 'application/pdf',
+  });
+
+  return {
+    voucher: { ...voucher, ...fileMeta },
+    buffer,
+  };
+}
+
 async function getVoucherPdfBuffer(voucherId) {
   let voucher = await Voucher.findById(voucherId).lean();
   if (!voucher) throw new Error('Voucher not found');
 
-  if (!voucher.isActive) {
+  if (voucher.isActive === false) {
     const active = await Voucher.findOne({
       booking: voucher.booking,
       type: voucher.type,
-      assignmentIndex: voucher.assignmentIndex,
-      isActive: true,
-    }).lean();
+      assignmentIndex: voucher.assignmentIndex ?? 0,
+      isActive: { $ne: false },
+    }).sort({ version: -1 }).lean();
     if (active) voucher = active;
   }
 
   let buffer = readPdfBuffer(voucher.filePath);
-  if (!buffer && voucher.isActive) {
-    const regen = await generateVoucherForAssignment(voucher.booking, {
-      type: voucher.type,
-      assignmentIndex: voucher.assignmentIndex,
-      force: true,
-    });
-    voucher = regen;
-    buffer = readPdfBuffer(regen.filePath);
+  if (!buffer) {
+    const repaired = await repairVoucherPdfFile(voucher);
+    voucher = repaired.voucher;
+    buffer = repaired.buffer;
   }
+
   return { voucher, buffer };
 }
 
