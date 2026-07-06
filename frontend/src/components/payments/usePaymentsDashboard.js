@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getPaymentsDashboard } from '../services/bookingPaymentsApi';
+import { getPaymentsDashboard } from '../../services/bookingPaymentsApi';
 
 export function usePaymentsDashboard() {
   const [data, setData] = useState(null);
