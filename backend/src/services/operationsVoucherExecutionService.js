@@ -228,7 +228,7 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
     fileMeta = await generateVoucherPdfFile(voucherDoc, booking, payload || {});
   }
 
-  const htmlUrl = normalizedType === 'travel_kit' ? '' : generateVoucherDocument(voucherDoc, booking);
+  const htmlUrl = normalizedType === 'travel_kit' ? '' : await generateVoucherDocument(voucherDoc, booking);
 
   const voucher = await Voucher.create({
     ...voucherDoc,
