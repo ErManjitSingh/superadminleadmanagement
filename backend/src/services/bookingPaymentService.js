@@ -193,9 +193,12 @@ async function processPaymentSideEffects(paymentRecord, booking, actor, { sendRe
     paymentMode: paymentRecord.mode,
   });
 
+  let emailResult = null;
+  let waResult = null;
+
   if (sendReceipt) {
     const updatedPayment = await BookingPayment.findById(paymentRecord._id).lean();
-    const emailResult = await sendPaymentReceiptEmail(updatedPayment, booking, actor).catch((err) => {
+    emailResult = await sendPaymentReceiptEmail(updatedPayment, booking, actor).catch((err) => {
       console.error('[PaymentEmail]', err.message);
       return { sent: false };
     });
@@ -215,7 +218,7 @@ async function processPaymentSideEffects(paymentRecord, booking, actor, { sendRe
       });
     }
 
-    const waResult = await sendPaymentReceiptWhatsApp(updatedPayment, booking, actor).catch((err) => {
+    waResult = await sendPaymentReceiptWhatsApp(updatedPayment, booking, actor).catch((err) => {
       console.error('[PaymentWhatsApp]', err.message);
       return { sent: false };
     });
@@ -247,7 +250,10 @@ async function processPaymentSideEffects(paymentRecord, booking, actor, { sendRe
     }
   }
 
-  return receipt;
+  return {
+    receipt,
+    delivery: sendReceipt ? { email: emailResult, whatsapp: waResult } : null,
+  };
 }
 
 async function recordBookingPayment(bookingId, data, actor, { isFirstAdvance = false, sendReceipt = true } = {}) {
@@ -319,7 +325,7 @@ async function recordBookingPayment(bookingId, data, actor, { isFirstAdvance = f
     });
   }
 
-  await processPaymentSideEffects(paymentRecord, syncedBooking, actor, { sendReceipt });
+  const sideEffects = await processPaymentSideEffects(paymentRecord, syncedBooking, actor, { sendReceipt });
 
   if (syncedBooking.paymentStatus === 'paid') {
     await logPaymentEvent({
@@ -335,7 +341,12 @@ async function recordBookingPayment(bookingId, data, actor, { isFirstAdvance = f
   }
 
   invalidateDashboards();
-  return { payment: await BookingPayment.findById(paymentRecord._id).lean(), booking: syncedBooking };
+  return {
+    payment: await BookingPayment.findById(paymentRecord._id).lean(),
+    booking: syncedBooking,
+    delivery: sideEffects.delivery,
+    receipt: sideEffects.receipt,
+  };
 }
 
 async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {

@@ -31,6 +31,16 @@ export async function addBookingPayment(bookingId, payload) {
 
 export async function resendPaymentReceipt(bookingId, paymentId, channel = 'both') {
   const { data } = await API.post(`/booking-payments/bookings/${bookingId}/payments/${paymentId}/resend`, { channel });
+  const wa = data?.results?.whatsapp;
+  if ((channel === 'whatsapp' || channel === 'both') && wa?.waMeUrl) {
+    const { openWhatsAppWithPdf } = await import('../lib/shareWhatsAppPdf');
+    await openWhatsAppWithPdf({
+      waMeUrl: wa.waMeUrl,
+      pdfBase64: wa.pdfBase64,
+      fileName: wa.fileName || 'receipt.pdf',
+      message: wa.message,
+    });
+  }
   return data;
 }
 

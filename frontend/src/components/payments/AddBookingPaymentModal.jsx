@@ -4,6 +4,7 @@ import AppModal from '../ui/AppModal';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { addBookingPayment, PAYMENT_MODES } from '../../services/bookingPaymentsApi';
+import { openWhatsAppWithPdf } from '../../lib/shareWhatsAppPdf';
 
 export default function AddBookingPaymentModal({ open, onClose, bookingId, onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
@@ -52,6 +53,14 @@ export default function AddBookingPaymentModal({ open, onClose, bookingId, onSuc
         amount: Number(form.amount),
         sendReceipt: withReceipt,
       });
+      if (withReceipt && result?.delivery?.whatsapp?.waMeUrl) {
+        await openWhatsAppWithPdf({
+          waMeUrl: result.delivery.whatsapp.waMeUrl,
+          pdfBase64: result.delivery.whatsapp.pdfBase64,
+          fileName: result.delivery.whatsapp.fileName || 'receipt.pdf',
+          message: result.delivery.whatsapp.message,
+        });
+      }
       onSuccess?.(result);
       reset();
       onClose?.();

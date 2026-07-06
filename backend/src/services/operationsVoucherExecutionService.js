@@ -303,18 +303,28 @@ async function sendVoucherEmail(voucherId, actor, { to } = {}) {
 
   const booking = await Booking.findById(voucher.booking).lean();
   const recipient = to || booking?.customerEmail;
-  if (!recipient) throw new Error('Customer email is required');
+  if (!recipient) throw new Error('Recipient email is required');
 
   if (!isEmailConfigured()) throw new Error('SMTP is not configured');
 
-  const subject = `Your ${voucher.type} voucher — ${booking.destination}`;
-  const html = `
-    <p>Hello ${booking.customerName},</p>
-    <p>Your travel voucher is attached.</p>
-    <p><strong>Destination:</strong> ${booking.destination}<br/>
-    <strong>Travel Date:</strong> ${new Date(booking.travelDate).toLocaleDateString('en-IN')}</p>
-    <p>Team ${branding.brandName}</p>
-  `;
+  const isVendor = recipient !== booking?.customerEmail;
+  const typeLabel = voucher.type === 'hotel' ? 'Hotel' : voucher.type === 'transport' ? 'Cab / Transport' : 'Travel';
+  const subject = isVendor
+    ? `${typeLabel} Booking Voucher — ${booking.bookingNumber}`
+    : `Your ${voucher.type} voucher — ${booking.destination}`;
+  const html = isVendor
+    ? `<p>Hello,</p>
+       <p>Please find the ${typeLabel.toLowerCase()} booking voucher attached for booking <strong>${booking.bookingNumber}</strong>.</p>
+       <p><strong>Guest:</strong> ${booking.customerName}<br/>
+       <strong>Destination:</strong> ${booking.destination}<br/>
+       <strong>Travel Date:</strong> ${new Date(booking.travelDate).toLocaleDateString('en-IN')}</p>
+       <p>Kindly confirm via the vendor link in the voucher.</p>
+       <p>Team ${branding.brandName}</p>`
+    : `<p>Hello ${booking.customerName},</p>
+       <p>Your travel voucher is attached.</p>
+       <p><strong>Destination:</strong> ${booking.destination}<br/>
+       <strong>Travel Date:</strong> ${new Date(booking.travelDate).toLocaleDateString('en-IN')}</p>
+       <p>Team ${branding.brandName}</p>`;
 
   await sendMailMessage({
     to: recipient,
@@ -366,19 +376,39 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
   const { voucher, buffer } = await getVoucherPdfBuffer(voucherId);
   const booking = await Booking.findById(voucher.booking).lean();
   const recipientPhone = normalizePhone(phone || booking?.customerPhone);
-  if (!recipientPhone) throw new Error('Customer phone is required');
+  if (!recipientPhone) throw new Error('Recipient phone is required');
 
-  const message = [
-    `Hello ${booking.customerName}`,
-    '',
-    'Your travel voucher is attached.',
-    '',
-    `Destination:\n${booking.destination}`,
-    '',
-    `Travel Date:\n${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
-    '',
-    `Team ${branding.brandName}`,
-  ].join('\n');
+  const payload = voucher.payload || {};
+  const isVendor = phone && normalizePhone(phone) !== normalizePhone(booking?.customerPhone);
+  const typeLabel = voucher.type === 'hotel' ? 'Hotel' : voucher.type === 'transport' ? 'Cab' : 'Travel';
+
+  const message = isVendor
+    ? [
+        `Hello,`,
+        '',
+        `${typeLabel} booking voucher for ${booking.bookingNumber}.`,
+        '',
+        `Guest: ${booking.customerName}`,
+        `Destination: ${booking.destination}`,
+        `Travel Date: ${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
+        voucher.type === 'hotel' ? `Hotel: ${payload.hotelName || payload.name || ''}` : '',
+        voucher.type === 'transport' ? `Driver: ${payload.driverName || ''}` : '',
+        '',
+        'Please find the voucher attached and confirm via the link inside.',
+        '',
+        `Team ${branding.brandName}`,
+      ].filter(Boolean).join('\n')
+    : [
+        `Hello ${booking.customerName}`,
+        '',
+        'Your travel voucher is attached.',
+        '',
+        `Destination:\n${booking.destination}`,
+        '',
+        `Travel Date:\n${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
+        '',
+        `Team ${branding.brandName}`,
+      ].join('\n');
 
   const now = new Date();
   await Voucher.findByIdAndUpdate(voucherId, {

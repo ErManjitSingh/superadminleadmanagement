@@ -1,4 +1,5 @@
 import API from '../api/axios';
+import { openWhatsAppWithPdf } from '../lib/shareWhatsAppPdf';
 
 export async function fetchVoucherAnalytics() {
   const { data } = await API.get('/operations-manager/vouchers/analytics', { skipSuccessToast: true });
@@ -40,30 +41,15 @@ export async function sendVoucherEmail(voucherId, to) {
   return data;
 }
 
-function base64ToBlob(base64, mime) {
-  const bytes = atob(base64);
-  const arr = new Uint8Array(bytes.length);
-  for (let i = 0; i < bytes.length; i += 1) arr[i] = bytes.charCodeAt(i);
-  return new Blob([arr], { type: mime });
-}
-
 export async function sendVoucherWhatsApp(voucherId, phone) {
   const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-whatsapp`, { phone });
 
-  if (data.pdfBase64 && typeof navigator !== 'undefined' && navigator.share) {
-    try {
-      const blob = base64ToBlob(data.pdfBase64, 'application/pdf');
-      const file = new File([blob], data.fileName || 'voucher.pdf', { type: 'application/pdf' });
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text: data.message });
-        return data;
-      }
-    } catch {
-      // fall through to wa.me
-    }
-  }
-
-  if (data.waMeUrl) window.open(data.waMeUrl, '_blank');
+  await openWhatsAppWithPdf({
+    waMeUrl: data.waMeUrl,
+    pdfBase64: data.pdfBase64,
+    fileName: data.fileName || 'voucher.pdf',
+    message: data.message,
+  });
   return data;
 }
 

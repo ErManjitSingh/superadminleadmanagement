@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Download, Eye, Send, Loader2, Plus, IndianRupee, Bell, Mail, FileText, StickyNote,
+  Download, Eye, Loader2, Plus, IndianRupee, Bell, Mail, FileText, StickyNote, MessageCircle,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
@@ -53,10 +53,10 @@ export default function BookingPaymentsPanel({
 
   useEffect(() => { load(); }, [bookingId]);
 
-  const handleResend = async (paymentId) => {
-    setResending(paymentId);
+  const handleResend = async (paymentId, channel = 'both') => {
+    setResending(`${paymentId}-${channel}`);
     try {
-      await resendPaymentReceipt(bookingId, paymentId);
+      await resendPaymentReceipt(bookingId, paymentId, channel);
     } finally {
       setResending(null);
     }
@@ -173,8 +173,11 @@ export default function BookingPaymentsPanel({
                       <button type="button" onClick={() => downloadReceiptPdf(bookingId, p._id, p.receiptFileName || `${p.receiptNumber}.pdf`)} className="p-2 rounded-lg hover:bg-slate-100 text-content-secondary" title="Download">
                         <Download className="w-4 h-4" />
                       </button>
-                      <button type="button" onClick={() => handleResend(p._id)} disabled={resending === p._id} className="p-2 rounded-lg hover:bg-emerald-100 text-emerald-600" title="Share">
-                        {resending === p._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                      <button type="button" onClick={() => handleResend(p._id, 'whatsapp')} disabled={resending === `${p._id}-whatsapp`} className="p-2 rounded-lg hover:bg-emerald-100 text-emerald-600" title="Send WhatsApp">
+                        {resending === `${p._id}-whatsapp` ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />}
+                      </button>
+                      <button type="button" onClick={() => handleResend(p._id, 'email')} disabled={resending === `${p._id}-email`} className="p-2 rounded-lg hover:bg-violet-100 text-violet-600" title="Send Email">
+                        {resending === `${p._id}-email` ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
                       </button>
                     </div>
                   </td>

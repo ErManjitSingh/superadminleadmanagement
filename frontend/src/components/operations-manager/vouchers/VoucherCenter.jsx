@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Ticket, Sparkles, BookOpen, Loader2 } from 'lucide-react';
+import { Ticket, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import VoucherCompactCard from './VoucherCompactCard';
 import {
   fetchBookingExecution,
   generateAllVouchers,
-  generateTravelKit,
   generateVoucher,
 } from '../../../services/operationsVoucherApi';
 
-const SLOT_TYPES = ['hotel', 'transport', 'activity', 'flight', 'travel_kit'];
+const SLOT_TYPES = ['hotel', 'transport'];
 
 export default function VoucherCenter({ bookingId, booking: bookingProp, showTimeline = false, TimelineComponent = null }) {
   const [execution, setExecution] = useState(null);
@@ -48,10 +47,6 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
   };
 
   const handleGenerate = (type) => {
-    if (type === 'travel_kit') {
-      runAction('kit', () => generateTravelKit(bookingId));
-      return;
-    }
     const index = 0;
     runAction(type, () => generateVoucher(bookingId, { type: type === 'transport' ? 'transport' : type, assignmentIndex: index }));
   };
@@ -72,7 +67,7 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
             <Ticket className="w-5 h-5 text-violet-600" />
             Voucher Center
           </h3>
-          <p className="text-sm text-content-muted mt-0.5">Generate, send and track all trip vouchers</p>
+          <p className="text-sm text-content-muted mt-0.5">Hotel & cab vouchers — generate and send to partners</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -83,16 +78,6 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
           >
             {actionLoading === 'all' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
             Generate All
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-xl gap-2"
-            disabled={!!actionLoading}
-            onClick={() => runAction('kit', () => generateTravelKit(bookingId))}
-          >
-            {actionLoading === 'kit' ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
-            Travel Kit PDF
           </Button>
         </div>
       </div>
@@ -106,6 +91,7 @@ export default function VoucherCenter({ bookingId, booking: bookingProp, showTim
               voucher={voucher}
               booking={booking}
               generating={actionLoading === type}
+              onRefresh={load}
               onGenerate={() => (voucher?.pdfUrl || voucher?.htmlUrl)
                 ? window.open(voucher.pdfUrl || voucher.htmlUrl, '_blank')
                 : handleGenerate(type)}
