@@ -60,6 +60,7 @@ router.get(
           secondaryColor: company.whiteLabel?.secondaryColor || '#4f46e5',
           sidebarColor: company.whiteLabel?.sidebarColor || '#0f172a',
         },
+        features: company.features || {},
       },
       onboarding,
     });

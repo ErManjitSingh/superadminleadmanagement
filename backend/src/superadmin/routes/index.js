@@ -14,6 +14,7 @@ const invoiceRoutes = require('./invoiceRoutes');
 const apiKeyRoutes = require('./apiKeyRoutes');
 const adminRoutes = require('./adminRoutes');
 const reportsRoutes = require('./reportsRoutes');
+const platformFeatureRoutes = require('./platformFeatureRoutes');
 
 const router = express.Router();
 
@@ -32,5 +33,6 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/logs', logsRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/platform-features', platformFeatureRoutes);
 
 module.exports = router;

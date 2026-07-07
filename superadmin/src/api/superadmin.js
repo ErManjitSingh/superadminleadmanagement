@@ -53,4 +53,7 @@ export const superAdminApi = {
   getLoginLogs: (params) => api.get('/logs/login', { params }),
   getNotifications: (params) => api.get('/notifications', { params }),
   markNotificationsRead: (body) => api.post('/notifications/read', body),
+  getPlatformFeatures: () => api.get('/platform-features'),
+  savePlatformFeatureDefaults: (data) => api.patch('/platform-features/defaults', data),
+  rolloutPlatformFeatures: (data) => api.post('/platform-features/rollout', data),
 };

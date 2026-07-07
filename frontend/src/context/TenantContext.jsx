@@ -110,6 +110,11 @@ export function useTenantBranding() {
   };
 }
 
+export function useTenantFeatures() {
+  const { company } = useTenant();
+  return company?.features || null;
+}
+
 export function TenantGate({ children }) {
   const { loading, requiresTenant, error } = useTenant();
   if (loading) {

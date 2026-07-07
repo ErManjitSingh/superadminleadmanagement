@@ -6,7 +6,7 @@ const platformSettingsSchema = new mongoose.Schema(
     value: { type: mongoose.Schema.Types.Mixed, default: null },
     category: {
       type: String,
-      enum: ['general', 'smtp', 'whatsapp', 'sms', 'storage', 'maps', 'branding', 'billing'],
+      enum: ['general', 'smtp', 'whatsapp', 'sms', 'storage', 'maps', 'branding', 'billing', 'features'],
       default: 'general',
       index: true,
     },

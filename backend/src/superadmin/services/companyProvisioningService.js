@@ -8,22 +8,8 @@ const { ROLES, ROLE_LABELS } = require("../../config/roles");
 const { ROLE_PERMISSIONS } = require("../../config/permissions");
 const ApiError = require("../../utils/apiError");
 const { markOnboardingStep } = require("../../services/onboardingService");
-
-const DEFAULT_FEATURES = {
-  crm: true,
-  bookings: true,
-  packages: true,
-  hotels: false,
-  transport: false,
-  activities: false,
-  reports: true,
-  calendar: true,
-  whatsapp: false,
-  email: true,
-  api: false,
-  payments: false,
-  invoices: false,
-};
+const { DEFAULT_FEATURES } = require("../../config/featureFlags");
+const { getDefaultFeatureFlags } = require("./platformFeatureService");
 
 function slugify(value) {
   return String(value)
@@ -140,7 +126,8 @@ async function provisionCompany({ payload, superAdminId }) {
     if (domainTaken) throw new ApiError(409, "Custom domain already registered");
   }
 
-  const features = { ...DEFAULT_FEATURES, ...(payload.features || {}) };
+  const platformDefaults = await getDefaultFeatureFlags();
+  const features = { ...platformDefaults, ...(payload.features || {}) };
   const trialDays = payload.trialDays ?? 7;
   const trialEndDate = new Date();
   trialEndDate.setDate(trialEndDate.getDate() + trialDays);

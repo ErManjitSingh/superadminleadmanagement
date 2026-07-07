@@ -3,8 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
-import { useTenantBranding } from '../../context/TenantContext';
+import { useTenantBranding, useTenantFeatures } from '../../context/TenantContext';
 import { filterNavItems } from '../../lib/permissions';
+import { filterNavItemsByFeatures } from '../../lib/featureFlags';
 import { applySidebarCounts } from '../../lib/applySidebarCounts';
 import { useSidebarCounts } from '../../hooks/useSidebarCounts';
 import { TooltipProvider } from '../ui/tooltip';
@@ -33,6 +34,7 @@ export default function AppSidebar({
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
   const { user: authUser } = useAuth();
   const { appTitle, logo } = useTenantBranding();
+  const tenantFeatures = useTenantFeatures();
   const [searchQuery] = useState('');
   const width = collapsed ? collapsedWidth : expandedWidth;
 
@@ -40,8 +42,9 @@ export default function AppSidebar({
 
   const baseNavItems = useMemo(() => {
     const items = navItemsProp ? navItemsProp : filterNavItems(mainNavItems, authUser || user);
-    return applySidebarCounts(items, sidebarCounts);
-  }, [navItemsProp, authUser, user, sidebarCounts]);
+    const byFeatures = filterNavItemsByFeatures(items, tenantFeatures);
+    return applySidebarCounts(byFeatures, sidebarCounts);
+  }, [navItemsProp, authUser, user, sidebarCounts, tenantFeatures]);
 
   const navItems = useMemo(() => {
     const filtered = filterNavItemsBySearch(baseNavItems, searchQuery);
