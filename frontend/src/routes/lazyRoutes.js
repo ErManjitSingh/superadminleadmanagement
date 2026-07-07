@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+import { lazyWithReload as lazy } from '../lib/lazyWithReload';
 
 export const Login = lazy(() => import('../pages/Login'));
 export const Signup = lazy(() => import('../pages/SignupPage'));
