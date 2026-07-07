@@ -16,6 +16,7 @@ const { createBooking } = require('./operationsService');
 const { pickQuotationForLead, ensureQuotationApproved } = require('./leadConversionService');
 
 const SCREENSHOT_DIR = path.join(__dirname, '../../uploads/payment-screenshots');
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -585,6 +586,26 @@ async function buildPaymentDashboardStats(branchId) {
     .populate('booking', 'bookingNumber destination')
     .lean();
 
+  const monthlyRevenue = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date(todayStart.getFullYear(), todayStart.getMonth() - i, 1);
+    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+    const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+    const received = allPayments
+      .filter((p) => {
+        const pd = new Date(p.paymentDate || p.createdAt);
+        return pd >= monthStart && pd <= monthEnd;
+      })
+      .reduce((s, p) => s + (p.amount || 0), 0);
+    const revenue = bookings
+      .filter((b) => {
+        const cd = new Date(b.createdAt);
+        return cd >= monthStart && cd <= monthEnd;
+      })
+      .reduce((s, b) => s + (b.totalAmount || 0), 0);
+    monthlyRevenue.push({ month: MONTH_LABELS[d.getMonth()], revenue, received });
+  }
+
   return {
     kpis: {
       todayCollection,
@@ -597,6 +618,7 @@ async function buildPaymentDashboardStats(branchId) {
       totalTransactions: allPayments.length,
     },
     collectionTrend: last30Days,
+    monthlyRevenue,
     methodSplit: Object.entries(methodSplit).map(([name, value]) => ({ name, value })),
     pendingVsPaid: [
       { name: 'Paid', value: bookings.filter((b) => b.paymentStatus === 'paid').length },

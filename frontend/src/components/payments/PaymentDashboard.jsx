@@ -49,6 +49,7 @@ export default function PaymentDashboard() {
   const [remindingId, setRemindingId] = useState(null);
   const kpis = dashData?.kpis || {};
 
+  const monthlyRevenue = dashData?.monthlyRevenue || [];
   const collectionTrend = (dashData?.collectionTrend || []).map((d) => ({ day: d.label, amount: d.amount }));
   const methodSplit = (dashData?.methodSplit || []).map((m, i) => ({
     ...m,
@@ -104,8 +105,11 @@ export default function PaymentDashboard() {
       <div className="grid gap-4 xl:grid-cols-2">
         <SectionCard title="Monthly Revenue">
           <div className="h-64">
+            {dashLoading ? (
+              <div className="h-full rounded-xl bg-slate-100 animate-pulse" />
+            ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={DEMO_MONTHLY_REVENUE}>
+              <AreaChart data={monthlyRevenue}>
                 <defs>
                   <linearGradient id="revFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.35} />
@@ -120,6 +124,7 @@ export default function PaymentDashboard() {
                 <Area type="monotone" dataKey="received" stroke="#10B981" fill="transparent" strokeWidth={2} name="Received" />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </div>
         </SectionCard>
 
