@@ -556,6 +556,40 @@ async function buildPaymentDashboardStats(branchId) {
     .sort((a, b) => new Date(a.travelDate) - new Date(b.travelDate))
     .slice(0, 10);
 
+  const upcomingDue7Count = bookings.filter((b) => {
+    if (b.paymentStatus === 'paid' || !b.travelDate) return false;
+    const travel = new Date(b.travelDate);
+    travel.setHours(0, 0, 0, 0);
+    const diff = Math.round((travel - todayStart) / 86400000);
+    return diff >= 0 && diff <= 7;
+  }).length;
+
+  const fullyPaidThisMonth = bookings.filter((b) => {
+    if (b.paymentStatus !== 'paid') return false;
+    const d = new Date(b.updatedAt || b.createdAt);
+    return d >= monthStart;
+  }).length;
+
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const yesterdayEnd = new Date(todayEnd);
+  yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+  const yesterdayCollection = sum(
+    allPayments.filter((p) => {
+      const pd = new Date(p.paymentDate || p.createdAt);
+      return pd >= yesterdayStart && pd <= yesterdayEnd;
+    })
+  );
+
+  const prevMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1);
+  const prevMonthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth(), 0, 23, 59, 59, 999);
+  const prevMonthCollection = sum(
+    allPayments.filter((p) => {
+      const pd = new Date(p.paymentDate || p.createdAt);
+      return pd >= prevMonthStart && pd <= prevMonthEnd;
+    })
+  );
+
   const methodSplit = {};
   allPayments.forEach((p) => {
     methodSplit[p.mode] = (methodSplit[p.mode] || 0) + (p.amount || 0);
@@ -610,10 +644,14 @@ async function buildPaymentDashboardStats(branchId) {
     kpis: {
       todayCollection,
       monthCollection,
+      yesterdayCollection,
+      prevMonthCollection,
       pendingAmount: outstanding,
       outstanding,
       upcomingDueCount: upcomingDue.length,
+      upcomingDue7Count,
       fullyPaidBookings: fullyPaid,
+      fullyPaidThisMonth,
       pendingCount: pendingBookings.length,
       totalTransactions: allPayments.length,
     },

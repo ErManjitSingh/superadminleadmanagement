@@ -121,13 +121,23 @@ export function FilterChip({ active, onClick, children }) {
   );
 }
 
-export function SectionCard({ title, action, children, className }) {
+export function SectionCard({ title, action, children, className, subtitle, period }) {
   return (
     <div className={cn('rounded-2xl border border-subtle bg-surface p-5 shadow-sm', className)}>
-      {(title || action) && (
-        <div className="mb-4 flex items-center justify-between gap-3">
-          {title && <h3 className="text-sm font-semibold text-content-primary">{title}</h3>}
-          {action}
+      {(title || action || period) && (
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            {title && <h3 className="text-sm font-semibold text-content-primary">{title}</h3>}
+            {subtitle && <p className="mt-0.5 text-[11px] text-content-muted">{subtitle}</p>}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {period && (
+              <span className="rounded-lg border border-subtle bg-surface-muted/50 px-2.5 py-1 text-[11px] font-medium text-content-secondary">
+                {period}
+              </span>
+            )}
+            {action}
+          </div>
         </div>
       )}
       {children}

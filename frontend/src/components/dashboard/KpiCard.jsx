@@ -9,6 +9,7 @@ export default function KpiCard({
   change,
   changeType = 'up',
   changeLabel = 'from last month',
+  subtitle,
   icon: Icon,
   iconColor = 'bg-blue-500',
   sparkColor = '#3B82F6',
@@ -54,6 +55,9 @@ export default function KpiCard({
       </p>
       {change !== undefined && changeLabel && (
         <p className="text-[11px] text-content-muted mb-2">{changeLabel}</p>
+      )}
+      {change === undefined && subtitle && (
+        <p className="text-[11px] text-content-muted mb-2">{subtitle}</p>
       )}
 
       {chartData.length > 0 && (
