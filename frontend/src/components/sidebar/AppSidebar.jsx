@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTenantBranding } from '../../context/TenantContext';
 import { filterNavItems } from '../../lib/permissions';
 import { applySidebarCounts } from '../../lib/applySidebarCounts';
 import { useSidebarCounts } from '../../hooks/useSidebarCounts';
@@ -31,6 +32,7 @@ export default function AppSidebar({
   const location = useLocation();
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
   const { user: authUser } = useAuth();
+  const { appTitle, logo } = useTenantBranding();
   const [searchQuery] = useState('');
   const width = collapsed ? collapsedWidth : expandedWidth;
 
@@ -56,7 +58,7 @@ export default function AppSidebar({
             '/profile');
 
   const effectiveUser = authUser || user;
-  const resolvedBrandTitle = brandTitle || APP_BRAND_NAME;
+  const resolvedBrandTitle = brandTitle || appTitle || APP_BRAND_NAME;
   const resolvedBrandSubtitle = brandSubtitle || 'Travel Lead Management';
 
   return (
@@ -73,7 +75,7 @@ export default function AppSidebar({
           )}
         >
           <div className="relative z-10 flex flex-col h-full min-h-0">
-            <SidebarBrand title={resolvedBrandTitle} subtitle={resolvedBrandSubtitle} />
+            <SidebarBrand title={resolvedBrandTitle} subtitle={resolvedBrandSubtitle} logo={logo} />
 
             <nav className="relative flex-1 px-2 py-2 space-y-0.5 overflow-y-auto overflow-x-hidden scrollbar-thin">
               {navItems.length === 0 && searchQuery && !collapsed && (

@@ -211,27 +211,43 @@ async function provisionCompany({ payload, superAdminId }) {
 
   const company = await Company.create(companyDoc);
 
-  await ensureCompanyRoles(company._id);
-  const adminRoleId = await getAdminRoleId(company._id);
-
+  // Provision roles + admin user atomically. If any step fails, roll back the
+  // company so we never leave an orphaned company that nobody can log into.
+  let adminUser;
   const tempPassword = payload.ownerPassword || generateTempPassword();
-  const adminUser = await User.create({
-    name: payload.ownerName.trim(),
-    email: ownerEmail,
-    password: tempPassword,
-    phone: payload.phone || "",
-    role: "admin",
-    roleId: adminRoleId,
-    department: "Management",
-    companyId: company._id,
-    status: "active",
-  });
+  try {
+    await ensureCompanyRoles(company._id);
+    const adminRoleId = await getAdminRoleId(company._id);
 
-  company.adminUserId = adminUser._id;
-  await company.save();
+    adminUser = await User.create({
+      name: payload.ownerName.trim(),
+      email: ownerEmail,
+      password: tempPassword,
+      phone: payload.phone || "",
+      role: "admin",
+      roleId: adminRoleId,
+      department: "Management",
+      companyId: company._id,
+      status: "active",
+    });
 
-  await seedDefaultEmailTemplates(company._id, adminUser._id);
-  await markOnboardingStep(company._id, 'firstUserAdded', true);
+    company.adminUserId = adminUser._id;
+    await company.save();
+
+    await seedDefaultEmailTemplates(company._id, adminUser._id);
+    await markOnboardingStep(company._id, 'firstUserAdded', true);
+  } catch (err) {
+    // Clean up partial provisioning so signup can be retried.
+    await Promise.allSettled([
+      User.deleteMany({ companyId: company._id }),
+      Role.deleteMany({ companyId: company._id }),
+      Company.deleteOne({ _id: company._id }),
+    ]);
+    throw new ApiError(
+      500,
+      `Failed to provision company account: ${err.message}. Please try again.`,
+    );
+  }
 
   return {
     company,

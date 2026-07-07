@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { LOGIN_PRESETS } from '../auth';
+import { useTenantBranding } from '../context/TenantContext';
 import { AuthError } from '../auth/authService';
 import { cn } from '../lib/utils';
 import { APP_BRAND_NAME } from '../config/branding';
@@ -76,15 +76,15 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [activePreset, setActivePreset] = useState(null);
-  const [showDemo, setShowDemo] = useState(true);
-  const [demoLoading, setDemoLoading] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, user, getDashboardPath } = useAuth();
   const { toggleTheme, isDark, setTheme } = useTheme();
+  const { appTitle, logo } = useTenantBranding();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const brandName = appTitle || APP_BRAND_NAME;
 
   useEffect(() => {
     setTheme('light');
@@ -94,38 +94,6 @@ export default function Login() {
     const dest = user.dashboardPath || getDashboardPath(user.role);
     return <Navigate to={dest} replace />;
   }
-
-  const fillPreset = (preset) => {
-    setEmail(preset.email);
-    setPassword(preset.password);
-    setActivePreset(preset.email);
-    setError('');
-  };
-
-  const handleDemoLogin = async (preset) => {
-    fillPreset(preset);
-    setDemoLoading(preset.email);
-    setLoading(true);
-    setError('');
-    try {
-      const sessionUser = await login(preset.email, preset.password);
-      const dest = sessionUser.dashboardPath || getDashboardPath(sessionUser.role);
-      navigate(location.state?.from || dest, { replace: true });
-    } catch (err) {
-      const msg =
-        err instanceof AuthError
-          ? err.message
-          : err.response?.data?.message
-            || (err.message === 'Network Error'
-              ? 'Cannot reach API. Check that the backend is running and your domain is configured correctly.'
-              : err.message)
-            || 'Demo login failed. Please try again.';
-      setError(msg);
-    } finally {
-      setLoading(false);
-      setDemoLoading(null);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -165,11 +133,15 @@ export default function Login() {
         <div className="relative z-10 flex h-full flex-col justify-between p-10 xl:p-12">
           <div>
             <div className="mb-10 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-900/40">
-                <Plane className="h-5 w-5 text-white" />
+              <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-900/40">
+                {logo ? (
+                  <img src={logo} alt={brandName} className="h-full w-full object-cover" />
+                ) : (
+                  <Plane className="h-5 w-5 text-white" />
+                )}
               </div>
               <div>
-                <p className="text-lg font-bold text-white">{APP_BRAND_NAME}</p>
+                <p className="text-lg font-bold text-white">{brandName}</p>
                 <p className="text-xs text-white/60">The Complete Travel Business Management Platform</p>
               </div>
             </div>
@@ -251,22 +223,30 @@ export default function Login() {
         >
           {/* Mobile logo */}
           <div className="mb-6 flex items-center justify-center gap-2 lg:hidden">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600">
-              <Plane className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600">
+              {logo ? (
+                <img src={logo} alt={brandName} className="h-full w-full object-cover" />
+              ) : (
+                <Plane className="h-5 w-5 text-white" />
+              )}
             </div>
-            <span className="text-lg font-bold text-slate-800">{APP_BRAND_NAME}</span>
+            <span className="text-lg font-bold text-slate-800">{brandName}</span>
           </div>
 
           <div className="rounded-3xl border border-slate-100 bg-white px-7 py-8 shadow-[0_8px_40px_rgba(15,23,42,0.08)] sm:px-9 sm:py-10">
             <div className="mb-7 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/30">
-                <Plane className="h-7 w-7 text-white" />
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/30">
+                {logo ? (
+                  <img src={logo} alt={brandName} className="h-full w-full object-cover" />
+                ) : (
+                  <Plane className="h-7 w-7 text-white" />
+                )}
               </div>
               <h2 className="text-2xl font-bold text-slate-900">
                 Welcome Back <span aria-hidden>👋</span>
               </h2>
               <p className="mt-1.5 text-sm text-slate-500">
-                Sign in to continue to {APP_BRAND_NAME}
+                Sign in to continue to {brandName}
               </p>
             </div>
 
@@ -368,54 +348,7 @@ export default function Login() {
             </p>
           </div>
 
-          {/* Demo accounts — one-click login */}
-          <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Demo login</p>
-              <button
-                type="button"
-                onClick={() => setShowDemo((v) => !v)}
-                className="text-xs font-medium text-slate-400 hover:text-violet-600"
-              >
-                {showDemo ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            {showDemo && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="overflow-hidden rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50/80 to-white p-4 shadow-sm"
-              >
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {LOGIN_PRESETS.map((preset) => (
-                    <button
-                      key={preset.email}
-                      type="button"
-                      disabled={loading}
-                      onClick={() => handleDemoLogin(preset)}
-                      className={cn(
-                        'rounded-xl border px-3 py-2.5 text-left text-xs transition-all disabled:opacity-60',
-                        activePreset === preset.email
-                          ? 'border-violet-400 bg-violet-50 ring-2 ring-violet-400/20'
-                          : 'border-slate-200 bg-white hover:border-violet-300 hover:bg-violet-50/50',
-                      )}
-                    >
-                      <span className="block font-semibold text-slate-800">{preset.roleName}</span>
-                      <span className="block truncate text-slate-500">{preset.email}</span>
-                      <span className="mt-1 block text-[10px] font-medium text-violet-600">
-                        {demoLoading === preset.email ? 'Signing in…' : 'Click to sign in →'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-2 text-center text-[11px] text-slate-400">
-                  Password: <span className="font-mono font-semibold text-slate-600">123456</span>
-                </p>
-              </motion.div>
-            )}
-          </div>
-
-          <p className="mt-4 text-center text-sm text-slate-500">
+          <p className="mt-6 text-center text-sm text-slate-500">
             New company?{' '}
             <Link to="/signup" className="font-semibold text-violet-600 hover:underline">
               Start free trial

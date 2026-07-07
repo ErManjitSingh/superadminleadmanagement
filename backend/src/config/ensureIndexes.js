@@ -40,10 +40,32 @@ async function dropLegacyBranchIndexes() {
   }
 }
 
+// A global unique index on { email } breaks multi-tenancy: two companies could
+// never share an owner/user email, and provisioning would silently fail and
+// leave orphaned companies. Drop it in favour of the compound
+// { companyId: 1, email: 1 } unique index.
+async function dropLegacyUserEmailIndex() {
+  try {
+    const indexes = await User.collection.indexes();
+    for (const idx of indexes) {
+      const keys = idx.key || {};
+      if (keys.email === 1 && Object.keys(keys).length === 1) {
+        await User.collection.dropIndex(idx.name);
+        console.log(`[MongoDB] Dropped legacy global user email index: ${idx.name}`);
+      }
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[MongoDB] Legacy user email index cleanup:', err.message);
+    }
+  }
+}
+
 async function ensureIndexes() {
   await dropLegacyBranchIndexes();
+  await dropLegacyUserEmailIndex();
   await Promise.all([
-    User.collection.createIndex({ email: 1 }, { unique: true, background: true }),
+    User.collection.createIndex({ companyId: 1, email: 1 }, { unique: true, background: true }),
     User.collection.createIndex({ role: 1, status: 1 }, { background: true }),
     User.collection.createIndex({ branchId: 1, role: 1, status: 1 }, { background: true }),
 

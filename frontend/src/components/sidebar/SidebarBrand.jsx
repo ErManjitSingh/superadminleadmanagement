@@ -4,8 +4,18 @@ import { useSidebar } from '../../context/SidebarContext';
 import { cn } from '../../lib/utils';
 import { APP_BRAND_NAME, APP_DEFAULT_SUBTITLE } from '../../config/branding';
 
-export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DEFAULT_SUBTITLE }) {
+export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DEFAULT_SUBTITLE, logo = null }) {
   const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen } = useSidebar();
+
+  const LogoMark = () => (
+    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center overflow-hidden shadow-lg shadow-orange-500/30 shrink-0">
+      {logo ? (
+        <img src={logo} alt={title} className="h-full w-full object-cover" />
+      ) : (
+        <Plane className="w-[17px] h-[17px] text-white" strokeWidth={2.25} />
+      )}
+    </div>
+  );
 
   if (collapsed) {
     return (
@@ -16,9 +26,7 @@ export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DE
           className="group w-full flex flex-col items-center gap-2"
           aria-label="Expand sidebar"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-            <Plane className="w-[17px] h-[17px] text-white" strokeWidth={2.25} />
-          </div>
+          <LogoMark />
         </button>
       </div>
     );
@@ -27,9 +35,7 @@ export default function SidebarBrand({ title = APP_BRAND_NAME, subtitle = APP_DE
   return (
     <div className="px-3 pt-4 pb-3">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 shrink-0">
-          <Plane className="w-[17px] h-[17px] text-white" strokeWidth={2.25} />
-        </div>
+        <LogoMark />
 
         <AnimatePresence mode="wait">
           <motion.div
