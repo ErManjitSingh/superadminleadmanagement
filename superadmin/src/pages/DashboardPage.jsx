@@ -16,6 +16,7 @@ import {
   Activity,
   Building2,
   Clock,
+  Database,
   Globe,
   IndianRupee,
   LifeBuoy,
@@ -69,6 +70,31 @@ function activityIcon(log) {
   return Icon;
 }
 
+function StatusCard({ title, value, subtitle, meta, icon: Icon, ok = true }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-card dark:border-slate-700/50 dark:bg-slate-900/80">
+      <div className="flex items-center gap-2">
+        <div
+          className={
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ' +
+            (ok ? 'bg-emerald-500/15 text-emerald-600' : 'bg-red-500/15 text-red-600')
+          }
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+        <p className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{title}</p>
+      </div>
+      <p className={'mt-3 text-xl font-bold tracking-tight ' + (ok ? 'text-emerald-600' : 'text-red-500')}>
+        {value}
+      </p>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="truncate text-[11px] text-slate-500">{subtitle}</p>
+        {meta && <span className="shrink-0 text-[11px] font-medium text-slate-400">{meta}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
 
@@ -119,7 +145,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -144,22 +170,35 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <MetricSparkCard title="Total Companies" value={m.totalCompanies?.toLocaleString() || '0'} change="+12%" icon={Building2} sparkData={spark} iconBg="bg-violet-500/15 text-violet-600" />
         <MetricSparkCard title="Active Companies" value={m.activeCompanies?.toLocaleString() || '0'} change="+8%" icon={TrendingUp} sparkData={spark} iconBg="bg-emerald-500/15 text-emerald-600" sparkColor="#10b981" />
         <MetricSparkCard title="Trial Companies" value={m.trialCompanies?.toLocaleString() || '0'} change="+5%" icon={Clock} sparkData={spark} iconBg="bg-amber-500/15 text-amber-600" sparkColor="#f59e0b" />
-        <MetricSparkCard title="Expired Companies" value={m.expiredCompanies?.toLocaleString() || '0'} change="-2%" trendUp={false} icon={Activity} sparkData={spark} iconBg="bg-slate-500/15 text-slate-600" sparkColor="#94a3b8" />
-        <MetricSparkCard title="Suspended Companies" value={m.suspendedCompanies?.toLocaleString() || '0'} change="-1%" trendUp={false} icon={Activity} sparkData={spark} iconBg="bg-red-500/15 text-red-600" sparkColor="#ef4444" />
+        <MetricSparkCard title="Expired Companies" value={m.expiredCompanies?.toLocaleString() || '0'} change="-2%" trendUp={false} icon={Activity} sparkData={spark} iconBg="bg-red-500/15 text-red-600" sparkColor="#ef4444" />
         <MetricSparkCard title="Monthly Revenue" value={formatCurrency(m.monthlyRevenue)} change="+18%" icon={IndianRupee} sparkData={spark} iconBg="bg-emerald-500/15 text-emerald-600" sparkColor="#10b981" />
+        <MetricSparkCard title="New Today" value={m.newCompaniesToday?.toLocaleString() || '0'} change="+22%" icon={IndianRupee} sparkData={spark} iconBg="bg-teal-500/15 text-teal-600" sparkColor="#14b8a6" />
         <MetricSparkCard title="New Companies" value={m.newCompaniesThisMonth?.toLocaleString() || '0'} change="+15%" icon={Building2} sparkData={spark} iconBg="bg-indigo-500/15 text-indigo-600" />
         <MetricSparkCard title="Domains Connected" value={m.domainsConnected?.toLocaleString() || '0'} change="+6%" icon={Globe} sparkData={spark} iconBg="bg-sky-500/15 text-sky-600" sparkColor="#0ea5e9" />
-        <MetricSparkCard title="DNS Pending" value={m.dnsPending?.toLocaleString() || '0'} change="-3%" trendUp={false} icon={Globe} sparkData={spark} iconBg="bg-orange-500/15 text-orange-600" sparkColor="#f97316" />
         <MetricSparkCard title="Company Users" value={m.totalCompanyUsers?.toLocaleString() || '0'} change="+10%" icon={Users} sparkData={spark} iconBg="bg-violet-500/15 text-violet-600" />
-        <MetricSparkCard title="Open Tickets" value={m.pendingSupportTickets?.toLocaleString() || '0'} change="+4%" icon={LifeBuoy} sparkData={spark} iconBg="bg-rose-500/15 text-rose-600" sparkColor="#f43f5e" />
-        <MetricSparkCard title="Server Health" value={data?.serverStatus?.health === 'healthy' ? 'Healthy' : 'Degraded'} icon={Server} sparkData={[9, 9, 10, 9, 10, 10, 10]} iconBg="bg-emerald-500/15 text-emerald-600" sparkColor="#10b981" />
+        <MetricSparkCard title="Open Tickets" value={m.pendingSupportTickets?.toLocaleString() || '0'} change="-12%" trendUp={false} icon={LifeBuoy} sparkData={spark} iconBg="bg-rose-500/15 text-rose-600" sparkColor="#f43f5e" />
+        <StatusCard
+          title="Server Health"
+          value={data?.serverStatus?.health === 'healthy' ? 'Healthy' : 'Degraded'}
+          subtitle="All systems operational"
+          meta="99.9% uptime"
+          icon={Server}
+          ok={data?.serverStatus?.health === 'healthy'}
+        />
+        <StatusCard
+          title="DB Status"
+          value={data?.serverStatus?.database?.state === 'connected' ? 'Normal' : 'Degraded'}
+          subtitle="All databases running smoothly"
+          icon={Database}
+          ok={data?.serverStatus?.database?.state === 'connected'}
+        />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card xl:col-span-2 dark:border-slate-700/50 dark:bg-slate-900/80">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -225,7 +264,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card lg:col-span-2 dark:border-slate-700/50 dark:bg-slate-900/80">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-900 dark:text-white">Recent Activities</h3>

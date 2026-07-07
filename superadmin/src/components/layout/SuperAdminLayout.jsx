@@ -101,13 +101,13 @@ export default function SuperAdminLayout() {
         </div>
       </aside>
 
-      <div className="ml-[260px] flex min-h-screen flex-1 flex-col">
+      <div className="ml-[260px] flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
         <PlatformTopBar />
         <motion.main
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="flex-1 p-6 lg:p-8"
+          className="min-w-0 flex-1 p-4 lg:p-6"
         >
           <Outlet />
         </motion.main>
