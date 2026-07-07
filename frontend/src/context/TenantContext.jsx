@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo } 
 import API from '../api/axios';
 import { getTenantSubdomain, setTenantSubdomain } from '../lib/tenantContext';
 import { APP_PLATFORM_DOMAIN } from '../config/branding';
+import { sidebarGradientFromHex } from '../lib/imageColor';
 import TenantNotFoundPage from '../pages/TenantNotFoundPage';
 
 const TenantContext = createContext(null);
@@ -27,7 +28,9 @@ function applyBranding(branding) {
   const root = document.documentElement;
   if (branding.primaryColor) root.style.setProperty('--tenant-primary', branding.primaryColor);
   if (branding.secondaryColor) root.style.setProperty('--tenant-secondary', branding.secondaryColor);
-  if (branding.sidebarColor) root.style.setProperty('--tenant-sidebar', branding.sidebarColor);
+  if (branding.sidebarColor) {
+    root.style.setProperty('--tenant-sidebar', sidebarGradientFromHex(branding.sidebarColor));
+  }
   if (branding.favicon) {
     let link = document.querySelector("link[rel='icon']");
     if (!link) {

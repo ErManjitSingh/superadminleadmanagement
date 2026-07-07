@@ -5,6 +5,17 @@ import { useTenant } from '../../context/TenantContext';
 import API from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
 import { readHotelImageFile } from '../../components/quotations/hotelImageUtils';
+import { getDominantColor, sidebarGradientFromHex } from '../../lib/imageColor';
+
+const DEFAULT_SIDEBAR = '#0f172a';
+
+function previewSidebar(hex) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.style.setProperty(
+    '--tenant-sidebar',
+    sidebarGradientFromHex(hex || DEFAULT_SIDEBAR),
+  );
+}
 
 const EMPTY_BANK = { bank: '', accountName: '', accountNo: '', ifsc: '', branch: '', upi: '' };
 
@@ -28,10 +39,12 @@ export default function CompanyProfilePage() {
     upiName: '',
   });
   const [bank, setBank] = useState(EMPTY_BANK);
+  const [sidebarColor, setSidebarColor] = useState('');
 
   const load = useCallback(async () => {
     const res = await API.get('/company-settings', { skipSuccessToast: true });
     const c = res.data?.company || {};
+    setSidebarColor(c.whiteLabel?.sidebarColor || '');
     setForm({
       name: c.name || '',
       tagline: c.tagline || '',
@@ -64,9 +77,30 @@ export default function CompanyProfilePage() {
     try {
       const dataUrl = await readHotelImageFile(file);
       setForm((f) => ({ ...f, logo: dataUrl }));
+      // Auto-detect the sidebar color from the logo.
+      try {
+        const color = await getDominantColor(dataUrl);
+        setSidebarColor(color);
+        previewSidebar(color);
+        toast.success('Sidebar color set from your logo');
+      } catch {
+        /* keep existing color if detection fails */
+      }
     } catch (err) {
       toast.error(err.message || 'Could not read image');
     }
+  }
+
+  function removeLogo() {
+    setForm((f) => ({ ...f, logo: '' }));
+    setSidebarColor('');
+    previewSidebar(DEFAULT_SIDEBAR);
+  }
+
+  function onSidebarColorChange(e) {
+    const color = e.target.value;
+    setSidebarColor(color);
+    previewSidebar(color);
   }
 
   async function save(e) {
@@ -77,6 +111,7 @@ export default function CompanyProfilePage() {
       await API.patch('/company-settings', {
         ...form,
         bankAccounts: hasBank ? [bank] : [],
+        whiteLabel: { sidebarColor: sidebarColor || DEFAULT_SIDEBAR },
       });
       toast.success('Company profile saved');
       await refresh?.();
@@ -131,7 +166,7 @@ export default function CompanyProfilePage() {
               {form.logo && (
                 <button
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, logo: '' }))}
+                  onClick={removeLogo}
                   className="ml-2 text-sm font-medium text-red-600 hover:underline"
                 >
                   Remove
@@ -144,6 +179,40 @@ export default function CompanyProfilePage() {
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <Field label="Company Name" value={form.name} onChange={setField('name')} required />
             <Field label="Tagline" value={form.tagline} onChange={setField('tagline')} placeholder="e.g. Travel made simple" />
+          </div>
+
+          <div className="mt-5 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 shadow-inner"
+                style={{ background: sidebarGradientFromHex(sidebarColor || DEFAULT_SIDEBAR) }}
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-slate-700">Sidebar color</p>
+                <p className="text-xs text-slate-500">
+                  Auto-set from your logo when you upload one. You can fine-tune it below.
+                </p>
+              </div>
+              <div className="ml-auto flex items-center gap-2">
+                <input
+                  type="color"
+                  value={sidebarColor || DEFAULT_SIDEBAR}
+                  onChange={onSidebarColorChange}
+                  className="h-9 w-12 cursor-pointer rounded-lg border border-slate-200 bg-white p-1"
+                  title="Pick sidebar color"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSidebarColor('');
+                    previewSidebar(DEFAULT_SIDEBAR);
+                  }}
+                  className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-white"
+                >
+                  Reset to default
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 

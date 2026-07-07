@@ -300,11 +300,11 @@
     --sidebar-active: #3b82f6;
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-active-text: #ffffff;
-    background: linear-gradient(180deg, #0f172a 0%, #0c1222 50%, #070b14 100%);
+    background: var(--tenant-sidebar, linear-gradient(180deg, #0f172a 0%, #0c1222 50%, #070b14 100%));
   }
 
   .dark .sidebar-dark {
-    background: linear-gradient(180deg, #0f172a 0%, #0a0f1a 50%, #050810 100%);
+    background: var(--tenant-sidebar, linear-gradient(180deg, #0f172a 0%, #0a0f1a 50%, #050810 100%));
   }
 
   /* FullCalendar v6 — premium follow-up calendar */
