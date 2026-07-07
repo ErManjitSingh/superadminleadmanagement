@@ -30,13 +30,6 @@ export default function PlatformTopBar({ showDateExport = false, onExport }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-800 lg:inline dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200">
-            3653 days left in your free trial
-          </span>
-          <Button size="sm" className="hidden rounded-xl bg-violet-600 hover:bg-violet-500 sm:inline-flex">
-            Upgrade Plan
-          </Button>
-
           <Button variant="ghost" size="icon" onClick={toggle} className="rounded-xl text-slate-500">
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
