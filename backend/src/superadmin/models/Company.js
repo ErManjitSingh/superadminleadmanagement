@@ -153,6 +153,12 @@ const companySchema = new mongoose.Schema(
       brandFaviconUrl: { type: String, default: "" },
     },
     adminUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    billingNotices: {
+      trialReminder7dAt: { type: Date, default: null },
+      trialReminder3dAt: { type: Date, default: null },
+      trialReminder1dAt: { type: Date, default: null },
+      trialExpiredEmailAt: { type: Date, default: null },
+    },
     isLegacy: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "SuperAdmin" },

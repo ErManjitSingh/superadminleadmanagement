@@ -5,13 +5,18 @@ const FollowUp = require('../models/FollowUp');
 const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
+
+function leadScopeFilter(req, extra = {}) {
+  return tenantFilter(extra, req);
+}
 const { LEAD_LIST_POPULATE, enrichLead, buildLeadSearchFilter, FOLLOWUP_POPULATE } = require('../utils/queryHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 
 const listConversations = asyncHandler(async (req, res) => {
   const { status, search } = req.query;
   const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 25, maxLimit: 100 });
-  const filter = { channel: 'whatsapp' };
+  const filter = tenantFilter({ channel: 'whatsapp' }, req);
   if (req.branchId) filter.branchId = req.branchId;
   if (status) filter.status = status;
   Object.assign(filter, buildLeadSearchFilter(search));
@@ -75,7 +80,7 @@ const listConversations = asyncHandler(async (req, res) => {
 });
 
 const getMessages = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.leadId, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const lead = await Lead.findOne(leadScopeFilter(req, { _id: req.params.leadId }))
     .select('_id');
   if (!lead) throw new ApiError(404, 'Lead not found');
 
@@ -86,7 +91,7 @@ const getMessages = asyncHandler(async (req, res) => {
 });
 
 const getNotes = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.leadId, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const lead = await Lead.findOne(leadScopeFilter(req, { _id: req.params.leadId }))
     .select('_id');
   if (!lead) throw new ApiError(404, 'Lead not found');
 
@@ -98,7 +103,7 @@ const getNotes = asyncHandler(async (req, res) => {
 });
 
 const getFollowUpsForLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.leadId, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const lead = await Lead.findOne(leadScopeFilter(req, { _id: req.params.leadId }))
     .select('_id');
   if (!lead) throw new ApiError(404, 'Lead not found');
 
@@ -110,11 +115,10 @@ const getFollowUpsForLead = asyncHandler(async (req, res) => {
 });
 
 const listExecutives = asyncHandler(async (req, res) => {
-  const executives = await User.find({
+  const executives = await User.find(tenantFilter({
     role: 'sales_executive',
     status: 'active',
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  })
+  }, req))
     .select('name email')
     .lean();
   res.json(executives);
@@ -124,7 +128,7 @@ const postMessage = asyncHandler(async (req, res) => {
   const { leadId, text, type = 'text', attachment } = req.body;
   if (!leadId) throw new ApiError(400, 'leadId is required');
 
-  const lead = await Lead.findOne({ _id: leadId, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne(leadScopeFilter(req, { _id: leadId }));
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   const msg = await WhatsAppMessage.create({
@@ -145,7 +149,7 @@ const postNote = asyncHandler(async (req, res) => {
   const { leadId, text } = req.body;
   if (!leadId || !text?.trim()) throw new ApiError(400, 'leadId and text are required');
 
-  const lead = await Lead.findOne({ _id: leadId, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne(leadScopeFilter(req, { _id: leadId }));
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   const note = await WhatsAppNote.create({
@@ -160,7 +164,7 @@ const postNote = asyncHandler(async (req, res) => {
 
 const updateWhatsAppLead = asyncHandler(async (req, res) => {
   const lead = await Lead.findOneAndUpdate(
-    { _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) },
+    leadScopeFilter(req, { _id: req.params.id }),
     req.body,
     { new: true, runValidators: true }
   )
@@ -171,7 +175,7 @@ const updateWhatsAppLead = asyncHandler(async (req, res) => {
 });
 
 const markRead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.leadId, ...(req.branchId ? { branchId: req.branchId } : {}) })
+  const lead = await Lead.findOne(leadScopeFilter(req, { _id: req.params.leadId }))
     .select('_id');
   if (!lead) throw new ApiError(404, 'Lead not found');
 

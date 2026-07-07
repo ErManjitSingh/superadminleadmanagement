@@ -179,6 +179,7 @@ export default function SignupWizard() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [createdWorkspace, setCreatedWorkspace] = useState('');
+  const [signupResult, setSignupResult] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -294,12 +295,20 @@ export default function SignupWizard() {
       authStorage.saveSession(data, data.token, { sessionExpiresAt: data.sessionExpiresAt });
       if (data.company?.subdomain) setTenantSubdomain(data.company.subdomain);
       setCreatedWorkspace(data.company?.workspaceUrl || `https://${subdomainPreview}/app`);
+      setSignupResult(data);
       setDone(true);
-      const workspaceUrl = data.company?.workspaceUrl;
-      setTimeout(() => {
+
+      const redirectAfter = () => {
+        if (data.requiresDnsSetup) {
+          navigate('/setup-dns');
+          return;
+        }
         if (data.requiresEmailVerification) {
           navigate('/verify-email');
-        } else if (workspaceUrl) {
+          return;
+        }
+        const workspaceUrl = data.company?.workspaceUrl;
+        if (workspaceUrl) {
           try {
             const target = new URL(workspaceUrl);
             if (window.location.hostname !== target.hostname) {
@@ -309,7 +318,9 @@ export default function SignupWizard() {
           } catch { /* stay */ }
         }
         navigate(data.dashboardPath || '/admin/dashboard');
-      }, 2800);
+      };
+
+      setTimeout(redirectAfter, data.requiresDnsSetup ? 1200 : 2800);
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed');
     } finally {
@@ -318,6 +329,7 @@ export default function SignupWizard() {
   }
 
   if (done) {
+    const needsDns = signupResult?.requiresDnsSetup;
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-violet-950 to-indigo-950 p-4">
         <motion.div
@@ -335,7 +347,9 @@ export default function SignupWizard() {
           </motion.div>
           <h1 className="text-2xl font-bold text-slate-900">Workspace Created!</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Your company, Head Office branch, admin account and all defaults are ready.
+            {needsDns
+              ? 'One more step — update your DNS records to activate your custom domain.'
+              : 'Your company, Head Office branch, admin account and all defaults are ready.'}
           </p>
           {createdWorkspace && (
             <div className="mt-5 rounded-2xl border border-violet-100 bg-violet-50 px-4 py-3">
@@ -343,9 +357,18 @@ export default function SignupWizard() {
               <p className="mt-1 truncate font-mono text-sm font-semibold text-slate-800">{createdWorkspace}</p>
             </div>
           )}
+          {needsDns && signupResult?.dnsSetup?.domain && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm text-amber-900">
+              <p className="font-semibold">DNS update required</p>
+              <p className="mt-1 text-xs text-amber-800">
+                Add CNAME: <span className="font-mono">{signupResult.dnsSetup.dnsHost}</span> →{' '}
+                <span className="font-mono">{signupResult.dnsSetup.cnameTarget}</span>
+              </p>
+            </div>
+          )}
           <div className="mt-5 flex items-center justify-center gap-2 text-sm text-violet-600">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Redirecting…
+            {needsDns ? 'Opening DNS setup…' : 'Redirecting…'}
           </div>
         </motion.div>
       </div>

@@ -9,6 +9,7 @@ import { Button } from '../ui/button';
 import { Card, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { DnsStatusBadge, DomainConnectedBadge, SslStatusBadge } from './DomainStatusBadge';
+import DnsRecordsTable from './DnsRecordsTable';
 import { formatDate } from '../../lib/utils';
 
 export default function DomainManagementPanel({ company, onUpdated }) {
@@ -156,6 +157,23 @@ export default function DomainManagementPanel({ company, onUpdated }) {
           )}
         </div>
       </Card>
+
+      {hasCustom && domainStatus !== 'verified' && (
+        <Card className="overflow-hidden border-amber-200/60">
+          <div className="border-b border-amber-200/60 bg-amber-50/50 px-6 py-4">
+            <p className="text-sm font-semibold text-amber-900">DNS records customer must add</p>
+            <p className="mt-1 text-xs text-amber-800/80">
+              Share these with {company?.ownerName || 'the company owner'} until domain shows Verified.
+            </p>
+          </div>
+          <div className="p-6">
+            <DnsRecordsTable
+              domain={company.customDomain || company.primaryDomain}
+              records={company.records || []}
+            />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

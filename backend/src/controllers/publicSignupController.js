@@ -20,6 +20,8 @@ const { platformDomain } = require("../config/branding");
 const { sendOwnerVerificationEmail } = require("../services/emailVerificationService");
 const { onDomainVerified } = require("../services/sslProvisioningService");
 const { formatOnboardingResponse } = require("../services/onboardingService");
+const { buildDnsInstructions, needsDnsSetup } = require("../services/dnsInstructionsService");
+const { formatDomainFields } = require("../services/domainService");
 
 const listPublicPlans = asyncHandler(async (req, res) => {
   const plans = await SubscriptionPlan.find({
@@ -129,6 +131,9 @@ const publicSignup = asyncHandler(async (req, res) => {
   const user = await User.findById(result.adminUser.id);
   const permissions = await resolveUserPermissions(user);
 
+  const domainFields = formatDomainFields(result.company);
+  const requiresDnsSetup = needsDnsSetup(result.company);
+
   res.status(201).json({
     ...formatUserResponse(user, permissions),
     token: generateToken(user._id, user.role),
@@ -140,13 +145,17 @@ const publicSignup = asyncHandler(async (req, res) => {
       primaryDomain: result.company.primaryDomain,
       domainType: result.company.domainType,
       domainVerified: result.company.domainVerified,
+      domainStatus: result.company.domainStatus,
       sslStatus: result.company.sslStatus,
       status: result.company.status,
       ownerEmailVerified: result.company.ownerEmailVerified,
       workspaceUrl: `https://${result.company.subdomain}.${platformDomain}/app`,
       trialEndDate: result.company.trialEndDate,
       trialDaysRemaining: 7,
+      systemDomain: domainFields.systemDomain,
     },
+    requiresDnsSetup,
+    dnsSetup: requiresDnsSetup ? buildDnsInstructions(result.company.primaryDomain) : null,
     onboarding: formatOnboardingResponse(result.company),
     requiresEmailVerification: !result.company.ownerEmailVerified,
     verificationEmailSent: emailResult.sent,

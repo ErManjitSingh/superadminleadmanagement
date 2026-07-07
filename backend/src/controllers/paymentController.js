@@ -1,6 +1,7 @@
 const Payment = require('../models/Payment');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 const { notifyPaymentReceived } = require('../services/notificationService');
 const { createBookingFromPayment } = require('../services/operationsService');
 
@@ -13,7 +14,7 @@ const PAYMENT_POPULATE = [
 
 const listPayments = asyncHandler(async (req, res) => {
   const { status, search } = req.query;
-  const filter = {};
+  const filter = tenantFilter({}, req);
   if (status) filter.status = status;
 
   let payments = await Payment.find(filter)
@@ -34,8 +35,8 @@ const listPayments = asyncHandler(async (req, res) => {
 });
 
 const getPayment = asyncHandler(async (req, res) => {
-  const payment = await Payment.findById(req.params.id).populate(PAYMENT_POPULATE).lean();
-  if (!payment) throw new ApiError(404, 'Payment not found');
+  const payment = await Payment.findOne(companyScopedIdFilter(req.params.id, req)).populate(PAYMENT_POPULATE).lean();
+  assertTenantDocument(payment, req, 'Payment');
   res.json(payment);
 });
 
@@ -59,8 +60,8 @@ const createPayment = asyncHandler(async (req, res) => {
 });
 
 const updatePayment = asyncHandler(async (req, res) => {
-  const payment = await Payment.findById(req.params.id);
-  if (!payment) throw new ApiError(404, 'Payment not found');
+  const payment = await Payment.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(payment, req, 'Payment');
 
   const previousStatus = payment.status;
   Object.assign(payment, req.body);
@@ -86,8 +87,8 @@ const updatePayment = asyncHandler(async (req, res) => {
 });
 
 const deletePayment = asyncHandler(async (req, res) => {
-  const payment = await Payment.findById(req.params.id);
-  if (!payment) throw new ApiError(404, 'Payment not found');
+  const payment = await Payment.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(payment, req, 'Payment');
   await payment.deleteOne();
   res.json({ message: 'Payment deleted' });
 });
@@ -96,8 +97,8 @@ const addRefund = asyncHandler(async (req, res) => {
   const { amount, reason } = req.body;
   if (!amount || amount <= 0) throw new ApiError(400, 'Valid refund amount is required');
 
-  const payment = await Payment.findById(req.params.id);
-  if (!payment) throw new ApiError(404, 'Payment not found');
+  const payment = await Payment.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(payment, req, 'Payment');
 
   payment.refunds.push({
     amount,

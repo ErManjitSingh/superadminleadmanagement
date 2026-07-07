@@ -24,6 +24,8 @@ const {
 } = require('./operationsQuotationSyncService');
 const { notifyBookingConfirmed } = require('./notificationService');
 const cacheService = require('./cacheService');
+const { assertBookingLimit } = require('./subscriptionLimitsService');
+const { getCompanyId } = require('../utils/tenantContextStore');
 
 const OPS_DASHBOARD_TTL = 30_000;
 
@@ -901,6 +903,9 @@ async function listBookings(query = {}, { branchId } = {}) {
 }
 
 async function createBooking(payload, actor) {
+  const companyId = payload.companyId || getCompanyId() || actor?.companyId;
+  await assertBookingLimit(companyId);
+
   const bookingNumber = await nextBookingNumber();
   const advance = Number(payload.advanceReceived || 0);
   const total = Number(payload.totalAmount || 0);
@@ -928,7 +933,9 @@ async function createBooking(payload, actor) {
 }
 
 async function updateBooking(id, payload, actor) {
-  const prev = await Booking.findById(id).lean();
+  const filter = { _id: id };
+  if (actor?.companyId) filter.companyId = actor.companyId;
+  const prev = await Booking.findOne(filter).lean();
   if (!prev) return null;
 
   if (payload.totalAmount != null || payload.advanceReceived != null) {

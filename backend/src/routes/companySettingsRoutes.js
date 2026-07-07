@@ -4,6 +4,8 @@ const { authorize } = require('../middleware/rbac');
 const {
   getCompanySettings,
   getOnboarding,
+  getSubscriptionLimits,
+  requestPlanUpgrade,
   updateCompanySettings,
   verifyCompanyDomain,
   updateCompanyDomain,
@@ -15,6 +17,8 @@ const router = express.Router();
 
 router.use(protect);
 router.get('/', getCompanySettings);
+router.get('/subscription', getSubscriptionLimits);
+router.post('/upgrade-request', authorize('admin'), requestPlanUpgrade);
 router.get('/onboarding', getOnboarding);
 router.post('/resend-verification', authorize('admin'), resendVerification);
 router.post('/domain/verify', authorize('admin'), verifyCompanyDomain);

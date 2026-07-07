@@ -5,6 +5,7 @@ const { RESERVED_SUBDOMAINS } = require("../services/tenantResolveService");
 const ApiError = require("../utils/apiError");
 const asyncHandler = require("../utils/asyncHandler");
 const { platformDomain } = require("../config/branding");
+const { buildDnsInstructions } = require("../services/dnsInstructionsService");
 
 const APP_CNAME_TARGET =
   process.env.APP_CNAME_TARGET || `proxy.${platformDomain}`;
@@ -80,6 +81,7 @@ async function domainPointsToPlatform(hostname) {
 }
 
 const getDomainDnsInfo = asyncHandler(async (req, res) => {
+  const example = buildDnsInstructions("crm.yourcompany.com");
   res.json({
     data: {
       platformDomain,
@@ -89,6 +91,8 @@ const getDomainDnsInfo = asyncHandler(async (req, res) => {
         cname: { host: "crm", pointsTo: APP_CNAME_TARGET },
         aRecord: SERVER_IP ? { host: "crm", pointsTo: SERVER_IP } : null,
       },
+      records: example.records,
+      setupSteps: example.instructions,
     },
   });
 });
@@ -113,6 +117,7 @@ const verifyDomain = asyncHandler(async (req, res) => {
   }
 
   const result = await domainPointsToPlatform(domain);
+  const dnsSetup = buildDnsInstructions(domain);
   res.json({
     data: {
       domain,
@@ -124,6 +129,7 @@ const verifyDomain = asyncHandler(async (req, res) => {
         cname: APP_CNAME_TARGET,
         aRecord: SERVER_IP || null,
       },
+      dnsSetup,
     },
   });
 });

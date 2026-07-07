@@ -2,6 +2,7 @@ const Branch = require('../models/Branch');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/apiError');
 const { withCompany } = require('../utils/branchScope');
+const { assertBranchLimit } = require('../services/subscriptionLimitsService');
 
 const listBranches = asyncHandler(async (req, res) => {
   let filter = withCompany({ status: 'active' }, req.companyId);
@@ -23,6 +24,8 @@ const createBranch = asyncHandler(async (req, res) => {
     }, req.companyId)
   );
   if (exists) throw new ApiError(400, 'Branch already exists');
+
+  await assertBranchLimit(req.companyId);
 
   const branch = await Branch.create({
     name: name.trim(),

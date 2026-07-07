@@ -16,6 +16,7 @@ const { startNotificationScheduler } = require('./services/notificationScheduler
 const { purgeOldActivityLogs } = require('./services/activityService');
 const { startEmailInboxPoller } = require('./services/emailInboxService');
 const { archiveOldTrips } = require('./services/operationsArchiveService');
+const { startSubscriptionLifecycleJob } = require('./services/subscriptionLifecycleService');
 const superAdminRoutes = require('./superadmin/routes');
 const { ensurePlatformIndexes } = require('./superadmin/config/ensurePlatformIndexes');
 const { ensureDefaultSettings } = require('./superadmin/services/platformSettingsService');
@@ -81,6 +82,7 @@ async function start() {
 
   archiveOldTrips().catch(() => {});
   setInterval(() => archiveOldTrips().catch(() => {}), 24 * 60 * 60 * 1000);
+  startSubscriptionLifecycleJob();
 
   httpServer.listen(port, () => {
     console.log(`[API] Running on http://127.0.0.1:${port}`);

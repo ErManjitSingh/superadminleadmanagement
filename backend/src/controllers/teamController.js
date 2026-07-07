@@ -4,10 +4,11 @@ const Lead = require('../models/Lead');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { sumConvertedPackageRevenue } = require('../utils/convertedPackageRevenue');
+const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 
-async function computeTeamStats(team) {
+async function computeTeamStats(team, companyId) {
   const memberIds = team.members.map((m) => m._id || m);
-  const teamLeads = await Lead.find({ assignedTo: { $in: memberIds } }).lean();
+  const teamLeads = await Lead.find(tenantFilter({ assignedTo: { $in: memberIds } }, { companyId })).lean();
   const converted = teamLeads.filter((l) => l.status === 'converted');
   const revenue = await sumConvertedPackageRevenue({ assigneeIds: memberIds });
 
@@ -19,35 +20,35 @@ async function computeTeamStats(team) {
   };
 }
 
-async function enrichTeam(team) {
+async function enrichTeam(team, companyId) {
   const obj = team.toObject ? team.toObject() : team;
-  return { ...obj, stats: await computeTeamStats(obj) };
+  return { ...obj, stats: await computeTeamStats(obj, companyId) };
 }
 
 const listTeams = asyncHandler(async (req, res) => {
-  const teams = await Team.find()
+  const teams = await Team.find(tenantFilter({}, req))
     .populate('teamLeader', 'name email')
     .populate('members', 'name email')
     .populate('salesManager', 'name email')
     .sort({ createdAt: -1 });
 
-  const enriched = await Promise.all(teams.map(enrichTeam));
+  const enriched = await Promise.all(teams.map((t) => enrichTeam(t, req.companyId)));
   res.json(enriched);
 });
 
 const getTeam = asyncHandler(async (req, res) => {
-  const team = await Team.findById(req.params.id)
+  const team = await Team.findOne(companyScopedIdFilter(req.params.id, req))
     .populate('teamLeader', 'name email')
     .populate('members', 'name email')
     .populate('salesManager', 'name email');
 
-  if (!team) throw new ApiError(404, 'Team not found');
-  res.json(await enrichTeam(team));
+  assertTenantDocument(team, req, 'Team');
+  res.json(await enrichTeam(team, req.companyId));
 });
 
 const createTeam = asyncHandler(async (req, res) => {
-  const leader = await User.findById(req.body.teamLeaderId);
-  if (!leader) throw new ApiError(404, 'Team leader not found');
+  const leader = await User.findOne(companyScopedIdFilter(req.body.teamLeaderId, req));
+  assertTenantDocument(leader, req, 'Team leader');
 
   const team = await Team.create({
     name: req.body.name,
@@ -55,22 +56,24 @@ const createTeam = asyncHandler(async (req, res) => {
     teamLeader: leader._id,
     salesManager: req.user._id,
     members: [],
+    companyId: req.companyId,
+    branchId: req.branchId || leader.branchId || null,
   });
 
   const populated = await Team.findById(team._id)
     .populate('teamLeader', 'name email')
     .populate('members', 'name email');
 
-  res.status(201).json(await enrichTeam(populated));
+  res.status(201).json(await enrichTeam(populated, req.companyId));
 });
 
 const updateTeam = asyncHandler(async (req, res) => {
-  const team = await Team.findById(req.params.id);
-  if (!team) throw new ApiError(404, 'Team not found');
+  const team = await Team.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(team, req, 'Team');
 
   if (req.body.teamLeaderId) {
-    const leader = await User.findById(req.body.teamLeaderId);
-    if (!leader) throw new ApiError(404, 'Team leader not found');
+    const leader = await User.findOne(companyScopedIdFilter(req.body.teamLeaderId, req));
+    assertTenantDocument(leader, req, 'Team leader');
     team.teamLeader = leader._id;
   }
   if (req.body.name !== undefined) team.name = req.body.name;
@@ -82,32 +85,32 @@ const updateTeam = asyncHandler(async (req, res) => {
     .populate('teamLeader', 'name email')
     .populate('members', 'name email');
 
-  res.json(await enrichTeam(populated));
+  res.json(await enrichTeam(populated, req.companyId));
 });
 
 const deleteTeam = asyncHandler(async (req, res) => {
-  const team = await Team.findById(req.params.id);
-  if (!team) throw new ApiError(404, 'Team not found');
+  const team = await Team.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(team, req, 'Team');
   await team.deleteOne();
   res.json({ message: 'Team deleted' });
 });
 
 const listTeamLeaders = asyncHandler(async (req, res) => {
-  const leaders = await User.find({ role: 'team_leader', status: 'active' })
+  const leaders = await User.find(tenantFilter({ role: 'team_leader', status: 'active' }, req))
     .select('name email')
     .lean();
   res.json(leaders);
 });
 
 const listAvailableExecutives = asyncHandler(async (req, res) => {
-  const teams = await Team.find().select('members');
+  const teams = await Team.find(tenantFilter({}, req)).select('members');
   const assigned = new Set(teams.flatMap((t) => t.members.map((m) => m.toString())));
 
-  const executives = await User.find({
+  const executives = await User.find(tenantFilter({
     role: 'sales_executive',
     status: 'active',
     _id: { $nin: [...assigned] },
-  })
+  }, req))
     .select('name email')
     .lean();
 
@@ -115,13 +118,13 @@ const listAvailableExecutives = asyncHandler(async (req, res) => {
 });
 
 const addMember = asyncHandler(async (req, res) => {
-  const team = await Team.findById(req.params.id);
-  if (!team) throw new ApiError(404, 'Team not found');
+  const team = await Team.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(team, req, 'Team');
 
-  const exec = await User.findById(req.body.executiveId);
-  if (!exec) throw new ApiError(404, 'Executive not found');
+  const exec = await User.findOne(companyScopedIdFilter(req.body.executiveId, req));
+  assertTenantDocument(exec, req, 'Executive');
 
-  const existing = await Team.findOne({ members: exec._id, _id: { $ne: team._id } });
+  const existing = await Team.findOne(tenantFilter({ members: exec._id, _id: { $ne: team._id } }, req));
   if (existing) throw new ApiError(400, 'Executive already belongs to a team');
 
   if (!team.members.some((m) => m.toString() === exec._id.toString())) {
@@ -140,12 +143,12 @@ const addMember = asyncHandler(async (req, res) => {
     .populate('teamLeader', 'name email')
     .populate('members', 'name email');
 
-  res.json(await enrichTeam(populated));
+  res.json(await enrichTeam(populated, req.companyId));
 });
 
 const removeMember = asyncHandler(async (req, res) => {
-  const team = await Team.findById(req.params.id);
-  if (!team) throw new ApiError(404, 'Team not found');
+  const team = await Team.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(team, req, 'Team');
 
   team.members = team.members.filter((m) => m.toString() !== req.params.memberId);
   await team.save();
@@ -154,13 +157,14 @@ const removeMember = asyncHandler(async (req, res) => {
     .populate('teamLeader', 'name email')
     .populate('members', 'name email');
 
-  res.json(await enrichTeam(populated));
+  res.json(await enrichTeam(populated, req.companyId));
 });
 
 const transferMember = asyncHandler(async (req, res) => {
-  const fromTeam = await Team.findById(req.params.id);
-  const toTeam = await Team.findById(req.body.targetTeamId);
-  if (!fromTeam || !toTeam) throw new ApiError(404, 'Team not found');
+  const fromTeam = await Team.findOne(companyScopedIdFilter(req.params.id, req));
+  const toTeam = await Team.findOne(companyScopedIdFilter(req.body.targetTeamId, req));
+  assertTenantDocument(fromTeam, req, 'Team');
+  assertTenantDocument(toTeam, req, 'Team');
 
   const memberIdx = fromTeam.members.findIndex((m) => m.toString() === req.body.executiveId);
   if (memberIdx === -1) throw new ApiError(404, 'Member not found');
@@ -174,11 +178,11 @@ const transferMember = asyncHandler(async (req, res) => {
 });
 
 const updateTeamLeader = asyncHandler(async (req, res) => {
-  const team = await Team.findById(req.params.id);
-  if (!team) throw new ApiError(404, 'Team not found');
+  const team = await Team.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(team, req, 'Team');
 
-  const leader = await User.findById(req.body.teamLeaderId);
-  if (!leader) throw new ApiError(404, 'Team leader not found');
+  const leader = await User.findOne(companyScopedIdFilter(req.body.teamLeaderId, req));
+  assertTenantDocument(leader, req, 'Team leader');
 
   team.teamLeader = leader._id;
   await team.save();
@@ -187,7 +191,7 @@ const updateTeamLeader = asyncHandler(async (req, res) => {
     .populate('teamLeader', 'name email')
     .populate('members', 'name email');
 
-  res.json(await enrichTeam(populated));
+  res.json(await enrichTeam(populated, req.companyId));
 });
 
 const getTeamPerformance = asyncHandler(async (req, res) => {

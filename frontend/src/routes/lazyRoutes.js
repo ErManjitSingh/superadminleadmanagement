@@ -31,6 +31,8 @@ export const Notifications = lazy(() => import('../pages/Notifications'));
 export const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'));
 export const CompanyWorkspacePage = lazy(() => import('../pages/settings/CompanyWorkspacePage'));
 export const VerifyEmailPage = lazy(() => import('../pages/VerifyEmailPage'));
+export const DnsSetupPage = lazy(() => import('../pages/DnsSetupPage'));
+export const SubscriptionUsagePage = lazy(() => import('../pages/settings/SubscriptionUsagePage'));
 export const WhatsAppTemplatesPage = lazy(() => import('../pages/settings/WhatsAppTemplatesPage'));
 export const EmailTemplatesPage = lazy(() => import('../pages/settings/EmailTemplatesPage'));
 export const EmailActivityPage = lazy(() => import('../pages/EmailActivityPage'));

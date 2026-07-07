@@ -5,7 +5,7 @@ const EmailReply = require('../models/EmailReply');
 const ApiError = require('../utils/apiError');
 const { getLeaderLeadScopeFilter } = require('./teamScopeService');
 const { invalidateMailboxCache } = require('./emailMailboxCache');
-const { isEmailConfigured, normalizeRecipients } = require('./emailService');
+const { isEmailConfiguredFor, normalizeRecipients } = require('./emailService');
 const { enqueueEmailJob } = require('./emailQueueService');
 const { renderEmailTemplate } = require('./emailTemplateService');
 const branding = require('../config/branding');
@@ -15,6 +15,7 @@ async function assertCanAccessLead(req, leadId) {
   const lead = await Lead.findOne({
     _id: leadId,
     isDeleted: { $ne: true },
+    ...(req.companyId ? { companyId: req.companyId } : {}),
     ...(req.branchId ? { branchId: req.branchId } : {}),
   });
   if (!lead) throw new ApiError(404, 'Lead not found');
@@ -66,8 +67,8 @@ function buildClientEmailHtml(bodyText, { lead, category, subject, payload, user
 }
 
 async function queueLeadEmail({ req, leadId, payload }) {
-  if (!isEmailConfigured()) {
-    throw new ApiError(503, 'Email service is not configured. Contact your administrator.');
+  if (!(await isEmailConfiguredFor(req.companyId))) {
+    throw new ApiError(503, 'Email service is not configured. Add SMTP in Settings → Plan & Usage.');
   }
 
   const lead = await assertCanAccessLead(req, leadId);
@@ -91,6 +92,7 @@ async function queueLeadEmail({ req, leadId, payload }) {
     const template = await EmailTemplate.findOne({
       _id: templateId,
       enabled: true,
+      ...(req.companyId ? { companyId: req.companyId } : {}),
       ...(req.branchId ? { branchId: req.branchId } : {}),
     }).lean();
     if (!template) throw new ApiError(404, 'Email template not found');
@@ -136,6 +138,7 @@ async function queueLeadEmail({ req, leadId, payload }) {
 
   enqueueEmailJob({
     logId: log._id,
+    companyId: req.companyId || lead.companyId,
     leadId: lead._id,
     branchId: lead.branchId,
     category,

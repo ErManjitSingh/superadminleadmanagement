@@ -9,6 +9,9 @@ const {
   verifyCustomDomain,
   disconnectCustomDomain,
 } = require('../services/domainService');
+const { getSubscriptionStatus } = require('../services/subscriptionLimitsService');
+const { clearTenantTransporterCache } = require('../services/emailService');
+const { createUpgradeRequest } = require('../services/upgradeRequestService');
 
 function maskSecrets(settings = {}) {
   const copy = { ...settings };
@@ -96,6 +99,7 @@ const updateCompanySettings = asyncHandler(async (req, res) => {
       company.tenantSettings[key] = value;
     }
     company.markModified('tenantSettings');
+    clearTenantTransporterCache(company._id);
   }
 
   await company.save();
@@ -151,9 +155,35 @@ const resendVerification = asyncHandler(async (req, res) => {
   res.json({ sent: result.sent, message: result.sent ? 'Verification email sent' : 'Could not send email — contact support' });
 });
 
+const getSubscriptionLimits = asyncHandler(async (req, res) => {
+  const status = await getSubscriptionStatus(req.companyId);
+  if (!status) throw new ApiError(404, 'Company not found');
+  res.json({ data: status });
+});
+
+const requestPlanUpgrade = asyncHandler(async (req, res) => {
+  const company = await Company.findById(req.companyId);
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const { targetPlanSlug, message } = req.body || {};
+  const result = await createUpgradeRequest(company, req.user, { targetPlanSlug, message });
+
+  res.status(result.alreadyOpen ? 200 : 201).json({
+    data: {
+      ticketNumber: result.ticket.ticketNumber,
+      alreadyOpen: result.alreadyOpen,
+      message: result.alreadyOpen
+        ? 'An upgrade request is already open — our team will contact you soon.'
+        : 'Upgrade request submitted. Our team will contact you shortly.',
+    },
+  });
+});
+
 module.exports = {
   getCompanySettings,
   getOnboarding,
+  getSubscriptionLimits,
+  requestPlanUpgrade,
   updateCompanySettings,
   verifyCompanyDomain,
   updateCompanyDomain,

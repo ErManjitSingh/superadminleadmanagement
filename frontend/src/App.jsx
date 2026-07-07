@@ -41,6 +41,8 @@ import {
   SettingsPage,
   CompanyWorkspacePage,
   VerifyEmailPage,
+  DnsSetupPage,
+  SubscriptionUsagePage,
   WhatsAppTemplatesPage,
   EmailTemplatesPage,
   EmailActivityPage,
@@ -121,6 +123,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/setup-dns" element={<DnsSetupPage />} />
             <Route path="/vendor-confirm/:token" element={<VendorConfirmationPage />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/accept-invite/:token" element={<AcceptInvite />} />
@@ -286,6 +289,7 @@ function App() {
               <Route path="notifications" element={<PermissionRoute module="leads"><Notifications /></PermissionRoute>} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="settings/workspace" element={<RoleRoute roles={['admin']}><CompanyWorkspacePage /></RoleRoute>} />
+              <Route path="settings/subscription" element={<RoleRoute roles={['admin']}><SubscriptionUsagePage /></RoleRoute>} />
               <Route path="settings/whatsapp-templates" element={<PermissionRoute module="whatsapp" action="manage"><WhatsAppTemplatesPage /></PermissionRoute>} />
               <Route path="settings/email-templates" element={<PermissionRoute module="email" action="manage"><EmailTemplatesPage /></PermissionRoute>} />
               <Route path="profile" element={<ComingSoon title="My Profile" description="Personal settings and performance" />} />

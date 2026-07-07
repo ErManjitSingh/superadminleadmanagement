@@ -8,6 +8,7 @@ const Cab = require('../models/Cab');
 const Flight = require('../models/Flight');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { companyScopedIdFilter, assertTenantDocument, tenantFilter } = require('../utils/tenantDocument');
 const ops = require('../services/operationsService');
 const cacheService = require('../services/cacheService');
 const { generateVoucherDocument, generateItineraryDocument } = require('../services/operationsVoucherService');
@@ -34,8 +35,8 @@ const createBooking = asyncHandler(async (req, res) => {
 });
 
 const getBooking = asyncHandler(async (req, res) => {
-  let booking = await Booking.findById(req.params.id).lean();
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  let booking = await Booking.findOne(companyScopedIdFilter(req.params.id, req)).lean();
+  assertTenantDocument(booking, req, 'Booking');
   booking = await enrichBookingWithQuotation(booking);
   const [tasks, documents] = await Promise.all([
     ops.listTasks({ bookingId: req.params.id }),
@@ -64,8 +65,8 @@ const syncBookingQuotation = asyncHandler(async (req, res) => {
 });
 
 const getBookingQuotation = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.id).lean();
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.id, req)).lean();
+  assertTenantDocument(booking, req, 'Booking');
   const quotation = await resolveQuotationForBooking(booking);
   if (!quotation) throw new ApiError(404, 'No quotation linked to this booking');
   res.json(quotation);
@@ -78,8 +79,8 @@ const updateBooking = asyncHandler(async (req, res) => {
 });
 
 const confirmHotel = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.id);
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(booking, req, 'Booking');
   booking.hotelConfirmation = 'confirmed';
   booking.hotels = (booking.hotels || []).map((h) => ({ ...h.toObject?.() || h, status: 'confirmed' }));
   if (['booking_received', 'pending_verification', 'pending'].includes(booking.status)) {
@@ -91,8 +92,8 @@ const confirmHotel = asyncHandler(async (req, res) => {
 });
 
 const confirmCab = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.id);
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(booking, req, 'Booking');
   booking.cabConfirmation = 'confirmed';
   booking.transport = (booking.transport || []).map((t) => ({ ...t.toObject?.() || t, status: 'confirmed' }));
   await booking.save();
@@ -111,14 +112,14 @@ const createHotel = asyncHandler(async (req, res) => {
 });
 
 const updateHotel = asyncHandler(async (req, res) => {
-  const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!hotel) throw new ApiError(404, 'Hotel not found');
+  const hotel = await Hotel.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), req.body, { new: true });
+  assertTenantDocument(hotel, req, 'Hotel');
   res.json(hotel);
 });
 
 const deleteHotel = asyncHandler(async (req, res) => {
-  const hotel = await Hotel.findByIdAndDelete(req.params.id);
-  if (!hotel) throw new ApiError(404, 'Hotel not found');
+  const hotel = await Hotel.findOneAndDelete(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(hotel, req, 'Hotel');
   res.json({ message: 'Hotel deleted' });
 });
 
@@ -133,15 +134,15 @@ const listActivities = asyncHandler(async (req, res) => {
 });
 
 const getActivity = asyncHandler(async (req, res) => {
-  const activity = await Activity.findById(req.params.id).populate('vendor', 'name').lean();
-  if (!activity) throw new ApiError(404, 'Activity not found');
+  const activity = await Activity.findOne(companyScopedIdFilter(req.params.id, req)).populate('vendor', 'name').lean();
+  assertTenantDocument(activity, req, 'Activity');
   res.json(activity);
 });
 
 const createActivity = asyncHandler(async (req, res) => {
   let vendorName = '';
   if (req.body.vendorId) {
-    const vendor = await Vendor.findById(req.body.vendorId);
+    const vendor = await Vendor.findOne(companyScopedIdFilter(req.body.vendorId, req));
     vendorName = vendor?.name || '';
   }
   const activity = await Activity.create({
@@ -154,14 +155,14 @@ const createActivity = asyncHandler(async (req, res) => {
 });
 
 const updateActivity = asyncHandler(async (req, res) => {
-  const activity = await Activity.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!activity) throw new ApiError(404, 'Activity not found');
+  const activity = await Activity.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), req.body, { new: true });
+  assertTenantDocument(activity, req, 'Activity');
   res.json(activity);
 });
 
 const deleteActivity = asyncHandler(async (req, res) => {
-  const activity = await Activity.findById(req.params.id);
-  if (!activity) throw new ApiError(404, 'Activity not found');
+  const activity = await Activity.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(activity, req, 'Activity');
   await activity.deleteOne();
   res.json({ message: 'Activity deleted' });
 });
@@ -180,8 +181,8 @@ const listVendors = asyncHandler(async (req, res) => {
 });
 
 const getVendor = asyncHandler(async (req, res) => {
-  const vendor = await Vendor.findById(req.params.id).lean();
-  if (!vendor) throw new ApiError(404, 'Vendor not found');
+  const vendor = await Vendor.findOne(companyScopedIdFilter(req.params.id, req)).lean();
+  assertTenantDocument(vendor, req, 'Vendor');
   res.json(vendor);
 });
 
@@ -195,14 +196,14 @@ const createVendor = asyncHandler(async (req, res) => {
 const updateVendor = asyncHandler(async (req, res) => {
   const body = { ...req.body };
   if (body.type === 'cab') body.type = 'transport';
-  const vendor = await Vendor.findByIdAndUpdate(req.params.id, body, { new: true });
-  if (!vendor) throw new ApiError(404, 'Vendor not found');
+  const vendor = await Vendor.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), body, { new: true });
+  assertTenantDocument(vendor, req, 'Vendor');
   res.json(vendor);
 });
 
 const deleteVendor = asyncHandler(async (req, res) => {
-  const vendor = await Vendor.findById(req.params.id);
-  if (!vendor) throw new ApiError(404, 'Vendor not found');
+  const vendor = await Vendor.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(vendor, req, 'Vendor');
   await vendor.deleteOne();
   res.json({ message: 'Vendor deleted' });
 });
@@ -232,8 +233,8 @@ const createVoucher = asyncHandler(async (req, res) => {
 });
 
 const generateItineraryPdf = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.id).lean();
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.id, req)).lean();
+  assertTenantDocument(booking, req, 'Booking');
   const pdfUrl = generateItineraryDocument(booking);
   res.json({ pdfUrl });
 });
@@ -241,8 +242,8 @@ const generateItineraryPdf = asyncHandler(async (req, res) => {
 const updateVoucher = asyncHandler(async (req, res) => {
   const body = { ...req.body };
   if (body.type === 'cab') body.type = 'transport';
-  const voucher = await Voucher.findByIdAndUpdate(req.params.id, body, { new: true });
-  if (!voucher) throw new ApiError(404, 'Voucher not found');
+  const voucher = await Voucher.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), body, { new: true });
+  assertTenantDocument(voucher, req, 'Voucher');
   res.json(voucher);
 });
 
@@ -269,8 +270,8 @@ const updateTicket = asyncHandler(async (req, res) => {
   if (req.body.status === 'resolved' || req.body.status === 'closed') {
     patch.resolvedAt = new Date();
   }
-  const ticket = await SupportTicket.findByIdAndUpdate(req.params.id, patch, { new: true });
-  if (!ticket) throw new ApiError(404, 'Ticket not found');
+  const ticket = await SupportTicket.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), patch, { new: true });
+  assertTenantDocument(ticket, req, 'Support ticket');
   res.json(ticket);
 });
 

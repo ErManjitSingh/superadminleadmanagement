@@ -15,10 +15,11 @@ const {
   listCustomerPayments,
 } = require('../services/bookingPaymentService');
 const { pickQuotationForLead } = require('../services/leadConversionService');
+const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 
 const getConvertPreview = asyncHandler(async (req, res) => {
-  const lead = await Lead.findById(req.params.id).lean();
-  if (!lead) throw new ApiError(404, 'Lead not found');
+  const lead = await Lead.findOne(tenantFilter({ _id: req.params.id }, req)).lean();
+  assertTenantDocument(lead, req, 'Lead');
 
   const quotation = await pickQuotationForLead(lead._id);
   const snap = quotation?.packageSnapshot || {};
@@ -50,8 +51,8 @@ const convertLeadWithPayment = asyncHandler(async (req, res) => {
     throw new ApiError(400, 'Advance amount is required');
   }
 
-  const lead = await Lead.findById(req.params.id);
-  if (!lead) throw new ApiError(404, 'Lead not found');
+  const lead = await Lead.findOne(tenantFilter({ _id: req.params.id }, req));
+  assertTenantDocument(lead, req, 'Lead');
 
   if (req.user.role === 'sales_executive' && lead.assignedTo?.toString() !== req.user._id.toString()) {
     throw new ApiError(403, 'You can only convert leads assigned to you');
@@ -77,8 +78,8 @@ const convertLeadWithPayment = asyncHandler(async (req, res) => {
 });
 
 const listPaymentsForBooking = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.bookingId);
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.bookingId, req));
+  assertTenantDocument(booking, req, 'Booking');
 
   const payments = await listBookingPayments(req.params.bookingId);
   const timeline = await getPaymentTimeline(req.params.bookingId);
@@ -98,8 +99,8 @@ const listPaymentsForBooking = asyncHandler(async (req, res) => {
 });
 
 const addBookingPayment = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.bookingId);
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.bookingId, req));
+  assertTenantDocument(booking, req, 'Booking');
 
   if (req.user.role === 'sales_executive') {
     throw new ApiError(403, 'Sales executives can only collect the first advance payment during lead conversion');
@@ -128,8 +129,8 @@ const addBookingPayment = asyncHandler(async (req, res) => {
 });
 
 const getPaymentReceipt = asyncHandler(async (req, res) => {
-  const payment = await BookingPayment.findById(req.params.paymentId).lean();
-  if (!payment) throw new ApiError(404, 'Payment not found');
+  const payment = await BookingPayment.findOne(companyScopedIdFilter(req.params.paymentId, req)).lean();
+  assertTenantDocument(payment, req, 'Payment');
   if (payment.booking?.toString() !== req.params.bookingId) {
     throw new ApiError(404, 'Payment not found for this booking');
   }
@@ -143,8 +144,8 @@ const getPaymentReceipt = asyncHandler(async (req, res) => {
 });
 
 const resendPaymentReceipt = asyncHandler(async (req, res) => {
-  const payment = await BookingPayment.findById(req.params.paymentId).lean();
-  if (!payment) throw new ApiError(404, 'Payment not found');
+  const payment = await BookingPayment.findOne(companyScopedIdFilter(req.params.paymentId, req)).lean();
+  assertTenantDocument(payment, req, 'Payment');
   if (payment.booking?.toString() !== req.params.bookingId) {
     throw new ApiError(404, 'Payment not found for this booking');
   }
@@ -155,8 +156,8 @@ const resendPaymentReceipt = asyncHandler(async (req, res) => {
 });
 
 const markBookingFullyPaid = asyncHandler(async (req, res) => {
-  const booking = await Booking.findById(req.params.bookingId);
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.bookingId, req));
+  assertTenantDocument(booking, req, 'Booking');
 
   if (!['operations_manager', 'admin'].includes(req.user.role)) {
     throw new ApiError(403, 'Only operations managers can mark bookings as fully paid');
@@ -198,17 +199,17 @@ const getCustomerPayments = asyncHandler(async (req, res) => {
 });
 
 const acknowledgeNewBooking = asyncHandler(async (req, res) => {
-  const booking = await Booking.findByIdAndUpdate(
-    req.params.bookingId,
+  const booking = await Booking.findOneAndUpdate(
+    companyScopedIdFilter(req.params.bookingId, req),
     { isNewBooking: false },
     { new: true }
   );
-  if (!booking) throw new ApiError(404, 'Booking not found');
+  assertTenantDocument(booking, req, 'Booking');
   res.json(booking);
 });
 
 const getLeadBooking = asyncHandler(async (req, res) => {
-  const booking = await Booking.findOne({ lead: req.params.id })
+  const booking = await Booking.findOne(tenantFilter({ lead: req.params.id }, req))
     .select(
       '_id bookingNumber customerName destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress createdAt'
     )

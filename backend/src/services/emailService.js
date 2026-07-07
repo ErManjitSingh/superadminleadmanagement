@@ -5,18 +5,50 @@ const branding = require('../config/branding');
 const DEFAULT_FROM = branding.salesEmail;
 const DEFAULT_FROM_NAME = branding.brandName;
 
-let transporter = null;
+let platformTransporter = null;
+const tenantTransporterCache = new Map();
 
-function isEmailConfigured() {
+function platformSmtpConfigured() {
   return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
-function getTransporter() {
-  if (!isEmailConfigured()) {
+function isEmailConfigured(companyId = null) {
+  if (!companyId) return platformSmtpConfigured();
+  return platformSmtpConfigured();
+}
+
+async function loadTenantSmtp(companyId) {
+  if (!companyId) return null;
+  const Company = require('../superadmin/models/Company');
+  const company = await Company.findById(companyId).select('tenantSettings name').lean();
+  const settings = company?.tenantSettings;
+  if (!settings?.smtpHost || !settings?.smtpUser || !settings?.smtpPass) return null;
+
+  return {
+    host: settings.smtpHost,
+    port: Number(settings.smtpPort || 587),
+    secure: settings.smtpPort === 465 || process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: settings.smtpUser,
+      pass: settings.smtpPass,
+    },
+    fromName: settings.smtpFromName || company.name || DEFAULT_FROM_NAME,
+    fromEmail: settings.smtpUser,
+  };
+}
+
+async function isEmailConfiguredFor(companyId) {
+  const tenant = await loadTenantSmtp(companyId);
+  if (tenant) return true;
+  return platformSmtpConfigured();
+}
+
+function getPlatformTransporter() {
+  if (!platformSmtpConfigured()) {
     throw new Error('SMTP is not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS.');
   }
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
+  if (!platformTransporter) {
+    platformTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
@@ -26,7 +58,29 @@ function getTransporter() {
       },
     });
   }
-  return transporter;
+  return platformTransporter;
+}
+
+function getTenantTransporter(config, companyId) {
+  const key = String(companyId);
+  if (!tenantTransporterCache.has(key)) {
+    tenantTransporterCache.set(key, nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: config.auth,
+    }));
+  }
+  return tenantTransporterCache.get(key);
+}
+
+function clearTenantTransporterCache(companyId) {
+  if (companyId) tenantTransporterCache.delete(String(companyId));
+  else tenantTransporterCache.clear();
+}
+
+function getTransporter() {
+  return getPlatformTransporter();
 }
 
 function normalizeRecipients(value) {
@@ -52,6 +106,7 @@ function normalizeAttachments(attachments = []) {
 }
 
 async function sendMailMessage({
+  companyId = null,
   to,
   cc = [],
   bcc = [],
@@ -61,9 +116,19 @@ async function sendMailMessage({
   attachments = [],
   replyTo,
   headers = {},
+  fromName,
+  fromEmail,
 }) {
+  const tenant = companyId ? await loadTenantSmtp(companyId) : null;
+  const transport = tenant
+    ? getTenantTransporter(tenant, companyId)
+    : getPlatformTransporter();
+
+  const resolvedFromName = fromName || tenant?.fromName || DEFAULT_FROM_NAME;
+  const resolvedFromEmail = fromEmail || tenant?.fromEmail || DEFAULT_FROM;
+
   const mailOptions = {
-    from: `"${DEFAULT_FROM_NAME}" <${DEFAULT_FROM}>`,
+    from: `"${resolvedFromName}" <${resolvedFromEmail}>`,
     to: normalizeRecipients(to),
     cc: normalizeRecipients(cc),
     bcc: normalizeRecipients(bcc),
@@ -71,7 +136,7 @@ async function sendMailMessage({
     html: html || undefined,
     text: text || undefined,
     attachments: normalizeAttachments(attachments),
-    replyTo: replyTo || DEFAULT_FROM,
+    replyTo: replyTo || resolvedFromEmail || DEFAULT_FROM,
     headers: { ...headers },
   };
 
@@ -82,7 +147,6 @@ async function sendMailMessage({
     throw new Error('Subject is required');
   }
 
-  const transport = getTransporter();
   return transport.sendMail(mailOptions);
 }
 
@@ -90,7 +154,11 @@ module.exports = {
   DEFAULT_FROM,
   DEFAULT_FROM_NAME,
   isEmailConfigured,
+  isEmailConfiguredFor,
   getTransporter,
+  getPlatformTransporter,
+  loadTenantSmtp,
+  clearTenantTransporterCache,
   normalizeRecipients,
   normalizeAttachments,
   sendMailMessage,

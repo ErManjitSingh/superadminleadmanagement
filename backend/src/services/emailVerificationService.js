@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const Company = require('../superadmin/models/Company');
-const { isEmailConfigured, sendMailMessage } = require('./emailService');
+const { isEmailConfiguredFor, sendMailMessage } = require('./emailService');
 const { markOnboardingStep } = require('./onboardingService');
 const { platformDomain, brandName } = require('../config/branding');
 const ApiError = require('../utils/apiError');
@@ -33,12 +33,13 @@ async function sendOwnerVerificationEmail(company) {
 
   const verifyUrl = buildVerificationUrl(token, company.subdomain);
 
-  if (!isEmailConfigured()) {
+  if (!(await isEmailConfiguredFor(company._id))) {
     console.log(`[EmailVerification] SMTP not configured — verify URL for ${company.ownerEmail}: ${verifyUrl}`);
     return { sent: false, reason: 'smtp_not_configured', verifyUrl };
   }
 
   await sendMailMessage({
+    companyId: company._id,
     to: company.ownerEmail,
     subject: `Verify your email — ${company.name}`,
     html: `

@@ -6,6 +6,8 @@ const Quotation = require('../models/Quotation');
 const Booking = require('../models/Booking');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
+const { normalizeCompanyId } = require('../utils/branchScope');
 
 function applySearch(items, search) {
   if (!search) return items;
@@ -42,12 +44,13 @@ function packageSnapshot(pkg) {
   return rest;
 }
 
-async function attachPackageStats(packages = []) {
+async function attachPackageStats(packages = [], companyId = null) {
   if (!packages.length) return packages;
   const ids = packages.map((p) => p._id);
+  const companyMatch = companyId ? { companyId: normalizeCompanyId(companyId) } : {};
   const [quotationCounts, bookingCounts] = await Promise.all([
     Quotation.aggregate([
-      { $match: { package: { $in: ids } } },
+      { $match: { package: { $in: ids }, ...companyMatch } },
       { $group: { _id: '$package', count: { $sum: 1 } } },
     ]),
     Booking.aggregate([
@@ -77,7 +80,7 @@ async function attachPackageStats(packages = []) {
 
 const listPackages = asyncHandler(async (req, res) => {
   const { search, packageType, status } = req.query;
-  const filter = {};
+  const filter = tenantFilter({}, req);
   if (packageType) filter.packageType = packageType;
   if (status) filter.status = status;
 
@@ -86,14 +89,14 @@ const listPackages = asyncHandler(async (req, res) => {
     .sort({ updatedAt: -1 })
     .lean();
   packages = applySearch(packages, search);
-  packages = await attachPackageStats(packages);
+  packages = await attachPackageStats(packages, req.companyId);
   res.json(packages);
 });
 
 const getPackage = asyncHandler(async (req, res) => {
-  const pkg = await Package.findById(req.params.id).populate('createdBy', 'name email').lean();
-  if (!pkg) throw new ApiError(404, 'Package not found');
-  const [withStats] = await attachPackageStats([pkg]);
+  const pkg = await Package.findOne(companyScopedIdFilter(req.params.id, req)).populate('createdBy', 'name email').lean();
+  assertTenantDocument(pkg, req, 'Package');
+  const [withStats] = await attachPackageStats([pkg], req.companyId);
   res.json(withStats);
 });
 
@@ -109,25 +112,25 @@ const createPackage = asyncHandler(async (req, res) => {
 
 const updatePackage = asyncHandler(async (req, res) => {
   const body = syncDurationFields(req.body);
-  const pkg = await Package.findByIdAndUpdate(
-    req.params.id,
+  const pkg = await Package.findOneAndUpdate(
+    companyScopedIdFilter(req.params.id, req),
     { ...body, updatedBy: req.user._id },
     { new: true, runValidators: true }
   );
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  assertTenantDocument(pkg, req, 'Package');
   res.json(pkg);
 });
 
 const deletePackage = asyncHandler(async (req, res) => {
-  const pkg = await Package.findById(req.params.id);
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  const pkg = await Package.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(pkg, req, 'Package');
   await pkg.deleteOne();
   res.json({ message: 'Package deleted' });
 });
 
 const duplicatePackage = asyncHandler(async (req, res) => {
-  const original = await Package.findById(req.params.id).lean();
-  if (!original) throw new ApiError(404, 'Package not found');
+  const original = await Package.findOne(companyScopedIdFilter(req.params.id, req)).lean();
+  assertTenantDocument(original, req, 'Package');
 
   const { _id, createdAt, updatedAt, analytics, versions, ...rest } = original;
   const copy = await Package.create({
@@ -152,18 +155,18 @@ const duplicatePackage = asyncHandler(async (req, res) => {
 });
 
 const archivePackage = asyncHandler(async (req, res) => {
-  const pkg = await Package.findByIdAndUpdate(
-    req.params.id,
+  const pkg = await Package.findOneAndUpdate(
+    companyScopedIdFilter(req.params.id, req),
     { status: 'archived', updatedBy: req.user._id },
     { new: true }
   );
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  assertTenantDocument(pkg, req, 'Package');
   res.json(pkg);
 });
 
 const publishPackage = asyncHandler(async (req, res) => {
-  const pkg = await Package.findById(req.params.id);
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  const pkg = await Package.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(pkg, req, 'Package');
   pkg.status = req.body.status || 'published';
   pkg.updatedBy = req.user._id;
   await pkg.save();
@@ -171,8 +174,8 @@ const publishPackage = asyncHandler(async (req, res) => {
 });
 
 const savePackageVersion = asyncHandler(async (req, res) => {
-  const pkg = await Package.findById(req.params.id);
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  const pkg = await Package.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(pkg, req, 'Package');
   const snapshot = packageSnapshot(pkg);
   pkg.versions = [
     { savedAt: new Date(), label: req.body.label || `Version ${(pkg.versions?.length || 0) + 1}`, snapshot },
@@ -184,8 +187,8 @@ const savePackageVersion = asyncHandler(async (req, res) => {
 });
 
 const restorePackageVersion = asyncHandler(async (req, res) => {
-  const pkg = await Package.findById(req.params.id);
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  const pkg = await Package.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(pkg, req, 'Package');
   const version = (pkg.versions || []).find((v) => String(v._id) === String(req.params.versionId));
   if (!version?.snapshot) throw new ApiError(404, 'Version not found');
   Object.assign(pkg, version.snapshot);
@@ -195,17 +198,17 @@ const restorePackageVersion = asyncHandler(async (req, res) => {
 });
 
 const incrementPackageViews = asyncHandler(async (req, res) => {
-  const pkg = await Package.findByIdAndUpdate(
-    req.params.id,
+  const pkg = await Package.findOneAndUpdate(
+    companyScopedIdFilter(req.params.id, req),
     { $inc: { 'analytics.views': 1 } },
     { new: true }
   );
-  if (!pkg) throw new ApiError(404, 'Package not found');
+  assertTenantDocument(pkg, req, 'Package');
   res.json({ views: pkg.analytics?.views || 0 });
 });
 
 const listHotels = asyncHandler(async (req, res) => {
-  const hotels = await Hotel.find().sort({ createdAt: -1 }).lean();
+  const hotels = await Hotel.find(tenantFilter({}, req)).sort({ createdAt: -1 }).lean();
   res.json(applySearch(hotels, req.query.search));
 });
 
@@ -215,20 +218,20 @@ const createHotel = asyncHandler(async (req, res) => {
 });
 
 const updateHotel = asyncHandler(async (req, res) => {
-  const hotel = await Hotel.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!hotel) throw new ApiError(404, 'Hotel not found');
+  const hotel = await Hotel.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), req.body, { new: true });
+  assertTenantDocument(hotel, req, 'Hotel');
   res.json(hotel);
 });
 
 const deleteHotel = asyncHandler(async (req, res) => {
-  const hotel = await Hotel.findById(req.params.id);
-  if (!hotel) throw new ApiError(404, 'Hotel not found');
+  const hotel = await Hotel.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(hotel, req, 'Hotel');
   await hotel.deleteOne();
   res.json({ message: 'Hotel deleted' });
 });
 
 const listCabs = asyncHandler(async (req, res) => {
-  const cabs = await Cab.find().sort({ createdAt: -1 }).lean();
+  const cabs = await Cab.find(tenantFilter({}, req)).sort({ createdAt: -1 }).lean();
   res.json(applySearch(cabs, req.query.search));
 });
 
@@ -238,20 +241,20 @@ const createCab = asyncHandler(async (req, res) => {
 });
 
 const updateCab = asyncHandler(async (req, res) => {
-  const cab = await Cab.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!cab) throw new ApiError(404, 'Cab not found');
+  const cab = await Cab.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), req.body, { new: true });
+  assertTenantDocument(cab, req, 'Cab');
   res.json(cab);
 });
 
 const deleteCab = asyncHandler(async (req, res) => {
-  const cab = await Cab.findById(req.params.id);
-  if (!cab) throw new ApiError(404, 'Cab not found');
+  const cab = await Cab.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(cab, req, 'Cab');
   await cab.deleteOne();
   res.json({ message: 'Cab deleted' });
 });
 
 const listFlights = asyncHandler(async (req, res) => {
-  const flights = await Flight.find().sort({ createdAt: -1 }).lean();
+  const flights = await Flight.find(tenantFilter({}, req)).sort({ createdAt: -1 }).lean();
   res.json(applySearch(flights, req.query.search));
 });
 
@@ -261,14 +264,14 @@ const createFlight = asyncHandler(async (req, res) => {
 });
 
 const updateFlight = asyncHandler(async (req, res) => {
-  const flight = await Flight.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  if (!flight) throw new ApiError(404, 'Flight not found');
+  const flight = await Flight.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), req.body, { new: true });
+  assertTenantDocument(flight, req, 'Flight');
   res.json(flight);
 });
 
 const deleteFlight = asyncHandler(async (req, res) => {
-  const flight = await Flight.findById(req.params.id);
-  if (!flight) throw new ApiError(404, 'Flight not found');
+  const flight = await Flight.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(flight, req, 'Flight');
   await flight.deleteOne();
   res.json({ message: 'Flight deleted' });
 });

@@ -6,6 +6,7 @@ const PlatformSupportTicket = require('../models/PlatformSupportTicket');
 const PlatformInvoice = require('../models/PlatformInvoice');
 const User = require('../../models/User');
 const { getDbStatus } = require('../../config/db');
+const { enrichWithDnsInstructions } = require('../../services/dnsInstructionsService');
 
 function startOfDay(date = new Date()) {
   const d = new Date(date);
@@ -185,7 +186,17 @@ async function getDashboardMetrics() {
       status: inv.status,
       createdAt: inv.createdAt,
     })),
-    pendingDomainVerification: pendingDomains,
+    pendingDomainVerification: pendingDomains.map((c) => enrichWithDnsInstructions({
+      id: c._id,
+      companyId: c._id,
+      companyName: c.name,
+      ownerEmail: c.ownerEmail,
+      primaryDomain: c.primaryDomain,
+      createdAt: c.createdAt,
+      domainStatus: 'pending',
+      domainVerified: false,
+      domainType: 'custom',
+    })),
     platformActivity: recentAuditLogs,
     auditLogs: recentAuditLogs,
     loginLogs: recentLoginLogs,

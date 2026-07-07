@@ -19,6 +19,7 @@ async function processEmailQueue() {
     const job = queue.shift();
     try {
       const info = await sendMailMessage({
+        companyId: job.companyId || null,
         to: job.to,
         cc: job.cc,
         bcc: job.bcc,

@@ -1,6 +1,7 @@
 const FollowUp = require('../models/FollowUp');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 const {
   FOLLOWUP_POPULATE,
   startOfDay,
@@ -38,8 +39,8 @@ const getFollowUpSummary = asyncHandler(async (req, res) => {
 });
 
 const getFollowUp = asyncHandler(async (req, res) => {
-  const followup = await FollowUp.findById(req.params.id).populate(FOLLOWUP_POPULATE).lean();
-  if (!followup) throw new ApiError(404, 'Follow-up not found');
+  const followup = await FollowUp.findOne(companyScopedIdFilter(req.params.id, req)).populate(FOLLOWUP_POPULATE).lean();
+  assertTenantDocument(followup, req, 'Follow-up');
   res.json(followup);
 });
 
@@ -49,16 +50,16 @@ const createFollowUp = asyncHandler(async (req, res) => {
 });
 
 const updateFollowUp = asyncHandler(async (req, res) => {
-  const followup = await FollowUp.findById(req.params.id);
-  if (!followup) throw new ApiError(404, 'Follow-up not found');
+  const followup = await FollowUp.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(followup, req, 'Follow-up');
 
   const populated = await updateFollowUpRecord({ followup, body: req.body, user: req.user });
   res.json(populated);
 });
 
 const deleteFollowUp = asyncHandler(async (req, res) => {
-  const followup = await FollowUp.findById(req.params.id);
-  if (!followup) throw new ApiError(404, 'Follow-up not found');
+  const followup = await FollowUp.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(followup, req, 'Follow-up');
   const leadId = followup.lead;
   await followup.deleteOne();
   const { syncLeadFollowUpDates } = require('../utils/followUpHelpers');

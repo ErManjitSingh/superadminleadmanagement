@@ -5,6 +5,7 @@ const { markOnboardingStep } = require('./onboardingService');
 const { logPlatformAudit } = require('../superadmin/services/platformAuditService');
 const { notifyDomainAdmins } = require('./domainNotificationService');
 const { PLATFORM_DOMAIN } = require('./tenantResolveService');
+const { enrichWithDnsInstructions } = require('./dnsInstructionsService');
 const ApiError = require('../utils/apiError');
 
 const DOMAIN_STATUS = {
@@ -38,7 +39,7 @@ function formatDomainFields(company) {
   const c = company?.toObject ? company.toObject() : company;
   const customDomain = getCustomDomain(c);
   const domainStatus = c.domainStatus || deriveDomainStatus(c);
-  return {
+  return enrichWithDnsInstructions({
     customDomain,
     primaryDomain: customDomain,
     systemDomain: getSystemDomain(c),
@@ -51,7 +52,7 @@ function formatDomainFields(company) {
     domainConnectedAt: c.domainConnectedAt || (c.domainVerified ? c.dnsVerifiedAt || c.domainLastVerifiedAt : null),
     sslStatus: c.sslStatus || 'not_applicable',
     sslLastCheckedAt: c.sslLastCheckedAt,
-  };
+  });
 }
 
 function validateCustomDomain(domain) {

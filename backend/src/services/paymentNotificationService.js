@@ -1,5 +1,5 @@
 const branding = require('../config/branding');
-const { sendMailMessage, isEmailConfigured } = require('./emailService');
+const { sendMailMessage, isEmailConfiguredFor } = require('./emailService');
 const { readReceiptPdfBuffer } = require('./paymentReceiptPdfService');
 const { fmtINR } = require('./paymentReceiptPdfService');
 const { logLeadActivity } = require('./leadActivityService');
@@ -20,7 +20,8 @@ function getReceiptBuffer(payment) {
 async function sendPaymentReceiptEmail(payment, booking, actor) {
   const recipient = booking.customerEmail;
   if (!recipient) return { sent: false, reason: 'no_email' };
-  if (!isEmailConfigured()) return { sent: false, reason: 'smtp_not_configured' };
+  const companyId = booking.companyId || payment.companyId;
+  if (!(await isEmailConfiguredFor(companyId))) return { sent: false, reason: 'smtp_not_configured' };
 
   const buffer = getReceiptBuffer(payment);
   if (!buffer) return { sent: false, reason: 'no_pdf' };
@@ -52,6 +53,7 @@ async function sendPaymentReceiptEmail(payment, booking, actor) {
   `;
 
   await sendMailMessage({
+    companyId,
     to: recipient,
     subject: `Payment Receipt — ${booking.bookingNumber} — ${fmtINR(payment.amount)}`,
     html,

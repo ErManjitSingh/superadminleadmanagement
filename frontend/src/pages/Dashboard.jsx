@@ -15,6 +15,8 @@ import {
 import LeadTrendChart from '../components/dashboard/LeadTrendChart';
 import RemindersAlertsPanel from '../components/dashboard/RemindersAlertsPanel';
 import OnboardingChecklist from '../components/onboarding/OnboardingChecklist';
+import DnsPendingBanner from '../components/onboarding/DnsPendingBanner';
+import TrialExpiryBanner from '../components/onboarding/TrialExpiryBanner';
 import { useAuth } from '../context/AuthContext';
 
 function PanelSkeleton() {
@@ -47,6 +49,8 @@ export default function Dashboard() {
       <DashboardHeader onRefresh={refreshDashboard} isRefreshing={isFetching} />
       <DashboardHero stats={stats} />
       {user?.role === 'admin' && <OnboardingChecklist compact />}
+      {user?.role === 'admin' && <DnsPendingBanner />}
+      {user?.role === 'admin' && <TrialExpiryBanner />}
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
         <div className="xl:col-span-8">

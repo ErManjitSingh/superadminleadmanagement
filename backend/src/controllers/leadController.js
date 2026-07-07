@@ -29,6 +29,7 @@ const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { runLeadAutoAssignment } = require('../services/leadAutoAssignmentService');
 const { LEAD_AUTO_ASSIGNMENT_ENABLED } = require('../config/assignment');
 const { detectLeadType } = require('../services/leadTypeDetectionService');
+const { assertLeadLimit } = require('../services/subscriptionLimitsService');
 const { DEMO_LEADS } = require('../data/demoLeads');
 const { markOnboardingStep } = require('../services/onboardingService');
 const { clearAllLeadsData } = require('../services/clearAllLeadsService');
@@ -234,6 +235,7 @@ const createLead = asyncHandler(async (req, res) => {
   }
 
   await applyLeadMetrics(data);
+  await assertLeadLimit(req.companyId);
   const lead = await Lead.create(data);
 
   if (req.companyId) {

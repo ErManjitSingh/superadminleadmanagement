@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Globe, Building2 } from 'lucide-react';
+import { Building2, ChevronRight, Mail, MessageCircle, BarChart3 } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import { APP_SALES_EMAIL } from '../../config/branding';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -13,6 +13,14 @@ export default function SettingsPage() {
   const canManageEmail = can('email', 'manage');
 
   const items = [
+    {
+      to: '/settings/subscription',
+      icon: BarChart3,
+      title: 'Plan & Usage',
+      description: 'Subscription limits, usage meters and company SMTP email',
+      color: 'text-indigo-600 bg-indigo-500/10',
+      adminOnly: true,
+    },
     {
       to: '/settings/workspace',
       icon: Building2,

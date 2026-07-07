@@ -9,6 +9,8 @@ const { logActivity, getClientIp } = require('../services/activityService');
 const crypto = require('crypto');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { withCompany } = require('../utils/branchScope');
+const { assertUserLimit } = require('../services/subscriptionLimitsService');
+const { companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 
 async function resolveUserTenantFields(req, { branchId: bodyBranchId } = {}) {
   const companyId = req.companyId || req.user?.companyId || null;
@@ -80,14 +82,14 @@ const listUsers = asyncHandler(async (req, res) => {
 });
 
 const getUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password').lean();
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findOne(companyScopedIdFilter(req.params.id, req)).select('-password').lean();
+  assertTenantDocument(user, req, 'User');
   res.json({ ...user, roleName: ROLE_LABELS[user.role] || user.role });
 });
 
 const getUserProfile = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id).select('-password').lean();
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findOne(companyScopedIdFilter(req.params.id, req)).select('-password').lean();
+  assertTenantDocument(user, req, 'User');
 
   const assignedLeads = await Lead.countDocuments({ assignedTo: user._id });
   const converted = await Lead.countDocuments({ assignedTo: user._id, status: 'converted' });
@@ -115,6 +117,8 @@ const createUser = asyncHandler(async (req, res) => {
   const normalizedEmail = email.toLowerCase().trim();
   const exists = await User.findOne(withCompany({ email: normalizedEmail }, req.companyId));
   if (exists) throw new ApiError(400, 'User with this email already exists');
+
+  await assertUserLimit(req.companyId);
 
   const plainPassword = password?.trim();
   if (!plainPassword || plainPassword.length < 6) {
@@ -152,8 +156,8 @@ const createUser = asyncHandler(async (req, res) => {
 });
 
 const toggleUserStatus = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(user, req, 'User');
 
   if (String(user._id) === String(req.user._id)) {
     throw new ApiError(400, 'You cannot change your own account status');
@@ -196,15 +200,15 @@ const toggleUserStatus = asyncHandler(async (req, res) => {
 });
 
 const updateUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(user, req, 'User');
 
   if (String(user._id) === String(req.user._id) && req.body.status && req.body.status !== user.status) {
     throw new ApiError(400, 'You cannot change your own account status');
   }
 
   if (req.body.roleId) {
-    const role = await Role.findById(req.body.roleId);
+    const role = await Role.findOne({ _id: req.body.roleId, ...withCompany({}, req.companyId) });
     if (!role) throw new ApiError(400, 'Invalid role');
     user.roleId = role._id;
     user.role = role.slug;
@@ -240,8 +244,8 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 const deleteUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(user, req, 'User');
   await user.deleteOne();
 
   await logActivity({
@@ -260,6 +264,8 @@ const deleteUser = asyncHandler(async (req, res) => {
 const inviteUser = asyncHandler(async (req, res) => {
   const role = await Role.findOne({ _id: req.body.roleId, ...withCompany({}, req.companyId) });
   if (!role) throw new ApiError(400, 'Invalid role');
+
+  await assertUserLimit(req.companyId);
 
   const token = `inv-${crypto.randomBytes(16).toString('hex')}`;
   const invitePassword = crypto.randomBytes(8).toString('hex');
@@ -299,8 +305,8 @@ const inviteUser = asyncHandler(async (req, res) => {
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.params.id);
-  if (!user) throw new ApiError(404, 'User not found');
+  const user = await User.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(user, req, 'User');
 
   const temporaryPassword = crypto.randomBytes(4).toString('hex');
   user.password = temporaryPassword;

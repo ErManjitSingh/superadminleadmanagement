@@ -27,6 +27,7 @@ import { superAdminApi } from '../api/superadmin';
 import { MetricSkeleton } from '../components/ui/skeleton';
 import MetricSparkCard from '../components/dashboard/MetricSparkCard';
 import QuickShortcuts from '../components/dashboard/QuickShortcuts';
+import DnsRecordsTable from '../components/domains/DnsRecordsTable';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency, formatDate } from '../lib/utils';
 
@@ -279,6 +280,48 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {(data?.pendingDomainVerification || []).length > 0 && (
+        <div className="rounded-2xl border border-amber-200/80 bg-amber-50/40 p-5 shadow-card dark:border-amber-900/40 dark:bg-amber-950/20">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-amber-600" />
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Pending DNS Setup ({data.pendingDomainVerification.length})
+                </h3>
+                <p className="text-xs text-slate-500">Customers who signed up but haven&apos;t updated DNS yet</p>
+              </div>
+            </div>
+            <Link to="/admin/domains" className="text-xs font-semibold text-violet-600 hover:underline">
+              View all domains
+            </Link>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {data.pendingDomainVerification.slice(0, 4).map((item) => (
+              <div key={item.id || item.companyId} className="rounded-xl border border-amber-200/60 bg-white p-4 dark:bg-slate-900/60">
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">{item.companyName}</p>
+                    <p className="font-mono text-xs text-violet-700">{item.primaryDomain || item.domain}</p>
+                  </div>
+                  <Link
+                    to={`/admin/companies/${item.companyId || item.id}`}
+                    className="shrink-0 text-xs font-semibold text-violet-600 hover:underline"
+                  >
+                    Open
+                  </Link>
+                </div>
+                <DnsRecordsTable
+                  compact
+                  domain={item.primaryDomain || item.domain}
+                  records={item.records || []}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <QuickShortcuts ticketCount={m.pendingSupportTickets || 0} />
     </div>

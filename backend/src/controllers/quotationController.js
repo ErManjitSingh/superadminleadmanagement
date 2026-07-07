@@ -13,6 +13,29 @@ const { getQuotationStats } = require('../repositories/roleScopedRepository');
 const { calculateQuotationPricing } = require('../services/quotationCostingService');
 const { markOnboardingStep } = require('../services/onboardingService');
 const { saveQuotationPdfBuffer, buildPublicPdfUrl } = require('../services/quotationPdfService');
+const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
+const { assertStorageAvailable, recordStorageUsage } = require('../services/subscriptionLimitsService');
+
+async function loadLead(req, id) {
+  const lead = await Lead.findOne(tenantFilter({ _id: id }, req));
+  assertTenantDocument(lead, req, 'Lead');
+  return lead;
+}
+
+async function loadPackage(req, id) {
+  if (!id) return null;
+  const pkg = await Package.findOne(companyScopedIdFilter(id, req)).lean();
+  assertTenantDocument(pkg, req, 'Package');
+  return pkg;
+}
+
+async function loadQuotation(req, id, { lean = false, populate = null } = {}) {
+  let query = Quotation.findOne(companyScopedIdFilter(id, req));
+  if (populate) query = query.populate(populate);
+  const doc = lean ? await query.lean() : await query;
+  assertTenantDocument(doc, req, 'Quotation');
+  return doc;
+}
 
 function pickBuilderFields(body = {}) {
   const fields = {};
@@ -81,19 +104,14 @@ const getQuotationStatsHandler = asyncHandler(async (req, res) => {
 });
 
 const getQuotation = asyncHandler(async (req, res) => {
-  const quotation = await Quotation.findById(req.params.id).populate(QUOTATION_POPULATE).lean();
-  if (!quotation) throw new ApiError(404, 'Quotation not found');
+  const quotation = await loadQuotation(req, req.params.id, { lean: true, populate: QUOTATION_POPULATE });
   res.json(quotation);
 });
 
 const createQuotation = asyncHandler(async (req, res) => {
-  const lead = await Lead.findById(req.body.leadId || req.body.lead);
-  if (!lead) throw new ApiError(404, 'Lead not found');
+  const lead = await loadLead(req, req.body.leadId || req.body.lead);
 
-  let pkg = null;
-  if (req.body.packageId) {
-    pkg = await Package.findById(req.body.packageId).lean();
-  }
+  const pkg = req.body.packageId ? await loadPackage(req, req.body.packageId) : null;
 
   const computedPayload = buildComputedPricingPayload({
     body: req.body,
@@ -139,8 +157,7 @@ const createQuotation = asyncHandler(async (req, res) => {
 });
 
 const updateQuotation = asyncHandler(async (req, res) => {
-  const quotation = await Quotation.findById(req.params.id);
-  if (!quotation) throw new ApiError(404, 'Quotation not found');
+  const quotation = await loadQuotation(req, req.params.id);
 
   const packageSnapshot = req.body.package || quotation.packageSnapshot;
   const computedPayload = buildComputedPricingPayload({
@@ -162,15 +179,13 @@ const updateQuotation = asyncHandler(async (req, res) => {
 });
 
 const deleteQuotation = asyncHandler(async (req, res) => {
-  const quotation = await Quotation.findById(req.params.id);
-  if (!quotation) throw new ApiError(404, 'Quotation not found');
+  const quotation = await loadQuotation(req, req.params.id);
   await quotation.deleteOne();
   res.json({ message: 'Quotation deleted' });
 });
 
 const duplicateQuotation = asyncHandler(async (req, res) => {
-  const original = await Quotation.findById(req.params.id).lean();
-  if (!original) throw new ApiError(404, 'Quotation not found');
+  const original = await loadQuotation(req, req.params.id, { lean: true });
 
   const { _id, quoteNumber, createdAt, updatedAt, approvedBy, sentAt, ...rest } = original;
   const copy = await Quotation.create({
@@ -207,11 +222,9 @@ const getQuotationTemplates = asyncHandler(async (req, res) => {
 const autosaveQuotation = asyncHandler(async (req, res) => {
   let quotation;
   if (req.params.id) {
-    quotation = await Quotation.findById(req.params.id);
-    if (!quotation) throw new ApiError(404, 'Quotation not found');
+    quotation = await loadQuotation(req, req.params.id);
   } else {
-    const lead = await Lead.findById(req.body.leadId || req.body.lead);
-    if (!lead) throw new ApiError(404, 'Lead not found');
+    const lead = await loadLead(req, req.body.leadId || req.body.lead);
 
     quotation = await Quotation.create({
       quoteNumber: generateQuoteNumber(),
@@ -260,8 +273,7 @@ const autosaveQuotation = asyncHandler(async (req, res) => {
 });
 
 const saveQuotationVersion = asyncHandler(async (req, res) => {
-  const quotation = await Quotation.findById(req.params.id);
-  if (!quotation) throw new ApiError(404, 'Quotation not found');
+  const quotation = await loadQuotation(req, req.params.id);
 
   const versionNumber = (quotation.versions?.length || 0) + 1;
   const version = {
@@ -284,8 +296,7 @@ const saveQuotationVersion = asyncHandler(async (req, res) => {
 });
 
 const restoreQuotationVersion = asyncHandler(async (req, res) => {
-  const quotation = await Quotation.findById(req.params.id);
-  if (!quotation) throw new ApiError(404, 'Quotation not found');
+  const quotation = await loadQuotation(req, req.params.id);
 
   const version = (quotation.versions || []).find(
     (v) => String(v.versionNumber) === String(req.params.versionNumber)
@@ -331,12 +342,13 @@ const uploadQuotationPdf = asyncHandler(async (req, res) => {
   const { pdfBase64 } = req.body || {};
   if (!pdfBase64) throw new ApiError(400, 'pdfBase64 is required');
 
-  const quotation = await Quotation.findById(req.params.id);
-  if (!quotation) throw new ApiError(404, 'Quotation not found');
+  const quotation = await loadQuotation(req, req.params.id);
 
   const buffer = Buffer.from(String(pdfBase64), 'base64');
   if (!buffer.length) throw new ApiError(400, 'Invalid PDF data');
   if (buffer.length > 15 * 1024 * 1024) throw new ApiError(400, 'PDF too large (max 15MB)');
+
+  await assertStorageAvailable(req.companyId, buffer.length);
 
   if (!quotation.shareToken) {
     quotation.shareToken = crypto.randomBytes(16).toString('hex');
@@ -354,6 +366,7 @@ const uploadQuotationPdf = asyncHandler(async (req, res) => {
     },
   ];
   await quotation.save();
+  await recordStorageUsage(req.companyId, buffer.length);
 
   res.json({
     pdfUrl,

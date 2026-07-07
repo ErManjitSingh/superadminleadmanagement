@@ -17,6 +17,7 @@ function formatDomainRow(c) {
     id: c._id,
     companyId: c._id,
     companyName: c.name,
+    ownerName: c.ownerName,
     subdomain: c.subdomain,
     ...domain,
     status: c.status,
