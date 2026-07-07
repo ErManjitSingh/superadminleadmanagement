@@ -11,6 +11,7 @@ const {
   getCompanyUsers,
   resetAdminPassword,
   upgradePlan,
+  renewSubscription,
 } = require('../controllers/companyController');
 const { superAdminProtect } = require('../middleware/superAdminAuth');
 
@@ -24,6 +25,7 @@ router.post('/bulk', bulkAction);
 router.get('/:id/users', getCompanyUsers);
 router.post('/:id/reset-password', resetAdminPassword);
 router.post('/:id/upgrade-plan', upgradePlan);
+router.post('/:id/renew', renewSubscription);
 router.get('/:id', getCompany);
 router.post('/', createCompany);
 router.patch('/:id', updateCompany);

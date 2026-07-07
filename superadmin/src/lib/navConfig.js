@@ -24,6 +24,7 @@ export const NAV_SECTIONS = [
       { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
       { to: '/admin/companies', label: 'Companies', icon: Building2 },
       { to: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
+      { to: '/admin/payment-requests', label: 'Payment Requests', icon: Wallet, badgeKey: 'payments' },
       { to: '/admin/plans', label: 'Plans', icon: Receipt },
       { to: '/admin/features', label: 'Platform Features', icon: SlidersHorizontal },
       { to: '/admin/plans', label: 'Add-ons', icon: Puzzle },

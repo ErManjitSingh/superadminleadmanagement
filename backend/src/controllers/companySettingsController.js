@@ -12,6 +12,11 @@ const {
 const { getSubscriptionStatus } = require('../services/subscriptionLimitsService');
 const { clearTenantTransporterCache } = require('../services/emailService');
 const { createUpgradeRequest } = require('../services/upgradeRequestService');
+const SubscriptionPlan = require('../superadmin/models/SubscriptionPlan');
+const PlatformPaymentRequest = require('../superadmin/models/PlatformPaymentRequest');
+const { getSettingValue } = require('../superadmin/services/platformSettingsService');
+const { planAmount } = require('../superadmin/services/subscriptionService');
+const { createPaymentRequestFromTenant } = require('../superadmin/controllers/paymentRequestController');
 
 function maskSecrets(settings = {}) {
   const copy = { ...settings };
@@ -161,6 +166,105 @@ const getSubscriptionLimits = asyncHandler(async (req, res) => {
   res.json({ data: status });
 });
 
+// Renewal / payment info for the tenant: platform UPI ID + amount due for the
+// company's current (or a chosen) plan + billing cycle.
+const getRenewalInfo = asyncHandler(async (req, res) => {
+  const company = await Company.findById(req.companyId).populate('subscriptionPlanId').lean();
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const [upiId, upiName] = await Promise.all([
+    getSettingValue('billing_upi_id'),
+    getSettingValue('billing_upi_name'),
+  ]);
+
+  let plan = company.subscriptionPlanId && typeof company.subscriptionPlanId === 'object'
+    ? company.subscriptionPlanId
+    : null;
+
+  if (req.query.planId) {
+    const chosen = await SubscriptionPlan.findOne({ _id: req.query.planId, deletedAt: null }).lean();
+    if (chosen) plan = chosen;
+  }
+
+  const billingCycle = req.query.billingCycle || company.billingCycle || 'monthly';
+  const amount = planAmount(plan, billingCycle);
+
+  const pendingRequest = await PlatformPaymentRequest.findOne({
+    companyId: company._id,
+    status: 'submitted',
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  res.json({
+    data: {
+      upiId: upiId || '',
+      upiName: upiName || '',
+      configured: Boolean(upiId),
+      plan: plan ? { id: plan._id, name: plan.name, slug: plan.slug } : null,
+      billingCycle,
+      amount,
+      currency: company.currency || 'INR',
+      status: company.status,
+      renewDate: company.renewDate,
+      trialEndDate: company.trialEndDate,
+      pendingRequest: pendingRequest
+        ? {
+            id: pendingRequest._id,
+            amount: pendingRequest.amount,
+            referenceNumber: pendingRequest.referenceNumber,
+            createdAt: pendingRequest.createdAt,
+          }
+        : null,
+    },
+  });
+});
+
+// Tenant admin submits proof of a UPI payment (transaction reference / UTR).
+const submitRenewalPayment = asyncHandler(async (req, res) => {
+  const company = await Company.findById(req.companyId);
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const { referenceNumber, planId, billingCycle, note } = req.body || {};
+  if (!referenceNumber || !String(referenceNumber).trim()) {
+    throw new ApiError(400, 'Please enter the UPI transaction reference number');
+  }
+
+  const existing = await PlatformPaymentRequest.findOne({ companyId: company._id, status: 'submitted' });
+  if (existing) {
+    throw new ApiError(400, 'A payment is already under review. Please wait for confirmation.');
+  }
+
+  let plan = null;
+  const planLookupId = planId || company.subscriptionPlanId;
+  if (planLookupId) {
+    plan = await SubscriptionPlan.findOne({ _id: planLookupId, deletedAt: null }).lean();
+  }
+
+  const cycle = billingCycle || company.billingCycle || 'monthly';
+  const amount = planAmount(plan, cycle);
+  const upiId = await getSettingValue('billing_upi_id');
+
+  const request = await createPaymentRequestFromTenant({
+    company,
+    user: req.user,
+    plan,
+    billingCycle: cycle,
+    amount,
+    upiId,
+    referenceNumber: String(referenceNumber).trim(),
+    payerNote: note ? String(note).trim() : '',
+  });
+
+  res.status(201).json({
+    data: {
+      id: request._id,
+      status: request.status,
+      message: 'Payment submitted. Your plan will be extended once our team confirms it.',
+    },
+  });
+});
+
 const requestPlanUpgrade = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.companyId);
   if (!company) throw new ApiError(404, 'Company not found');
@@ -184,6 +288,8 @@ module.exports = {
   getOnboarding,
   getSubscriptionLimits,
   requestPlanUpgrade,
+  getRenewalInfo,
+  submitRenewalPayment,
   updateCompanySettings,
   verifyCompanyDomain,
   updateCompanyDomain,

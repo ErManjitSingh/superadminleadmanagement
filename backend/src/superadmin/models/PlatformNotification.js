@@ -4,7 +4,7 @@ const platformNotificationSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ['trial_expiring', 'renewal_due', 'storage_limit', 'company_suspended', 'upgrade_request', 'system', 'security'],
+      enum: ['trial_expiring', 'renewal_due', 'storage_limit', 'company_suspended', 'upgrade_request', 'payment_received', 'system', 'security'],
       default: 'system',
       index: true,
     },

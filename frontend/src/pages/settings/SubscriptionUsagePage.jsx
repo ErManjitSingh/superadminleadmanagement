@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, HardDrive, Loader2, Mail, Users, FileText, Calendar, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BarChart3, HardDrive, Loader2, Mail, Users, FileText, Calendar, Sparkles, CheckCircle2, IndianRupee, Copy, Clock } from 'lucide-react';
 import { toast } from '../../context/ToastContext';
 import API from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
@@ -66,22 +66,58 @@ export default function SubscriptionUsagePage() {
   const [upgradeMessage, setUpgradeMessage] = useState('');
   const [data, setData] = useState(null);
   const [smtp, setSmtp] = useState({});
+  const [renewal, setRenewal] = useState(null);
+  const [payRef, setPayRef] = useState('');
+  const [payNote, setPayNote] = useState('');
+  const [payingSubmit, setPayingSubmit] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [subRes, settingsRes] = await Promise.all([
+      const [subRes, settingsRes, renewalRes] = await Promise.all([
         API.get('/company-settings/subscription', { skipSuccessToast: true }),
         API.get('/company-settings', { skipSuccessToast: true }),
+        API.get('/company-settings/renewal-info', { skipSuccessToast: true }).catch(() => null),
       ]);
       setData(subRes.data?.data || null);
       setSmtp(settingsRes.data?.settings || {});
+      setRenewal(renewalRes?.data?.data || null);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not load subscription data');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  async function submitPayment(e) {
+    e.preventDefault();
+    if (!payRef.trim()) {
+      toast.error('Enter the UPI transaction reference number');
+      return;
+    }
+    setPayingSubmit(true);
+    try {
+      const res = await API.post('/company-settings/renewal-payment', {
+        referenceNumber: payRef.trim(),
+        note: payNote.trim() || undefined,
+      });
+      toast.success(res.data?.data?.message || 'Payment submitted for review');
+      setPayRef('');
+      setPayNote('');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not submit payment');
+    } finally {
+      setPayingSubmit(false);
+    }
+  }
+
+  function copyUpi() {
+    if (renewal?.upiId) {
+      navigator.clipboard?.writeText(renewal.upiId);
+      toast.success('UPI ID copied');
+    }
+  }
 
   useEffect(() => { load(); }, [load]);
 
@@ -197,6 +233,82 @@ export default function SubscriptionUsagePage() {
           </div>
         </div>
       </div>
+
+      {renewal?.configured && (
+        <section className="rounded-2xl border border-emerald-200/70 bg-emerald-50/40 p-6">
+          <h3 className="mb-1 flex items-center gap-2 font-semibold text-content-primary">
+            <IndianRupee className="h-5 w-5 text-emerald-600" />
+            Renew via UPI
+          </h3>
+          <p className="mb-4 text-sm text-content-muted">
+            Pay to the UPI ID below from any UPI app, then enter the transaction reference. Your plan
+            is extended automatically once our team confirms the payment.
+          </p>
+
+          {renewal.pendingRequest ? (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <Clock className="mt-0.5 h-5 w-5 text-amber-600" />
+              <div>
+                <p className="font-semibold text-amber-900">Payment under review</p>
+                <p className="mt-0.5 text-sm text-amber-800">
+                  Ref {renewal.pendingRequest.referenceNumber} · submitted{' '}
+                  {formatDate(renewal.pendingRequest.createdAt)}. We&apos;ll extend your plan shortly.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-subtle bg-surface p-4">
+                <p className="text-xs text-content-muted">Pay this amount</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  ₹{Number(renewal.amount || 0).toLocaleString('en-IN')}
+                  <span className="ml-1 text-sm font-normal text-content-muted">/ {renewal.billingCycle}</span>
+                </p>
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <span className="flex-1 font-mono text-sm text-slate-800">{renewal.upiId}</span>
+                  <button type="button" onClick={copyUpi} className="text-violet-600 hover:text-violet-500">
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
+                {renewal.upiName && (
+                  <p className="mt-1 text-xs text-content-muted">Payee: {renewal.upiName}</p>
+                )}
+                <a
+                  href={`upi://pay?pa=${encodeURIComponent(renewal.upiId)}&pn=${encodeURIComponent(renewal.upiName || 'Travel CRM')}&am=${renewal.amount || ''}&cu=INR`}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500"
+                >
+                  <IndianRupee className="h-4 w-4" /> Pay via UPI app
+                </a>
+              </div>
+
+              <form onSubmit={submitPayment} className="rounded-xl border border-subtle bg-surface p-4">
+                <p className="mb-2 text-sm font-medium text-content-primary">Already paid? Confirm it</p>
+                <label className="mb-1 block text-xs font-medium text-slate-600">UPI transaction / UTR reference</label>
+                <input
+                  className="mb-3 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-mono"
+                  value={payRef}
+                  placeholder="e.g. 4198XXXXXX12"
+                  onChange={(e) => setPayRef(e.target.value)}
+                />
+                <label className="mb-1 block text-xs font-medium text-slate-600">Note (optional)</label>
+                <input
+                  className="mb-3 h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
+                  value={payNote}
+                  placeholder="Any detail for our team"
+                  onChange={(e) => setPayNote(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  disabled={payingSubmit}
+                  className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  {payingSubmit ? 'Submitting…' : 'Submit payment'}
+                </button>
+              </form>
+            </div>
+          )}
+        </section>
+      )}
 
       <section>
         <h3 className="mb-3 flex items-center gap-2 font-semibold text-content-primary">

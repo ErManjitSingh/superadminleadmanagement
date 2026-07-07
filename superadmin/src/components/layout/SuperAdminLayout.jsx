@@ -19,7 +19,16 @@ export default function SuperAdminLayout() {
     staleTime: 60000,
   });
 
+  const { data: pendingPayments } = useQuery({
+    queryKey: ['payment-requests', 'submitted'],
+    queryFn: () => superAdminApi.listPaymentRequests({ status: 'submitted' }).then((r) => r.data),
+    staleTime: 30000,
+    refetchInterval: 60000,
+  });
+
   const ticketCount = dash?.metrics?.pendingSupportTickets || 0;
+  const paymentCount = pendingPayments?.pagination?.total ?? pendingPayments?.data?.length ?? 0;
+  const badgeCounts = { tickets: ticketCount, payments: paymentCount };
 
   return (
     <div className="flex min-h-screen bg-[#f4f6fb] dark:bg-[#0b0f17]">
@@ -57,9 +66,9 @@ export default function SuperAdminLayout() {
                   >
                     <item.icon className="h-4 w-4 shrink-0" />
                     <span className="flex-1 truncate">{item.label}</span>
-                    {item.badgeKey === 'tickets' && ticketCount > 0 && (
+                    {item.badgeKey && badgeCounts[item.badgeKey] > 0 && (
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-500 px-1.5 text-[10px] font-bold text-white">
-                        {ticketCount > 99 ? '99+' : ticketCount}
+                        {badgeCounts[item.badgeKey] > 99 ? '99+' : badgeCounts[item.badgeKey]}
                       </span>
                     )}
                   </NavLink>

@@ -8,6 +8,7 @@ const asyncHandler = require('../../utils/asyncHandler');
 const { parsePagination, paginatedResponse } = require('../../utils/pagination');
 const { provisionCompany, getCompanyCounts, generateTempPassword } = require('../services/companyProvisioningService');
 const { logPlatformAudit } = require('../services/platformAuditService');
+const { computeExtendedRenewDate, applyPlanToCompany } = require('../services/subscriptionService');
 const { generateToken, formatUserResponse } = require('../../middleware/auth');
 const { resolveUserPermissions } = require('../../services/permissionsService');
 const { formatDomainFields } = require('../../services/domainService');
@@ -413,9 +414,17 @@ const upgradePlan = asyncHandler(async (req, res) => {
   const plan = await SubscriptionPlan.findOne({ _id: req.body.planId, deletedAt: null });
   if (!plan) throw new ApiError(400, 'Invalid plan');
 
-  company.subscriptionPlanId = plan._id;
-  company.storageLimitGb = plan.storageLimitGb;
-  if (req.body.billingCycle) company.billingCycle = req.body.billingCycle;
+  const billingCycle = req.body.billingCycle || company.billingCycle || 'monthly';
+  const syncFeatures = req.body.syncFeatures !== false;
+
+  applyPlanToCompany(company, plan, { syncFeatures, billingCycle });
+
+  // Activate + set a renewal date when requested (or when the account was expired).
+  if (req.body.activate || company.status === 'expired') {
+    company.renewDate = computeExtendedRenewDate(company, billingCycle, 1);
+    company.status = 'active';
+  }
+
   company.updatedBy = req.superAdmin._id;
   await company.save();
 
@@ -425,7 +434,35 @@ const upgradePlan = asyncHandler(async (req, res) => {
     resourceType: 'company',
     resourceId: company._id,
     companyId: company._id,
-    metadata: { planSlug: plan.slug, planName: plan.name },
+    metadata: { planSlug: plan.slug, planName: plan.name, billingCycle },
+    req,
+  });
+
+  const counts = await getCompanyCounts(company._id);
+  res.json({ company: sanitizeCompany(company, counts) });
+});
+
+// Manually renew/extend a company's subscription by N billing periods.
+const renewSubscription = asyncHandler(async (req, res) => {
+  const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
+  if (!company) throw new ApiError(404, 'Company not found');
+
+  const billingCycle = req.body.billingCycle || company.billingCycle || 'monthly';
+  const units = Math.max(1, Math.min(36, Number(req.body.periods) || 1));
+
+  company.renewDate = computeExtendedRenewDate(company, billingCycle, units);
+  company.status = 'active';
+  company.billingCycle = billingCycle;
+  company.updatedBy = req.superAdmin._id;
+  await company.save();
+
+  await logPlatformAudit({
+    actor: req.superAdmin,
+    action: 'subscription_renewed',
+    resourceType: 'company',
+    resourceId: company._id,
+    companyId: company._id,
+    metadata: { billingCycle, periods: units, renewDate: company.renewDate },
     req,
   });
 
@@ -445,4 +482,5 @@ module.exports = {
   getCompanyUsers,
   resetAdminPassword,
   upgradePlan,
+  renewSubscription,
 };

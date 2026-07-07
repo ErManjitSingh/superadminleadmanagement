@@ -12,6 +12,7 @@ import CompanyWizardPage from './pages/CompanyWizardPage';
 import PlansPage from './pages/PlansPage';
 import FeaturesRolloutPage from './pages/FeaturesRolloutPage';
 import SubscriptionsPage from './pages/SubscriptionsPage';
+import PaymentRequestsPage from './pages/PaymentRequestsPage';
 import DomainsPage from './pages/DomainsPage';
 import DnsVerificationPage from './pages/DnsVerificationPage';
 import InvoicesPage from './pages/InvoicesPage';
@@ -52,6 +53,7 @@ export default function App() {
                 <Route path="companies/new" element={<CompanyWizardPage />} />
                 <Route path="companies/:id" element={<CompanyDetailPage />} />
                 <Route path="subscriptions" element={<SubscriptionsPage />} />
+                <Route path="payment-requests" element={<PaymentRequestsPage />} />
                 <Route path="plans" element={<PlansPage />} />
                 <Route path="features" element={<FeaturesRolloutPage />} />
                 <Route path="domains" element={<DomainsPage />} />

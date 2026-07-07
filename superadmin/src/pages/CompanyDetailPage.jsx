@@ -10,7 +10,8 @@ import { Button } from '../components/ui/button';
 import { Card, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import DomainManagementPanel from '../components/domains/DomainManagementPanel';
-import { formatDate, formatCurrency, STATUS_COLORS } from '../lib/utils';
+import SubscriptionManager from '../components/companies/SubscriptionManager';
+import { formatDate, STATUS_COLORS } from '../lib/utils';
 
 const TABS = ['Overview', 'Subscription', 'Domain Management', 'Users', 'Storage', 'Billing', 'Security', 'Activity', 'Settings'];
 
@@ -129,12 +130,7 @@ export default function CompanyDetailPage() {
       )}
 
       {tab === 'Subscription' && (
-        <Card className="p-5 space-y-3">
-          <p><span className="text-[var(--text-muted)]">Plan:</span> <strong>{plan?.name}</strong></p>
-          <p><span className="text-[var(--text-muted)]">Monthly:</span> {formatCurrency(plan?.monthlyPrice)}</p>
-          <p><span className="text-[var(--text-muted)]">Trial ends:</span> {formatDate(company.trialEndDate)}</p>
-          <p><span className="text-[var(--text-muted)]">Renewal:</span> {formatDate(company.renewDate)}</p>
-        </Card>
+        <SubscriptionManager company={company} onUpdated={() => refetch()} />
       )}
 
       {tab === 'Domain Management' && (

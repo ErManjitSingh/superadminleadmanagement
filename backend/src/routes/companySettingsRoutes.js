@@ -6,6 +6,8 @@ const {
   getOnboarding,
   getSubscriptionLimits,
   requestPlanUpgrade,
+  getRenewalInfo,
+  submitRenewalPayment,
   updateCompanySettings,
   verifyCompanyDomain,
   updateCompanyDomain,
@@ -18,6 +20,8 @@ const router = express.Router();
 router.use(protect);
 router.get('/', getCompanySettings);
 router.get('/subscription', getSubscriptionLimits);
+router.get('/renewal-info', getRenewalInfo);
+router.post('/renewal-payment', authorize('admin'), submitRenewalPayment);
 router.post('/upgrade-request', authorize('admin'), requestPlanUpgrade);
 router.get('/onboarding', getOnboarding);
 router.post('/resend-verification', authorize('admin'), resendVerification);

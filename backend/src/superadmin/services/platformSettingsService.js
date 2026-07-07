@@ -19,6 +19,8 @@ const DEFAULT_SETTINGS = [
   { key: 'google_maps_api_key', value: '', category: 'maps', label: 'Google Maps API Key', isSecret: true },
   { key: 'platform_logo_url', value: '', category: 'branding', label: 'Platform Logo URL' },
   { key: 'platform_favicon_url', value: '', category: 'branding', label: 'Platform Favicon URL' },
+  { key: 'billing_upi_id', value: '', category: 'billing', label: 'Billing UPI ID' },
+  { key: 'billing_upi_name', value: '', category: 'billing', label: 'Billing UPI Payee Name' },
 ];
 
 async function ensureDefaultSettings() {
@@ -53,6 +55,15 @@ async function getSettingsByCategory(category) {
   return rows.map(maskSecret);
 }
 
+// Raw (unmasked) value for internal use — falls back to defaults if unset.
+async function getSettingValue(key) {
+  await ensureDefaultSettings();
+  const row = await PlatformSettings.findOne({ key }).lean();
+  if (row && row.value != null && row.value !== '') return row.value;
+  const def = DEFAULT_SETTINGS.find((d) => d.key === key);
+  return def ? def.value : null;
+}
+
 async function updateSettings(updates, superAdminId) {
   const results = [];
   for (const [key, value] of Object.entries(updates)) {
@@ -71,6 +82,7 @@ module.exports = {
   ensureDefaultSettings,
   getSettingsMap,
   getSettingsByCategory,
+  getSettingValue,
   updateSettings,
   DEFAULT_SETTINGS,
 };
