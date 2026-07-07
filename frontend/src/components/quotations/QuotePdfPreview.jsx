@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import './quotePdfTemplate.css';
 import { COMPANY_INFO } from './constants';
+import { useTenant } from '../../context/TenantContext';
 import { formatINR } from './quotationUtils';
 import { QUOTE_WELCOME_TEXT } from './quoteTemplateDefaults';
 import {
@@ -41,6 +42,8 @@ function PolicyBlock({ title, items }) {
 }
 
 const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
+  const { company } = useTenant();
+  const brandName = company?.name || COMPANY_INFO.name;
   if (!quote) return null;
 
   const lead = resolveQuoteLead(quote);
@@ -67,10 +70,10 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
   return (
     <div ref={ref} className="quote-ht-pdf quote-ht-pdf-v2">
-      {/* Watermark — Travel CRM @ 0.3 opacity */}
+      {/* Watermark — company name */}
       <div className="qp-watermark" aria-hidden="true">
         {Array.from({ length: 6 }).map((_, i) => (
-          <span key={i} className="qp-watermark-text">Travel CRM</span>
+          <span key={i} className="qp-watermark-text">{brandName}</span>
         ))}
       </div>
 

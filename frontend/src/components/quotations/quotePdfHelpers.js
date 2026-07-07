@@ -384,15 +384,19 @@ export function resolveBankAccounts(quote) {
 export function resolvePaymentPlan(quote, total = 0) {
   const amount = Math.max(0, Number(total) || 0);
   const schedule = [
-    { label: 'Booking Confirmation (Advance)', percent: 50 },
-    { label: 'Balance (Before tour begins)', percent: 50 },
+    { label: 'Booking Confirmation (Advance)', percent: 30 },
+    { label: 'Before Tour Begins', percent: 50 },
+    { label: 'On Arrival (Balance)', percent: 20 },
   ];
 
-  return schedule.map((row) => ({
-    label: row.label,
-    percent: row.percent,
-    amount: Math.round((amount * row.percent) / 100),
-  }));
+  // Allocate so the rows always add up exactly to the total (last row = remainder).
+  let allocated = 0;
+  return schedule.map((row, i) => {
+    const isLast = i === schedule.length - 1;
+    const amt = isLast ? amount - allocated : Math.round((amount * row.percent) / 100);
+    allocated += amt;
+    return { label: row.label, percent: row.percent, amount: amt };
+  });
 }
 
 export function resolveQuoteTotal(quote) {
