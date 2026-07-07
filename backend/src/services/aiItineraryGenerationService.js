@@ -18,6 +18,7 @@ CRITICAL RULES:
 7. Use real landmarks, approximate drive times (hrs) and distances (km) on transfer days.
 8. Match trip style: honeymoon, family, adventure, pilgrimage, luxury, etc.
 9. Warm, professional brochure tone — no filler, no generic "enjoy your day" lines.
+10. Whenever you mention a morning pickup, cab pickup, or departure time, use 9:00 AM as the standard time. Do NOT use 8:00 AM or any earlier time.
 
 Return ONLY valid JSON (no markdown):
 {
@@ -50,6 +51,7 @@ function buildUserMessage({ prompt, destination, days, nights, variationSeed }) 
     '- Build the itinerary ONLY from the customer request above.',
     '- Do not substitute different destinations.',
     '- Write detailed Morning / Afternoon / Evening content for every day.',
+    '- Any morning pickup / cab pickup / departure time must be 9:00 AM (never 8:00 AM or earlier).',
     '- Titles should be specific (e.g. "Delhi → Shimla (Approx. 350 km | 8–9 hrs)").',
   ];
 

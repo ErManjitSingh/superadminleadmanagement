@@ -540,7 +540,7 @@ function renderTransferDay(slot, variationSeed) {
     : "";
 
   const descriptions = [
-    `Early morning pickup from ${slot.from} — hotel, home, airport or railway station (as coordinated).
+    `Morning pickup at 9:00 AM from ${slot.from} — hotel, home, airport or railway station (as coordinated).
 
 Drive via ${leg.via}.${stops}
 
@@ -550,7 +550,7 @@ Afternoon/Evening:
 
 Dinner & overnight stay in ${slot.to}.`,
 
-    `Morning: Depart ${slot.from} in private AC cab${dist ? ` — ${leg.km}, ${leg.hours}` : ""}.
+    `Morning: Depart ${slot.from} at 9:00 AM in private AC cab${dist ? ` — ${leg.km}, ${leg.hours}` : ""}.
 
 En Route: ${leg.via}.${stops}
 
