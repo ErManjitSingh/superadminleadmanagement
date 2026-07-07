@@ -23,10 +23,27 @@ const TripDocument = require('../models/TripDocument');
 const SupportTicket = require('../models/SupportTicket');
 const Voucher = require('../models/Voucher');
 
+async function dropLegacyBranchIndexes() {
+  try {
+    const indexes = await Branch.collection.indexes();
+    for (const idx of indexes) {
+      const keys = idx.key || {};
+      if (keys.code === 1 && keys.companyId == null) {
+        await Branch.collection.dropIndex(idx.name);
+        console.log(`[MongoDB] Dropped legacy branch index: ${idx.name}`);
+      }
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[MongoDB] Legacy branch index cleanup:', err.message);
+    }
+  }
+}
+
 async function ensureIndexes() {
+  await dropLegacyBranchIndexes();
   await Promise.all([
     User.collection.createIndex({ email: 1 }, { unique: true, background: true }),
-    Branch.collection.createIndex({ code: 1 }, { unique: true, background: true }),
     User.collection.createIndex({ role: 1, status: 1 }, { background: true }),
     User.collection.createIndex({ branchId: 1, role: 1, status: 1 }, { background: true }),
 

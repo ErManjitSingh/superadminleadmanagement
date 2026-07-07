@@ -1,8 +1,7 @@
 const crypto = require("crypto");
-const User = require("../../models/User");
-const Role = require("../../models/Role");
-const Branch = require("../../models/Branch");
-const EmailTemplate = require("../../models/EmailTemplate");
+const User = require('../../models/User');
+const Role = require('../../models/Role');
+const EmailTemplate = require('../../models/EmailTemplate');
 const Company = require("../models/Company");
 const SubscriptionPlan = require("../models/SubscriptionPlan");
 const { ROLES, ROLE_LABELS } = require("../../config/roles");
@@ -61,18 +60,6 @@ async function getAdminRoleId(companyId) {
   return role._id;
 }
 
-async function createDefaultBranch(companyId) {
-  const existing = await Branch.findOne({ companyId, code: "HQ" });
-  if (existing) return existing;
-
-  return Branch.create({
-    companyId,
-    name: "Head Office",
-    code: "HQ",
-    status: "active",
-  });
-}
-
 const DEFAULT_EMAIL_TEMPLATES = [
   {
     name: "Welcome",
@@ -97,7 +84,7 @@ const DEFAULT_EMAIL_TEMPLATES = [
   },
 ];
 
-async function seedDefaultEmailTemplates(companyId, branchId, adminUserId) {
+async function seedDefaultEmailTemplates(companyId, adminUserId) {
   const count = await EmailTemplate.countDocuments({ companyId });
   if (count > 0) return;
 
@@ -105,7 +92,7 @@ async function seedDefaultEmailTemplates(companyId, branchId, adminUserId) {
     DEFAULT_EMAIL_TEMPLATES.map((t) => ({
       ...t,
       companyId,
-      branchId,
+      branchId: null,
       createdBy: adminUserId,
       enabled: true,
     })),
@@ -226,7 +213,6 @@ async function provisionCompany({ payload, superAdminId }) {
 
   await ensureCompanyRoles(company._id);
   const adminRoleId = await getAdminRoleId(company._id);
-  const defaultBranch = await createDefaultBranch(company._id);
 
   const tempPassword = payload.ownerPassword || generateTempPassword();
   const adminUser = await User.create({
@@ -236,7 +222,6 @@ async function provisionCompany({ payload, superAdminId }) {
     phone: payload.phone || "",
     role: "admin",
     roleId: adminRoleId,
-    branchId: defaultBranch._id,
     department: "Management",
     companyId: company._id,
     status: "active",
@@ -245,7 +230,7 @@ async function provisionCompany({ payload, superAdminId }) {
   company.adminUserId = adminUser._id;
   await company.save();
 
-  await seedDefaultEmailTemplates(company._id, defaultBranch._id, adminUser._id);
+  await seedDefaultEmailTemplates(company._id, adminUser._id);
   await markOnboardingStep(company._id, 'firstUserAdded', true);
 
   return {
@@ -254,11 +239,6 @@ async function provisionCompany({ payload, superAdminId }) {
       id: adminUser._id,
       email: adminUser.email,
       name: adminUser.name,
-    },
-    defaultBranch: {
-      id: defaultBranch._id,
-      name: defaultBranch.name,
-      code: defaultBranch.code,
     },
     tempPassword: payload.ownerPassword ? undefined : tempPassword,
   };

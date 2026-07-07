@@ -137,7 +137,7 @@ export default function CompanyWizardPage() {
 
             {step === 3 && !done && (
               <div className="space-y-4">
-                <CardHeader><CardTitle>Review & Finish</CardTitle><CardDescription>Automatically creates company, admin user, Head Office branch, roles & settings.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Review & Finish</CardTitle><CardDescription>Automatically creates company, admin user, roles & settings.</CardDescription></CardHeader>
                 <div className="space-y-2 rounded-xl bg-slate-50 p-4 text-sm dark:bg-slate-900/50">
                   <p><strong>Company:</strong> {form.name}</p>
                   <p><strong>Owner:</strong> {form.ownerName} ({form.ownerEmail})</p>

@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Lead = require('../models/Lead');
-const Branch = require('../models/Branch');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { ROLE_LABELS, ROLES } = require('../config/roles');
@@ -12,19 +11,9 @@ const { withCompany } = require('../utils/branchScope');
 const { assertUserLimit } = require('../services/subscriptionLimitsService');
 const { companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 
-async function resolveUserTenantFields(req, { branchId: bodyBranchId } = {}) {
+async function resolveUserTenantFields(req) {
   const companyId = req.companyId || req.user?.companyId || null;
-  let branchId = bodyBranchId || req.branchId || req.user?.branchId || null;
-
-  if (!branchId && companyId) {
-    const branch = await Branch.findOne({ companyId, status: 'active' })
-      .sort({ createdAt: 1 })
-      .select('_id')
-      .lean();
-    branchId = branch?._id || null;
-  }
-
-  return { companyId, branchId };
+  return { companyId, branchId: null };
 }
 
 async function attachLeadCounts(users) {

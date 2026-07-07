@@ -4,7 +4,6 @@ const FollowUp = require('../models/FollowUp');
 const Quotation = require('../models/Quotation');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
-const Branch = require('../models/Branch');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { LEAD_STATUSES, REACTIVATION_STAGES } = require('../models/Lead');
@@ -220,15 +219,7 @@ const createLead = asyncHandler(async (req, res) => {
 
   data.status = status;
   data.createdBy = req.user._id;
-  if (req.user.role === 'admin' && req.body.branchId) {
-    const branch = await Branch.findById(req.body.branchId).select('_id status');
-    if (!branch || branch.status !== 'active') {
-      throw new ApiError(400, 'Invalid branch selected');
-    }
-    data.branchId = branch._id;
-  } else {
-    data.branchId = req.branchId || req.user.branchId || null;
-  }
+  data.branchId = null;
   // Only executives auto-own new leads; admin/manager leads stay unassigned until assigned
   if (!data.assignedTo && req.user.role === 'sales_executive') {
     data.assignedTo = req.user._id;
@@ -299,14 +290,10 @@ const createLead = asyncHandler(async (req, res) => {
 });
 
 const seedDemoLeads = asyncHandler(async (req, res) => {
-  let branchId = req.branchId || req.user.branchId;
-  if (!branchId) {
-    const branch = await Branch.findOne({ status: 'active' }).sort({ createdAt: 1 }).select('_id');
-    branchId = branch?._id;
-  }
-  if (!branchId) throw new ApiError(400, 'No active branch found. Create a branch first.');
+  const companyId = req.companyId || req.user?.companyId;
+  if (!companyId) throw new ApiError(400, 'Company context is required');
 
-  const existing = await Lead.countDocuments({ branchId, channel: 'demo_seed' });
+  const existing = await Lead.countDocuments({ companyId, channel: 'demo_seed' });
   if (existing >= 10) {
     throw new ApiError(400, '10 demo leads already exist for this branch. Delete them first to re-seed.');
   }
@@ -336,7 +323,7 @@ const seedDemoLeads = asyncHandler(async (req, res) => {
       budgetRange: template.budget >= 100000 ? 'above_100000' : 'custom',
       leadScore: template.isHot ? 'hot' : computeLeadScoreByBudget(template.budget),
       createdBy: req.user._id,
-      branchId,
+      companyId,
       channel: 'demo_seed',
       nextFollowUp,
     });
@@ -747,64 +734,8 @@ const assignLeads = asyncHandler(async (req, res) => {
   });
 });
 
-const transferLeadBranch = asyncHandler(async (req, res) => {
-  if (req.user.role !== 'admin') {
-    throw new ApiError(403, 'Only admin can transfer lead branch');
-  }
-
-  const targetBranchId = String(req.body.branchId || '').trim();
-  if (!targetBranchId) throw new ApiError(400, 'branchId is required');
-
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
-  if (!lead) throw new ApiError(404, 'Lead not found');
-
-  const targetBranch = await Branch.findById(targetBranchId).select('name status');
-  if (!targetBranch || targetBranch.status !== 'active') {
-    throw new ApiError(404, 'Target branch not found or inactive');
-  }
-  if (String(lead.branchId || '') === String(targetBranch._id)) {
-    throw new ApiError(400, 'Lead is already in selected branch');
-  }
-
-  const fromBranchId = lead.branchId;
-  lead.branchId = targetBranch._id;
-  lead.assignedTo = null;
-  lead.assignedManager = null;
-  lead.assignedTeamLeader = null;
-  lead.assigneeRole = null;
-  await lead.save();
-
-  await logLeadActivity({
-    leadId: lead._id,
-    branchId: targetBranch._id,
-    type: 'lead_transferred',
-    description: `Transferred to branch ${targetBranch.name}`,
-    actor: req.user,
-    meta: { fromBranchId, toBranchId: targetBranch._id },
-  });
-  await logLeadTransfer({
-    leadId: lead._id,
-    branchId: targetBranch._id,
-    type: 'branch_transfer',
-    actor: req.user,
-    fromBranchId,
-    toBranchId: targetBranch._id,
-    note: `Transferred to ${targetBranch.name}`,
-  });
-
-  await logActivity({
-    type: 'lead_branch_transferred',
-    user: req.user.name,
-    userId: req.user._id,
-    action: `Transferred lead ${lead.leadId || lead.name} to branch ${targetBranch.name}`,
-    target: lead.name,
-    ip: getClientIp(req),
-    branchId: targetBranch._id,
-    meta: { leadId: lead._id, targetBranchId: targetBranch._id },
-  });
-
-  const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
-  res.json(enrichLead(populated));
+const transferLeadBranch = asyncHandler(async () => {
+  throw new ApiError(410, 'Branch transfers are no longer supported');
 });
 
 const addLeadNote = asyncHandler(async (req, res) => {

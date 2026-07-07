@@ -1,5 +1,4 @@
 const User = require('../../models/User');
-const Branch = require('../../models/Branch');
 const Role = require('../../models/Role');
 const Lead = require('../../models/Lead');
 const Booking = require('../../models/Booking');
@@ -39,8 +38,6 @@ async function ensurePlatformIndexes() {
   await Promise.all([
     User.collection.createIndex({ companyId: 1, email: 1 }, { unique: true, background: true }),
     User.collection.createIndex({ companyId: 1, status: 1 }, { background: true }),
-    Branch.collection.createIndex({ companyId: 1, code: 1 }, { unique: true, background: true }),
-    Branch.collection.createIndex({ companyId: 1, name: 1 }, { unique: true, background: true }),
     Role.collection.createIndex({ companyId: 1, slug: 1 }, { unique: true, background: true }),
     Company.collection.createIndex({ slug: 1 }, { unique: true, background: true }),
     Company.collection.createIndex({ subdomain: 1 }, { unique: true, background: true }),

@@ -1,7 +1,6 @@
 const Company = require('../superadmin/models/Company');
 const SubscriptionPlan = require('../superadmin/models/SubscriptionPlan');
 const User = require('../models/User');
-const Branch = require('../models/Branch');
 const Lead = require('../models/Lead');
 const Booking = require('../models/Booking');
 const ApiError = require('../utils/apiError');
@@ -27,7 +26,6 @@ function resolveLimits(company) {
 
   return {
     userLimit: plan?.userLimit ?? 999,
-    branchLimit: plan?.branchLimit ?? 99,
     storageLimitGb: company?.storageLimitGb ?? plan?.storageLimitGb ?? 5,
     storageUsedMb: company?.storageUsedMb ?? 0,
     leadLimit: plan?.leadLimit ?? 0,
@@ -38,13 +36,12 @@ function resolveLimits(company) {
 
 async function getUsage(companyId) {
   const cid = normalizeCompanyId(companyId);
-  const [users, branches, leads, bookings] = await Promise.all([
+  const [users, leads, bookings] = await Promise.all([
     User.countDocuments({ companyId: cid, status: { $ne: 'disabled' } }),
-    Branch.countDocuments({ companyId: cid, status: 'active' }),
     Lead.countDocuments({ companyId: cid, isDeleted: { $ne: true } }),
     Booking.countDocuments({ companyId: cid, archivedAt: { $exists: false } }),
   ]);
-  return { users, branches, leads, bookings };
+  return { users, leads, bookings };
 }
 
 async function getSubscriptionStatus(companyId) {
@@ -62,7 +59,6 @@ async function getSubscriptionStatus(companyId) {
   const pct = (used, limit) => (limit > 0 ? used / limit : 0);
   const nearLimit = {
     users: pct(usage.users, limits.userLimit) >= 0.9,
-    branches: pct(usage.branches, limits.branchLimit) >= 0.9,
     leads: !unlimited(limits.leadLimit) && pct(usage.leads, limits.leadLimit) >= 0.9,
     bookings: !unlimited(limits.bookingLimit) && pct(usage.bookings, limits.bookingLimit) >= 0.9,
     storage: limits.storageLimitGb > 0 && (limits.storageUsedMb / (limits.storageLimitGb * 1024)) >= 0.9,
@@ -90,7 +86,6 @@ async function getSubscriptionStatus(companyId) {
     availablePlans,
     remaining: {
       users: Math.max(0, limits.userLimit - usage.users),
-      branches: Math.max(0, limits.branchLimit - usage.branches),
       leads: unlimited(limits.leadLimit) ? null : Math.max(0, limits.leadLimit - usage.leads),
       bookings: unlimited(limits.bookingLimit) ? null : Math.max(0, limits.bookingLimit - usage.bookings),
       storageMb: Math.max(0, limits.storageLimitGb * 1024 - limits.storageUsedMb),
@@ -111,23 +106,6 @@ async function assertUserLimit(companyId) {
     throw new ApiError(
       403,
       `User limit reached (${limits.userLimit} on ${limits.planName}). Upgrade your plan to add more users.`,
-    );
-  }
-}
-
-async function assertBranchLimit(companyId) {
-  if (!companyId) return;
-  const company = await getCompanyWithPlan(companyId);
-  if (!company) return;
-  const limits = resolveLimits(company);
-  const count = await Branch.countDocuments({
-    companyId: normalizeCompanyId(companyId),
-    status: 'active',
-  });
-  if (count >= limits.branchLimit) {
-    throw new ApiError(
-      403,
-      `Branch limit reached (${limits.branchLimit} on ${limits.planName}). Upgrade your plan to add more branches.`,
     );
   }
 }
@@ -200,7 +178,6 @@ module.exports = {
   getUsage,
   getSubscriptionStatus,
   assertUserLimit,
-  assertBranchLimit,
   assertLeadLimit,
   assertBookingLimit,
   assertStorageAvailable,

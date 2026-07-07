@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, HardDrive, Loader2, Mail, Users, Building2, FileText, Calendar, Sparkles, CheckCircle2 } from 'lucide-react';
+import { BarChart3, HardDrive, Loader2, Mail, Users, FileText, Calendar, Sparkles, CheckCircle2 } from 'lucide-react';
 import { toast } from '../../context/ToastContext';
 import API from '../../api/axios';
 import PageHeader from '../../components/ui/PageHeader';
@@ -205,7 +205,6 @@ export default function SubscriptionUsagePage() {
         </h3>
         <div className="grid gap-4 sm:grid-cols-2">
           <UsageBar label="Users" used={usage.users || 0} limit={limits.userLimit} icon={Users} />
-          <UsageBar label="Branches" used={usage.branches || 0} limit={limits.branchLimit} icon={Building2} />
           <UsageBar label="Leads" used={usage.leads || 0} limit={limits.leadLimit} icon={FileText} />
           <UsageBar label="Bookings" used={usage.bookings || 0} limit={limits.bookingLimit} icon={Calendar} />
           <UsageBar
