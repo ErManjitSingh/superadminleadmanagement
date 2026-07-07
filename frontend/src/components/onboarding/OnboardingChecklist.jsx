@@ -64,7 +64,7 @@ export function TrialBanner() {
     return (
       <div className="border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-center text-sm text-amber-900">
         <Clock className="mr-1.5 inline h-4 w-4" />
-        Your trial has ended. <a href="/settings/workspace" className="font-semibold underline">Upgrade your plan</a>
+        Your trial has ended. <a href="/settings/subscription" className="font-semibold underline">Upgrade your plan</a>
       </div>
     );
   }
@@ -74,7 +74,7 @@ export function TrialBanner() {
       <ShieldCheck className="mr-1.5 inline h-4 w-4" />
       <strong>{data.trialDaysRemaining} day{data.trialDaysRemaining === 1 ? '' : 's'}</strong> left in your free trial.
       {' '}
-      <a href="/settings/workspace" className="font-semibold underline">Upgrade plan</a>
+      <a href="/settings/subscription" className="font-semibold underline">Upgrade plan</a>
     </div>
   );
 }

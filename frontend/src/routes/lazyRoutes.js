@@ -30,6 +30,7 @@ export const SkillAssignmentPage = lazy(() => import('../pages/SkillAssignmentPa
 export const Notifications = lazy(() => import('../pages/Notifications'));
 export const SettingsPage = lazy(() => import('../pages/settings/SettingsPage'));
 export const CompanyWorkspacePage = lazy(() => import('../pages/settings/CompanyWorkspacePage'));
+export const CompanyProfilePage = lazy(() => import('../pages/settings/CompanyProfilePage'));
 export const VerifyEmailPage = lazy(() => import('../pages/VerifyEmailPage'));
 export const DnsSetupPage = lazy(() => import('../pages/DnsSetupPage'));
 export const SubscriptionUsagePage = lazy(() => import('../pages/settings/SubscriptionUsagePage'));

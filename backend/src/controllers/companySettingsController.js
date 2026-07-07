@@ -46,11 +46,24 @@ function formatCompanyPublic(company) {
     businessType: company.businessType,
     country: company.country,
     status: company.status,
+    ownerEmail: company.ownerEmail,
     ownerEmailVerified: Boolean(company.ownerEmailVerified),
     trialEndDate: company.trialEndDate,
     whiteLabel: company.whiteLabel || {},
     features: company.features,
     additionalDomains: company.additionalDomains || [],
+    // Public-facing company profile (used on quotation / invoice PDFs).
+    phone: company.phone || '',
+    state: company.state || '',
+    city: company.city || '',
+    address: company.address || '',
+    gst: company.gst || '',
+    tagline: company.tagline || '',
+    website: company.website || '',
+    quotesEmail: company.quotesEmail || '',
+    bankAccounts: company.bankAccounts || [],
+    upiId: company.upiId || '',
+    upiName: company.upiName || '',
     ...formatDomainFields(company),
   };
 }
@@ -76,7 +89,27 @@ const updateCompanySettings = asyncHandler(async (req, res) => {
   const company = await Company.findById(req.companyId);
   if (!company) throw new ApiError(404, 'Company not found');
 
-  const { tenantSettings, timezone, currency, logo, whiteLabel, businessType, phone, country } = req.body;
+  const {
+    tenantSettings,
+    timezone,
+    currency,
+    logo,
+    whiteLabel,
+    businessType,
+    phone,
+    country,
+    name,
+    tagline,
+    website,
+    quotesEmail,
+    address,
+    city,
+    state,
+    gst,
+    bankAccounts,
+    upiId,
+    upiName,
+  } = req.body;
 
   if (timezone) company.timezone = timezone;
   if (currency) company.currency = currency;
@@ -85,8 +118,32 @@ const updateCompanySettings = asyncHandler(async (req, res) => {
     if (logo) await markOnboardingStep(company._id, 'logoUploaded', true);
   }
   if (businessType) company.businessType = businessType;
-  if (phone) company.phone = phone;
+  if (phone !== undefined) company.phone = phone;
   if (country) company.country = country;
+
+  if (name !== undefined && String(name).trim()) company.name = String(name).trim();
+  if (tagline !== undefined) company.tagline = tagline;
+  if (website !== undefined) company.website = website;
+  if (quotesEmail !== undefined) company.quotesEmail = quotesEmail;
+  if (address !== undefined) company.address = address;
+  if (city !== undefined) company.city = city;
+  if (state !== undefined) company.state = state;
+  if (gst !== undefined) company.gst = gst;
+  if (upiId !== undefined) company.upiId = upiId;
+  if (upiName !== undefined) company.upiName = upiName;
+  if (Array.isArray(bankAccounts)) {
+    company.bankAccounts = bankAccounts
+      .filter((b) => b && (b.bank || b.accountNo || b.upi))
+      .map((b) => ({
+        bank: b.bank || '',
+        accountName: b.accountName || '',
+        accountNo: b.accountNo || '',
+        ifsc: b.ifsc || '',
+        branch: b.branch || '',
+        upi: b.upi || '',
+      }));
+    company.markModified('bankAccounts');
+  }
 
   if (whiteLabel && typeof whiteLabel === 'object') {
     company.whiteLabel = { ...(company.whiteLabel || {}), ...whiteLabel };

@@ -2,9 +2,12 @@ import { motion } from 'framer-motion';
 import QuotePdfPreview from '../QuotePdfPreview';
 import { formatINR } from '../quotationUtils';
 import { COMPANY_INFO } from '../constants';
+import { useTenant } from '../../../context/TenantContext';
 import GlassCard from './GlassCard';
 
 export default function LivePreviewPanel({ draftQuote, packageInfo, pricing, collapsed }) {
+  const { company } = useTenant();
+  const logoUrl = company?.logo || company?.branding?.logo || COMPANY_INFO.logoUrl;
   if (collapsed) {
     return (
       <div className="hidden xl:flex flex-col items-center justify-center p-4 text-content-muted text-xs">
@@ -31,7 +34,7 @@ export default function LivePreviewPanel({ draftQuote, packageInfo, pricing, col
             <img src={coverImage} alt="" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-              <img src={COMPANY_INFO.logoUrl} alt="" className="h-6 mb-2 opacity-90" />
+              <img src={logoUrl} alt="" className="h-6 mb-2 opacity-90" />
               <p className="text-lg font-black leading-tight">
                 {packageInfo?.packageName || draftQuote?.package?.name || 'Your Package'}
               </p>

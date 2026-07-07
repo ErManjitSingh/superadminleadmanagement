@@ -97,6 +97,22 @@ const companySchema = new mongoose.Schema(
     city: { type: String, trim: true },
     address: { type: String, trim: true },
     gst: { type: String, trim: true },
+    // Public-facing branding shown on quotation / invoice PDFs.
+    tagline: { type: String, trim: true, default: "" },
+    website: { type: String, trim: true, default: "" },
+    quotesEmail: { type: String, trim: true, lowercase: true, default: "" },
+    bankAccounts: [
+      {
+        bank: { type: String, trim: true, default: "" },
+        accountName: { type: String, trim: true, default: "" },
+        accountNo: { type: String, trim: true, default: "" },
+        ifsc: { type: String, trim: true, default: "" },
+        branch: { type: String, trim: true, default: "" },
+        upi: { type: String, trim: true, default: "" },
+      },
+    ],
+    upiId: { type: String, trim: true, default: "" },
+    upiName: { type: String, trim: true, default: "" },
     timezone: { type: String, default: "Asia/Kolkata" },
     currency: { type: String, default: "INR" },
     billingCycle: { type: String, enum: ['monthly', 'yearly'], default: 'monthly' },

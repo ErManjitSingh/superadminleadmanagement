@@ -40,6 +40,7 @@ import {
   Notifications,
   SettingsPage,
   CompanyWorkspacePage,
+  CompanyProfilePage,
   VerifyEmailPage,
   DnsSetupPage,
   SubscriptionUsagePage,
@@ -288,6 +289,7 @@ function App() {
               <Route path="calendar" element={<ComingSoon title="Calendar" description="Travel dates, follow-ups, and team schedule" />} />
               <Route path="notifications" element={<PermissionRoute module="leads"><Notifications /></PermissionRoute>} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/profile" element={<RoleRoute roles={['admin']}><CompanyProfilePage /></RoleRoute>} />
               <Route path="settings/workspace" element={<RoleRoute roles={['admin']}><CompanyWorkspacePage /></RoleRoute>} />
               <Route path="settings/subscription" element={<RoleRoute roles={['admin']}><SubscriptionUsagePage /></RoleRoute>} />
               <Route path="settings/whatsapp-templates" element={<PermissionRoute module="whatsapp" action="manage"><WhatsAppTemplatesPage /></PermissionRoute>} />

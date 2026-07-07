@@ -43,7 +43,16 @@ function PolicyBlock({ title, items }) {
 
 const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const { company } = useTenant();
-  const brandName = company?.name || COMPANY_INFO.name;
+  const brand = {
+    name: company?.name || COMPANY_INFO.name,
+    tagline: company?.tagline || COMPANY_INFO.tagline,
+    logoUrl: company?.logo || company?.branding?.logo || COMPANY_INFO.logoUrl,
+    phone: company?.phone || COMPANY_INFO.phone,
+    email: company?.email || COMPANY_INFO.email,
+    website: company?.website || COMPANY_INFO.website,
+    address: company?.address || COMPANY_INFO.address,
+  };
+  const brandName = brand.name;
   if (!quote) return null;
 
   const lead = resolveQuoteLead(quote);
@@ -52,8 +61,16 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const vehicles = resolveQuoteVehicles(quote);
   const planner = resolveTripPlanner(quote);
   const policies = resolvePolicies(quote);
-  const banks = resolveBankAccounts(quote);
+  const companyBanks = (company?.bankAccounts || []).filter((b) => b && (b.bank || b.accountNo || b.upi));
+  const banks = companyBanks.length ? companyBanks : resolveBankAccounts(quote);
   const bank = banks[0] || null;
+  const upiId = company?.upiId || bank?.upi || '';
+  const upiName = company?.upiName || brand.name;
+  const qrUrl = upiId
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+        `upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`,
+      )}`
+    : DEMO_QR_URL;
   const pax = resolveTravelerCounts(quote);
   const duration = Number(packageInfo.duration || pkg.duration || 0);
   const nights = Math.max(0, duration > 0 ? duration - 1 : 0);
@@ -81,20 +98,20 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       <header className="qp-header">
         <div className="qp-header-left">
           <img
-            src={COMPANY_INFO.logoUrl}
-            alt={COMPANY_INFO.name}
+            src={brand.logoUrl}
+            alt={brand.name}
             className="qp-logo"
             crossOrigin="anonymous"
           />
           <div>
-            <p className="qp-brand">{COMPANY_INFO.name}</p>
-            <p className="qp-tagline">{COMPANY_INFO.tagline}</p>
+            <p className="qp-brand">{brand.name}</p>
+            <p className="qp-tagline">{brand.tagline}</p>
           </div>
         </div>
         <div className="qp-header-right">
           <p className="qp-quote-no">{quoteNo}</p>
           <p>{formatQuoteDate(quote.createdAt)}</p>
-          <p>{COMPANY_INFO.phone}</p>
+          <p>{brand.phone}</p>
         </div>
       </header>
 
@@ -136,7 +153,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       {/* Welcome */}
       <section className="qp-welcome">
         <p><strong>Hello {lead.name || 'Guest'},</strong></p>
-        <p>Welcome to {COMPANY_INFO.name}.</p>
+        <p>Welcome to {brand.name}.</p>
         {QUOTE_WELCOME_TEXT.split('\n\n').slice(0, 2).map((para) => (
           <p key={para.slice(0, 20)}>{para}</p>
         ))}
@@ -338,13 +355,13 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         )}
         <div className="qp-qr-card">
           <img
-            src={DEMO_QR_URL}
+            src={qrUrl}
             alt="Scan to pay"
             className="qp-qr-img"
             crossOrigin="anonymous"
           />
           <p className="qp-qr-title">Scan to Pay</p>
-          <p className="qp-qr-demo">Demo QR Code</p>
+          <p className="qp-qr-demo">{upiId ? upiId : 'Demo QR Code'}</p>
         </div>
       </div>
       </section>
@@ -354,19 +371,19 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <div>
           <h4>Trip Planner</h4>
           <p>{planner.name}</p>
-          <p>{planner.phone || COMPANY_INFO.phone}</p>
+          <p>{planner.phone || brand.phone}</p>
         </div>
         <div>
           <h4>Contact Us</h4>
-          <p>{COMPANY_INFO.address}</p>
-          <p>{COMPANY_INFO.phone}</p>
-          <p>{COMPANY_INFO.email}</p>
+          <p>{brand.address}</p>
+          <p>{brand.phone}</p>
+          <p>{brand.email}</p>
         </div>
       </div>
 
       <footer className="qp-footer">
-        <p>Thank you for choosing {COMPANY_INFO.name}</p>
-        <p>{COMPANY_INFO.phone} · {COMPANY_INFO.email}</p>
+        <p>Thank you for choosing {brand.name}</p>
+        <p>{brand.phone} · {brand.email}</p>
       </footer>
     </div>
   );

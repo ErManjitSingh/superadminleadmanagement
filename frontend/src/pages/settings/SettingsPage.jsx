@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Building2, ChevronRight, Mail, MessageCircle, BarChart3 } from 'lucide-react';
+import { Building2, ChevronRight, Mail, MessageCircle, BarChart3, IdCard } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
 import { APP_SALES_EMAIL } from '../../config/branding';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -13,6 +13,14 @@ export default function SettingsPage() {
   const canManageEmail = can('email', 'manage');
 
   const items = [
+    {
+      to: '/settings/profile',
+      icon: IdCard,
+      title: 'Company Profile',
+      description: 'Logo, company name, contact details and bank/UPI shown on quotation PDFs',
+      color: 'text-rose-600 bg-rose-500/10',
+      adminOnly: true,
+    },
     {
       to: '/settings/subscription',
       icon: BarChart3,
