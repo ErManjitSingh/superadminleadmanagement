@@ -20,9 +20,10 @@ export default function CompanyDetailPage() {
   const [tab, setTab] = useState('Overview');
   const [impersonating, setImpersonating] = useState(false);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['company', id],
     queryFn: () => superAdminApi.getCompany(id).then((r) => r.data),
+    enabled: Boolean(id),
   });
 
   const { data: usersData } = useQuery({
@@ -57,7 +58,21 @@ export default function CompanyDetailPage() {
   }
 
   if (isLoading) return <div className="py-20 text-center text-[var(--text-muted)]">Loading…</div>;
-  if (!company) return <div className="py-20 text-center">Company not found</div>;
+  if (isError) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-lg font-semibold">Could not load company</p>
+        <p className="mt-2 text-sm text-[var(--text-muted)]">{error?.response?.data?.message || error?.message || 'Unknown error'}</p>
+        <Link to="/admin/companies" className="mt-4 inline-block text-violet-600 hover:underline">Back to companies</Link>
+      </div>
+    );
+  }
+  if (!company) return (
+    <div className="py-20 text-center">
+      <p className="text-lg font-semibold">Company not found</p>
+      <Link to="/admin/companies" className="mt-4 inline-block text-violet-600 hover:underline">Back to companies</Link>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -65,7 +80,7 @@ export default function CompanyDetailPage() {
         <div className="flex items-center gap-3">
           <Link to="/admin/companies"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-xl font-bold text-white">
-            {company.logo ? <img src={company.logo} alt="" className="h-full w-full rounded-2xl object-cover" /> : company.name[0]}
+            {company.logo ? <img src={company.logo} alt="" className="h-full w-full rounded-2xl object-cover" /> : (company.name?.[0] || '?')}
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -85,7 +100,7 @@ export default function CompanyDetailPage() {
         <div><p className="text-xs text-[var(--text-muted)]">Owner</p><p className="font-medium">{company.ownerName}</p></div>
         <div><p className="text-xs text-[var(--text-muted)]">Plan</p><p className="font-medium">{plan?.name || '—'}</p></div>
         <div><p className="text-xs text-[var(--text-muted)]">Users</p><p className="font-medium">{company.usersCount}</p></div>
-        <div><p className="text-xs text-[var(--text-muted)]">Storage</p><p className="font-medium">{(company.storageUsedMb / 1024).toFixed(1)} / {company.storageLimitGb} GB</p></div>
+        <div><p className="text-xs text-[var(--text-muted)]">Storage</p><p className="font-medium">{((company.storageUsedMb || 0) / 1024).toFixed(1)} / {company.storageLimitGb || 0} GB</p></div>
       </Card>
 
       <div className="flex flex-wrap gap-1 border-b border-[var(--border)]">

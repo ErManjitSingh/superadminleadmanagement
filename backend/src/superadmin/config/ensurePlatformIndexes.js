@@ -10,7 +10,32 @@ const SubscriptionPlan = require('../models/SubscriptionPlan');
 const PlatformSettings = require('../models/PlatformSettings');
 const PlatformNotification = require('../models/PlatformNotification');
 
+async function ensureCompanyPrimaryDomainIndex() {
+  try {
+    const indexes = await Company.collection.indexes();
+    const domainIdx = indexes.find((idx) => idx.key?.primaryDomain === 1);
+    if (domainIdx && !domainIdx.sparse) {
+      await Company.collection.dropIndex(domainIdx.name);
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[Indexes] primaryDomain index check:', err.message);
+    }
+  }
+
+  await Company.updateMany(
+    { primaryDomain: null },
+    { $unset: { primaryDomain: '' } },
+  );
+
+  await Company.collection.createIndex(
+    { primaryDomain: 1 },
+    { unique: true, sparse: true, background: true, name: 'primaryDomain_1' },
+  );
+}
+
 async function ensurePlatformIndexes() {
+  await ensureCompanyPrimaryDomainIndex();
   await Promise.all([
     User.collection.createIndex({ companyId: 1, email: 1 }, { unique: true, background: true }),
     User.collection.createIndex({ companyId: 1, status: 1 }, { background: true }),
@@ -19,7 +44,6 @@ async function ensurePlatformIndexes() {
     Role.collection.createIndex({ companyId: 1, slug: 1 }, { unique: true, background: true }),
     Company.collection.createIndex({ slug: 1 }, { unique: true, background: true }),
     Company.collection.createIndex({ subdomain: 1 }, { unique: true, background: true }),
-    Company.collection.createIndex({ primaryDomain: 1 }, { unique: true, sparse: true, background: true }),
     Company.collection.createIndex({ status: 1, createdAt: -1 }, { background: true }),
     SuperAdmin.collection.createIndex({ email: 1 }, { unique: true, background: true }),
     SubscriptionPlan.collection.createIndex({ slug: 1 }, { unique: true, background: true }),

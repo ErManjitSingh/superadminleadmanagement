@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import {
@@ -54,6 +54,7 @@ function ActionsMenu({ company, onAction }) {
 }
 
 export default function CompaniesPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -74,17 +75,25 @@ export default function CompaniesPage() {
   const companies = data?.data || [];
   const pagination = data?.pagination || {};
 
+  function companyId(company) {
+    return company?.id || company?._id;
+  }
+
   async function handleAction(action, company) {
-    if (action === 'view') window.location.href = `/admin/companies/${company.id}`;
-    if (action === 'suspend') await superAdminApi.bulkCompanies({ ids: [company.id], action: 'suspend' });
-    if (action === 'activate') await superAdminApi.bulkCompanies({ ids: [company.id], action: 'activate' });
-    if (action === 'delete' && confirm('Delete this company?')) await superAdminApi.deleteCompany(company.id);
+    const id = companyId(company);
+    if (action === 'view' && id) {
+      navigate(`/admin/companies/${id}`);
+      return;
+    }
+    if (action === 'suspend') await superAdminApi.bulkCompanies({ ids: [id], action: 'suspend' });
+    if (action === 'activate') await superAdminApi.bulkCompanies({ ids: [id], action: 'activate' });
+    if (action === 'delete' && confirm('Delete this company?')) await superAdminApi.deleteCompany(id);
     if (action === 'reset') {
-      const res = await superAdminApi.resetPassword(company.id);
+      const res = await superAdminApi.resetPassword(id);
       alert(`Temp password: ${res.data.tempPassword}`);
     }
     if (action === 'impersonate') {
-      const res = await superAdminApi.impersonate(company.id);
+      const res = await superAdminApi.impersonate(id);
       const { token, user, redirectUrl } = res.data;
       const params = new URLSearchParams({ token, user: JSON.stringify(user), impersonation: 'true', companyName: res.data.company?.name || company.name });
       window.open(`${redirectUrl}?${params}`, '_blank');
@@ -106,7 +115,12 @@ export default function CompaniesPage() {
             {row.original.name?.[0]}
           </div>
           <div>
-            <p className="font-medium">{row.original.name}</p>
+            <Link
+              to={`/admin/companies/${companyId(row.original)}`}
+              className="font-medium text-violet-700 hover:underline dark:text-violet-300"
+            >
+              {row.original.name}
+            </Link>
             <p className="text-xs text-[var(--text-muted)]">{row.original.subdomain}.{PLATFORM_DOMAIN}</p>
           </div>
         </div>
@@ -142,7 +156,7 @@ export default function CompaniesPage() {
     { header: 'Renewal', cell: ({ row }) => row.original.renewDate ? formatDate(row.original.renewDate) : '—' },
     { header: 'Created', cell: ({ row }) => formatDate(row.original.createdAt) },
     { id: 'actions', header: '', cell: ({ row }) => <ActionsMenu company={row.original} onAction={handleAction} /> },
-  ], [queryClient]);
+  ], [navigate]);
 
   const table = useReactTable({
     data: companies,

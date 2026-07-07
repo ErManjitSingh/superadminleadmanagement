@@ -265,7 +265,7 @@ export default function DashboardPage() {
             {(data?.recentCompanies || []).slice(0, 5).map((c) => (
               <Link
                 key={c._id}
-                to={`/admin/companies/${c._id}`}
+                to={`/admin/companies/${c.id || c._id}`}
                 className="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5 transition hover:border-violet-200 hover:bg-violet-50/50 dark:border-slate-700 dark:hover:bg-violet-950/20"
               >
                 <div className="min-w-0">

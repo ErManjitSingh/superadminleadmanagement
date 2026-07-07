@@ -164,7 +164,7 @@ export default function CompanyWizardPage() {
                     <p className="font-mono">{result.provisioning.tempPassword}</p>
                   </div>
                 )}
-                <Button onClick={() => navigate(`/admin/companies/${result.company.id}`)}>View Company</Button>
+                <Button onClick={() => navigate(`/admin/companies/${result.company?.id || result.company?._id}`)}>View Company</Button>
               </div>
             )}
           </motion.div>

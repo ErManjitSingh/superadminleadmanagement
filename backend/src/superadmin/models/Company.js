@@ -48,7 +48,7 @@ const companySchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    primaryDomain: { type: String, trim: true, default: null },
+    primaryDomain: { type: String, trim: true },
     domainType: {
       type: String,
       enum: ["subdomain", "custom"],

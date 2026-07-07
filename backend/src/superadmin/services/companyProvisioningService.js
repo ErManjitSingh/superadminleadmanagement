@@ -166,11 +166,10 @@ async function provisionCompany({ payload, superAdminId }) {
   const skipEmailVerification = Boolean(payload.skipEmailVerification || superAdminId);
   const domainConnected = domainType === "subdomain" || Boolean(payload.domainVerified);
 
-  const company = await Company.create({
+  const companyDoc = {
     name: payload.name.trim(),
     slug,
     subdomain,
-    primaryDomain,
     domainType,
     domainVerified: domainType === "subdomain" ? true : Boolean(payload.domainVerified),
     domainLastVerifiedAt: domainType === "subdomain" || payload.domainVerified ? new Date() : null,
@@ -217,7 +216,13 @@ async function provisionCompany({ payload, superAdminId }) {
     },
     createdBy: superAdminId || null,
     updatedBy: superAdminId || null,
-  });
+  };
+
+  if (primaryDomain) {
+    companyDoc.primaryDomain = primaryDomain;
+  }
+
+  const company = await Company.create(companyDoc);
 
   await ensureCompanyRoles(company._id);
   const adminRoleId = await getAdminRoleId(company._id);
