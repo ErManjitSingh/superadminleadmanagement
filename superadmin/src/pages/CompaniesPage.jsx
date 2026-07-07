@@ -3,17 +3,66 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import {
-  Download, Eye, KeyRound, LogIn, Mail, MoreHorizontal, Pause, Play, Plus, Search, Trash2,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Download,
+  Eye,
+  Filter,
+  IndianRupee,
+  KeyRound,
+  LogIn,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Plus,
+  Search,
+  Trash2,
+  Users,
 } from 'lucide-react';
 import { superAdminApi } from '../api/superadmin';
-import { PageHeader } from '../components/shared/PageHeader';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input, Select } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { DnsStatusBadge, SslStatusBadge } from '../components/domains/DomainStatusBadge';
-import { cn, formatDate, STATUS_COLORS } from '../lib/utils';
+import { SslStatusBadge } from '../components/domains/DomainStatusBadge';
+import PlanBadge from '../components/companies/PlanBadge';
+import MetricSparkCard from '../components/dashboard/MetricSparkCard';
+import { cn, formatCurrency, formatDate, STATUS_COLORS } from '../lib/utils';
 import { PLATFORM_DOMAIN } from '../lib/branding';
+
+const AVATAR_COLORS = [
+  'from-violet-500 to-indigo-600',
+  'from-sky-500 to-blue-600',
+  'from-emerald-500 to-teal-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-fuchsia-500 to-purple-600',
+];
+
+function avatarColor(name = '') {
+  const code = name.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
+  return AVATAR_COLORS[code % AVATAR_COLORS.length];
+}
+
+function pctOf(part, total) {
+  if (!total) return '0%';
+  return `${((part / total) * 100).toFixed(1)}% of total`;
+}
+
+function daysUntil(date) {
+  if (!date) return null;
+  return Math.max(0, Math.ceil((new Date(date) - Date.now()) / 86400000));
+}
+
+function dateRangeLabel() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 6);
+  const fmt = (d) => d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return `${fmt(start)} - ${fmt(end)}`;
+}
 
 function ActionsMenu({ company, onAction }) {
   const [open, setOpen] = useState(false);
@@ -34,7 +83,7 @@ function ActionsMenu({ company, onAction }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-1 w-48 rounded-xl border border-[var(--border)] bg-white py-1 shadow-xl dark:bg-slate-900">
+          <div className="absolute right-0 z-50 mt-1 w-48 rounded-xl border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-900">
             {items.map((item) => (
               <button
                 key={item.action}
@@ -58,13 +107,26 @@ export default function CompaniesPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [plan, setPlan] = useState('');
   const [domainFilter, setDomainFilter] = useState('');
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState([]);
+  const limit = 10;
+
+  const { data: dash } = useQuery({
+    queryKey: ['dashboard-companies-kpi'],
+    queryFn: () => superAdminApi.getDashboard().then((r) => r.data),
+    staleTime: 60000,
+  });
+
+  const { data: plansData } = useQuery({
+    queryKey: ['plans'],
+    queryFn: () => superAdminApi.listPlans().then((r) => r.data.data),
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['companies', { search, status, domainFilter, page }],
-    queryFn: () => superAdminApi.listCompanies({ search, status, domainFilter, page, limit: 15 }).then((r) => r.data),
+    queryKey: ['companies', { search, status, plan, domainFilter, page }],
+    queryFn: () => superAdminApi.listCompanies({ search, status, plan, domainFilter, page, limit }).then((r) => r.data),
   });
 
   const bulkMutation = useMutation({
@@ -74,6 +136,9 @@ export default function CompaniesPage() {
 
   const companies = data?.data || [];
   const pagination = data?.pagination || {};
+  const m = dash?.metrics || {};
+  const spark = (dash?.registrationTrend || []).slice(-7).map((r) => r.count || 0);
+  const total = m.totalCompanies || pagination.total || 0;
 
   function companyId(company) {
     return company?.id || company?._id;
@@ -81,10 +146,7 @@ export default function CompaniesPage() {
 
   async function handleAction(action, company) {
     const id = companyId(company);
-    if (action === 'view' && id) {
-      navigate(`/admin/companies/${id}`);
-      return;
-    }
+    if (action === 'view' && id) { navigate(`/admin/companies/${id}`); return; }
     if (action === 'suspend') await superAdminApi.bulkCompanies({ ids: [id], action: 'suspend' });
     if (action === 'activate') await superAdminApi.bulkCompanies({ ids: [id], action: 'activate' });
     if (action === 'delete' && confirm('Delete this company?')) await superAdminApi.deleteCompany(id);
@@ -109,52 +171,95 @@ export default function CompaniesPage() {
     },
     {
       header: 'Company',
+      cell: ({ row }) => {
+        const c = row.original;
+        const domain = c.primaryDomain || c.customDomain || `${c.subdomain}.${PLATFORM_DOMAIN}`;
+        return (
+          <div className="flex items-center gap-3 min-w-[200px]">
+            <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-sm font-bold text-white', avatarColor(c.name))}>
+              {c.name?.[0]?.toUpperCase()}
+            </div>
+            <div>
+              <Link to={`/admin/companies/${companyId(c)}`} className="font-semibold text-slate-900 hover:text-violet-600 dark:text-white">
+                {c.name}
+              </Link>
+              <p className="text-xs text-slate-500">{domain}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Owner',
       cell: ({ row }) => (
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-xs font-bold text-white">
-            {row.original.name?.[0]}
-          </div>
-          <div>
-            <Link
-              to={`/admin/companies/${companyId(row.original)}`}
-              className="font-medium text-violet-700 hover:underline dark:text-violet-300"
-            >
-              {row.original.name}
-            </Link>
-            <p className="text-xs text-[var(--text-muted)]">{row.original.subdomain}.{PLATFORM_DOMAIN}</p>
-          </div>
+        <div className="min-w-[160px]">
+          <p className="text-sm font-medium">{row.original.ownerName}</p>
+          <p className="text-xs text-slate-500">{row.original.ownerEmail}</p>
         </div>
       ),
     },
-    { header: 'Owner', cell: ({ row }) => <div><p className="text-sm">{row.original.ownerName}</p><p className="text-xs text-[var(--text-muted)]">{row.original.ownerEmail}</p></div> },
-    { header: 'Phone', cell: ({ row }) => row.original.phone || '—' },
-    { header: 'Plan', cell: ({ row }) => row.original.subscriptionPlan?.name || '—' },
     {
-      header: 'System Domain',
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.systemDomain || `${row.original.subdomain}.${PLATFORM_DOMAIN}`}</span>
-      ),
+      header: 'Plan',
+      cell: ({ row }) => <PlanBadge plan={row.original.subscriptionPlan} />,
     },
     {
-      header: 'Custom Domain',
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.customDomain || row.original.primaryDomain || '—'}</span>
-      ),
+      header: 'Domains',
+      cell: ({ row }) => {
+        const domain = row.original.primaryDomain || row.original.customDomain;
+        if (!domain) return <span className="text-slate-400">—</span>;
+        return (
+          <div className="flex items-center gap-1.5 text-sm">
+            {row.original.domainVerified && <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />}
+            <span className="font-mono text-xs text-slate-600 dark:text-slate-300">{domain}</span>
+          </div>
+        );
+      },
     },
     {
-      header: 'DNS',
-      cell: ({ row }) => (
-        <DnsStatusBadge status={row.original.domainStatus || (row.original.domainVerified ? 'verified' : row.original.primaryDomain ? 'pending' : 'not_connected')} />
-      ),
+      header: 'Status',
+      cell: ({ row }) => <Badge className={cn('capitalize', STATUS_COLORS[row.original.status])}>{row.original.status}</Badge>,
     },
     {
       header: 'SSL',
       cell: ({ row }) => <SslStatusBadge status={row.original.sslStatus} />,
     },
-    { header: 'Status', cell: ({ row }) => <Badge className={STATUS_COLORS[row.original.status]}>{row.original.status}</Badge> },
-    { header: 'Trial Ends', cell: ({ row }) => row.original.trialEndDate ? formatDate(row.original.trialEndDate) : '—' },
-    { header: 'Renewal', cell: ({ row }) => row.original.renewDate ? formatDate(row.original.renewDate) : '—' },
-    { header: 'Created', cell: ({ row }) => formatDate(row.original.createdAt) },
+    {
+      header: 'Users',
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {row.original.usersCount ?? 0}
+        </span>
+      ),
+    },
+    {
+      header: 'Revenue',
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+          {formatCurrency(row.original.subscriptionPlan?.monthlyPrice || 0)}
+        </span>
+      ),
+    },
+    {
+      header: 'Renewal',
+      cell: ({ row }) => {
+        const date = row.original.renewDate || row.original.trialEndDate;
+        const days = daysUntil(date);
+        return (
+          <div>
+            <p className="text-sm">{date ? formatDate(date) : '—'}</p>
+            {days != null && (
+              <p className={cn('text-xs font-medium', days <= 14 ? 'text-amber-600' : 'text-emerald-600')}>
+                {days} days
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Created',
+      cell: ({ row }) => <span className="text-sm text-slate-600">{formatDate(row.original.createdAt)}</span>,
+    },
     { id: 'actions', header: '', cell: ({ row }) => <ActionsMenu company={row.original} onAction={handleAction} /> },
   ], [navigate]);
 
@@ -170,58 +275,126 @@ export default function CompaniesPage() {
     getRowId: (_, index) => String(index),
   });
 
+  const totalPages = pagination.totalPages || 1;
+  const pageStart = total ? (page - 1) * limit + 1 : 0;
+  const pageEnd = Math.min(page * limit, pagination.total || 0);
+
+  const pageNumbers = useMemo(() => {
+    const pages = [];
+    const max = Math.min(totalPages, 5);
+    let start = Math.max(1, page - 2);
+    if (start + max - 1 > totalPages) start = Math.max(1, totalPages - max + 1);
+    for (let i = 0; i < max; i += 1) pages.push(start + i);
+    return pages;
+  }, [page, totalPages]);
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Companies" description="Manage tenant workspaces — no CRM business data is displayed.">
-        <Link to="/admin/companies/new"><Button><Plus className="h-4 w-4" />Create Company</Button></Link>
-        <Button variant="outline" onClick={() => superAdminApi.exportCompanies({ search, status }).then((r) => {
-          const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
-          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'companies.json'; a.click();
-        })}><Download className="h-4 w-4" />Export</Button>
-      </PageHeader>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Companies</h1>
+          <p className="mt-1 text-sm text-slate-500">Manage all tenant companies and their workspaces.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            className="rounded-xl"
+            onClick={() => superAdminApi.exportCompanies({ search, status }).then((r) => {
+              const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = 'companies.json';
+              a.click();
+            })}
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Link to="/admin/companies/new">
+            <Button className="rounded-xl bg-violet-600 hover:bg-violet-500">
+              <Plus className="h-4 w-4" />
+              Create Company
+            </Button>
+          </Link>
+        </div>
+      </div>
 
-      <Card className="p-4">
-        <div className="mb-4 flex flex-wrap gap-3">
-          <div className="relative min-w-[200px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-            <Input className="pl-9" placeholder="Search companies…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
-          </div>
-          <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-40">
-            <option value="">All statuses</option>
-            {['active', 'trial', 'suspended', 'expired', 'inactive'].map((s) => <option key={s} value={s}>{s}</option>)}
-          </Select>
-          <Select value={domainFilter} onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }} className="w-52">
-            <option value="">All domains</option>
-            <option value="verified">Verified domains</option>
-            <option value="pending_dns">Pending DNS</option>
-            <option value="ssl_failed">SSL failed</option>
-            <option value="custom_connected">Custom domain connected</option>
-            <option value="no_custom">No custom domain</option>
-          </Select>
-          {selected.length > 0 && (
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Activate</Button>
-              <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'suspend' })}>Suspend</Button>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+        <MetricSparkCard title="Total Companies" value={total} change={`${m.newCompaniesThisMonth || 0} this month`} trendUp icon={Building2} iconBg="bg-violet-500/15 text-violet-600" sparkData={spark} sparkColor="#8b5cf6" />
+        <MetricSparkCard title="Active Companies" value={m.activeCompanies || 0} change={pctOf(m.activeCompanies, total)} trendUp icon={Users} iconBg="bg-emerald-500/15 text-emerald-600" sparkData={spark} sparkColor="#10b981" />
+        <MetricSparkCard title="Trial Companies" value={m.trialCompanies || 0} change={pctOf(m.trialCompanies, total)} trendUp={false} icon={Clock} iconBg="bg-amber-500/15 text-amber-600" sparkData={spark} sparkColor="#f59e0b" />
+        <MetricSparkCard title="Expired Companies" value={m.expiredCompanies || 0} change={pctOf(m.expiredCompanies, total)} trendUp={false} icon={Building2} iconBg="bg-rose-500/15 text-rose-600" sparkData={spark} sparkColor="#f43f5e" />
+        <MetricSparkCard title="Monthly Revenue" value={formatCurrency(m.monthlyRevenue)} change={`${m.newCompaniesThisMonth || 0} new`} trendUp icon={IndianRupee} iconBg="bg-sky-500/15 text-sky-600" sparkData={spark} sparkColor="#0ea5e9" />
+        <MetricSparkCard title="Today's Signups" value={m.newCompaniesToday || 0} change="new today" trendUp icon={IndianRupee} iconBg="bg-indigo-500/15 text-indigo-600" sparkData={spark} sparkColor="#6366f1" />
+      </div>
+
+      <Card className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-sm dark:border-slate-700/50 dark:bg-slate-900/80">
+        <div className="border-b border-slate-100 p-4 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                className="rounded-xl border-slate-200 bg-slate-50 pl-9 dark:bg-slate-900"
+                placeholder="Search by company name, owner, domain..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              />
             </div>
-          )}
+            <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-36 rounded-xl">
+              <option value="">All Statuses</option>
+              {['active', 'trial', 'suspended', 'expired', 'inactive'].map((s) => <option key={s} value={s}>{s}</option>)}
+            </Select>
+            <Select value={plan} onChange={(e) => { setPlan(e.target.value); setPage(1); }} className="w-36 rounded-xl">
+              <option value="">All Plans</option>
+              {(plansData || []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </Select>
+            <Select value={domainFilter} onChange={(e) => { setDomainFilter(e.target.value); setPage(1); }} className="w-40 rounded-xl">
+              <option value="">All Domains</option>
+              <option value="verified">Verified domains</option>
+              <option value="pending_dns">Pending DNS</option>
+              <option value="ssl_failed">SSL failed</option>
+              <option value="custom_connected">Custom connected</option>
+              <option value="no_custom">No custom domain</option>
+            </Select>
+            <Button variant="outline" size="sm" className="rounded-xl">
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+            <button type="button" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900">
+              <Calendar className="h-3.5 w-3.5" />
+              {dateRangeLabel()}
+            </button>
+            {selected.length > 0 && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Activate</Button>
+                <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'suspend' })}>Suspend</Button>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-          <table className="w-full min-w-[1400px] text-sm">
-            <thead className="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-[var(--text-muted)] dark:bg-slate-900/50">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1200px] text-sm">
+            <thead className="bg-slate-50/90 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-900/60">
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-3 font-semibold">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>
+                <tr key={hg.id}>
+                  {hg.headers.map((h) => (
+                    <th key={h.id} className="px-4 py-3.5 whitespace-nowrap">{flexRender(h.column.columnDef.header, h.getContext())}</th>
+                  ))}
+                </tr>
               ))}
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
-                <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-muted)]">Loading…</td></tr>
+                <tr><td colSpan={columns.length} className="px-4 py-16 text-center text-slate-500">Loading companies…</td></tr>
               ) : companies.length === 0 ? (
-                <tr><td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-muted)]">No companies found</td></tr>
+                <tr><td colSpan={columns.length} className="px-4 py-16 text-center text-slate-500">No companies found</td></tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-t border-[var(--border)] hover:bg-slate-50/50 dark:hover:bg-white/5">
-                    {row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
+                  <tr key={row.id} className="transition hover:bg-slate-50/70 dark:hover:bg-white/[0.02]">
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3.5 align-middle">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
                   </tr>
                 ))
               )}
@@ -229,11 +402,26 @@ export default function CompaniesPage() {
           </table>
         </div>
 
-        <div className="mt-4 flex items-center justify-between text-sm text-[var(--text-muted)]">
-          <span>Page {pagination.page || page} of {pagination.totalPages || 1} · {pagination.total || 0} total</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</Button>
-            <Button variant="outline" size="sm" disabled={page >= (pagination.totalPages || 1)} onClick={() => setPage((p) => p + 1)}>Next</Button>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-500 dark:border-slate-800">
+          <span>
+            Showing {pageStart} to {pageEnd} of {pagination.total || 0} companies
+          </span>
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="rounded-lg" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Back</Button>
+            {pageNumbers.map((n) => (
+              <Button
+                key={n}
+                variant={n === page ? 'default' : 'outline'}
+                size="sm"
+                className={cn('min-w-9 rounded-lg', n === page && 'bg-violet-600 hover:bg-violet-500')}
+                onClick={() => setPage(n)}
+              >
+                {n}
+              </Button>
+            ))}
+            {totalPages > 5 && page < totalPages - 2 && <span className="px-1">…</span>}
+            {totalPages > 5 && <Button variant="outline" size="sm" className="rounded-lg" onClick={() => setPage(totalPages)}>{totalPages}</Button>}
+            <Button variant="outline" size="sm" className="rounded-lg" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>Next</Button>
           </div>
         </div>
       </Card>

@@ -1,13 +1,14 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Plane, Settings } from 'lucide-react';
+import { ChevronDown, Plane, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { cn } from '../../lib/utils';
 import { APP_BRAND_NAME } from '../../lib/branding';
 import { NAV_SECTIONS, SETTINGS_NAV } from '../../lib/navConfig';
 import { superAdminApi } from '../../api/superadmin';
 import PlatformTopBar from './PlatformTopBar';
+import SystemStatusWidget from './SystemStatusWidget';
 
 export default function SuperAdminLayout() {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export default function SuperAdminLayout() {
           </div>
           <div>
             <p className="text-sm font-bold text-white">{APP_BRAND_NAME}</p>
-            <p className="text-[11px] text-slate-400">Platform Console</p>
+            <p className="text-[11px] text-slate-400">Super Admin</p>
           </div>
         </div>
 
@@ -69,6 +70,8 @@ export default function SuperAdminLayout() {
         </nav>
 
         <div className="space-y-3 border-t border-white/10 p-4">
+          <SystemStatusWidget />
+
           <NavLink
             to={SETTINGS_NAV.to}
             className={({ isActive }) =>
@@ -82,7 +85,19 @@ export default function SuperAdminLayout() {
             {SETTINGS_NAV.label}
           </NavLink>
 
-          <p className="px-3 text-[10px] text-slate-500 truncate">{user?.email}</p>
+          <Link
+            to="/admin/profile"
+            className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 transition hover:bg-white/10"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-xs font-bold text-white">
+              {user?.name?.[0] || 'S'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{user?.name || 'Super Admin'}</p>
+              <p className="truncate text-[10px] text-slate-400">{user?.email}</p>
+            </div>
+            <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" />
+          </Link>
         </div>
       </aside>
 
