@@ -1,9 +1,8 @@
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { LifeBuoy, Plane, Settings } from 'lucide-react';
+import { Plane, Settings } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 import { APP_BRAND_NAME } from '../../lib/branding';
 import { NAV_SECTIONS, SETTINGS_NAV } from '../../lib/navConfig';
@@ -70,19 +69,6 @@ export default function SuperAdminLayout() {
         </nav>
 
         <div className="space-y-3 border-t border-white/10 p-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/20">
-              <LifeBuoy className="h-4 w-4 text-violet-300" />
-            </div>
-            <p className="text-sm font-semibold text-white">Need Help?</p>
-            <p className="mt-1 text-xs text-slate-400">Contact our support team for platform assistance.</p>
-            <Link to="/admin/support">
-              <Button size="sm" className="mt-3 w-full rounded-xl bg-violet-600 hover:bg-violet-500">
-                Contact Support
-              </Button>
-            </Link>
-          </div>
-
           <NavLink
             to={SETTINGS_NAV.to}
             className={({ isActive }) =>
