@@ -74,7 +74,7 @@ export default function UserProfilePage() {
             <Avatar name={profile.name} size="lg" className="!w-24 !h-24 !text-3xl ring-4 ring-surface shadow-xl" />
             <div className="flex-1 pb-1">
               <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold text-content-primary">{profile.name}</h1>
+                <h1 className="text-2xl font-bold text-content-primary">{displayValue(profile.name)}</h1>
                 <UserStatusBadge status={profile.status} />
               </div>
               <p className="text-sm text-content-secondary mt-1">

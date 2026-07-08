@@ -35,7 +35,7 @@ export default function UserDetailDrawer({
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="flex flex-col items-center text-center pb-6 border-b border-subtle">
               <Avatar name={user.name} size="lg" className="!w-20 !h-20 !text-2xl ring-4 ring-brand-500/10 mb-3" />
-              <h3 className="text-xl font-bold text-content-primary">{user.name}</h3>
+              <h3 className="text-xl font-bold text-content-primary">{displayValue(user.name)}</h3>
               <p className="text-sm text-content-secondary mt-0.5">{user.email}</p>
               <div className="mt-3 flex flex-col items-center gap-2">
                 {onToggleStatus && (user.status === 'active' || user.status === 'disabled') ? (

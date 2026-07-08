@@ -1,6 +1,17 @@
 export default function Avatar({ name, size = 'md', className = '' }) {
-  const initials = name
-    ?.split(' ')
+  const safeName =
+    typeof name === 'string'
+      ? name
+      : typeof name === 'number'
+        ? String(name)
+        : name && typeof name === 'object'
+          ? String(name.name || name.label || '')
+          : '';
+
+  const initials = safeName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .slice(0, 2)
@@ -19,7 +30,7 @@ export default function Avatar({ name, size = 'md', className = '' }) {
     'bg-amber-600',
     'bg-rose-600',
   ];
-  const colorIndex = (name?.charCodeAt(0) || 0) % colors.length;
+  const colorIndex = (safeName.charCodeAt(0) || 0) % colors.length;
 
   return (
     <div

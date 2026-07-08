@@ -27,6 +27,11 @@ export default function UserDataTable({
 }) {
   const navigate = useNavigate();
   const hasActions = onEdit || onResetPassword || onDisable || onDelete || onView;
+  const formatName = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'object') return String(value?.name || value?.label || value?._id || '—');
+    return String(value);
+  };
 
   if (!users.length) {
     return (
@@ -59,7 +64,7 @@ export default function UserDataTable({
                     onClick={() => navigate(`/team/users/${user._id}`)}
                     className="text-sm font-semibold text-content-primary hover:text-brand-600 transition-colors whitespace-nowrap"
                   >
-                    {user.name}
+                    {formatName(user.name)}
                   </button>
                 </td>
                 <td className={`${compactTd} text-content-secondary max-w-[160px] truncate`}>{user.email}</td>
