@@ -8,6 +8,12 @@ import UserStatusBadge from './UserStatusBadge';
 import { Button } from '../ui/button';
 import { formatCurrency, formatLastLogin } from './constants';
 
+function displayValue(value) {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'object') return String(value?.name || value?.label || value?._id || '—');
+  return String(value);
+}
+
 export default function UserProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -71,7 +77,9 @@ export default function UserProfilePage() {
                 <h1 className="text-2xl font-bold text-content-primary">{profile.name}</h1>
                 <UserStatusBadge status={profile.status} />
               </div>
-              <p className="text-sm text-content-secondary mt-1">{profile.roleName || '—'} · {profile.department || '—'}</p>
+              <p className="text-sm text-content-secondary mt-1">
+                {displayValue(profile.roleName)} · {displayValue(profile.department)}
+              </p>
             </div>
             <Button variant="outline" onClick={() => navigate('/team')}>Manage User</Button>
           </div>
@@ -106,16 +114,16 @@ export default function UserProfilePage() {
         >
           <h2 className="text-sm font-bold text-content-primary uppercase tracking-wider">Personal Details</h2>
           {[
-            { icon: Mail, label: 'Email', value: profile.email || '—' },
-            { icon: Phone, label: 'Phone', value: profile.phone || '—' },
-            { icon: Building2, label: 'Department', value: profile.department || '—' },
-            { icon: Shield, label: 'Role', value: profile.roleName || '—' },
+            { icon: Mail, label: 'Email', value: profile.email },
+            { icon: Phone, label: 'Phone', value: profile.phone },
+            { icon: Building2, label: 'Department', value: profile.department },
+            { icon: Shield, label: 'Role', value: profile.roleName },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-brand-500/10"><Icon className="w-4 h-4 text-brand-600" /></div>
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
-                <p className="text-sm font-medium text-content-primary">{value}</p>
+                <p className="text-sm font-medium text-content-primary">{displayValue(value)}</p>
               </div>
             </div>
           ))}

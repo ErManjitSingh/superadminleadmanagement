@@ -7,6 +7,12 @@ import { Button } from '../ui/button';
 import AppDrawer from '../ui/AppDrawer';
 import { formatLastLogin } from './constants';
 
+function displayValue(value) {
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'object') return String(value?.name || value?.label || value?._id || '—');
+  return String(value);
+}
+
 export default function UserDetailDrawer({
   user,
   open,
@@ -51,10 +57,10 @@ export default function UserDetailDrawer({
             </div>
             <div className="space-y-3">
               {[
-                { icon: Shield, label: 'Role', value: user.roleName || '—' },
-                { icon: Building2, label: 'Department', value: user.department || '—' },
-                { icon: Phone, label: 'Phone', value: user.phone || '—' },
-                { icon: Mail, label: 'Email', value: user.email || '—' },
+                { icon: Shield, label: 'Role', value: displayValue(user.roleName) },
+                { icon: Building2, label: 'Department', value: displayValue(user.department) },
+                { icon: Phone, label: 'Phone', value: displayValue(user.phone) },
+                { icon: Mail, label: 'Email', value: displayValue(user.email) },
                 { icon: Calendar, label: 'Last Login', value: formatLastLogin(user.lastLogin) },
                 { icon: Users, label: 'Assigned Leads', value: user.assignedLeads ?? 0 },
               ].map(({ icon: Icon, label, value }) => (
@@ -62,7 +68,7 @@ export default function UserDetailDrawer({
                   <div className="p-2 rounded-lg bg-brand-500/10"><Icon className="w-4 h-4 text-brand-600" /></div>
                   <div>
                     <p className="text-[11px] font-medium uppercase tracking-wider text-content-muted">{label}</p>
-                    <p className="text-sm font-medium text-content-primary">{value ?? '—'}</p>
+                    <p className="text-sm font-medium text-content-primary">{displayValue(value)}</p>
                   </div>
                 </div>
               ))}
