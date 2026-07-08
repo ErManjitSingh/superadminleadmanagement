@@ -33,7 +33,7 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
             <p className="text-sm text-slate-400 text-center py-6">No activity yet</p>
           )}
           {!loading && sorted.length > 0 && (
-            <div className="relative">
+            <div className="relative max-h-[26.5rem] overflow-y-auto overscroll-contain pr-1">
               <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-violet-300 via-slate-200 to-transparent dark:from-violet-800 dark:via-slate-700" />
               <div className="space-y-1">
                 {sorted.map((item, i) => {

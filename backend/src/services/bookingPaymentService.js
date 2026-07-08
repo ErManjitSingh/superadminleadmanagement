@@ -18,6 +18,13 @@ const { pickQuotationForLead, ensureQuotationApproved } = require('./leadConvers
 const SCREENSHOT_DIR = path.join(__dirname, '../../uploads/payment-screenshots');
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+function invalidateDashboards() {
+  ['admin', 'sales_manager', 'team_leader', 'sales_executive', 'nav:'].forEach((k) => {
+    invalidateDashboardCache(k);
+  });
+  cacheService.invalidate('ops:').catch(() => {});
+}
+
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
 }
