@@ -2,19 +2,50 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 
-/** Target max PDF size (~800KB) while keeping HD-looking pages. */
-const TARGET_MAX_BYTES = 800 * 1024;
-
-/**
- * Capture profiles — sharpest first, then soften only if size exceeds target.
- * Higher width/scale/quality = clearer text & photos.
- */
-const PROFILES = [
+/** HD for WhatsApp / download — sharp, ~800KB. */
+const HD_TARGET_MAX_BYTES = 800 * 1024;
+const HD_PROFILES = [
   { width: 720, scale: 1.5, quality: 0.74 },
   { width: 680, scale: 1.35, quality: 0.66 },
   { width: 640, scale: 1.2, quality: 0.58 },
   { width: 600, scale: 1.1, quality: 0.5 },
 ];
+const HD_IMAGE = { maxEdge: 780, quality: 0.72 };
+const HD_PAGE_MAX_WIDTH = 1240;
+const HD_PDF_COMPRESSION = 'MEDIUM';
+
+/** Compact for server storage — previous optimizer, ~500KB. */
+const STORAGE_TARGET_MAX_BYTES = 500 * 1024;
+const STORAGE_PROFILES = [
+  { width: 560, scale: 1, quality: 0.48 },
+  { width: 520, scale: 0.9, quality: 0.4 },
+  { width: 480, scale: 0.85, quality: 0.34 },
+  { width: 440, scale: 0.8, quality: 0.28 },
+];
+const STORAGE_IMAGE = { maxEdge: 320, quality: 0.42 };
+const STORAGE_PAGE_MAX_WIDTH = 900;
+const STORAGE_PDF_COMPRESSION = 'FAST';
+
+const QUALITY_PRESETS = {
+  hd: {
+    targetMaxBytes: HD_TARGET_MAX_BYTES,
+    profiles: HD_PROFILES,
+    image: HD_IMAGE,
+    pageMaxWidth: HD_PAGE_MAX_WIDTH,
+    pdfCompression: HD_PDF_COMPRESSION,
+  },
+  storage: {
+    targetMaxBytes: STORAGE_TARGET_MAX_BYTES,
+    profiles: STORAGE_PROFILES,
+    image: STORAGE_IMAGE,
+    pageMaxWidth: STORAGE_PAGE_MAX_WIDTH,
+    pdfCompression: STORAGE_PDF_COMPRESSION,
+  },
+};
+
+function resolvePreset(quality = 'hd') {
+  return QUALITY_PRESETS[quality] || QUALITY_PRESETS.hd;
+}
 
 function prepareForCapture(root, widthPx) {
   root.style.cssText = [
@@ -52,7 +83,6 @@ function prepareForCapture(root, widthPx) {
   });
 }
 
-/** Softly downscale inline images — keep enough pixels for crisp hotel photos. */
 function compressImagesInClone(root, maxEdge = 780, quality = 0.72) {
   root.querySelectorAll('img').forEach((img) => {
     try {
@@ -111,9 +141,6 @@ function canvasToJpeg(canvas, quality) {
   }
 }
 
-/**
- * Shrink a page canvas before encoding if it is still wide.
- */
 function downscaleCanvas(source, maxWidth) {
   if (source.width <= maxWidth) return source;
   const ratio = maxWidth / source.width;
@@ -142,7 +169,7 @@ async function captureFullContent(viewport, widthPx, scale) {
   });
 }
 
-async function buildPdfFromCanvas(canvas, quality) {
+async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression) {
   const pdf = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -168,13 +195,12 @@ async function buildPdfFromCanvas(canvas, quality) {
     ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
     ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
 
-    // ~1240px ≈ sharp on A4 / phone screen without blowing past ~800KB.
-    const encoded = downscaleCanvas(pageCanvas, 1240);
+    const encoded = downscaleCanvas(pageCanvas, pageMaxWidth);
     const imgData = canvasToJpeg(encoded, quality);
     const imgHeightMm = (sliceH * pageWidth) / canvas.width;
 
     if (page > 0) pdf.addPage();
-    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, 'MEDIUM');
+    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, pdfCompression);
 
     y += pageHeightPx;
     page += 1;
@@ -184,10 +210,10 @@ async function buildPdfFromCanvas(canvas, quality) {
   return pdf.output('blob');
 }
 
-async function renderWithProfile(contentEl, profile) {
+async function renderWithProfile(contentEl, profile, preset) {
   const embedded = (await cloneWithEmbeddedImages(contentEl)) || contentEl.cloneNode(true);
   prepareForCapture(embedded, profile.width);
-  compressImagesInClone(embedded, 780, 0.72);
+  compressImagesInClone(embedded, preset.image.maxEdge, preset.image.quality);
 
   const viewport = document.createElement('div');
   viewport.style.cssText = [
@@ -222,31 +248,32 @@ async function renderWithProfile(contentEl, profile) {
       throw new Error('PDF render failed');
     }
 
-    // Extra safety: never keep a huge master canvas.
     const master = downscaleCanvas(canvas, Math.round(profile.width * profile.scale));
-    return buildPdfFromCanvas(master, profile.quality);
+    return buildPdfFromCanvas(master, profile.quality, preset.pageMaxWidth, preset.pdfCompression);
   } finally {
     host.remove();
   }
 }
 
 /**
- * Render quotation DOM to a multi-page A4 PDF blob under ~800KB (HD).
+ * Render quotation DOM to PDF.
+ * @param {'hd'|'storage'} quality - hd for send/download (~800KB), storage for server (~500KB)
  */
-export async function exportQuotationPdfBlob(contentEl) {
+export async function exportQuotationPdfBlob(contentEl, quality = 'hd') {
   if (!contentEl) throw new Error('Quotation preview is not ready');
 
+  const preset = resolvePreset(quality);
   let bestBlob = null;
 
-  for (const profile of PROFILES) {
+  for (const profile of preset.profiles) {
     try {
-      const blob = await renderWithProfile(contentEl, profile);
+      const blob = await renderWithProfile(contentEl, profile, preset);
       bestBlob = blob;
-      if (blob.size <= TARGET_MAX_BYTES) {
+      if (blob.size <= preset.targetMaxBytes) {
         return blob;
       }
     } catch (err) {
-      console.warn('PDF profile failed', profile, err);
+      console.warn('PDF profile failed', quality, profile, err);
     }
   }
 
@@ -254,8 +281,13 @@ export async function exportQuotationPdfBlob(contentEl) {
   return bestBlob;
 }
 
+/** Compact PDF for uploading to server storage. */
+export async function exportQuotationPdfForStorage(contentEl) {
+  return exportQuotationPdfBlob(contentEl, 'storage');
+}
+
 export async function downloadQuotationPdf(contentEl, fileName = 'quotation.pdf') {
-  const blob = await exportQuotationPdfBlob(contentEl);
+  const blob = await exportQuotationPdfBlob(contentEl, 'hd');
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

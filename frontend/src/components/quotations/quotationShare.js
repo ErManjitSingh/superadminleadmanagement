@@ -6,11 +6,27 @@ import {
   shareQuotationWhatsApp,
 } from '../../lib/whatsappContact';
 import { uploadQuotationPdf } from '../../services/quotationsApi';
-import { exportQuotationPdfBlob } from './exportQuotationPdf';
+import { exportQuotationPdfBlob, exportQuotationPdfForStorage } from './exportQuotationPdf';
 
-function queuePdfUpload(quotationId, savePath, blob) {
-  if (!quotationId || !savePath || !blob) return;
-  uploadQuotationPdf(quotationId, blob, savePath).catch(() => {});
+/** Save compact optimized PDF on server (async, never blocks WhatsApp share). */
+function queuePdfUpload(quotationId, savePath, contentEl, hdBlobFallback = null) {
+  if (!quotationId || !savePath) return;
+
+  const run = async () => {
+    let storageBlob = null;
+    if (contentEl) {
+      try {
+        storageBlob = await exportQuotationPdfForStorage(contentEl);
+      } catch {
+        /* fall back to HD blob only if compact render fails */
+      }
+    }
+    const blob = storageBlob?.size ? storageBlob : hdBlobFallback;
+    if (!blob?.size) return;
+    await uploadQuotationPdf(quotationId, blob, savePath);
+  };
+
+  run().catch(() => {});
 }
 
 async function resolveQuotationId(quotationId, ensureQuotationId) {
@@ -33,7 +49,6 @@ function showShareResult(result) {
     toast.success('WhatsApp choose karein — PDF document attached hai. Send dabayein.');
     return true;
   }
-  // Desktop / no file-share support: PDF downloaded, chat opened — user attaches manually.
   toast.info(
     'PDF download ho gayi. WhatsApp chat open hai — 📎 Document se yahi PDF attach karke Send karein.'
   );
@@ -41,7 +56,7 @@ function showShareResult(result) {
 }
 
 /**
- * Generate quotation PDF and share it as a file on WhatsApp (phone share sheet).
+ * Generate HD quotation PDF for WhatsApp; store a compact optimized copy on the server.
  */
 export async function shareQuotationWithPdf({
   contentEl,
@@ -79,7 +94,7 @@ export async function shareQuotationWithPdf({
   });
 
   try {
-    // Mobile: share immediately while user-gesture is active (pre-warmed PDF).
+    // Mobile: share HD immediately while user-gesture is active (pre-warmed HD PDF).
     if (isMobileDevice() && prebuiltBlob?.size) {
       const nativeOk = await sharePdfFileNative(
         new File([prebuiltBlob], fileName, { type: 'application/pdf', lastModified: Date.now() }),
@@ -88,18 +103,18 @@ export async function shareQuotationWithPdf({
       if (nativeOk) {
         toast.success('WhatsApp choose karein — PDF document attached hai. Send dabayein.');
         resolveQuotationId(quotationId, ensureQuotationId).then((id) => {
-          queuePdfUpload(id, savePath, prebuiltBlob);
+          queuePdfUpload(id, savePath, contentEl, prebuiltBlob);
         });
         return true;
       }
     }
 
-    toast.info(prebuiltBlob?.size ? 'PDF share…' : 'PDF bana rahe hain…');
-    const blob = prebuiltBlob?.size ? prebuiltBlob : await exportQuotationPdfBlob(contentEl);
+    toast.info(prebuiltBlob?.size ? 'PDF share…' : 'HD PDF bana rahe hain…');
+    const blob = prebuiltBlob?.size ? prebuiltBlob : await exportQuotationPdfBlob(contentEl, 'hd');
     if (!blob?.size) throw new Error('PDF empty');
 
     const activeQuotationId = await resolveQuotationId(quotationId, ensureQuotationId);
-    queuePdfUpload(activeQuotationId, savePath, blob);
+    queuePdfUpload(activeQuotationId, savePath, contentEl, blob);
 
     const result = await shareQuotationWhatsApp({
       phone,
@@ -122,11 +137,11 @@ export async function shareQuotationWithPdf({
   }
 }
 
-/** Pre-generate PDF blob so mobile share can attach the file on tap. */
+/** Pre-generate HD PDF blob so mobile share can attach a sharp file on tap. */
 export async function warmQuotationPdfBlob(contentEl) {
   if (!contentEl) return null;
   try {
-    const blob = await exportQuotationPdfBlob(contentEl);
+    const blob = await exportQuotationPdfBlob(contentEl, 'hd');
     return blob?.size ? blob : null;
   } catch {
     return null;
@@ -134,7 +149,8 @@ export async function warmQuotationPdfBlob(contentEl) {
 }
 
 /**
- * Share an already-built quote object: render hidden preview → PDF → WhatsApp file share.
+ * Share an already-built quote object: always prefer fresh HD from preview DOM for WhatsApp.
+ * Server-saved PDF stays compact/optimized and is not reused for customer send.
  */
 export async function shareQuoteObjectOnWhatsApp({
   quote,
@@ -156,26 +172,9 @@ export async function shareQuoteObjectOnWhatsApp({
 
   let pdfBlob = null;
 
-  // Prefer already-saved PDF if present.
-  if (quote.pdfUrl) {
-    try {
-      const url = quote.pdfUrl.startsWith('http')
-        ? quote.pdfUrl
-        : `${window.location.origin}${quote.pdfUrl}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const blob = await res.blob();
-        if (blob?.size) pdfBlob = blob;
-      }
-    } catch {
-      /* generate below */
-    }
-  }
-
-  // Generate from on-screen / hidden preview DOM.
-  if (!pdfBlob?.size && pdfRef?.current) {
-    toast.info('PDF bana rahe hain…');
-    pdfBlob = await exportQuotationPdfBlob(pdfRef.current);
+  if (pdfRef?.current) {
+    toast.info('HD PDF bana rahe hain…');
+    pdfBlob = await exportQuotationPdfBlob(pdfRef.current, 'hd');
   }
 
   if (!pdfBlob?.size) {
@@ -184,6 +183,7 @@ export async function shareQuoteObjectOnWhatsApp({
   }
 
   return shareQuotationWithPdf({
+    contentEl: pdfRef?.current,
     prebuiltBlob: pdfBlob,
     quotationId: quote._id,
     savePath,
