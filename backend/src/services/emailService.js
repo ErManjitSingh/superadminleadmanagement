@@ -1,6 +1,7 @@
 require('../config/env');
 const nodemailer = require('nodemailer');
 const branding = require('../config/branding');
+const { decrypt } = require('../utils/secretCrypto');
 
 const DEFAULT_FROM = branding.salesEmail;
 const DEFAULT_FROM_NAME = branding.brandName;
@@ -24,16 +25,22 @@ async function loadTenantSmtp(companyId) {
   const settings = company?.tenantSettings;
   if (!settings?.smtpHost || !settings?.smtpUser || !settings?.smtpPass) return null;
 
+  const port = Number(settings.smtpPort || 587);
+  const encryption = String(settings.smtpEncryption || '').toLowerCase();
+  const secure = encryption === 'ssl' || port === 465;
+
   return {
     host: settings.smtpHost,
-    port: Number(settings.smtpPort || 587),
-    secure: settings.smtpPort === 465 || process.env.SMTP_SECURE === 'true',
+    port,
+    secure,
     auth: {
       user: settings.smtpUser,
-      pass: settings.smtpPass,
+      pass: decrypt(settings.smtpPass),
     },
+    requireTLS: encryption === 'tls' || encryption === 'starttls',
     fromName: settings.smtpFromName || company.name || DEFAULT_FROM_NAME,
-    fromEmail: settings.smtpUser,
+    fromEmail: settings.smtpFromEmail || settings.smtpUser,
+    replyTo: settings.smtpReplyTo || settings.smtpFromEmail || settings.smtpUser,
   };
 }
 
@@ -69,6 +76,7 @@ function getTenantTransporter(config, companyId) {
       port: config.port,
       secure: config.secure,
       auth: config.auth,
+      requireTLS: config.requireTLS,
     }));
   }
   return tenantTransporterCache.get(key);
@@ -136,7 +144,7 @@ async function sendMailMessage({
     html: html || undefined,
     text: text || undefined,
     attachments: normalizeAttachments(attachments),
-    replyTo: replyTo || resolvedFromEmail || DEFAULT_FROM,
+    replyTo: replyTo || tenant?.replyTo || resolvedFromEmail || DEFAULT_FROM,
     headers: { ...headers },
   };
 

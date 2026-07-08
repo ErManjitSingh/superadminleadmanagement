@@ -46,6 +46,7 @@ import {
   SubscriptionUsagePage,
   WhatsAppTemplatesPage,
   EmailTemplatesPage,
+  EmailIntegrationPage,
   EmailActivityPage,
   ReactivatedLeadsPage,
   SalesManagerLayout,
@@ -292,6 +293,7 @@ function App() {
               <Route path="settings/profile" element={<RoleRoute roles={['admin']}><CompanyProfilePage /></RoleRoute>} />
               <Route path="settings/workspace" element={<RoleRoute roles={['admin']}><CompanyWorkspacePage /></RoleRoute>} />
               <Route path="settings/subscription" element={<RoleRoute roles={['admin']}><SubscriptionUsagePage /></RoleRoute>} />
+              <Route path="settings/email-integration" element={<RoleRoute roles={['admin']}><EmailIntegrationPage /></RoleRoute>} />
               <Route path="settings/whatsapp-templates" element={<PermissionRoute module="whatsapp" action="manage"><WhatsAppTemplatesPage /></PermissionRoute>} />
               <Route path="settings/email-templates" element={<PermissionRoute module="email" action="manage"><EmailTemplatesPage /></PermissionRoute>} />
               <Route path="profile" element={<ComingSoon title="My Profile" description="Personal settings and performance" />} />

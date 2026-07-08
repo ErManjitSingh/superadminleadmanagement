@@ -11,6 +11,7 @@ const {
 } = require('../services/domainService');
 const { getSubscriptionStatus } = require('../services/subscriptionLimitsService');
 const { clearTenantTransporterCache } = require('../services/emailService');
+const { encrypt, isEncrypted } = require('../utils/secretCrypto');
 const { createUpgradeRequest } = require('../services/upgradeRequestService');
 const SubscriptionPlan = require('../superadmin/models/SubscriptionPlan');
 const PlatformPaymentRequest = require('../superadmin/models/PlatformPaymentRequest');
@@ -158,7 +159,11 @@ const updateCompanySettings = asyncHandler(async (req, res) => {
     company.tenantSettings = company.tenantSettings || {};
     for (const [key, value] of Object.entries(tenantSettings)) {
       if (value === '••••••••') continue;
-      company.tenantSettings[key] = value;
+      if (key === 'smtpPass' && value && !isEncrypted(value)) {
+        company.tenantSettings[key] = encrypt(value);
+      } else {
+        company.tenantSettings[key] = value;
+      }
     }
     company.markModified('tenantSettings');
     clearTenantTransporterCache(company._id);

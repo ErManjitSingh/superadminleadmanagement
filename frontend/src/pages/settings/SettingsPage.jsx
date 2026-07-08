@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Building2, ChevronRight, Mail, MessageCircle, BarChart3, IdCard } from 'lucide-react';
+import { Building2, ChevronRight, Mail, MessageCircle, BarChart3, IdCard, FileText } from 'lucide-react';
 import PageHeader from '../../components/ui/PageHeader';
-import { APP_SALES_EMAIL } from '../../config/branding';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useAuth } from '../../context/AuthContext';
 
@@ -44,12 +43,20 @@ export default function SettingsPage() {
       description: 'Manage predefined WhatsApp messages for sales team',
       color: 'text-green-600 bg-green-500/10',
     },
+    {
+      to: '/settings/email-integration',
+      icon: Mail,
+      title: 'Email Integration',
+      description: 'Connect official business email — sales@, booking@, support@ your domain',
+      color: 'text-sky-600 bg-sky-500/10',
+      adminOnly: true,
+    },
     canManageEmail && {
       to: '/settings/email-templates',
-      icon: Mail,
+      icon: FileText,
       title: 'Email Templates',
-      description: `Manage email templates for ${APP_SALES_EMAIL}`,
-      color: 'text-sky-600 bg-sky-500/10',
+      description: 'Edit quotation, receipt, invoice and notification email templates',
+      color: 'text-indigo-600 bg-indigo-500/10',
     },
   ].filter(Boolean).filter((item) => !item.adminOnly || isAdmin);
 
