@@ -27,6 +27,9 @@ const getConvertPreview = asyncHandler(async (req, res) => {
 
   res.json({
     customerName: lead.name,
+    customerPhone: lead.whatsapp || lead.phone || '',
+    phone: lead.phone || '',
+    whatsapp: lead.whatsapp || lead.phone || '',
     leadId: lead._id,
     leadNumber: lead.leadId || lead._id,
     packageName: snap.name || snap.title || lead.packageName || '',

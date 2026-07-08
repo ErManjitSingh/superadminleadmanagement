@@ -476,7 +476,20 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
   });
 
   invalidateDashboards();
-  return { booking: result.booking, payment: result.payment, quotation };
+  return {
+    booking: result.booking,
+    payment: result.payment,
+    quotation,
+    receipt: result.receipt,
+    summary: {
+      packageCost: result.booking?.totalAmount || totalAmount,
+      advanceReceived: result.booking?.advanceReceived || amount,
+      totalPaid: result.booking?.totalPaid || amount,
+      remainingBalance: result.booking?.remainingBalance ?? Math.max(0, totalAmount - amount),
+      paymentProgress: result.booking?.paymentProgress || computeProgress(totalAmount, amount),
+      paymentStatus: result.booking?.paymentStatus || 'partial',
+    },
+  };
 }
 
 async function listBookingPayments(bookingId) {

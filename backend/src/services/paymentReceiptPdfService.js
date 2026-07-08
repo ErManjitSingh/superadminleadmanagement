@@ -47,8 +47,13 @@ async function generateReceiptPdf(payment, booking) {
   const safeNum = receiptNumber.replace(/[^a-zA-Z0-9-_]/g, '_');
   const fileName = `${safeNum}.pdf`;
 
+  const BookingPayment = require('../models/BookingPayment');
+  const paymentHistory = await BookingPayment.find({ booking: booking._id })
+    .sort({ paymentDate: 1, createdAt: 1 })
+    .lean();
+
   const enrichedPayment = { ...payment, receiptNumber };
-  const html = await buildPaymentReceiptHtml(enrichedPayment, booking);
+  const html = await buildPaymentReceiptHtml(enrichedPayment, booking, paymentHistory);
   const result = await renderVoucherHtmlToPdf(html, fileName, RECEIPT_DIR);
 
   return {

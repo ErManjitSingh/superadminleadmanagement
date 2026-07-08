@@ -86,22 +86,29 @@ async function sendPaymentReceiptWhatsApp(payment, booking, actor) {
   const buffer = getReceiptBuffer(payment);
   if (!buffer) return { sent: false, prepared: false, reason: 'no_pdf' };
 
-  const remaining = Math.max(0, (booking.totalAmount || 0) - (booking.totalPaid || booking.advanceReceived || 0));
+  const totalAmount = booking.totalAmount || 0;
+  const totalPaid = booking.totalPaid ?? booking.advanceReceived ?? payment.amount;
+  const remaining = Math.max(0, totalAmount - totalPaid);
+  const progress = totalAmount > 0 ? Math.min(100, Math.round((totalPaid / totalAmount) * 100)) : 0;
 
   const message = [
-    `Hello ${booking.customerName}`,
+    `Hello ${booking.customerName},`,
     '',
-    'Thank you for your payment.',
+    'Thank you for your payment. Your payment voucher is attached.',
     '',
-    `Amount Received:\n₹${Number(payment.amount).toLocaleString('en-IN')}`,
+    `Package Cost: ₹${totalAmount.toLocaleString('en-IN')}`,
+    `This Payment: ₹${Number(payment.amount).toLocaleString('en-IN')} (${payment.mode || 'payment'})`,
+    `Total Paid: ₹${totalPaid.toLocaleString('en-IN')}`,
+    `Remaining Balance: ₹${remaining.toLocaleString('en-IN')}`,
+    `Payment Progress: ${progress}%`,
     '',
-    `Booking ID:\n${booking.bookingNumber}`,
+    `Booking ID: ${booking.bookingNumber}`,
+    `Receipt No: ${payment.receiptNumber}`,
     '',
-    `Remaining Balance:\n₹${remaining.toLocaleString('en-IN')}`,
+    'Please complete the remaining balance before your travel date.',
     '',
-    'Your payment receipt has been attached.',
-    '',
-    `Regards,\n${branding.brandName}`,
+    `Regards,`,
+    branding.brandName,
   ].join('\n');
 
   const waMeUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;

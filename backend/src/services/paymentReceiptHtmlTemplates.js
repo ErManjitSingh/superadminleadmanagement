@@ -84,6 +84,21 @@ html, body {
 .progress-label { display: flex; justify-content: space-between; font-size: 7px; font-weight: 700; margin-bottom: 4px; }
 .progress-bar { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #5b21b6, #7c3aed); border-radius: 999px; }
+.history {
+  margin: 0 14px 10px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;
+}
+.history-title {
+  font-size: 9px; font-weight: 800; text-transform: uppercase; color: #fff; background: #5b21b6;
+  padding: 8px 10px;
+}
+.history table { width: 100%; border-collapse: collapse; font-size: 8px; }
+.history th {
+  text-align: left; padding: 6px 8px; background: #f8fafc; color: #64748b;
+  font-weight: 700; text-transform: uppercase; font-size: 6px;
+}
+.history td { padding: 6px 8px; border-top: 1px solid #f1f5f9; font-weight: 700; }
+.history tr.current td { background: #f5f3ff; color: #5b21b6; }
+.history .amt { text-align: right; font-variant-numeric: tabular-nums; }
 .verify {
   margin: 0 14px 10px; display: grid; grid-template-columns: 1fr auto; gap: 10px;
   border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; align-items: center;
@@ -136,7 +151,28 @@ function cell(icon, label, value) {
   return `<div class="cell"><div class="icon">${icon}</div><div><label>${esc(label)}</label><p>${esc(value || '-')}</p></div></div>`;
 }
 
-async function buildPaymentReceiptHtml(payment, booking) {
+function buildPaymentHistoryRows(paymentHistory = [], currentReceiptNumber) {
+  if (!paymentHistory.length) return '';
+  const rows = paymentHistory.map((p, i) => {
+    const isCurrent = p.receiptNumber === currentReceiptNumber;
+    return `<tr class="${isCurrent ? 'current' : ''}">
+      <td>${i + 1}</td>
+      <td>${esc(p.receiptNumber || `PAY-${i + 1}`)}</td>
+      <td>${fmtDate(p.paymentDate || p.createdAt)}</td>
+      <td>${esc(modeLabel(p.mode))}</td>
+      <td class="amt">${fmtINR(p.amount)}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="history">
+    <div class="history-title">Payment History — All Installments</div>
+    <table>
+      <thead><tr><th>#</th><th>Receipt</th><th>Date</th><th>Mode</th><th class="amt">Amount</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   const receiptNumber = payment.receiptNumber || 'RCP';
   const totalAmount = booking.totalAmount || 0;
   const totalPaid = booking.totalPaid ?? booking.advanceReceived ?? payment.amount;
@@ -209,10 +245,11 @@ async function buildPaymentReceiptHtml(payment, booking) {
       </div>
     </div>
   </div>
+  ${buildPaymentHistoryRows(paymentHistory, receiptNumber)}
   <div class="verify">
     <div>
       <div class="note-title">Payment Note</div>
-      <div class="note-text">This is an advance / part payment towards your booking. Balance payment to be completed before travel date.</div>
+      <div class="note-text">This receipt confirms your payment towards the package. Total package cost is ${fmtINR(totalAmount)}. You have paid ${fmtINR(totalPaid)} so far and ${fmtINR(remaining)} remains before travel.</div>
       <div class="note-sign">Thank you! We look forward to serving you.</div>
     </div>
     <div class="qr-box">

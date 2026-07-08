@@ -133,7 +133,6 @@ export default function ExecutiveLeadDetailPage() {
         onClose={() => setConvertModalOpen(false)}
         leadId={id}
         onSuccess={async (result) => {
-          setConvertModalOpen(false);
           await loadLead();
           if (result?.booking?._id) {
             navigate(`/operations-manager/booking/${result.booking._id}`);
