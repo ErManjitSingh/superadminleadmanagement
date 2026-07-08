@@ -10,10 +10,14 @@ import {
   deleteWhatsAppTemplate,
 } from '../../services/whatsappTemplatesApi';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useTenantFeatures } from '../../context/TenantContext';
+import { isFeatureEnabled } from '../../lib/featureFlags';
+import FeatureUpgradePrompt from '../../components/FeatureUpgradePrompt';
 
 const EMPTY_FORM = { name: '', body: '', enabled: true, sortOrder: 0 };
 
 export default function WhatsAppTemplatesPage() {
+  const features = useTenantFeatures();
   const { can } = usePermissions();
   const canManage = can('whatsapp', 'manage');
   const [templates, setTemplates] = useState([]);
@@ -78,6 +82,10 @@ export default function WhatsAppTemplatesPage() {
     await updateWhatsAppTemplate(template._id, { enabled: !template.enabled });
     await load();
   };
+
+  if (!isFeatureEnabled(features, 'whatsapp')) {
+    return <FeatureUpgradePrompt title="WhatsApp Templates" />;
+  }
 
   if (!canManage) {
     return (

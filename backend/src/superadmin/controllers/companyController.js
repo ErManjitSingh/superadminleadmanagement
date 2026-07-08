@@ -12,6 +12,7 @@ const { computeExtendedRenewDate, applyPlanToCompany } = require('../services/su
 const { generateToken, formatUserResponse } = require('../../middleware/auth');
 const { resolveUserPermissions } = require('../../services/permissionsService');
 const { formatDomainFields } = require('../../services/domainService');
+const { mergeFeatures, normalizeFeaturePatch } = require('../../config/featureFlags');
 
 function sanitizeCompany(doc, counts = {}) {
   const c = doc.toObject ? doc.toObject() : doc;
@@ -198,11 +199,16 @@ const updateCompany = asyncHandler(async (req, res) => {
   const allowed = [
     'name', 'logo', 'primaryDomain', 'ownerName', 'ownerEmail', 'phone',
     'country', 'state', 'city', 'address', 'gst', 'timezone', 'currency',
-    'subscriptionPlanId', 'status', 'storageLimitGb', 'trialEndDate', 'renewDate', 'features',
+    'subscriptionPlanId', 'status', 'storageLimitGb', 'trialEndDate', 'renewDate',
   ];
 
   for (const key of allowed) {
     if (req.body[key] !== undefined) company[key] = req.body[key];
+  }
+
+  if (req.body.features !== undefined) {
+    company.features = mergeFeatures(company.features || {}, normalizeFeaturePatch(req.body.features));
+    company.markModified('features');
   }
   company.updatedBy = req.superAdmin._id;
   await company.save();

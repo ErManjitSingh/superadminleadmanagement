@@ -104,6 +104,7 @@ export const leadManagementSections = [
         label: 'WhatsApp Leads',
         icon: MessageCircle,
         permission: leadPerm,
+        featureKey: 'whatsapp',
       },
     ],
   },

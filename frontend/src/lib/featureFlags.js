@@ -10,6 +10,8 @@ export const NAV_FEATURE_MAP = {
   '/operations-manager/bookings/pending': 'bookings',
   payments: 'payments',
   '/email-activity': 'email',
+  '/whatsapp': 'whatsapp',
+  '/settings/whatsapp-templates': 'whatsapp',
   'reports-analytics': 'reports',
 };
 

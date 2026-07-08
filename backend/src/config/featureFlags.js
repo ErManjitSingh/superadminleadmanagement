@@ -24,7 +24,7 @@ const FEATURE_LABELS = {
   activities: 'Activities',
   reports: 'Reports & Analytics',
   calendar: 'Calendar',
-  whatsapp: 'WhatsApp',
+  whatsapp: 'WhatsApp API',
   email: 'Email',
   api: 'API Access',
   payments: 'Payments',

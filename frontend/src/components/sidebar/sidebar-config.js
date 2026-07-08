@@ -53,6 +53,7 @@ export const settingsMenuItems = [
     label: 'WhatsApp Templates',
     icon: MessageCircle,
     permission: { module: 'whatsapp', action: 'manage' },
+    featureKey: 'whatsapp',
   },
   {
     path: '/notifications',

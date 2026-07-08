@@ -11,9 +11,10 @@ import { Card, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import DomainManagementPanel from '../components/domains/DomainManagementPanel';
 import SubscriptionManager from '../components/companies/SubscriptionManager';
+import CompanyFeaturesPanel from '../components/companies/CompanyFeaturesPanel';
 import { formatDate, STATUS_COLORS } from '../lib/utils';
 
-const TABS = ['Overview', 'Subscription', 'Domain Management', 'Users', 'Storage', 'Billing', 'Security', 'Activity', 'Settings'];
+const TABS = ['Overview', 'Subscription', 'Features', 'Domain Management', 'Users', 'Storage', 'Billing', 'Security', 'Activity', 'Settings'];
 
 export default function CompanyDetailPage() {
   const { id } = useParams();
@@ -131,6 +132,10 @@ export default function CompanyDetailPage() {
 
       {tab === 'Subscription' && (
         <SubscriptionManager company={company} onUpdated={() => refetch()} />
+      )}
+
+      {tab === 'Features' && (
+        <CompanyFeaturesPanel company={company} onUpdated={() => refetch()} />
       )}
 
       {tab === 'Domain Management' && (

@@ -12,8 +12,9 @@ const {
   markRead,
 } = require('../controllers/whatsappController');
 const { protect } = require('../middleware/auth');
+const { requireFeature } = require('../middleware/requireFeature');
 
-router.use(protect);
+router.use(protect, requireFeature('whatsapp'));
 
 router.get('/conversations', listConversations);
 router.get('/messages/:leadId', getMessages);
