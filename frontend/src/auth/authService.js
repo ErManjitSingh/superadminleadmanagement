@@ -24,7 +24,7 @@ export const authService = {
 
   async logout() {
     try {
-      await API.post('/auth/logout', null, { skipSuccessToast: true, skipErrorToast: true });
+      await API.post('/auth/logout', {}, { skipSuccessToast: true, skipErrorToast: true });
     } catch {
       /* session cleared locally regardless */
     } finally {

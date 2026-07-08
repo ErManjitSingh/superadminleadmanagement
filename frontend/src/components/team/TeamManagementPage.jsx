@@ -108,7 +108,7 @@ export default function TeamManagementPage() {
       tone: 'warning',
     });
     if (!ok) return;
-    const res = await API.post(`/users/reset-password/${user._id}`, null, { skipSuccessToast: true });
+    const res = await API.post(`/users/reset-password/${user._id}`, {}, { skipSuccessToast: true });
     const temp = res.data?.temporaryPassword;
     toast.info(
       temp

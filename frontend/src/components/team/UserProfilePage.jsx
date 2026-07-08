@@ -41,11 +41,12 @@ export default function UserProfilePage() {
     );
   }
 
+  const statsData = profile.stats || {};
   const stats = [
-    { label: 'Assigned Leads', value: profile.stats.assignedLeads, icon: Target, gradient: 'from-sky-500 to-blue-600' },
-    { label: 'Follow-ups Done', value: profile.stats.followUpsDone, icon: PhoneCall, gradient: 'from-violet-500 to-purple-600' },
-    { label: 'Revenue Generated', value: formatCurrency(profile.stats.revenueGenerated), icon: IndianRupee, gradient: 'from-emerald-500 to-teal-600' },
-    { label: 'Conversion Rate', value: `${profile.stats.conversionRate}%`, icon: TrendingUp, gradient: 'from-amber-500 to-orange-600' },
+    { label: 'Assigned Leads', value: statsData.assignedLeads ?? 0, icon: Target, gradient: 'from-sky-500 to-blue-600' },
+    { label: 'Follow-ups Done', value: statsData.followUpsDone ?? 0, icon: PhoneCall, gradient: 'from-violet-500 to-purple-600' },
+    { label: 'Revenue Generated', value: formatCurrency(statsData.revenueGenerated), icon: IndianRupee, gradient: 'from-emerald-500 to-teal-600' },
+    { label: 'Conversion Rate', value: `${statsData.conversionRate ?? 0}%`, icon: TrendingUp, gradient: 'from-amber-500 to-orange-600' },
   ];
 
   return (
@@ -70,7 +71,7 @@ export default function UserProfilePage() {
                 <h1 className="text-2xl font-bold text-content-primary">{profile.name}</h1>
                 <UserStatusBadge status={profile.status} />
               </div>
-              <p className="text-sm text-content-secondary mt-1">{profile.roleName} · {profile.department}</p>
+              <p className="text-sm text-content-secondary mt-1">{profile.roleName || '—'} · {profile.department || '—'}</p>
             </div>
             <Button variant="outline" onClick={() => navigate('/team')}>Manage User</Button>
           </div>
@@ -105,10 +106,10 @@ export default function UserProfilePage() {
         >
           <h2 className="text-sm font-bold text-content-primary uppercase tracking-wider">Personal Details</h2>
           {[
-            { icon: Mail, label: 'Email', value: profile.email },
+            { icon: Mail, label: 'Email', value: profile.email || '—' },
             { icon: Phone, label: 'Phone', value: profile.phone || '—' },
-            { icon: Building2, label: 'Department', value: profile.department },
-            { icon: Shield, label: 'Role', value: profile.roleName },
+            { icon: Building2, label: 'Department', value: profile.department || '—' },
+            { icon: Shield, label: 'Role', value: profile.roleName || '—' },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-brand-500/10"><Icon className="w-4 h-4 text-brand-600" /></div>
@@ -159,14 +160,14 @@ export default function UserProfilePage() {
           </h2>
           <div className="space-y-4">
             {profile.activity?.length ? profile.activity.map((item, i) => (
-              <div key={item._id} className="flex gap-3">
+              <div key={item._id || i} className="flex gap-3">
                 <div className="flex flex-col items-center">
                   <div className="w-2 h-2 rounded-full bg-brand-500 mt-2" />
                   {i < profile.activity.length - 1 && <div className="w-px flex-1 bg-subtle min-h-[24px] mt-1" />}
                 </div>
                 <div className="pb-2">
-                  <p className="text-sm text-content-primary"><span className="font-medium">{item.action}</span>{item.target !== '—' && <> — <span className="text-brand-600">{item.target}</span></>}</p>
-                  <p className="text-xs text-content-muted mt-0.5">{new Date(item.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                  <p className="text-sm text-content-primary"><span className="font-medium">{item.action}</span>{item.target && item.target !== '—' && <> — <span className="text-brand-600">{item.target}</span></>}</p>
+                  <p className="text-xs text-content-muted mt-0.5">{item.date ? new Date(item.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}</p>
                 </div>
               </div>
             )) : (

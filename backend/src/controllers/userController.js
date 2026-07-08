@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Role = require('../models/Role');
 const Lead = require('../models/Lead');
+const FollowUp = require('../models/FollowUp');
+const ActivityLog = require('../models/ActivityLog');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { ROLE_LABELS, ROLES } = require('../config/roles');
@@ -10,6 +12,15 @@ const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { withCompany } = require('../utils/branchScope');
 const { assertUserLimit } = require('../services/subscriptionLimitsService');
 const { companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
+const { sumConvertedPackageRevenue } = require('../utils/convertedPackageRevenue');
+
+async function resolveRoleName(user) {
+  if (user.roleId) {
+    const role = await Role.findById(user.roleId).select('name').lean();
+    if (role?.name) return role.name;
+  }
+  return ROLE_LABELS[user.role] || user.role || '—';
+}
 
 async function resolveUserTenantFields(req) {
   const companyId = req.companyId || req.user?.companyId || null;
@@ -55,9 +66,15 @@ const listUsers = asyncHandler(async (req, res) => {
   ]);
 
   const withCounts = await attachLeadCounts(users);
+  const roleIds = [...new Set(withCounts.map((u) => u.roleId).filter(Boolean).map(String))];
+  const roleDocs = roleIds.length
+    ? await Role.find({ _id: { $in: roleIds } }).select('name').lean()
+    : [];
+  const roleNameById = Object.fromEntries(roleDocs.map((r) => [String(r._id), r.name]));
+
   const rows = withCounts.map((u) => ({
     ...u,
-    roleName: ROLE_LABELS[u.role] || u.role,
+    roleName: roleNameById[String(u.roleId)] || ROLE_LABELS[u.role] || u.role || '—',
   }));
 
   res.json({
@@ -80,13 +97,52 @@ const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findOne(companyScopedIdFilter(req.params.id, req)).select('-password').lean();
   assertTenantDocument(user, req, 'User');
 
-  const assignedLeads = await Lead.countDocuments({ assignedTo: user._id });
-  const converted = await Lead.countDocuments({ assignedTo: user._id, status: 'converted' });
+  const leadFilter = { assignedTo: user._id };
+  if (req.branchId) leadFilter.branchId = req.branchId;
+
+  const followUpFilter = {
+    $or: [{ assignedTo: user._id }, { createdBy: user._id }],
+    status: 'completed',
+  };
+  if (req.branchId) followUpFilter.branchId = req.branchId;
+
+  const activityFilter = { userId: user._id };
+  if (req.branchId) activityFilter.branchId = req.branchId;
+
+  const [assignedLeads, converted, followUpsDone, revenueGenerated, recentLeads, activity, roleName] =
+    await Promise.all([
+      Lead.countDocuments(leadFilter),
+      Lead.countDocuments({ ...leadFilter, status: 'converted' }),
+      FollowUp.countDocuments(followUpFilter),
+      sumConvertedPackageRevenue({ assigneeId: user._id, branchId: req.branchId }),
+      Lead.find(leadFilter)
+        .select('name destination status')
+        .sort({ updatedAt: -1 })
+        .limit(8)
+        .lean(),
+      ActivityLog.find(activityFilter).sort({ createdAt: -1 }).limit(10).lean(),
+      resolveRoleName(user),
+    ]);
+
+  const conversionRate = assignedLeads > 0 ? Math.round((converted / assignedLeads) * 100) : 0;
 
   res.json({
     ...user,
-    roleName: ROLE_LABELS[user.role] || user.role,
-    stats: { assignedLeads, converted },
+    roleName,
+    stats: {
+      assignedLeads,
+      followUpsDone,
+      revenueGenerated: revenueGenerated || 0,
+      conversionRate,
+      converted,
+    },
+    recentLeads: recentLeads || [],
+    activity: (activity || []).map((item) => ({
+      _id: item._id,
+      action: item.action,
+      target: item.target || '—',
+      date: item.createdAt,
+    })),
   });
 });
 

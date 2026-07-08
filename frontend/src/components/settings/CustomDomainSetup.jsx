@@ -106,7 +106,7 @@ export default function CustomDomainSetup({ company, onCompanyChange }) {
   async function verifyDomain() {
     setVerifying(true);
     try {
-      const res = await API.post('/domain/verify', null, { skipSuccessToast: true });
+      const res = await API.post('/domain/verify', {}, { skipSuccessToast: true });
       onCompanyChange?.(res.data.company);
       toast.success(res.data.verified ? 'Domain verified successfully' : 'DNS not detected yet — check your records');
     } catch (err) {

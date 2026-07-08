@@ -75,7 +75,7 @@ export default function DnsSetupPage() {
   async function verifyDns() {
     setVerifying(true);
     try {
-      const res = await API.post('/domain/verify', null, { skipSuccessToast: true });
+      const res = await API.post('/domain/verify', {}, { skipSuccessToast: true });
       const verified = res.data?.verified;
       if (verified) {
         toast.success('DNS verified! Your custom domain is now active.');
