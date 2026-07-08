@@ -264,7 +264,7 @@ export default function Login() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); setActivePreset(null); }}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     autoComplete="email"
                     placeholder="Enter your email"
