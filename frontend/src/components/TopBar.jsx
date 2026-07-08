@@ -12,6 +12,7 @@ import { cn } from '../lib/utils';
 import AttendanceTopBarAction from './attendance/AttendanceTopBarAction';
 import { refreshAppData } from '../lib/appRefresh';
 import { useSidebar } from '../context/SidebarContext';
+import UpdateAvailableBanner from './UpdateAvailableBanner';
 
 function getInitials(name) {
   return (
@@ -84,6 +85,8 @@ export default function TopBar({ onMenuClick }) {
   };
 
   return (
+    <>
+    <UpdateAvailableBanner />
     <header className="sticky top-0 z-30 border-b border-subtle bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-sm">
       <div className="relative flex items-center gap-3 sm:gap-4 px-4 lg:px-6 h-[68px]">
         {/* Mobile menu */}
@@ -250,5 +253,6 @@ export default function TopBar({ onMenuClick }) {
         </div>
       </div>
     </header>
+    </>
   );
 }

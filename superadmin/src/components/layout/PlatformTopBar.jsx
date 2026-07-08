@@ -4,6 +4,7 @@ import NotificationBell from '../NotificationBell';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { Button } from '../ui/button';
+import UpdateAvailableBanner from '../UpdateAvailableBanner';
 
 function todayLabel() {
   const d = new Date();
@@ -15,6 +16,8 @@ export default function PlatformTopBar({ showDateExport = false, onExport }) {
   const { dark, toggle } = useTheme();
 
   return (
+    <>
+    <UpdateAvailableBanner />
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/90">
       <div className="flex h-16 items-center gap-4 px-6">
         <div className="relative hidden flex-1 max-w-xl md:block">
@@ -67,5 +70,6 @@ export default function PlatformTopBar({ showDateExport = false, onExport }) {
         </div>
       )}
     </header>
+    </>
   );
 }

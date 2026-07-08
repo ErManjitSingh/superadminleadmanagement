@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { appVersionPlugin } from '../deploy/vite-app-version-plugin.js'
 
 export default defineConfig({
   base: process.env.VITE_BASE || '/',
-  plugins: [react()],
+  plugins: [react(), appVersionPlugin()],
   build: {
     rollupOptions: {
       output: {
