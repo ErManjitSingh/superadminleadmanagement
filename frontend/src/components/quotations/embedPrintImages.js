@@ -39,7 +39,7 @@ async function urlToDataUrl(url) {
 }
 
 /** Convert a loaded img element to a data URL for reliable print/PDF. */
-export function imgElementToDataUrl(img, maxEdge = 480, quality = 0.5) {
+export function imgElementToDataUrl(img, maxEdge = 780, quality = 0.72) {
   if (!img?.naturalWidth) return null;
   try {
     const w = img.naturalWidth;

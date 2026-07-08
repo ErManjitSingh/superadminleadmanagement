@@ -2,15 +2,18 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 
-/** Target max PDF size (~500KB). */
-const TARGET_MAX_BYTES = 500 * 1024;
+/** Target max PDF size (~800KB) while keeping HD-looking pages. */
+const TARGET_MAX_BYTES = 800 * 1024;
 
-/** Capture profiles — lightest first that still looks acceptable. */
+/**
+ * Capture profiles — sharpest first, then soften only if size exceeds target.
+ * Higher width/scale/quality = clearer text & photos.
+ */
 const PROFILES = [
-  { width: 560, scale: 1, quality: 0.48 },
-  { width: 520, scale: 0.9, quality: 0.4 },
-  { width: 480, scale: 0.85, quality: 0.34 },
-  { width: 440, scale: 0.8, quality: 0.28 },
+  { width: 720, scale: 1.5, quality: 0.74 },
+  { width: 680, scale: 1.35, quality: 0.66 },
+  { width: 640, scale: 1.2, quality: 0.58 },
+  { width: 600, scale: 1.1, quality: 0.5 },
 ];
 
 function prepareForCapture(root, widthPx) {
@@ -49,8 +52,8 @@ function prepareForCapture(root, widthPx) {
   });
 }
 
-/** Downscale/compress inline images so the capture canvas stays small. */
-function compressImagesInClone(root, maxEdge = 360, quality = 0.45) {
+/** Softly downscale inline images — keep enough pixels for crisp hotel photos. */
+function compressImagesInClone(root, maxEdge = 780, quality = 0.72) {
   root.querySelectorAll('img').forEach((img) => {
     try {
       const w = img.naturalWidth || img.width || 0;
@@ -165,12 +168,13 @@ async function buildPdfFromCanvas(canvas, quality) {
     ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
     ctx.drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
 
-    const encoded = downscaleCanvas(pageCanvas, 900);
+    // ~1240px ≈ sharp on A4 / phone screen without blowing past ~800KB.
+    const encoded = downscaleCanvas(pageCanvas, 1240);
     const imgData = canvasToJpeg(encoded, quality);
     const imgHeightMm = (sliceH * pageWidth) / canvas.width;
 
     if (page > 0) pdf.addPage();
-    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, 'FAST');
+    pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, 'MEDIUM');
 
     y += pageHeightPx;
     page += 1;
@@ -183,7 +187,7 @@ async function buildPdfFromCanvas(canvas, quality) {
 async function renderWithProfile(contentEl, profile) {
   const embedded = (await cloneWithEmbeddedImages(contentEl)) || contentEl.cloneNode(true);
   prepareForCapture(embedded, profile.width);
-  compressImagesInClone(embedded, 320, 0.42);
+  compressImagesInClone(embedded, 780, 0.72);
 
   const viewport = document.createElement('div');
   viewport.style.cssText = [
@@ -227,7 +231,7 @@ async function renderWithProfile(contentEl, profile) {
 }
 
 /**
- * Render quotation DOM to a multi-page A4 PDF blob under ~500KB.
+ * Render quotation DOM to a multi-page A4 PDF blob under ~800KB (HD).
  */
 export async function exportQuotationPdfBlob(contentEl) {
   if (!contentEl) throw new Error('Quotation preview is not ready');
