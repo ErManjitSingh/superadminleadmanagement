@@ -68,8 +68,11 @@ function mapQuoteHotels(quotation, travelDate) {
   // Cab-only / No Hotel quotes must never inherit package hotels.
   if (quotationOmitsHotels(quotation)) return [];
 
-  const selected = quotation?.selectedHotels || [];
-  if (selected.length) {
+  const rawSelected = Array.isArray(quotation?.selectedHotels) ? quotation.selectedHotels : null;
+  if (rawSelected) {
+    const selected = rawSelected.filter((h) => String(h?.name || h?.hotelName || '').trim());
+    // Explicit selection list (even empty) wins — do not fall back to package hotels
+    if (!selected.length) return [];
     return selected.map((h) => {
       const checkIn = travelDate && h.day ? addDays(travelDate, Number(h.day) - 1) : h.checkIn || null;
       const nights = Number(h.nights) || 1;
@@ -92,12 +95,8 @@ function mapQuoteHotels(quotation, travelDate) {
     });
   }
 
-  // Legacy quotes: only use package hotels when quote still includes hotel.
-  // If selectedHotels is an explicit empty array on a no-hotel-ish quote, snapshot is ignored above.
+  // Legacy quotes without selectedHotels field: use package snapshot hotels
   const snap = quotation?.packageSnapshot || {};
-  const hasExplicitEmptySelection = Array.isArray(quotation?.selectedHotels) && quotation.selectedHotels.length === 0;
-  if (hasExplicitEmptySelection) return [];
-
   return (snap.hotels || []).map((h) => ({
     hotelId: h.hotelId || undefined,
     hotelName: h.name || h.hotelName || '',

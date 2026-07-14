@@ -33,6 +33,8 @@ function isNoHotelMealPlan(mealPlan) {
 
 /**
  * True when quotation / lead indicates hotels should be omitted entirely.
+ * Note: empty selectedHotels alone is NOT enough here — drafts may save mid-edit.
+ * PDF rendering uses quoteHasHotels() for stricter “no hotel selected” checks.
  */
 function quotationOmitsHotels(quotation = {}, lead = null) {
   const info = quotation.packageInfo || {};
@@ -42,19 +44,17 @@ function quotationOmitsHotels(quotation = {}, lead = null) {
   const category = info.hotelCategory || leadDoc.hotelCategory || '';
   if (isNoHotelLabel(category)) return true;
 
-  // Explicit empty hotel selection after No Hotel / skip-hotel save
-  if (
-    Array.isArray(quotation.selectedHotels)
-    && quotation.selectedHotels.length === 0
-    && Array.isArray(quotation.packageSnapshot?.hotels)
-    && quotation.packageSnapshot.hotels.length === 0
-    && (isNoHotelMealPlan(info.mealPlan) || !String(info.hotelCategory || '').trim())
-  ) {
-    // Empty snapshot hotels with empty selection — treat as no-hotel only when meal plan says so
-    // (already covered above) or hotel category blank after skip. Avoid mis-classifying drafts mid-edit.
-  }
-
   return false;
+}
+
+/** Stricter check for PDFs / display: no named hotels selected → hide all hotel content */
+function quoteHasHotels(quotation = {}, lead = null) {
+  if (quotationOmitsHotels(quotation, lead)) return false;
+  if (Array.isArray(quotation.selectedHotels)) {
+    return quotation.selectedHotels.some((h) => String(h?.name || h?.hotelName || '').trim());
+  }
+  const snap = quotation.packageSnapshot || quotation.package || {};
+  return (snap.hotels || []).some((h) => String(h?.name || h?.hotelName || '').trim());
 }
 
 function stripHotelsFromPackageSnapshot(snapshot = {}) {
@@ -113,6 +113,7 @@ module.exports = {
   isNoHotelLabel,
   isNoHotelMealPlan,
   quotationOmitsHotels,
+  quoteHasHotels,
   stripHotelsFromPackageSnapshot,
   sanitizeQuotationPayloadForNoHotel,
 };

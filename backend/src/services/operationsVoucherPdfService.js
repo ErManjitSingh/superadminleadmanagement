@@ -206,21 +206,25 @@ async function generateTravelKitPdf(voucher, booking) {
     : [{ day: 1, title: booking.destination, description: 'Itinerary as per booking confirmation.' }];
 
   drawSectionTitle(doc, 'Day-wise Itinerary');
+  const hasNamedHotels = (booking.hotels || []).some((h) => String(h?.hotelName || h?.name || '').trim());
   days.forEach((d) => {
     if (doc.y > doc.page.height - 120) doc.addPage();
     doc.fontSize(10).fillColor(BRAND_PURPLE).font('Helvetica-Bold').text(`Day ${d.day}: ${d.title || ''}`, 48, doc.y);
     doc.moveDown(0.3);
     doc.fontSize(9).fillColor(TEXT_DARK).font('Helvetica').text(d.description || '', 48, doc.y, { width: w - 96 });
-    if (d.accommodation) doc.fontSize(8).fillColor(TEXT_MUTED).text(`Stay: ${d.accommodation}`, 48, doc.y + 4);
+    if (hasNamedHotels && d.accommodation) {
+      doc.fontSize(8).fillColor(TEXT_MUTED).text(`Stay: ${d.accommodation}`, 48, doc.y + 4);
+    }
     doc.moveDown(1.2);
   });
 
   // Hotels
-  if (booking.hotels?.length) {
+  if (hasNamedHotels) {
     doc.addPage();
     drawHeader(doc, 'Hotel Details', 'Accommodation information');
     booking.hotels.forEach((h) => {
-      drawSectionTitle(doc, h.hotelName || 'Hotel');
+      if (!String(h?.hotelName || h?.name || '').trim()) return;
+      drawSectionTitle(doc, h.hotelName || h.name || 'Hotel');
       rowY = doc.y;
       drawField(doc, 'Address', h.destination || h.location || '—', 48, rowY, w - 96);
       rowY += 44;
@@ -252,7 +256,7 @@ async function generateTravelKitPdf(voucher, booking) {
   rowY = doc.y;
   drawField(doc, 'Support Team', branding.salesEmail, 48, rowY, w - 96);
   rowY += 44;
-  const hasHotels = (booking.hotels || []).some((h) => h?.hotelName || h?.name);
+  const hasHotels = hasNamedHotels;
   if (hasHotels) {
     const hotelPhone = booking.hotels?.[0]?.phone || 'As per hotel voucher';
     drawField(doc, 'Hotel', hotelPhone, 48, rowY, (w - 96) / 2);

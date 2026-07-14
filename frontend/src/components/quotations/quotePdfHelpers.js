@@ -1,15 +1,25 @@
 import { getPackageTypeConfig } from './quotationUtils';
-import { getPackageCategoryLabel, QUOTE_BANK_ACCOUNTS, QUOTE_PAYMENT_DETAILS, QUOTE_POLICIES, QUOTE_TERMS_AND_CONDITIONS, resolveQuoteExclusions, resolveQuoteInclusions } from './quoteTemplateDefaults';
-import { quotationOmitsHotels } from './constants';
+import {
+  getPackageCategoryLabel,
+  QUOTE_BANK_ACCOUNTS,
+  QUOTE_PAYMENT_DETAILS,
+  QUOTE_POLICIES,
+  resolveQuoteExclusions,
+  resolveQuoteInclusions,
+  resolveQuoteTermsAndConditions,
+} from './quoteTemplateDefaults';
+import { quotationOmitsHotels, quoteHasHotels } from './constants';
 
 export function resolveQuotePackage(quote) {
   const snap = quote?.packageSnapshot && typeof quote.packageSnapshot === 'object' ? quote.packageSnapshot : {};
   const pop = quote?.package && typeof quote.package === 'object' ? quote.package : {};
   const raw = { ...pop, ...snap };
+  const omitHotels = quotationOmitsHotels(quote) || !quoteHasHotels(quote);
   const itinerary = (raw.itinerary || []).map((day, i) => ({
     ...day,
     id: day.id || day._id || `day-${i}`,
-    hotel: day.hotel || day.accommodation || '',
+    hotel: omitHotels ? '' : (day.hotel || day.accommodation || ''),
+    accommodation: omitHotels ? '' : (day.accommodation || ''),
     activities: day.activities || '',
     transport: day.transport || '',
     sightseeing: day.sightseeing || '',
@@ -22,7 +32,7 @@ export function resolveQuotePackage(quote) {
     inclusions: raw.inclusions || [],
     exclusions: raw.exclusions || [],
     coverImage: raw.coverImage || '',
-    hotels: raw.hotels || [],
+    hotels: omitHotels ? [] : (raw.hotels || []),
     vehicles: raw.vehicles || [],
     routing: raw.routing || raw.destination || '',
     packageCategory: raw.packageCategory || getPackageCategoryLabel(raw.packageType),
@@ -186,14 +196,13 @@ export function resolveDayHotelForItinerary(quote, dayNum) {
 }
 
 export function resolveQuoteHotels(quote) {
-  if (quotationOmitsHotels(quote)) return [];
+  if (quotationOmitsHotels(quote) || !quoteHasHotels(quote)) return [];
 
   const pkg = resolveQuotePackage(quote);
   const lead = resolveQuoteLead(quote);
 
   // Prefer explicitly selected hotels; only then package hotels (when quote includes hotel)
   const selected = quote.selectedHotels || [];
-  if (!selected.length && quotationOmitsHotels(quote)) return [];
 
   if (selected.length) {
     const dayKeyed = selected.filter((h) => h.day && h.name);
@@ -204,20 +213,15 @@ export function resolveQuoteHotels(quote) {
     }
   }
 
-  if (pkg.hotels?.length && !quotationOmitsHotels(quote) && selected.length === 0) {
-    // Only use package hotels when there was no explicit empty selectedHotels array
-    const hasExplicitEmpty = Array.isArray(quote.selectedHotels) && quote.selectedHotels.length === 0;
-    if (!hasExplicitEmpty) {
-      return pkg.hotels.map((h, index) => ({
-        day: h.day || index + 1,
-        date: h.date || h.checkIn || getDayDate(lead.travelDate, h.day || index + 1),
-        hotelImages: h.hotelImages || collectHotelOnlyImages(h),
-        roomImages: h.roomImages || collectRoomImages(h),
-        roomImage: h.roomImage || collectRoomImages(h)[0] || '',
-        ...h,
-      }));
-    }
-    return [];
+  if (pkg.hotels?.length && selected.length === 0 && !Array.isArray(quote.selectedHotels)) {
+    return pkg.hotels.map((h, index) => ({
+      day: h.day || index + 1,
+      date: h.date || h.checkIn || getDayDate(lead.travelDate, h.day || index + 1),
+      hotelImages: h.hotelImages || collectHotelOnlyImages(h),
+      roomImages: h.roomImages || collectRoomImages(h),
+      roomImage: h.roomImage || collectRoomImages(h)[0] || '',
+      ...h,
+    }));
   }
 
   if (!selected.length) return [];
@@ -394,7 +398,7 @@ export function resolvePolicies(quote) {
     inclusions: resolveQuoteInclusions(quote),
     exclusions: resolveQuoteExclusions(quote),
     paymentDetails: QUOTE_PAYMENT_DETAILS,
-    termsAndConditions: QUOTE_TERMS_AND_CONDITIONS,
+    termsAndConditions: resolveQuoteTermsAndConditions(quote),
   };
 }
 

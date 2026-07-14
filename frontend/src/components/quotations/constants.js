@@ -86,6 +86,20 @@ export function quotationOmitsHotels(quote = {}, lead = null) {
   return false;
 }
 
+/**
+ * PDF/display: only show hotel content when named hotels are actually selected.
+ * Empty selectedHotels[] means skip hotel / not selected yet.
+ * Legacy quotes without selectedHotels still fall back to package hotels.
+ */
+export function quoteHasHotels(quote = {}) {
+  if (quotationOmitsHotels(quote)) return false;
+  if (Array.isArray(quote.selectedHotels)) {
+    return quote.selectedHotels.some((h) => String(h?.name || h?.hotelName || '').trim());
+  }
+  const snap = quote.packageSnapshot || quote.package || {};
+  return (snap.hotels || []).some((h) => String(h?.name || h?.hotelName || '').trim());
+}
+
 import { APP_PLATFORM_DOMAIN, APP_QUOTES_EMAIL, APP_WEBSITE } from '../../config/branding';
 
 export const COMPANY_INFO = {

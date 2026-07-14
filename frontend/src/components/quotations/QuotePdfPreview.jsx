@@ -1,9 +1,9 @@
 import { forwardRef } from 'react';
 import './quotePdfTemplate.css';
-import { COMPANY_INFO } from './constants';
+import { COMPANY_INFO, quoteHasHotels } from './constants';
 import { useTenant } from '../../context/TenantContext';
 import { formatINR } from './quotationUtils';
-import { QUOTE_WELCOME_TEXT } from './quoteTemplateDefaults';
+import { resolveQuoteWelcomeText } from './quoteTemplateDefaults';
 import {
   resolveQuotePackage,
   resolveQuoteLead,
@@ -58,6 +58,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const lead = resolveQuoteLead(quote);
   const pkg = resolveQuotePackage(quote);
   const packageInfo = quote.packageInfo || {};
+  const includesHotel = quoteHasHotels(quote);
+  const welcomeText = resolveQuoteWelcomeText(quote);
   const vehicles = resolveQuoteVehicles(quote);
   const planner = resolveTripPlanner(quote);
   const policies = resolvePolicies(quote);
@@ -154,7 +156,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       <section className="qp-welcome">
         <p><strong>Hello {lead.name || 'Guest'},</strong></p>
         <p>Welcome to {brand.name}.</p>
-        {QUOTE_WELCOME_TEXT.split('\n\n').slice(0, 2).map((para) => (
+        {welcomeText.split('\n\n').slice(0, 2).map((para) => (
           <p key={para.slice(0, 20)}>{para}</p>
         ))}
       </section>
@@ -170,7 +172,10 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             ['Travel Date', formatQuoteDate(travelDate)],
             ['Duration', duration ? `${duration} Days / ${nights} Nights` : '—'],
             ['Travellers', `Adults: ${pax.adults}${pax.kids ? ` · Kids: ${pax.kids}` : ''}`],
-            ['Meal Plan', packageInfo.mealPlan || '—'],
+            ...(includesHotel ? [['Meal Plan', packageInfo.mealPlan || '—']] : []),
+            ...(includesHotel && packageInfo.hotelCategory
+              ? [['Hotel Category', packageInfo.hotelCategory]]
+              : []),
             ['Customer', lead.name || 'Guest'],
             ...(lead.phone ? [['Phone', lead.phone]] : []),
           ].map(([label, value]) => (
@@ -216,7 +221,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           {itinerary.map((day, index) => {
             const dayNum = day.day || index + 1;
             const dayDate = getDayDate(travelDate, dayNum);
-            const dayHotel = resolveDayHotelForItinerary(quote, dayNum);
+            const dayHotel = includesHotel ? resolveDayHotelForItinerary(quote, dayNum) : null;
+            const mealLabel = includesHotel ? (day.meals || dayHotel?.meals) : '';
             return (
               <article key={day.id || `day-${dayNum}`} className="qp-day">
                 <div className="qp-day-head">
@@ -225,8 +231,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                     <h3>{day.title || `Day ${dayNum}`}</h3>
                     <div className="qp-day-pills">
                       {dayDate && <span>{formatQuoteDate(dayDate)}</span>}
-                      {(day.meals || dayHotel?.meals) && (
-                        <span>{day.meals || dayHotel?.meals}</span>
+                      {mealLabel && (
+                        <span>{mealLabel}</span>
                       )}
                       {(day.transport || vehicles[0]?.name) && (
                         <span>{day.transport || vehicles[0]?.name}</span>
@@ -235,7 +241,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                   </div>
                 </div>
                 {day.description && <p className="qp-day-desc">{day.description}</p>}
-                {dayHotel?.name && (
+                {includesHotel && dayHotel?.name && (
                   <div className="qp-day-stay">
                     <span className="qp-day-stay-lbl">Stay</span>
                     <div className="qp-day-stay-body">

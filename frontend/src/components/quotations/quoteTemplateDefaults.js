@@ -1,8 +1,14 @@
 /** Quotation PDF & builder defaults — Explore My Bharat standard terms */
 
-import { isNoHotelMealPlan, quotationOmitsHotels, isNoHotelLabel } from './constants';
+import { quoteHasHotels } from './constants';
 
 export const QUOTE_WELCOME_TEXT = `Greetings from Explore My Bharat. Your journey surely deserves warm hospitality, comfortable stay, hassle-free transportation and proper guidance which Explore My Bharat, a reliable and growing travel organization, promises to cater at the best possible rates.
+
+We are proud to offer packages that can't be more perfect and take you to such an enhanced experience that the only words you have for us are "True to their Commitment."
+
+So, let our executives assist you 24/7 and create magical moments just for you.`;
+
+export const QUOTE_WELCOME_TEXT_NO_HOTEL = `Greetings from Explore My Bharat. Your journey surely deserves hassle-free transportation and proper guidance which Explore My Bharat, a reliable and growing travel organization, promises to cater at the best possible rates.
 
 We are proud to offer packages that can't be more perfect and take you to such an enhanced experience that the only words you have for us are "True to their Commitment."
 
@@ -17,6 +23,31 @@ export const QUOTE_DEFAULT_EXCLUSIONS = [
   'Services which are not mentioned in tour package.',
   'Any cost incurred due to extension, change of itinerary due to natural calamities, road blocks, vehicle breakdown, union issues and factors beyond our control.',
 ];
+
+export const QUOTE_DEFAULT_EXCLUSIONS_NO_HOTEL = [
+  'Meals and beverages during tour (unless mentioned in inclusions).',
+  'Travel insurance and personal expenses (Telephone, liquor or other charges of personal nature).',
+  'Air/rail/bus fare or entry fee to parks and monument.',
+  'Expense of adventurous activities (rafting, paragliding, toy train ride, yak ride, horse ride, skiing, skating, etc.), laundry and personal guide.',
+  'Increase in taxes or fuel price which may cause hike in cost of surface transportation, prior to departure, hence affecting the final cost.',
+  'Services which are not mentioned in tour package.',
+  'Any cost incurred due to extension, change of itinerary due to natural calamities, road blocks, vehicle breakdown, union issues and factors beyond our control.',
+];
+
+function lineMentionsHotel(text) {
+  return /\bhotels?\b|\baccommodation\b|\bstay\b|\bcheck-?ins?\b|\bcheck-?outs?\b/i.test(String(text || ''));
+}
+
+export function stripHotelMentionsFromLines(lines = []) {
+  return (lines || [])
+    .map((line) => String(line || '').trim())
+    .filter(Boolean)
+    .filter((line) => !lineMentionsHotel(line));
+}
+
+export function resolveQuoteWelcomeText(quote = {}) {
+  return quoteHasHotels(quote) ? QUOTE_WELCOME_TEXT : QUOTE_WELCOME_TEXT_NO_HOTEL;
+}
 
 export const QUOTE_PAYMENT_DETAILS = [
   'A minimum 50% non-refundable advance payment is mandatory to confirm any booking.',
@@ -161,13 +192,7 @@ export function resolveTransportLabel(quote = {}) {
 }
 
 export function quoteIncludesHotel(quote = {}) {
-  if (quotationOmitsHotels(quote)) return false;
-  const hotels = quote.selectedHotels || [];
-  if (hotels.length > 0) return true;
-  const snap = quote.packageSnapshot || quote.package || {};
-  if (snap.hotels?.length) return true;
-  const category = String(quote.packageInfo?.hotelCategory || quote.lead?.hotelCategory || '').trim();
-  return Boolean(category && !isNoHotelLabel(category));
+  return quoteHasHotels(quote);
 }
 
 export function buildDefaultInclusions(quote = {}) {
@@ -192,13 +217,36 @@ export function buildDefaultInclusions(quote = {}) {
 export function resolveQuoteInclusions(quote = {}) {
   const pkg = quote.packageSnapshot || quote.package || {};
   const custom = (pkg.inclusions || []).filter(Boolean);
-  if (custom.length > 0) return custom;
-  return buildDefaultInclusions(quote);
+  const rows = custom.length > 0 ? custom : buildDefaultInclusions(quote);
+  if (quoteIncludesHotel(quote)) return rows;
+  return stripHotelMentionsFromLines(rows);
 }
 
 export function resolveQuoteExclusions(quote = {}) {
   const pkg = quote.packageSnapshot || quote.package || {};
   const custom = (pkg.exclusions || []).filter(Boolean);
-  if (custom.length > 0) return custom;
-  return QUOTE_DEFAULT_EXCLUSIONS;
+  const withHotel = quoteIncludesHotel(quote);
+  if (custom.length > 0) {
+    return withHotel ? custom : stripHotelMentionsFromLines(custom);
+  }
+  return withHotel ? QUOTE_DEFAULT_EXCLUSIONS : QUOTE_DEFAULT_EXCLUSIONS_NO_HOTEL;
+}
+
+export function resolveQuoteTermsAndConditions(quote = {}) {
+  if (quoteIncludesHotel(quote)) return QUOTE_TERMS_AND_CONDITIONS;
+
+  return QUOTE_TERMS_AND_CONDITIONS
+    .filter((section) => !/hotel\s+policy/i.test(section.title || ''))
+    .map((section) => ({
+      ...section,
+      items: (section.items || [])
+        .map((item) => String(item || '')
+          .replace(/,\s*hotel,/gi, ',')
+          .replace(/\bhotel,\s*/gi, '')
+          .replace(/\s+or hotel property/gi, '')
+          .replace(/\s{2,}/g, ' ')
+          .trim())
+        .filter((item) => item && !lineMentionsHotel(item)),
+    }))
+    .filter((section) => (section.items || []).length > 0);
 }
