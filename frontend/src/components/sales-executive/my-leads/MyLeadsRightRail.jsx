@@ -2,25 +2,25 @@ import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  UserPlus,
+  List,
   CalendarClock,
   FileText,
   UserCircle,
   Calendar,
-  BarChart3,
   Sparkles,
   Clock,
+  Flame,
 } from 'lucide-react';
 
 const ExecutivePipelineChart = lazy(() => import('../dashboard/ExecutivePipelineChart'));
 
 const QUICK_ACTIONS = [
-  { to: '/sales-executive/leads/new', label: 'New Lead', icon: UserPlus, color: 'text-violet-600 bg-violet-500/10' },
+  { to: '/sales-executive/leads/all', label: 'All Leads', icon: List, color: 'text-violet-600 bg-violet-500/10' },
+  { to: '/sales-executive/leads/hot', label: 'Hot Leads', icon: Flame, color: 'text-orange-600 bg-orange-500/10' },
   { to: '/sales-executive/follow-ups', label: 'Follow-up', icon: CalendarClock, color: 'text-amber-600 bg-amber-500/10' },
   { to: '/sales-executive/quotations/new', label: 'Quotation', icon: FileText, color: 'text-indigo-600 bg-indigo-500/10' },
   { to: '/sales-executive/customers', label: 'Customers', icon: UserCircle, color: 'text-sky-600 bg-sky-500/10' },
   { to: '/sales-executive/calendar', label: 'Calendar', icon: Calendar, color: 'text-emerald-600 bg-emerald-500/10' },
-  { to: '/sales-executive/dashboard', label: 'Reports', icon: BarChart3, color: 'text-rose-600 bg-rose-500/10' },
 ];
 
 const PRIORITY_STYLES = {

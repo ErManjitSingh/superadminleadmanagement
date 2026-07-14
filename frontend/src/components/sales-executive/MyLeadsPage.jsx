@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   Search,
-  Plus,
   SlidersHorizontal,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -271,14 +270,6 @@ export default function MyLeadsPage() {
             )}
           </div>
         )}
-
-        <Link
-          to="/sales-executive/leads/new"
-          className="inline-flex items-center justify-center h-10 px-4 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium shadow-sm shadow-violet-500/25 shrink-0 gap-1.5 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add New Lead
-        </Link>
       </div>
       {showMoreFilters && isAllView && (
         <p className="text-xs text-content-muted mt-3">
