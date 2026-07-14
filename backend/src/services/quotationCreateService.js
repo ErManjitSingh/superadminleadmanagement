@@ -5,6 +5,42 @@ const { logActivity, getClientIp } = require('./activityService');
 const { logLeadActivity } = require('./leadActivityService');
 const { notifyQuotationCreated } = require('./notificationService');
 const { resolvePackageReference } = require('../utils/packageRef');
+const {
+  quotationOmitsHotels,
+  stripHotelsFromPackageSnapshot,
+  isNoHotelLabel,
+  isNoHotelMealPlan,
+} = require('../utils/noHotelUtils');
+
+function sanitizeBuilderBody(body = {}, lead = null) {
+  const info = { ...(body.packageInfo || {}) };
+  const leadNoHotel = isNoHotelLabel(lead?.hotelCategory) || isNoHotelLabel(info.hotelCategory);
+  const mealNoHotel = isNoHotelMealPlan(info.mealPlan);
+  const omit = leadNoHotel || mealNoHotel || quotationOmitsHotels({ packageInfo: info, selectedHotels: body.selectedHotels, lead }, lead);
+
+  if (!omit) {
+    return {
+      ...body,
+      packageInfo: info,
+      package: body.package,
+      packageSnapshot: body.packageSnapshot || body.package,
+      selectedHotels: body.selectedHotels || [],
+    };
+  }
+
+  const cleanedPkg = stripHotelsFromPackageSnapshot(body.package || body.packageSnapshot || {});
+  return {
+    ...body,
+    selectedHotels: [],
+    package: cleanedPkg,
+    packageSnapshot: cleanedPkg,
+    packageInfo: {
+      ...info,
+      mealPlan: info.mealPlan || 'No Hotel',
+      hotelCategory: '',
+    },
+  };
+}
 
 async function persistQuotation({
   req,
@@ -16,18 +52,25 @@ async function persistQuotation({
   teamLeaderId,
   approvalNote,
 }) {
+  const sanitized = sanitizeBuilderBody(body, lead);
+  const snapshot = sanitized.packageSnapshot || sanitized.package;
+
   const quotation = await Quotation.create({
-    quoteNumber: body.quoteNumber || generateQuoteNumber(),
+    quoteNumber: sanitized.quoteNumber || body.quoteNumber || generateQuoteNumber(),
     lead: lead._id,
-    package: resolvePackageReference(body.packageId),
-    packageSnapshot: body.package,
+    package: resolvePackageReference(sanitized.packageId || body.packageId),
+    packageSnapshot: snapshot,
+    packageInfo: sanitized.packageInfo,
     status,
-    pricing: body.pricing,
-    selectedHotels: body.selectedHotels || [],
-    selectedCabs: body.selectedCabs || [],
-    selectedFlights: body.selectedFlights || [],
-    selectedActivities: body.selectedActivities || [],
-    customizations: body.customizations,
+    pricing: sanitized.pricing || body.pricing,
+    selectedHotels: sanitized.selectedHotels || [],
+    selectedCabs: sanitized.selectedCabs || body.selectedCabs || [],
+    selectedFlights: sanitized.selectedFlights || body.selectedFlights || [],
+    selectedActivities: sanitized.selectedActivities || body.selectedActivities || [],
+    customizations: sanitized.customizations || body.customizations,
+    paymentPlan: sanitized.paymentPlan || body.paymentPlan,
+    importantNotes: sanitized.importantNotes || body.importantNotes,
+    templateKey: sanitized.templateKey || body.templateKey,
     createdByExecutive: createdByExecutiveId || lead.assignedTo || req.user._id,
     branchId: req.branchId || lead.branchId || req.user.branchId || null,
     teamLeader: teamLeaderId || body.teamLeader,

@@ -41,6 +41,15 @@ export function hasLinkedQuotation(booking) {
   return !!(booking?.quotation || booking?.quotationReference || booking?.quotationMeta?.quoteId);
 }
 
+/** True when booking actually has hotel assignments (cab-only bookings return false). */
+export function bookingHasHotels(booking) {
+  return (booking?.hotels || []).some((h) => String(h?.hotelName || h?.name || '').trim());
+}
+
+export function bookingHasTransport(booking) {
+  return (booking?.transport || []).some((t) => String(t?.vehicleType || t?.vendorName || '').trim());
+}
+
 export function buildBookingProgressSteps(booking, execution, paymentSummary) {
   const vouchers = execution?.activeVouchers || [];
   const voucherDone = vouchers.some((v) => v.status !== 'draft');
@@ -65,6 +74,134 @@ export function buildBookingProgressSteps(booking, execution, paymentSummary) {
   return steps;
 }
 
+/** Full command-center stepper (hotel step skipped when no hotels). */
+export function buildCommandProgressSteps(booking, execution, paymentSummary) {
+  const hasHotels = bookingHasHotels(booking);
+  const vouchers = execution?.activeVouchers || [];
+  const advancePaid = (paymentSummary?.advanceReceived || booking?.advanceReceived || 0) > 0
+    || (paymentSummary?.totalPaid || booking?.totalPaid || 0) > 0;
+  const paymentDone = (paymentSummary?.paymentStatus || booking?.paymentStatus) === 'paid';
+  const hotelDone = booking?.hotelConfirmation === 'confirmed'
+    || (booking?.hotels || []).some((h) => h.status === 'confirmed');
+  const cabDone = booking?.cabConfirmation === 'confirmed'
+    || (booking?.transport || []).some((t) => t.status === 'confirmed');
+  const voucherDone = vouchers.some((v) => !['draft', 'archived'].includes(v.status));
+  const tripRunning = booking?.status === 'in_progress';
+  const tripDone = booking?.status === 'completed';
+  const quoteOk = ['confirmed', 'in_progress', 'completed', 'booking_received'].includes(booking?.status)
+    || hasLinkedQuotation(booking);
+
+  const mark = (done, currentIf) => {
+    if (tripDone || done) return 'done';
+    if (currentIf) return 'current';
+    return 'pending';
+  };
+
+  const steps = [
+    { key: 'lead', label: 'Lead Won', state: 'done' },
+    { key: 'quote', label: 'Quotation Approved', state: mark(quoteOk, !quoteOk) },
+    { key: 'advance', label: 'Advance Received', state: mark(advancePaid || paymentDone, quoteOk && !advancePaid) },
+  ];
+
+  if (hasHotels) {
+    steps.push({
+      key: 'hotel',
+      label: 'Hotel Confirmed',
+      state: mark(hotelDone, advancePaid && !hotelDone),
+    });
+  }
+
+  steps.push(
+    {
+      key: 'cab',
+      label: 'Cab Confirmed',
+      state: mark(cabDone, (hasHotels ? hotelDone : advancePaid) && !cabDone),
+    },
+    {
+      key: 'voucher',
+      label: 'Voucher Generated',
+      state: mark(voucherDone, cabDone && !voucherDone),
+    },
+    {
+      key: 'running',
+      label: 'Trip Running',
+      state: mark(tripRunning || tripDone, voucherDone && !tripRunning && !tripDone),
+    },
+    {
+      key: 'completed',
+      label: 'Trip Completed',
+      state: mark(tripDone, tripRunning && !tripDone),
+    },
+  );
+
+  if (tripDone) steps.forEach((s) => { s.state = 'done'; });
+  return steps;
+}
+
+export function buildActionCenterItems(booking, execution, paymentSummary) {
+  const hasHotels = bookingHasHotels(booking);
+  const vouchers = execution?.activeVouchers || [];
+  const hotelVoucher = vouchers.find((v) => v.type === 'hotel' && v.isActive !== false);
+  const cab = booking?.transport?.[0] || {};
+  const remaining = paymentSummary?.remainingBalance
+    ?? Math.max(0, (booking?.totalAmount || 0) - (booking?.totalPaid || booking?.advanceReceived || 0));
+  const advance = paymentSummary?.advanceReceived || booking?.advanceReceived || 0;
+  const items = [];
+
+  if (booking?.cabConfirmation !== 'confirmed') {
+    items.push({
+      id: 'cab-pending',
+      title: 'Cab Pending',
+      description: cab.driverName ? 'Awaiting cab confirmation' : 'Driver / cab not confirmed yet',
+      priority: 'high',
+      tone: 'rose',
+    });
+  }
+
+  if (hasHotels && !hotelVoucher) {
+    items.push({
+      id: 'hotel-voucher',
+      title: 'Hotel Voucher Missing',
+      description: 'Generate & send hotel voucher',
+      priority: 'medium',
+      tone: 'amber',
+    });
+  }
+
+  if (remaining > 0) {
+    items.push({
+      id: 'payment-due',
+      title: 'Payment Due',
+      description: `₹${Number(remaining).toLocaleString('en-IN')} still outstanding`,
+      priority: 'medium',
+      tone: 'amber',
+    });
+  }
+
+  if (!cab.driverName && bookingHasTransport(booking)) {
+    items.push({
+      id: 'driver',
+      title: 'Driver Not Assigned',
+      description: 'Assign driver before trip start',
+      priority: 'low',
+      tone: 'sky',
+    });
+  }
+
+  if (advance > 0) {
+    items.push({
+      id: 'advance-ok',
+      title: 'Customer Paid Advance',
+      description: `Advance ₹${Number(advance).toLocaleString('en-IN')} received`,
+      priority: 'completed',
+      tone: 'emerald',
+      done: true,
+    });
+  }
+
+  return items;
+}
+
 export function computeNextPaymentDue(booking, payments = [], summary) {
   const remaining = summary?.remainingBalance ?? Math.max(0, (booking?.totalAmount || 0) - (booking?.totalPaid || booking?.advanceReceived || 0));
   if (remaining <= 0) return null;
@@ -74,4 +211,12 @@ export function computeNextPaymentDue(booking, payments = [], summary) {
     amount: secondInstallment || remaining,
     date: dueDate,
   };
+}
+
+export function filterTimelineForHotels(events = [], hasHotels = true) {
+  if (hasHotels) return events;
+  return events.filter((e) => {
+    const text = `${e.title || ''} ${e.message || ''} ${e.type || ''} ${e.label || ''}`.toLowerCase();
+    return !text.includes('hotel');
+  });
 }

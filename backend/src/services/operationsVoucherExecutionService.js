@@ -730,10 +730,22 @@ async function generateAllVouchersForBooking(bookingId, actor) {
   const booking = await Booking.findById(bookingId).lean();
   if (!booking) throw new Error('Booking not found');
 
+  const hasHotels = (booking.hotels || []).some((h) => h?.hotelName || h?.name);
+
+  // Cab-only / no-hotel bookings: archive any leftover hotel vouchers
+  if (!hasHotels) {
+    await Voucher.updateMany(
+      { booking: bookingId, type: 'hotel', isActive: true },
+      { $set: { isActive: false, status: 'archived', archivedAt: new Date() } }
+    );
+  }
+
   const created = [];
-  (booking.hotels || []).forEach((_, i) => {
-    created.push(generateVoucherForAssignment(bookingId, { type: 'hotel', assignmentIndex: i, actor }));
-  });
+  if (hasHotels) {
+    (booking.hotels || []).forEach((_, i) => {
+      created.push(generateVoucherForAssignment(bookingId, { type: 'hotel', assignmentIndex: i, actor }));
+    });
+  }
   (booking.transport || []).forEach((_, i) => {
     created.push(generateVoucherForAssignment(bookingId, { type: 'transport', assignmentIndex: i, actor }));
   });

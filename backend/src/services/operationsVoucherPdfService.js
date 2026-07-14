@@ -252,9 +252,14 @@ async function generateTravelKitPdf(voucher, booking) {
   rowY = doc.y;
   drawField(doc, 'Support Team', branding.salesEmail, 48, rowY, w - 96);
   rowY += 44;
-  const hotelPhone = booking.hotels?.[0]?.phone || 'As per hotel voucher';
-  drawField(doc, 'Hotel', hotelPhone, 48, rowY, (w - 96) / 2);
-  drawField(doc, 'Driver', booking.transport?.[0]?.driverPhone || 'As per cab voucher', 48 + (w - 96) / 2 + 16, rowY, (w - 96) / 2);
+  const hasHotels = (booking.hotels || []).some((h) => h?.hotelName || h?.name);
+  if (hasHotels) {
+    const hotelPhone = booking.hotels?.[0]?.phone || 'As per hotel voucher';
+    drawField(doc, 'Hotel', hotelPhone, 48, rowY, (w - 96) / 2);
+    drawField(doc, 'Driver', booking.transport?.[0]?.driverPhone || 'As per cab voucher', 48 + (w - 96) / 2 + 16, rowY, (w - 96) / 2);
+  } else {
+    drawField(doc, 'Driver', booking.transport?.[0]?.driverPhone || 'As per cab voucher', 48, rowY, w - 96);
+  }
 
   drawFooter(doc);
   await writePdfToFile(doc, filePath);

@@ -54,10 +54,36 @@ export const MEAL_PLANS = [
 /** Meal plans shown inside hotel room configuration (excludes No Hotel) */
 export const MEAL_PLANS_WITH_HOTEL = MEAL_PLANS.filter((m) => m !== NO_HOTEL_MEAL_PLAN);
 
+const NO_HOTEL_VALUES = new Set([
+  'no hotel',
+  'no_hotel',
+  'nohotel',
+  'none',
+  'cab only',
+  'cab_only',
+  'without hotel',
+  'without_hotel',
+]);
+
+export function isNoHotelLabel(value) {
+  if (value == null || value === '') return false;
+  const v = String(typeof value === 'object' ? (value.label || value.name || value.value || '') : value)
+    .trim()
+    .toLowerCase();
+  return NO_HOTEL_VALUES.has(v);
+}
+
 export function isNoHotelMealPlan(mealPlan) {
-  if (!mealPlan) return false;
-  const value = String(mealPlan).trim().toLowerCase();
-  return value === 'no hotel' || value === 'no_hotel';
+  return isNoHotelLabel(mealPlan);
+}
+
+/** Lead/quote intentionally has no hotel (cab-only package etc.) */
+export function quotationOmitsHotels(quote = {}, lead = null) {
+  const info = quote.packageInfo || {};
+  if (isNoHotelMealPlan(info.mealPlan)) return true;
+  const leadDoc = lead || quote.lead || {};
+  if (isNoHotelLabel(info.hotelCategory) || isNoHotelLabel(leadDoc.hotelCategory)) return true;
+  return false;
 }
 
 import { APP_PLATFORM_DOMAIN, APP_QUOTES_EMAIL, APP_WEBSITE } from '../../config/branding';

@@ -149,6 +149,7 @@ export default function StepTravelDetails() {
             <option value="4_star">4 Star</option>
             <option value="5_star">5 Star</option>
             <option value="luxury">Luxury</option>
+            <option value="no_hotel">No Hotel (Cab only / without hotel)</option>
           </select>
         </WizardField>
         <WizardField label="Budget Range">

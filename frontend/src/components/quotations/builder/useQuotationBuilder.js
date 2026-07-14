@@ -4,7 +4,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { buildListParams, unwrapList, unwrapPagination } from '../../../utils/apiHelpers';
 import { parsePackageNights } from '../UnoHotelSelector';
 import { cleanInclusionExclusionLines } from '../InclusionExclusionEditor';
-import { isNoHotelMealPlan } from '../constants';
+import { isNoHotelMealPlan, isNoHotelLabel, NO_HOTEL_MEAL_PLAN } from '../constants';
 import {
   defaultItineraryDay,
   defaultWizardState,
@@ -140,19 +140,52 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   const availableActivities = activities.filter((a) => matchesResourceDestination(a, hotelDestination));
 
   const buildPackageSnapshot = useCallback(
-    (pkg) => ({
-      ...pkg,
-      name: state.packageInfo?.packageName || pkg?.name,
-      destination: state.packageInfo?.destination || pkg?.destination,
-      duration: state.packageInfo?.duration || pkg?.duration,
-      coverImage: pkg?.coverImage || state.packageInfo?.coverImage,
-      itinerary: customItinerary,
-      inclusions: cleanInclusionExclusionLines(customInclusions),
-      exclusions: cleanInclusionExclusionLines(customExclusions),
-      importantNotes: state.importantNotes,
-      paymentPlan: state.paymentPlan,
-    }),
-    [customItinerary, customInclusions, customExclusions, state.packageInfo, state.importantNotes, state.paymentPlan]
+    (pkg) => {
+      const skipHotel =
+        isNoHotelMealPlan(state.packageInfo?.mealPlan)
+        || builderUi.skipHotel
+        || isNoHotelLabel(state.packageInfo?.hotelCategory)
+        || isNoHotelLabel(selectedLead?.hotelCategory);
+
+      const itinerary = skipHotel
+        ? (customItinerary || []).map((day) => ({
+            ...day,
+            hotel: '',
+            accommodation: '',
+          }))
+        : customItinerary;
+
+      const inclusions = skipHotel
+        ? cleanInclusionExclusionLines(customInclusions).filter((line) => {
+            const t = String(line || '').toLowerCase();
+            return !/\bhotel/.test(t) && !/\baccommodation/.test(t) && !/\bstay\b/.test(t);
+          })
+        : cleanInclusionExclusionLines(customInclusions);
+
+      return {
+        ...pkg,
+        name: state.packageInfo?.packageName || pkg?.name,
+        destination: state.packageInfo?.destination || pkg?.destination,
+        duration: state.packageInfo?.duration || pkg?.duration,
+        coverImage: pkg?.coverImage || state.packageInfo?.coverImage,
+        hotels: skipHotel ? [] : (pkg?.hotels || []),
+        itinerary,
+        inclusions,
+        exclusions: cleanInclusionExclusionLines(customExclusions),
+        importantNotes: state.importantNotes,
+        paymentPlan: state.paymentPlan,
+      };
+    },
+    [
+      customItinerary,
+      customInclusions,
+      customExclusions,
+      state.packageInfo,
+      state.importantNotes,
+      state.paymentPlan,
+      builderUi.skipHotel,
+      selectedLead?.hotelCategory,
+    ]
   );
 
   const buildSavePayload = useCallback(
@@ -244,9 +277,12 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   }, [step, maxReached]);
 
   useEffect(() => {
-    const skipHotel = isNoHotelMealPlan(state.packageInfo?.mealPlan);
+    const skipHotel =
+      isNoHotelMealPlan(state.packageInfo?.mealPlan)
+      || isNoHotelLabel(state.packageInfo?.hotelCategory)
+      || isNoHotelLabel(selectedLead?.hotelCategory);
     setBuilderUi((ui) => (ui.skipHotel === skipHotel ? ui : { ...ui, skipHotel }));
-  }, [state.packageInfo?.mealPlan]);
+  }, [state.packageInfo?.mealPlan, state.packageInfo?.hotelCategory, selectedLead?.hotelCategory]);
 
   useEffect(() => {
     API.get(`${config.savePath}/templates`, { skipErrorToast: true })
@@ -280,14 +316,23 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
           throw new Error('Invalid lead response');
         }
         setSelectedLead(lead);
+        const leadNoHotel = isNoHotelLabel(lead.hotelCategory);
         setState((s) => ({
           ...s,
           leadId: id,
           packageInfo: {
             ...s.packageInfo,
             destination: lead.destination || s.packageInfo.destination,
+            ...(leadNoHotel
+              ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
+              : lead.hotelCategory
+                ? { hotelCategory: s.packageInfo.hotelCategory || lead.hotelCategory }
+                : {}),
           },
         }));
+        if (leadNoHotel) {
+          setBuilderUi((ui) => ({ ...ui, skipHotel: true }));
+        }
         return lead;
       } catch {
         setSelectedLead(null);
@@ -431,28 +476,40 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   }, [canPersistDraft, debouncedRevision, draftId, config.savePath, buildSavePayload]);
 
   const selectLead = (lead) => {
+    const leadNoHotel = isNoHotelLabel(lead?.hotelCategory);
     setSelectedLead(lead);
     setState((s) => ({
       ...defaultWizardState,
       leadId: lead._id,
-      packageInfo: { ...s.packageInfo, destination: lead.destination || '' },
+      packageInfo: {
+        ...s.packageInfo,
+        destination: lead.destination || '',
+        ...(leadNoHotel
+          ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
+          : {}),
+      },
     }));
     setSelectedPkgDetail(null);
     setCustomItinerary([]);
     setCustomInclusions(['']);
     setCustomExclusions(['']);
     setDayWiseHotels([]);
-    setBuilderUi(defaultBuilderUi());
+    setBuilderUi({ ...defaultBuilderUi(), skipHotel: leadNoHotel });
   };
 
   const applyPackageDetail = (detail) => {
     const itinerary = detail.itinerary?.length > 0 ? detail.itinerary : buildFallbackItinerary(detail);
     const normalized = { ...detail, itinerary };
+    const keepSkipHotel =
+      isNoHotelMealPlan(state.packageInfo?.mealPlan)
+      || isNoHotelLabel(state.packageInfo?.hotelCategory)
+      || isNoHotelLabel(selectedLead?.hotelCategory);
     setSelectedPkgDetail(normalized);
     setCustomItinerary(itinerary.map((d) => ({ ...d, id: d.id || d._id || `day-${Date.now()}-${d.day}` })));
     setCustomInclusions(normalized.inclusions?.length ? [...normalized.inclusions] : ['']);
     setCustomExclusions(normalized.exclusions?.length ? [...normalized.exclusions] : ['']);
-    setBuilderUi(builderUiFromPackage(normalized));
+    const fromPkg = builderUiFromPackage(normalized);
+    setBuilderUi(keepSkipHotel ? { ...fromPkg, skipHotel: true } : fromPkg);
     const packageTotal = Number(detail.pricing?.finalPrice) || Number(normalized.startingPrice) || 0;
     setState((s) => ({
       ...s,

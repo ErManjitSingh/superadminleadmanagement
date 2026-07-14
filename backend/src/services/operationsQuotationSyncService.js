@@ -2,6 +2,10 @@ const Quotation = require('../models/Quotation');
 const Lead = require('../models/Lead');
 const Booking = require('../models/Booking');
 const User = require('../models/User');
+const {
+  quotationOmitsHotels,
+  stripHotelsFromPackageSnapshot,
+} = require('../utils/noHotelUtils');
 
 function addDays(date, days) {
   if (!date) return null;
@@ -20,9 +24,10 @@ function asTextValue(value) {
 }
 
 function mapQuoteItinerary(quotation, travelDate) {
+  const omitHotels = quotationOmitsHotels(quotation);
   const snap = quotation?.packageSnapshot || {};
   const days = snap.itinerary || [];
-  const selectedHotels = quotation?.selectedHotels || [];
+  const selectedHotels = omitHotels ? [] : (quotation?.selectedHotels || []);
 
   if (!days.length) return [];
 
@@ -31,8 +36,10 @@ function mapQuoteItinerary(quotation, travelDate) {
     const hotelForDay = selectedHotels.find((h) => Number(h.day) === dayNum);
     const dayDate = travelDate ? addDays(travelDate, dayNum - 1) : null;
 
-    const hotelName = d.accommodation || d.hotel || hotelForDay?.name || '';
-    const dayHotel = hotelForDay || hotelName
+    const hotelName = omitHotels
+      ? ''
+      : (d.accommodation || d.hotel || hotelForDay?.name || '');
+    const dayHotel = !omitHotels && (hotelForDay || hotelName)
       ? {
           hotelName: hotelForDay?.name || hotelName,
           destination: hotelForDay?.location || hotelForDay?.city || hotelForDay?.destination || '',
@@ -58,38 +65,46 @@ function mapQuoteItinerary(quotation, travelDate) {
 }
 
 function mapQuoteHotels(quotation, travelDate) {
+  // Cab-only / No Hotel quotes must never inherit package hotels.
+  if (quotationOmitsHotels(quotation)) return [];
+
   const selected = quotation?.selectedHotels || [];
-  if (!selected.length) {
-    const snap = quotation?.packageSnapshot || {};
-    return (snap.hotels || []).map((h) => ({
-      hotelName: h.name || h.hotelName || '',
-      destination: h.location || h.destination || '',
-      category: h.category || '',
-      roomType: h.roomType || h.room?.name || '',
-      mealPlan: asTextValue(h.mealPlan),
-      status: 'pending',
-    }));
+  if (selected.length) {
+    return selected.map((h) => {
+      const checkIn = travelDate && h.day ? addDays(travelDate, Number(h.day) - 1) : h.checkIn || null;
+      const nights = Number(h.nights) || 1;
+      const checkOut = checkIn ? addDays(checkIn, nights) : h.checkOut || null;
+
+      return {
+        hotelName: h.name || h.hotelName || '',
+        destination: h.location || h.city || h.destination || '',
+        category: h.category || '',
+        roomType: h.room?.name || h.room || h.roomType || '',
+        mealPlan: asTextValue(h.mealPlan),
+        day: h.day,
+        nights,
+        checkIn,
+        checkOut,
+        notes: h.externalSource ? `Source: ${h.externalSource}` : '',
+        status: 'pending',
+      };
+    });
   }
 
-  return selected.map((h) => {
-    const checkIn = travelDate && h.day ? addDays(travelDate, Number(h.day) - 1) : h.checkIn || null;
-    const nights = Number(h.nights) || 1;
-    const checkOut = checkIn ? addDays(checkIn, nights) : h.checkOut || null;
+  // Legacy quotes: only use package hotels when quote still includes hotel.
+  // If selectedHotels is an explicit empty array on a no-hotel-ish quote, snapshot is ignored above.
+  const snap = quotation?.packageSnapshot || {};
+  const hasExplicitEmptySelection = Array.isArray(quotation?.selectedHotels) && quotation.selectedHotels.length === 0;
+  if (hasExplicitEmptySelection) return [];
 
-    return {
-      hotelName: h.name || h.hotelName || '',
-      destination: h.location || h.city || h.destination || '',
-      category: h.category || '',
-      roomType: h.room?.name || h.room || h.roomType || '',
-      mealPlan: asTextValue(h.mealPlan),
-      day: h.day,
-      nights,
-      checkIn,
-      checkOut,
-      notes: h.externalSource ? `Source: ${h.externalSource}` : '',
-      status: 'pending',
-    };
-  });
+  return (snap.hotels || []).map((h) => ({
+    hotelName: h.name || h.hotelName || '',
+    destination: h.location || h.destination || '',
+    category: h.category || '',
+    roomType: h.roomType || h.room?.name || '',
+    mealPlan: asTextValue(h.mealPlan),
+    status: 'pending',
+  }));
 }
 
 function mapQuoteTransport(quotation) {
@@ -133,17 +148,32 @@ async function resolveQuotationForBooking(booking) {
 }
 
 async function extractFulfillmentFromQuotation(quotation, booking = {}) {
-  const snap = quotation?.packageSnapshot || {};
+  let quote = quotation;
+  // Ensure lead hotelCategory is available for no-hotel detection
+  if (quote && !quote.lead?.hotelCategory && (quote.lead || booking.lead)) {
+    const leadId = quote.lead?._id || quote.lead || booking.lead;
+    if (leadId) {
+      const leadDoc = await Lead.findById(leadId).select('hotelCategory assignedTo').lean();
+      if (leadDoc) {
+        quote = { ...quote, lead: { ...(typeof quote.lead === 'object' ? quote.lead : {}), ...leadDoc } };
+      }
+    }
+  }
+
+  const omitsHotels = quotationOmitsHotels(quote);
+  const snap = omitsHotels
+    ? stripHotelsFromPackageSnapshot(quote?.packageSnapshot || {})
+    : (quote?.packageSnapshot || {});
   const travelDate = booking.travelDate || null;
   let executiveName = booking.executiveName || '';
 
-  if (!executiveName && quotation?.createdByExecutive) {
-    const exec = await User.findById(quotation.createdByExecutive).select('name').lean();
+  if (!executiveName && quote?.createdByExecutive) {
+    const exec = await User.findById(quote.createdByExecutive).select('name').lean();
     executiveName = exec?.name || '';
   }
 
   if (!executiveName) {
-    const leadId = quotation?.lead || booking?.lead;
+    const leadId = quote?.lead?._id || quote?.lead || booking?.lead;
     if (leadId) {
       const lead = await Lead.findById(leadId).select('assignedTo').lean();
       if (lead?.assignedTo) {
@@ -154,19 +184,20 @@ async function extractFulfillmentFromQuotation(quotation, booking = {}) {
   }
 
   return {
-    itinerary: mapQuoteItinerary(quotation, travelDate),
-    hotels: mapQuoteHotels(quotation, travelDate),
-    transport: mapQuoteTransport(quotation),
-    activities: mapQuoteActivities(quotation),
+    itinerary: mapQuoteItinerary(quote, travelDate),
+    hotels: mapQuoteHotels(quote, travelDate),
+    transport: mapQuoteTransport(quote),
+    activities: mapQuoteActivities(quote),
     packageName: snap.name || snap.title || booking.packageName || '',
     destination: snap.destination || booking.destination || '',
-    quotationReference: quotation?.quoteNumber || booking.quotationReference || '',
+    quotationReference: quote?.quoteNumber || booking.quotationReference || '',
     executiveName,
-    totalAmount: quotation?.pricing?.total || quotation?.costing?.grandTotal || booking.totalAmount,
+    totalAmount: quote?.pricing?.total || quote?.costing?.grandTotal || booking.totalAmount,
+    omitsHotels,
     meta: {
-      quoteNumber: quotation?.quoteNumber,
-      quoteId: quotation?._id,
-      quoteStatus: quotation?.status,
+      quoteNumber: quote?.quoteNumber,
+      quoteId: quote?._id,
+      quoteStatus: quote?.status,
       packageName: snap.name || snap.title,
       inclusions: snap.inclusions || [],
       exclusions: snap.exclusions || [],
@@ -183,11 +214,18 @@ async function syncBookingFromQuotation(bookingId, { force = false } = {}) {
 
   const extracted = await extractFulfillmentFromQuotation(quotation, booking);
   const patch = {};
+  const omitsHotels = quotationOmitsHotels(quotation);
 
   if (force || !booking.itinerary?.length) {
     if (extracted.itinerary.length) patch.itinerary = extracted.itinerary;
   }
-  if (force || !booking.hotels?.length) {
+  if (omitsHotels) {
+    // Clear leaked package hotels / hotel confirmation when quote is cab-only / no hotel
+    patch.hotels = [];
+    if (booking.hotelConfirmation && booking.hotelConfirmation !== 'not_required') {
+      patch.hotelConfirmation = 'not_required';
+    }
+  } else if (force || !booking.hotels?.length) {
     if (extracted.hotels.length) patch.hotels = extracted.hotels;
   }
   if (force || !booking.transport?.length) {

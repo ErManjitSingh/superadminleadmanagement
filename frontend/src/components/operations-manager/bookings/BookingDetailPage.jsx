@@ -9,20 +9,28 @@ import {
   BookingItineraryTimeline,
 } from './BookingFulfillmentSections';
 import VoucherCenter from '../vouchers/VoucherCenter';
-import ExecutionTimeline from '../vouchers/ExecutionTimeline';
 import BookingPaymentsPanel from '../../payments/BookingPaymentsPanel';
 import { acknowledgeNewBooking, getBookingPayments } from '../../../services/bookingPaymentsApi';
 import { fetchBookingExecution } from '../../../services/operationsVoucherApi';
 import { useAuth } from '../../../context/AuthContext';
 import {
-  BookingDetailHeader,
-  BookingPackageHero,
-  BookingPaymentOverview,
-  BookingProgressStepper,
-  BookingInfoColumns,
-  BookingDetailMobileBar,
-} from './BookingDetailSections';
-import { buildBookingProgressSteps, computeNextPaymentDue, hasLinkedQuotation } from './bookingDetailUtils';
+  BookingCommandHero,
+  BookingCommandProgress,
+  BookingActionCenter,
+  BookingDetailGrid,
+  BookingPaymentDonut,
+  BookingDocumentCenter,
+  BookingCommunicationPanel,
+  BookingFeedsRow,
+  BookingCommandFooter,
+} from './BookingCommandCenter';
+import {
+  buildCommandProgressSteps,
+  buildActionCenterItems,
+  bookingHasHotels,
+  filterTimelineForHotels,
+  hasLinkedQuotation,
+} from './bookingDetailUtils';
 import { useDataRefresh } from '../../../hooks/useDataRefresh';
 
 const QuotationPdfOverlay = lazy(() => import('../../quotations/QuotationPdfOverlay'));
@@ -33,6 +41,13 @@ function applyBookingState(data, setters) {
   setItinerary(data.itinerary?.length ? data.itinerary : [{ day: 1, title: '', description: '' }]);
   setHotels(data.hotels?.length ? data.hotels : []);
   setTransport(data.transport?.length ? data.transport : []);
+}
+
+function waLink(phone, text = '') {
+  const digits = String(phone || '').replace(/\D/g, '');
+  if (!digits) return null;
+  const n = digits.length === 10 ? `91${digits}` : digits;
+  return `https://wa.me/${n}${text ? `?text=${encodeURIComponent(text)}` : ''}`;
 }
 
 export default function BookingDetailPage() {
@@ -59,6 +74,7 @@ export default function BookingDetailPage() {
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const pdfRef = useRef(null);
   const manageRef = useRef(null);
+  const voucherRef = useRef(null);
 
   const setters = { setBooking, setItinerary, setHotels, setTransport };
   const canAddPayment = ['operations_manager', 'admin', 'accountant'].includes(user?.role);
@@ -179,26 +195,46 @@ export default function BookingDetailPage() {
     }
   };
 
-  const scrollTo = (selector) => {
-    document.querySelector(selector)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const openManage = () => {
     setManageOpen(true);
-    setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+  };
+
+  const scrollToVouchers = () => {
+    voucherRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const callCustomer = () => {
+    if (booking?.customerPhone) window.open(`tel:${booking.customerPhone}`, '_self');
+  };
+
+  const whatsAppCustomer = () => {
+    const url = waLink(booking?.customerPhone, `Hi ${booking?.customerName || ''}, regarding booking ${booking?.bookingNumber}`);
+    if (url) window.open(url, '_blank');
+  };
+
+  const completeBooking = async () => {
+    if (!window.confirm('Mark this booking as completed?')) return;
+    await API.put(`/operations-manager/bookings/${id}`, { status: 'completed' });
+    await refreshBookingData(true);
   };
 
   const paymentSummary = paymentData?.summary;
+  const hasHotels = bookingHasHotels(booking);
   const progressSteps = useMemo(
-    () => buildBookingProgressSteps(booking, execution, paymentSummary),
+    () => buildCommandProgressSteps(booking, execution, paymentSummary),
     [booking, execution, paymentSummary],
   );
-  const nextDue = useMemo(
-    () => computeNextPaymentDue(booking, paymentData?.payments, paymentSummary),
-    [booking, paymentData, paymentSummary],
+  const actionItems = useMemo(
+    () => buildActionCenterItems(booking, execution, paymentSummary),
+    [booking, execution, paymentSummary],
   );
-
+  const timelineEvents = useMemo(
+    () => filterTimelineForHotels(execution?.timeline || [], hasHotels),
+    [execution?.timeline, hasHotels],
+  );
   const showQuotation = hasLinkedQuotation(booking);
+  const showPayment = canAddPayment && paymentSummary?.paymentStatus !== 'paid';
 
   if (loading) {
     return (
@@ -209,43 +245,87 @@ export default function BookingDetailPage() {
     );
   }
 
-  if (!booking) return <div className="text-center py-20 text-content-muted">Booking not found</div>;
+  if (!booking) {
+    return <div className="text-center py-20 text-content-muted">Booking not found</div>;
+  }
 
   return (
-    <div className="space-y-6 pb-24 lg:pb-10">
-      <BookingDetailHeader booking={booking} onPrint={() => window.print()} />
-
-      <BookingPackageHero
+    <div className="space-y-4 sm:space-y-5 pb-28">
+      <BookingCommandHero
         booking={booking}
-        onViewQuotation={showQuotation ? openQuotation : undefined}
-        quotationLoading={quotationLoading}
+        summary={paymentSummary}
+        onPrint={() => window.print()}
+        onDownloadPdf={generateItineraryPdf}
+        onEdit={openManage}
+        onCall={callCustomer}
+        onWhatsApp={whatsAppCustomer}
+        onViewQuote={showQuotation ? openQuotation : undefined}
       />
 
-      <BookingPaymentOverview summary={paymentSummary} nextDue={nextDue} />
+      <BookingCommandProgress steps={progressSteps} />
 
-      <BookingProgressStepper steps={progressSteps} />
+      <BookingActionCenter items={actionItems} onResolveAll={openManage} />
 
-      <QuotationSyncBanner
-        meta={booking.quotationMeta || booking.quotationPreview?.meta}
-        autoSynced={booking.autoSyncedFromQuotation}
-        syncing={syncingQuote}
-        onSync={syncFromQuotation}
-      />
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-4 sm:gap-5 items-start">
+        <div className="space-y-4 sm:space-y-5 min-w-0">
+          <BookingDetailGrid
+            booking={booking}
+            onHotelVoucher={scrollToVouchers}
+            onCabManage={openManage}
+            onCallHotel={() => {
+              const phone = booking.hotels?.[0]?.phone || booking.hotels?.[0]?.vendorPhone;
+              if (phone) window.open(`tel:${phone}`, '_self');
+            }}
+          />
 
-      <VoucherCenter
-        bookingId={id}
-        booking={booking}
-        execution={execution}
-        onExecutionChange={setExecution}
-      />
+          <QuotationSyncBanner
+            meta={booking.quotationMeta || booking.quotationPreview?.meta}
+            autoSynced={booking.autoSyncedFromQuotation}
+            syncing={syncingQuote}
+            onSync={syncFromQuotation}
+          />
 
-      <BookingInfoColumns booking={booking} />
+          <div ref={voucherRef} id="voucher-center">
+            <VoucherCenter
+              bookingId={id}
+              booking={booking}
+              execution={execution}
+              onExecutionChange={setExecution}
+            />
+          </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
-        <div className="lg:col-span-8">
-          <ExecutionTimeline events={execution?.timeline || []} compact />
+          <BookingFeedsRow
+            timelineEvents={timelineEvents}
+            notes={booking.internalNotes || []}
+            onAddNote={openManage}
+          />
         </div>
-        <div className="lg:col-span-4 lg:sticky lg:top-20" id="booking-payments">
+
+        <aside className="space-y-4 xl:sticky xl:top-4">
+          <div id="booking-payments">
+            <BookingPaymentDonut
+              summary={paymentSummary}
+              onCollect={() => {
+                document.getElementById('booking-payments')?.scrollIntoView({ behavior: 'smooth' });
+                setAddPaymentOpen(true);
+              }}
+            />
+          </div>
+          <BookingDocumentCenter
+            booking={booking}
+            execution={execution}
+            onOpenQuote={openQuotation}
+            onOpenVouchers={scrollToVouchers}
+            onOpenPdf={generateItineraryPdf}
+          />
+          <BookingCommunicationPanel
+            booking={booking}
+            onWhatsApp={whatsAppCustomer}
+            onCall={callCustomer}
+            onEmail={() => {
+              if (booking.customerEmail) window.open(`mailto:${booking.customerEmail}`, '_self');
+            }}
+          />
           <BookingPaymentsPanel
             bookingId={id}
             variant="sidebar"
@@ -257,7 +337,7 @@ export default function BookingDetailPage() {
               refreshBookingData(true);
             }}
           />
-        </div>
+        </aside>
       </div>
 
       <BookingPaymentsPanel
@@ -270,17 +350,22 @@ export default function BookingDetailPage() {
         }}
       />
 
-      <div ref={manageRef} className="rounded-2xl border border-subtle bg-surface overflow-hidden">
+      <div ref={manageRef} className="rounded-2xl border border-subtle bg-white shadow-sm overflow-hidden">
         <button
           type="button"
           onClick={() => setManageOpen((o) => !o)}
-          className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-surface-muted/50 transition-colors"
+          className="flex w-full items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
         >
-          <span className="font-bold text-content-primary">Manage Fulfillment (Itinerary, Hotels, Transport)</span>
+          <span className="font-bold text-content-primary">
+            Manage Fulfillment
+            <span className="ml-2 text-xs font-medium text-content-muted">
+              Itinerary{hasHotels ? ' · Hotels' : ''} · Transport
+            </span>
+          </span>
           <ChevronDown className={`w-5 h-5 text-content-muted transition-transform ${manageOpen ? 'rotate-180' : ''}`} />
         </button>
         {manageOpen && (
-          <div className="border-t border-subtle p-5 space-y-6">
+          <div className="border-t border-subtle p-4 sm:p-5 space-y-6">
             <BookingItineraryTimeline
               itinerary={itinerary}
               onChange={setItinerary}
@@ -292,13 +377,15 @@ export default function BookingDetailPage() {
               catalogHotels={catalogHotels}
               catalogCabs={catalogCabs}
             />
-            <BookingHotelsEditor
-              hotels={hotels}
-              onChange={setHotels}
-              onSave={saveHotels}
-              saving={savingHotels}
-              catalogHotels={catalogHotels}
-            />
+            {hasHotels && (
+              <BookingHotelsEditor
+                hotels={hotels}
+                onChange={setHotels}
+                onSave={saveHotels}
+                saving={savingHotels}
+                catalogHotels={catalogHotels}
+              />
+            )}
             <BookingTransportEditor
               transport={transport}
               onChange={setTransport}
@@ -310,16 +397,17 @@ export default function BookingDetailPage() {
         )}
       </div>
 
-      <BookingDetailMobileBar
-        onVouchers={() => scrollTo('#voucher-center')}
-        onPayment={() => {
-          scrollTo('#booking-payments');
+      <BookingCommandFooter
+        onSave={openManage}
+        onAssignVendor={openManage}
+        onGenerateVoucher={scrollToVouchers}
+        onCollectPayment={() => {
+          document.getElementById('booking-payments')?.scrollIntoView({ behavior: 'smooth' });
           setAddPaymentOpen(true);
         }}
-        onQuotation={openQuotation}
-        onManage={openManage}
-        showQuotation={showQuotation}
-        showPayment={canAddPayment && paymentSummary?.paymentStatus !== 'paid'}
+        onDownloadPdf={generateItineraryPdf}
+        onComplete={completeBooking}
+        showPayment={showPayment}
       />
 
       <Suspense fallback={null}>
@@ -332,6 +420,14 @@ export default function BookingDetailPage() {
           />
         )}
       </Suspense>
+
+      {quotationLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="rounded-2xl bg-white px-6 py-4 shadow-xl text-sm font-semibold text-content-primary">
+            Loading quotation…
+          </div>
+        </div>
+      )}
     </div>
   );
 }

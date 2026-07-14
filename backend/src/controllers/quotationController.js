@@ -15,6 +15,12 @@ const { markOnboardingStep } = require('../services/onboardingService');
 const { saveQuotationPdfBuffer, buildPublicPdfUrl } = require('../services/quotationPdfService');
 const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 const { assertStorageAvailable, recordStorageUsage } = require('../services/subscriptionLimitsService');
+const {
+  quotationOmitsHotels,
+  stripHotelsFromPackageSnapshot,
+  isNoHotelLabel,
+  isNoHotelMealPlan,
+} = require('../utils/noHotelUtils');
 
 async function loadLead(req, id) {
   const lead = await Lead.findOne(tenantFilter({ _id: id }, req));
@@ -35,6 +41,30 @@ async function loadQuotation(req, id, { lean = false, populate = null } = {}) {
   const doc = lean ? await query.lean() : await query;
   assertTenantDocument(doc, req, 'Quotation');
   return doc;
+}
+
+function applyNoHotelSanitization(body = {}, lead = null) {
+  const info = { ...(body.packageInfo || {}) };
+  const omit =
+    isNoHotelLabel(lead?.hotelCategory)
+    || isNoHotelLabel(info.hotelCategory)
+    || isNoHotelMealPlan(info.mealPlan)
+    || quotationOmitsHotels({ packageInfo: info, selectedHotels: body.selectedHotels, lead }, lead);
+
+  if (!omit) return body;
+
+  const cleaned = stripHotelsFromPackageSnapshot(body.package || body.packageSnapshot || {});
+  return {
+    ...body,
+    selectedHotels: [],
+    package: cleaned,
+    packageSnapshot: cleaned,
+    packageInfo: {
+      ...info,
+      mealPlan: info.mealPlan || 'No Hotel',
+      hotelCategory: '',
+    },
+  };
 }
 
 function pickBuilderFields(body = {}) {
@@ -112,34 +142,35 @@ const createQuotation = asyncHandler(async (req, res) => {
   const lead = await loadLead(req, req.body.leadId || req.body.lead);
 
   const pkg = req.body.packageId ? await loadPackage(req, req.body.packageId) : null;
+  const body = applyNoHotelSanitization(req.body, lead);
 
   const computedPayload = buildComputedPricingPayload({
-    body: req.body,
-    packageSnapshot: pkg || req.body.package,
+    body,
+    packageSnapshot: body.package || body.packageSnapshot || pkg,
   });
 
   const quotation = await Quotation.create({
-    quoteNumber: req.body.quoteNumber || generateQuoteNumber(),
+    quoteNumber: body.quoteNumber || generateQuoteNumber(),
     branchId: req.branchId || lead.branchId,
     lead: lead._id,
-    package: resolvePackageReference(req.body.packageId),
-    packageSnapshot: req.body.package || pkg,
-    status: req.body.status || 'draft',
+    package: resolvePackageReference(body.packageId),
+    packageSnapshot: body.package || body.packageSnapshot || pkg,
+    status: body.status || 'draft',
     pricing: computedPayload.pricing,
     costing: computedPayload.costing,
     selectedHotels: computedPayload.selectedHotels,
     selectedCabs: computedPayload.selectedCabs,
     selectedFlights: computedPayload.selectedFlights,
     selectedActivities: computedPayload.selectedActivities,
-    customizations: req.body.customizations,
+    customizations: body.customizations,
     createdByExecutive:
-      req.body.createdByExecutive ||
+      body.createdByExecutive ||
       (req.user.role === 'sales_executive' ? req.user._id : lead.assignedTo) ||
       undefined,
-    teamLeader: req.body.teamLeader,
-    shareToken: req.body.shareToken || crypto.randomBytes(16).toString('hex'),
-    ...pickBuilderFields(req.body),
-    timeline: req.body.timeline || [
+    teamLeader: body.teamLeader,
+    shareToken: body.shareToken || crypto.randomBytes(16).toString('hex'),
+    ...pickBuilderFields(body),
+    timeline: body.timeline || [
       { type: 'created', date: new Date(), user: req.user.name, notes: 'Quote created' },
     ],
     createdBy: req.user._id,
@@ -158,17 +189,30 @@ const createQuotation = asyncHandler(async (req, res) => {
 
 const updateQuotation = asyncHandler(async (req, res) => {
   const quotation = await loadQuotation(req, req.params.id);
+  const lead = quotation.lead
+    ? await Lead.findById(quotation.lead).select('hotelCategory').lean().catch(() => null)
+    : null;
 
-  const packageSnapshot = req.body.package || quotation.packageSnapshot;
-  const computedPayload = buildComputedPricingPayload({
-    body: {
-      ...quotation.toObject(),
+  const body = applyNoHotelSanitization(
+    {
+      ...(quotation.toObject?.() || {}),
       ...req.body,
+      packageInfo: req.body.packageInfo || quotation.packageInfo,
+      selectedHotels: req.body.selectedHotels !== undefined ? req.body.selectedHotels : quotation.selectedHotels,
+      package: req.body.package || quotation.packageSnapshot,
     },
+    lead,
+  );
+
+  const packageSnapshot = body.package || body.packageSnapshot || quotation.packageSnapshot;
+  const computedPayload = buildComputedPricingPayload({
+    body,
     packageSnapshot,
   });
 
-  Object.assign(quotation, pickBuilderFields(req.body), req.body, computedPayload);
+  Object.assign(quotation, pickBuilderFields(body), body, computedPayload);
+  if (body.packageSnapshot) quotation.packageSnapshot = body.packageSnapshot;
+  if (body.selectedHotels) quotation.selectedHotels = body.selectedHotels;
   if (!quotation.shareToken) {
     quotation.shareToken = crypto.randomBytes(16).toString('hex');
   }

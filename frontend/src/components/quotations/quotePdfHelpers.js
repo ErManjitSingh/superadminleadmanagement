@@ -1,5 +1,6 @@
 import { getPackageTypeConfig } from './quotationUtils';
 import { getPackageCategoryLabel, QUOTE_BANK_ACCOUNTS, QUOTE_PAYMENT_DETAILS, QUOTE_POLICIES, QUOTE_TERMS_AND_CONDITIONS, resolveQuoteExclusions, resolveQuoteInclusions } from './quoteTemplateDefaults';
+import { quotationOmitsHotels } from './constants';
 
 export function resolveQuotePackage(quote) {
   const snap = quote?.packageSnapshot && typeof quote.packageSnapshot === 'object' ? quote.packageSnapshot : {};
@@ -185,19 +186,41 @@ export function resolveDayHotelForItinerary(quote, dayNum) {
 }
 
 export function resolveQuoteHotels(quote) {
+  if (quotationOmitsHotels(quote)) return [];
+
   const pkg = resolveQuotePackage(quote);
   const lead = resolveQuoteLead(quote);
 
-  if (pkg.hotels?.length) {
-    return pkg.hotels.map((h, index) => ({
-      day: h.day || index + 1,
-      date: h.date || h.checkIn || getDayDate(lead.travelDate, h.day || index + 1),
-      hotelImages: h.hotelImages || collectHotelOnlyImages(h),
-      roomImages: h.roomImages || collectRoomImages(h),
-      roomImage: h.roomImage || collectRoomImages(h)[0] || '',
-      ...h,
-    }));
+  // Prefer explicitly selected hotels; only then package hotels (when quote includes hotel)
+  const selected = quote.selectedHotels || [];
+  if (!selected.length && quotationOmitsHotels(quote)) return [];
+
+  if (selected.length) {
+    const dayKeyed = selected.filter((h) => h.day && h.name);
+    if (dayKeyed.length) {
+      return dayKeyed
+        .map((h) => mapSelectedHotelRecord(h, lead, pkg))
+        .sort((a, b) => a.day - b.day);
+    }
   }
+
+  if (pkg.hotels?.length && !quotationOmitsHotels(quote) && selected.length === 0) {
+    // Only use package hotels when there was no explicit empty selectedHotels array
+    const hasExplicitEmpty = Array.isArray(quote.selectedHotels) && quote.selectedHotels.length === 0;
+    if (!hasExplicitEmpty) {
+      return pkg.hotels.map((h, index) => ({
+        day: h.day || index + 1,
+        date: h.date || h.checkIn || getDayDate(lead.travelDate, h.day || index + 1),
+        hotelImages: h.hotelImages || collectHotelOnlyImages(h),
+        roomImages: h.roomImages || collectRoomImages(h),
+        roomImage: h.roomImage || collectRoomImages(h)[0] || '',
+        ...h,
+      }));
+    }
+    return [];
+  }
+
+  if (!selected.length) return [];
 
   const dayKeyed = (quote.selectedHotels || []).filter((h) => h.day && h.name);
   if (dayKeyed.length) {

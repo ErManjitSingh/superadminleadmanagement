@@ -8,6 +8,7 @@ import {
   generateVoucher,
 } from '../../../services/operationsVoucherApi';
 import { useDataRefresh } from '../../../hooks/useDataRefresh';
+import { bookingHasHotels } from '../bookings/bookingDetailUtils';
 
 const SLOT_TYPES = ['hotel', 'transport'];
 
@@ -111,15 +112,16 @@ export default function VoucherCenter({
 
   const booking = execution?.booking || bookingProp;
   const activeVouchers = execution?.activeVouchers || [];
+  const hasHotels = bookingHasHotels(booking);
 
-  const slots = useMemo(
-    () => SLOT_TYPES.map((type) => ({
+  const slots = useMemo(() => {
+    const types = hasHotels ? SLOT_TYPES : SLOT_TYPES.filter((t) => t !== 'hotel');
+    return types.map((type) => ({
       type,
       meta: SLOT_META[type],
       voucher: pickActiveVoucher(activeVouchers, type),
-    })),
-    [activeVouchers],
-  );
+    }));
+  }, [activeVouchers, hasHotels]);
 
   const runAction = async (key, fn) => {
     setActionLoading(key);
@@ -159,7 +161,9 @@ export default function VoucherCenter({
             <Ticket className="w-5 h-5 text-violet-600" />
             Voucher Center
           </h3>
-          <p className="text-sm text-content-muted mt-0.5">Hotel & cab vouchers — generate, send & track partners</p>
+          <p className="text-sm text-content-muted mt-0.5">
+            {hasHotels ? 'Hotel & cab vouchers — generate, send & track partners' : 'Cab vouchers — generate, send & track partners'}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button

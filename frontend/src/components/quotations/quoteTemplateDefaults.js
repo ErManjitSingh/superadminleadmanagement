@@ -1,6 +1,6 @@
 /** Quotation PDF & builder defaults — Explore My Bharat standard terms */
 
-import { isNoHotelMealPlan } from './constants';
+import { isNoHotelMealPlan, quotationOmitsHotels, isNoHotelLabel } from './constants';
 
 export const QUOTE_WELCOME_TEXT = `Greetings from Explore My Bharat. Your journey surely deserves warm hospitality, comfortable stay, hassle-free transportation and proper guidance which Explore My Bharat, a reliable and growing travel organization, promises to cater at the best possible rates.
 
@@ -161,14 +161,13 @@ export function resolveTransportLabel(quote = {}) {
 }
 
 export function quoteIncludesHotel(quote = {}) {
-  const mealPlan = quote.packageInfo?.mealPlan || '';
-  if (isNoHotelMealPlan(mealPlan)) return false;
+  if (quotationOmitsHotels(quote)) return false;
   const hotels = quote.selectedHotels || [];
   if (hotels.length > 0) return true;
   const snap = quote.packageSnapshot || quote.package || {};
   if (snap.hotels?.length) return true;
-  const category = String(quote.packageInfo?.hotelCategory || '').trim();
-  return Boolean(category && category.toLowerCase() !== 'no hotel');
+  const category = String(quote.packageInfo?.hotelCategory || quote.lead?.hotelCategory || '').trim();
+  return Boolean(category && !isNoHotelLabel(category));
 }
 
 export function buildDefaultInclusions(quote = {}) {
