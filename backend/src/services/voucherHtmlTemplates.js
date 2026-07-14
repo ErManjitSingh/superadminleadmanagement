@@ -41,8 +41,9 @@ html, body {
 .logo {
   width: 38px; height: 38px; border-radius: 50%; background: #fff;
   display: flex; align-items: center; justify-content: center;
-  color: #5b21b6; font-weight: 900; font-size: 16px; flex-shrink: 0;
+  color: #5b21b6; font-weight: 900; font-size: 14px; flex-shrink: 0; overflow: hidden;
 }
+.logo img { width: 100%; height: 100%; object-fit: contain; }
 .brand-name { font-size: 13px; font-weight: 800; line-height: 1.2; }
 .brand-tag { font-size: 9px; opacity: 0.88; margin-top: 2px; }
 .hero-wrap { display: flex; gap: 6px; flex-shrink: 0; }
@@ -210,27 +211,38 @@ function vendorUrl(voucher) {
     || `${(branding.websiteUrl || '').replace(/\/$/, '')}/vendor-confirm/${voucher.vendorConfirmationToken || ''}`;
 }
 
-function footerHtml() {
-  const phone = branding.supportPhone || '+91 1800 123 456';
-  const email = branding.salesEmail || 'support@travelcrm.com';
-  const site = (branding.websiteUrl || 'www.travelcrm.com').replace(/^https?:\/\//, '');
+async function resolveBrand(booking) {
+  const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
+  return resolveCompanyDocumentBranding(booking?.companyId);
+}
+
+function footerHtml(brand) {
+  const phone = brand?.phone || branding.supportPhone || '-';
+  const email = brand?.email || branding.salesEmail || '-';
+  const site = brand?.website || (branding.websiteUrl || '').replace(/^https?:\/\//, '') || '-';
+  const name = brand?.name || branding.brandName;
   return `
     <div class="help">Present this voucher at check-in / pickup. For support contact your travel executive.</div>
     <div class="foot">
       <span>Phone: ${esc(phone)} &nbsp;|&nbsp; Email: ${esc(email)} &nbsp;|&nbsp; Website: ${esc(site)}</span>
-      <span>Thank you for choosing ${esc(branding.brandName)}</span>
+      <span>Thank you for choosing ${esc(name)}</span>
     </div>`;
 }
 
-function headerHtml({ title, voucher, booking, qrSrc, heroSrc }) {
+function headerHtml({ title, voucher, booking, qrSrc, heroSrc, brand }) {
+  const name = brand?.name || branding.brandName;
+  const tagline = brand?.tagline || '';
+  const logoHtml = brand?.logoSrc
+    ? `<div class="logo"><img src="${esc(brand.logoSrc)}" alt="${esc(name)}"/></div>`
+    : `<div class="logo">${esc(brand?.initials || (name || 'C').slice(0, 1).toUpperCase())}</div>`;
   return `
   <div class="header">
     <div class="header-top">
       <div class="brand-block">
-        <div class="logo">T</div>
+        ${logoHtml}
         <div>
-          <div class="brand-name">${esc(branding.brandName)}</div>
-          <div class="brand-tag">Journey Beyond Limits</div>
+          <div class="brand-name">${esc(name)}</div>
+          ${tagline ? `<div class="brand-tag">${esc(tagline)}</div>` : ''}
         </div>
       </div>
       <div class="hero-wrap">
@@ -270,19 +282,19 @@ function vendorBlockHtml(url) {
   </div>`;
 }
 
-function authBlockHtml() {
+function authBlockHtml(brand) {
+  const name = brand?.name || branding.brandName;
+  const stamp = brand?.stamp || [String(name).toUpperCase().slice(0, 18), 'AUTHORISED'];
   return `
   <div class="auth-row">
     <div></div>
     <div>
       <div class="sign-line">
         <div class="sign-label">Authorized Signatory</div>
-        <div class="sign-name">${esc(branding.brandName)} Pvt. Ltd.</div>
+        <div class="sign-name">${esc(name)}</div>
       </div>
       <div class="stamp">
-        <div>TRAVEL CRM</div>
-        <div>PVT. LTD.</div>
-        <div>AUTHORIZED</div>
+        ${stamp.map((line) => `<div>${esc(line)}</div>`).join('')}
       </div>
     </div>
   </div>`;
@@ -317,10 +329,12 @@ function cell(label, value) {
 }
 
 async function buildCabVoucherHtml(voucher, booking) {
+  const brand = await resolveBrand(booking);
   const p = voucher.payload || booking.transport?.[0] || {};
   const url = vendorUrl(voucher);
-  const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${branding.websiteUrl}/app`);
+  const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${brand.websiteUrl || branding.websiteUrl}/app`);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Child`;
+  const customerPhone = booking.customerPhone || booking.phone || '-';
 
   const fields = [
     ['Vehicle Type', vehicleLabel(p.vehicleType)],
@@ -354,8 +368,8 @@ async function buildCabVoucherHtml(voucher, booking) {
   ];
 
   const contacts = [
-    [`${branding.brandName} Support`, branding.supportPhone || '+91 1800 123 456'],
-    ['Operations Manager', p.opsPhone || booking.executivePhone || '+91 98765 43211'],
+    [`${brand.name} Support`, brand.phone || '-'],
+    ['Operations Manager', p.opsPhone || booking.executivePhone || '-'],
     [`Driver (${p.driverName || 'Assigned'})`, p.driverPhone || '-'],
   ];
 
@@ -366,12 +380,12 @@ async function buildCabVoucherHtml(voucher, booking) {
 <style>${PRINT_CSS}</style>
 </head><body>
 <div class="page">
-  ${headerHtml({ title: 'CAB / TRANSPORT VOUCHER', voucher, booking, qrSrc, heroSrc: CAB_HERO_IMG })}
+  ${headerHtml({ title: 'CAB / TRANSPORT VOUCHER', voucher, booking, qrSrc, heroSrc: CAB_HERO_IMG, brand })}
   <div class="strip cols-5">
     <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
+    <div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>
     <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
     <div><label>Travel Date</label><p>${fmtDate(booking.travelDate)}</p></div>
-    <div><label>Return Date</label><p>${fmtDate(booking.returnDate)}</p></div>
     <div><label>Travelers</label><p>${guests}</p></div>
   </div>
   <div class="main">
@@ -389,21 +403,23 @@ async function buildCabVoucherHtml(voucher, booking) {
     </div>
   </div>
   ${vendorBlockHtml(url)}
-  ${authBlockHtml()}
-  ${footerHtml()}
+  ${authBlockHtml(brand)}
+  ${footerHtml(brand)}
 </div>
 </body></html>`;
 }
 
 async function buildHotelVoucherHtml(voucher, booking) {
+  const brand = await resolveBrand(booking);
   const p = voucher.payload || booking.hotels?.[0] || {};
   const url = vendorUrl(voucher);
-  const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${branding.websiteUrl}/app`);
+  const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${brand.websiteUrl || branding.websiteUrl}/app`);
   const hotelName = p.hotelName || p.name || 'Hotel';
   const stars = Number((String(p.starRating || p.category || '5').match(/\d/) || ['5'])[0]);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const address = p.address || p.location || booking.destination || '-';
   const destCity = (booking.destination || '').split(',')[0] || 'Branch';
+  const customerPhone = booking.customerPhone || booking.phone || '-';
 
   const fields = [
     ['Room Type', p.roomType || 'Deluxe'],
@@ -412,9 +428,9 @@ async function buildHotelVoucherHtml(voucher, booking) {
     ['Check In', fmtDateTime(p.checkIn, p.checkInTime || '02:00 PM')],
     ['Check Out', fmtDateTime(p.checkOut, p.checkOutTime || '11:00 AM')],
     ['Guests', guests],
-    ['Hotel Contact', p.hotelPhone || p.phone || '+91 98765 43210'],
+    ['Hotel Contact', p.hotelPhone || p.phone || '-'],
     ['Email', p.hotelEmail || p.email || '-'],
-    ['Front Office', p.frontOfficePhone || p.hotelPhone || '+91 98765 43211'],
+    ['Front Office', p.frontOfficePhone || p.hotelPhone || '-'],
   ];
 
   const notes = [
@@ -428,10 +444,10 @@ async function buildHotelVoucherHtml(voucher, booking) {
   ];
 
   const contacts = [
-    [`${branding.brandName} Support`, branding.supportPhone || '+91 1800 123 456'],
-    ['Operations Manager', p.opsPhone || booking.executivePhone || '+91 98765 43211'],
-    ['Hotel Front Desk', p.hotelPhone || p.frontOfficePhone || '+91 98765 43210'],
-    [`Local Office (${destCity})`, p.localOfficePhone || '+91 194 123 4567'],
+    [`${brand.name} Support`, brand.phone || '-'],
+    ['Operations Manager', p.opsPhone || booking.executivePhone || '-'],
+    ['Hotel Front Desk', p.hotelPhone || p.frontOfficePhone || '-'],
+    [`Local Office (${destCity})`, p.localOfficePhone || brand.phone || '-'],
   ];
 
   return `<!DOCTYPE html>
@@ -441,9 +457,10 @@ async function buildHotelVoucherHtml(voucher, booking) {
 <style>${PRINT_CSS}</style>
 </head><body>
 <div class="page">
-  ${headerHtml({ title: 'HOTEL VOUCHER', voucher, booking, qrSrc, heroSrc: HERO_IMG })}
-  <div class="strip cols-4">
+  ${headerHtml({ title: 'HOTEL VOUCHER', voucher, booking, qrSrc, heroSrc: HERO_IMG, brand })}
+  <div class="strip cols-5">
     <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
+    <div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>
     <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
     <div><label>Travel Dates</label><p>${fmtDate(booking.travelDate)} to ${fmtDate(booking.returnDate)}</p></div>
     <div><label>Guests</label><p>${guests}</p></div>
@@ -471,8 +488,8 @@ async function buildHotelVoucherHtml(voucher, booking) {
     </div>
   </div>
   ${vendorBlockHtml(url)}
-  ${authBlockHtml()}
-  ${footerHtml()}
+  ${authBlockHtml(brand)}
+  ${footerHtml(brand)}
 </div>
 </body></html>`;
 }

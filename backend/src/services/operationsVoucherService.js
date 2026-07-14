@@ -48,13 +48,16 @@ const BASE_STYLES = `
   @media print { body { background: #fff; padding: 0; } .page { border: none; border-radius: 0; } }
 `;
 
-function buildVoucherHtml(voucher, booking) {
+async function buildVoucherHtml(voucher, booking) {
   const type = voucher.type || 'hotel';
   if (type === 'transport' || type === 'hotel') {
     throw new Error('Use buildPremiumVoucherHtml for cab/hotel vouchers');
   }
+  const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
+  const brand = await resolveCompanyDocumentBranding(booking?.companyId);
   const typeLabel = { hotel: 'Hotel Voucher', transport: 'Cab / Transport Voucher', activity: 'Activity Voucher', master: 'Master Travel Voucher' }[type] || 'Travel Voucher';
   const details = voucher.details || {};
+  const customerPhone = booking.customerPhone || booking.phone || '-';
 
   let serviceBlock = '';
   if (type === 'hotel' && booking.hotels?.length) {
@@ -83,18 +86,24 @@ function buildVoucherHtml(voucher, booking) {
     `;
   }
 
+  const logoHtml = brand.logoSrc
+    ? `<img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}" style="height:40px;object-fit:contain;margin-bottom:8px;"/>`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/><title>${esc(voucher.voucherNumber)}</title>
 <style>${BASE_STYLES}</style></head><body>
 <div class="page">
   <div class="header">
-    <h1>${branding.brandName} — ${esc(typeLabel)}</h1>
+    ${logoHtml}
+    <h1>${esc(brand.name)} — ${esc(typeLabel)}</h1>
     <p>Voucher No: ${esc(voucher.voucherNumber)} · Booking: ${esc(booking.bookingNumber)}</p>
     <span class="badge">${esc(type)}</span>
   </div>
   <div class="body">
     <div class="grid">
       <div class="field"><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
+      <div class="field"><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>
       <div class="field"><label>Destination</label><p>${esc(booking.destination)}</p></div>
       <div class="field"><label>Valid From</label><p>${fmtDate(details.validFrom || booking.travelDate)}</p></div>
       <div class="field"><label>Valid Until</label><p>${fmtDate(details.validUntil || booking.returnDate)}</p></div>
@@ -103,7 +112,7 @@ function buildVoucherHtml(voucher, booking) {
     <div class="section"><h2>Service Details</h2><div class="grid">${serviceBlock || '<p>Details as per booking confirmation.</p>'}</div></div>
     <div class="note">Present this voucher at check-in / pickup. For support contact your travel executive.</div>
   </div>
-  <div class="footer">Generated ${fmtDate(new Date())} · ${branding.brandName} · Print this page to save as PDF</div>
+  <div class="footer">Generated ${fmtDate(new Date())} · ${esc(brand.name)} · Print this page to save as PDF</div>
 </div>
 <script>window.onload=()=>{if(new URLSearchParams(location.search).get('print')==='1')window.print()}</script>
 </body></html>`;
@@ -159,7 +168,7 @@ async function generateVoucherDocument(voucher, booking) {
   const type = voucher.type || 'hotel';
   const html = (type === 'transport' || type === 'hotel')
     ? await buildPremiumVoucherHtml(voucher, booking)
-    : buildVoucherHtml(voucher, booking);
+    : await buildVoucherHtml(voucher, booking);
   const safeName = `${voucher.voucherNumber.replace(/[^a-zA-Z0-9-_]/g, '_')}.html`;
   return writeHtmlFile(VOUCHER_DIR, safeName, html);
 }

@@ -26,13 +26,16 @@ async function sendPaymentReceiptEmail(payment, booking, actor) {
   const buffer = getReceiptBuffer(payment);
   if (!buffer) return { sent: false, reason: 'no_pdf' };
 
+  const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
+  const companyBrand = await resolveCompanyDocumentBranding(companyId);
   const remaining = Math.max(0, (booking.totalAmount || 0) - (booking.totalPaid || booking.advanceReceived || 0));
-  const supportEmail = branding.supportEmail || branding.contactEmail || '';
+  const supportEmail = companyBrand.email || branding.supportEmail || branding.contactEmail || '';
+  const brandName = companyBrand.name || branding.brandName;
 
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#f8fafc;">
       <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px;border-radius:12px 12px 0 0;text-align:center;">
-        <h1 style="color:#fff;margin:0;font-size:22px;">${branding.brandName}</h1>
+        <h1 style="color:#fff;margin:0;font-size:22px;">${brandName}</h1>
         <p style="color:#e0e7ff;margin:8px 0 0;">Payment Receipt</p>
       </div>
       <div style="background:#fff;padding:24px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;">
@@ -41,13 +44,14 @@ async function sendPaymentReceiptEmail(payment, booking, actor) {
         <table style="width:100%;border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:8px 0;color:#64748b;">Booking ID</td><td style="padding:8px 0;font-weight:bold;">${booking.bookingNumber}</td></tr>
           <tr><td style="padding:8px 0;color:#64748b;">Destination</td><td style="padding:8px 0;">${booking.destination}</td></tr>
+          <tr><td style="padding:8px 0;color:#64748b;">Customer Phone</td><td style="padding:8px 0;">${booking.customerPhone || '-'}</td></tr>
           <tr><td style="padding:8px 0;color:#64748b;">Amount Received</td><td style="padding:8px 0;font-weight:bold;color:#059669;">${fmtINR(payment.amount)}</td></tr>
           <tr><td style="padding:8px 0;color:#64748b;">Remaining Balance</td><td style="padding:8px 0;font-weight:bold;color:#d97706;">${fmtINR(remaining)}</td></tr>
           <tr><td style="padding:8px 0;color:#64748b;">Payment Mode</td><td style="padding:8px 0;">${payment.mode}</td></tr>
           <tr><td style="padding:8px 0;color:#64748b;">Receipt Number</td><td style="padding:8px 0;">${payment.receiptNumber}</td></tr>
         </table>
         ${supportEmail ? `<p style="color:#64748b;font-size:13px;">Need help? Contact us at <a href="mailto:${supportEmail}">${supportEmail}</a></p>` : ''}
-        <p style="margin-top:24px;">Regards,<br/><strong>${branding.brandName}</strong></p>
+        <p style="margin-top:24px;">Regards,<br/><strong>${brandName}</strong></p>
       </div>
     </div>
   `;
@@ -86,6 +90,10 @@ async function sendPaymentReceiptWhatsApp(payment, booking, actor) {
   const buffer = getReceiptBuffer(payment);
   if (!buffer) return { sent: false, prepared: false, reason: 'no_pdf' };
 
+  const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
+  const companyBrand = await resolveCompanyDocumentBranding(booking.companyId || payment.companyId);
+  const brandName = companyBrand.name || branding.brandName;
+
   const totalAmount = booking.totalAmount || 0;
   const totalPaid = booking.totalPaid ?? booking.advanceReceived ?? payment.amount;
   const remaining = Math.max(0, totalAmount - totalPaid);
@@ -104,12 +112,13 @@ async function sendPaymentReceiptWhatsApp(payment, booking, actor) {
     '',
     `Booking ID: ${booking.bookingNumber}`,
     `Receipt No: ${payment.receiptNumber}`,
+    booking.customerPhone ? `Customer Phone: ${booking.customerPhone}` : null,
     '',
     'Please complete the remaining balance before your travel date.',
     '',
     `Regards,`,
-    branding.brandName,
-  ].join('\n');
+    brandName,
+  ].filter((line) => line !== null).join('\n');
 
   const waMeUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 

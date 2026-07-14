@@ -151,7 +151,7 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
     lead: lead._id,
     quotation: quotation?._id,
     customerName: lead.name,
-    customerPhone: lead.phone || '',
+    customerPhone: lead.whatsapp || lead.phone || '',
     customerEmail: lead.email || '',
     destination: lead.destination || snap.destination || 'TBD',
     packageName: snap.name || snap.title || lead.packageName || '',

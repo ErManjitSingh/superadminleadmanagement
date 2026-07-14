@@ -48,12 +48,35 @@ async function generateReceiptPdf(payment, booking) {
   const fileName = `${safeNum}.pdf`;
 
   const BookingPayment = require('../models/BookingPayment');
+  const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
   const paymentHistory = await BookingPayment.find({ booking: booking._id })
     .sort({ paymentDate: 1, createdAt: 1 })
     .lean();
 
+  const companyBrand = await resolveCompanyDocumentBranding(
+    booking.companyId || payment.companyId
+  );
+
+  // Backfill customer phone from lead when booking phone is empty
+  let bookingForPdf = booking;
+  if ((!booking.customerPhone || !String(booking.customerPhone).trim()) && booking.lead) {
+    try {
+      const Lead = require('../models/Lead');
+      const lead = await Lead.findById(booking.lead).select('phone whatsapp email').lean();
+      if (lead) {
+        bookingForPdf = {
+          ...booking,
+          customerPhone: lead.whatsapp || lead.phone || '',
+          customerEmail: booking.customerEmail || lead.email || '',
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
   const enrichedPayment = { ...payment, receiptNumber };
-  const html = await buildPaymentReceiptHtml(enrichedPayment, booking, paymentHistory);
+  const html = await buildPaymentReceiptHtml(enrichedPayment, bookingForPdf, paymentHistory, companyBrand);
   const result = await renderVoucherHtmlToPdf(html, fileName, RECEIPT_DIR);
 
   return {

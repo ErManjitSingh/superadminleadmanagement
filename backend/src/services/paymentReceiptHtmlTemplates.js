@@ -34,8 +34,9 @@ html, body {
 .logo {
   width: 38px; height: 38px; border-radius: 50%; background: #fff;
   display: flex; align-items: center; justify-content: center;
-  color: #5b21b6; font-weight: 900; font-size: 16px;
+  color: #5b21b6; font-weight: 900; font-size: 14px; overflow: hidden; flex-shrink: 0;
 }
+.logo img { width: 100%; height: 100%; object-fit: contain; }
 .brand-name { font-size: 13px; font-weight: 800; }
 .brand-tag { font-size: 9px; opacity: 0.88; }
 .hero-wrap { display: flex; gap: 8px; align-items: flex-start; }
@@ -50,7 +51,7 @@ html, body {
 .pill.outline { background: transparent; border: 1px solid #c4b5fd; color: #fff; }
 .issued { text-align: center; font-size: 8px; opacity: 0.9; margin-top: 4px; }
 .strip {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
   background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 10px 14px;
 }
 .strip label { display: block; font-size: 7px; color: #64748b; font-weight: 700; text-transform: uppercase; }
@@ -187,7 +188,21 @@ function buildPaymentHistoryRows(paymentHistory = [], currentReceiptNumber) {
   </div>`;
 }
 
-async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
+async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], companyBrand = null) {
+  const brand = companyBrand || {
+    name: branding.brandName,
+    tagline: '',
+    logoSrc: '',
+    initials: (branding.brandName || 'C').slice(0, 1).toUpperCase(),
+    phone: branding.supportPhone || '',
+    email: branding.salesEmail || '',
+    website: (branding.websiteUrl || '').replace(/^https?:\/\//, ''),
+    websiteUrl: branding.websiteUrl || '',
+    address: '',
+    gst: '',
+    stamp: [(branding.brandName || 'COMPANY').toUpperCase().slice(0, 18), 'AUTHORISED'],
+  };
+
   const receiptNumber = payment.receiptNumber || 'RCP';
   const isAdvance = !!payment.isFirstAdvance || payment.paymentType === 'advance';
   const totalAmount = Number(booking.totalAmount) || 0;
@@ -204,6 +219,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   );
   const progress = totalAmount > 0 ? Math.min(100, Math.round((totalPaid / totalAmount) * 100)) : 0;
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  const customerPhone = booking.customerPhone || booking.phone || payment.customerPhone || '-';
   const receivedBy = payment.createdByName
     || (payment.createdBy?.name ? `${payment.createdBy.name}` : '')
     || 'Accounts Team';
@@ -212,15 +228,23 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
     : payment.department === 'sales' ? 'Sales Executive' : 'Accounts';
   const docTitle = isAdvance ? 'ADVANCE PAYMENT VOUCHER' : 'PAYMENT RECEIPT';
   const amountLabel = isAdvance ? 'Advance Received' : 'Amount Received';
-  const verifyUrl = `${(branding.websiteUrl || '').replace(/\/$/, '')}/receipt/${receiptNumber}`;
+  const verifyBase = (brand.websiteUrl || branding.websiteUrl || '').replace(/\/$/, '');
+  const verifyUrl = `${verifyBase}/receipt/${receiptNumber}`;
   let qrSrc = '';
   try {
-    qrSrc = await QRCode.toDataURL(verifyUrl, { width: 140, margin: 1 });
+    qrSrc = await QRCode.toDataURL(verifyUrl || receiptNumber, { width: 140, margin: 1 });
   } catch { /* optional */ }
 
-  const phone = branding.supportPhone || '+91 1800 123 456';
-  const email = branding.salesEmail || 'support@travelcrm.com';
-  const site = (branding.websiteUrl || 'www.travelcrm.com').replace(/^https?:\/\//, '');
+  const footPhone = brand.phone || '-';
+  const footEmail = brand.email || '-';
+  const footSite = brand.website || '-';
+  const footPlace = brand.address || brand.name;
+  const logoHtml = brand.logoSrc
+    ? `<div class="logo"><img src="${esc(brand.logoSrc)}" alt="${esc(brand.name)}"/></div>`
+    : `<div class="logo">${esc(brand.initials || 'C')}</div>`;
+  const stampHtml = (brand.stamp || [brand.name, 'AUTHORISED'])
+    .map((line) => `<div>${esc(line)}</div>`)
+    .join('');
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/><title>${esc(receiptNumber)}</title><style>${PRINT_CSS}</style></head><body>
@@ -228,12 +252,15 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   <div class="header">
     <div class="header-top">
       <div class="brand-block">
-        <div class="logo">T</div>
-        <div><div class="brand-name">${esc(branding.brandName)}</div><div class="brand-tag">Journey Beyond Limits</div></div>
+        ${logoHtml}
+        <div>
+          <div class="brand-name">${esc(brand.name)}</div>
+          ${brand.tagline ? `<div class="brand-tag">${esc(brand.tagline)}</div>` : ''}
+        </div>
       </div>
       <div class="hero-wrap">
         <img class="hero-img" src="${HERO_IMG}" alt=""/>
-        <div class="thank-ribbon">THANK YOU<br/>for choosing<br/>${esc(branding.brandName)}</div>
+        <div class="thank-ribbon">THANK YOU<br/>for choosing<br/>${esc(brand.name)}</div>
       </div>
     </div>
     <div class="title">${docTitle}</div>
@@ -246,6 +273,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   </div>
   <div class="strip">
     <div><label>Customer</label><p>${esc(booking.customerName)}</p></div>
+    <div><label>Customer Phone</label><p>${esc(customerPhone)}</p></div>
     <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
     <div><label>Travel Dates</label><p>${fmtDate(booking.travelDate)} – ${fmtDate(booking.returnDate)}</p></div>
     <div><label>Guests</label><p>${guests}</p></div>
@@ -274,6 +302,8 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
         ${cell('#', 'Transaction ID', payment.transactionId || payment.referenceNumber || '-')}
         ${cell('▤', 'Received By', `${receivedBy} (${roleLabel})`)}
         ${cell('◎', 'Receipt No', receiptNumber)}
+        ${cell('☎', 'Customer Phone', customerPhone)}
+        ${cell('@', 'Customer Email', booking.customerEmail || '-')}
       </div>
     </div>
     <div class="card">
@@ -293,7 +323,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
     <div>
       <div class="note-title">Payment Note</div>
       <div class="note-text">Package cost ${fmtINR(totalAmount)}. Advance received ${fmtINR(advanceReceived || thisPayment)}. Remaining balance ${fmtINR(remaining)} — please clear before travel.</div>
-      <div class="note-sign">Thank you! We look forward to serving you.</div>
+      <div class="note-sign">Thank you for choosing ${esc(brand.name)}.</div>
     </div>
     <div class="qr-box">
       <div class="note-title">Scan to Verify</div>
@@ -303,20 +333,20 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   </div>
   <div class="auth-row">
     <div>
-      <div class="sign-line"><div class="sign-label">Authorized Signatory</div><div class="sign-name">${esc(branding.brandName)} Pvt. Ltd.</div></div>
+      <div class="sign-line"><div class="sign-label">Authorized Signatory</div><div class="sign-name">${esc(brand.name)}</div></div>
     </div>
-    <div class="stamp"><div>TRAVEL CRM</div><div>PVT. LTD.</div><div>AUTHORISED</div></div>
+    <div class="stamp">${stampHtml}</div>
     <div class="company">
-      <strong>${esc(branding.brandName)} Pvt. Ltd.</strong>
-      123, Travel House, 2nd Floor, Rajbagh, Srinagar, J&amp;K - 190008<br/>
-      GSTIN: 01AAECT1234A1Z5
+      <strong>${esc(brand.name)}</strong>
+      ${brand.address ? `${esc(brand.address)}<br/>` : ''}
+      ${brand.gst ? `GSTIN: ${esc(brand.gst)}` : ''}
     </div>
   </div>
   <div class="foot">
-    <span>Phone: ${esc(phone)}</span>
-    <span>Email: ${esc(email)}</span>
-    <span>Web: ${esc(site)}</span>
-    <span>Srinagar, Kashmir</span>
+    <span>Phone: ${esc(footPhone)}</span>
+    <span>Email: ${esc(footEmail)}</span>
+    <span>Web: ${esc(footSite)}</span>
+    <span>${esc(footPlace)}</span>
   </div>
 </div>
 </body></html>`;
