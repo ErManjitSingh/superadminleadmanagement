@@ -1,45 +1,72 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
-export default function ExecutivePipelineChart({ data = [], total = 0 }) {
+export default function ExecutivePipelineChart({
+  data = [],
+  total = 0,
+  centerLabel = 'Total Leads',
+  centerSuffix = '',
+  compact = false,
+}) {
   if (!data.length) {
     return <p className="text-sm text-content-muted py-12 text-center">No pipeline data yet</p>;
   }
 
+  const size = compact ? 160 : 200;
+  const inner = compact ? 48 : 62;
+  const outer = compact ? 68 : 88;
+
+  const chart = (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={data}
+            dataKey="value"
+            nameKey="name"
+            cx="50%"
+            cy="50%"
+            innerRadius={inner}
+            outerRadius={outer}
+            paddingAngle={3}
+            strokeWidth={0}
+          >
+            {data.map((entry) => (
+              <Cell key={entry.name} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value, name) => [value, name]}
+            contentStyle={{
+              borderRadius: 12,
+              border: '1px solid var(--color-border-subtle)',
+              background: 'var(--color-surface)',
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-2 text-center">
+        <p className={`${compact ? 'text-xl' : 'text-2xl'} font-bold text-content-primary tabular-nums`}>
+          {typeof total === 'number' ? total.toLocaleString('en-IN') : total}
+          {centerSuffix}
+        </p>
+        <p className={`${compact ? 'text-[9px]' : 'text-[11px]'} font-medium text-content-muted leading-tight`}>
+          {centerLabel}
+        </p>
+      </div>
+    </div>
+  );
+
+  if (compact) {
+    return <div className="flex justify-center">{chart}</div>;
+  }
+
   return (
     <div className="flex flex-col sm:flex-row items-center gap-6">
-      <div className="relative w-[200px] h-[200px] shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              innerRadius={62}
-              outerRadius={88}
-              paddingAngle={3}
-              strokeWidth={0}
-            >
-              {data.map((entry) => (
-                <Cell key={entry.name} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(value, name) => [value, name]}
-              contentStyle={{ borderRadius: 12, border: '1px solid var(--color-border-subtle)', background: 'var(--color-surface)' }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-2xl font-bold text-content-primary tabular-nums">{total.toLocaleString('en-IN')}</p>
-          <p className="text-[11px] font-medium text-content-muted">Total Leads</p>
-        </div>
-      </div>
-
+      {chart}
       <div className="flex-1 w-full space-y-2.5">
         {data.map((item) => {
-          const pct = total ? Math.round((item.value / total) * 100) : 0;
+          const sum = data.reduce((s, d) => s + d.value, 0);
+          const pct = sum ? Math.round((item.value / sum) * 100) : 0;
           return (
             <div key={item.name} className="flex items-center gap-3">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: item.color }} />

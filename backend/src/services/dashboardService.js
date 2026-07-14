@@ -331,6 +331,7 @@ async function buildExecutiveDashboard(userId, options = {}) {
     lastMonthQuotes,
     lastMonthConverted,
     lastMonthRevenueAgg,
+    budgetAgg,
   ] = await Promise.all([
     Lead.countDocuments({ ...leadScope, status: { $nin: ['lost', 'booked_from_another_company'] } }),
     Lead.countDocuments({ ...leadScope, isHot: true, status: { $nin: ['converted', 'lost', 'booked_from_another_company'] } }),
@@ -392,27 +393,29 @@ async function buildExecutiveDashboard(userId, options = {}) {
       { $match: withBranch({ status: { $in: ['paid', 'partial'] }, createdAt: { $gte: lastMonthStart, $lte: lastMonthEnd } }, branchId) },
       { $group: { _id: null, total: { $sum: '$paidAmount' } } },
     ]),
+    Lead.aggregate([
+      { $match: leadScope },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$budget', 0] } } } },
+    ]),
   ]);
 
   const statusCounts = Object.fromEntries(statusAgg.map((s) => [s._id, s.count]));
   const enrichedRecent = recentLeadsRaw.map(enrichLead);
   const monthlyRevenue = monthlyRevenueAgg[0]?.total || 0;
   const lastMonthRevenue = lastMonthRevenueAgg[0]?.total || 0;
+  const totalBudget = budgetAgg[0]?.total || 0;
   const totalAssigned = Object.values(statusCounts).reduce((s, n) => s + n, 0);
   const monthlyTarget = await getMonthlyTarget(execId);
   const targetStats = buildTargetProgress(monthlyRevenue, monthlyTarget);
+  const lostCount =
+    (statusCounts.lost || 0) + (statusCounts.booked_from_another_company || 0);
 
   const pipelineOverview = [
-    { name: 'New Leads', value: statusCounts.new || 0, color: '#3B82F6' },
+    { name: 'New', value: statusCounts.new || 0, color: '#3B82F6' },
     { name: 'Contacted', value: statusCounts.contacted || 0, color: '#8B5CF6' },
-    {
-      name: 'Follow-up',
-      value: (statusCounts.follow_up || 0) + (statusCounts.negotiation || 0),
-      color: '#F59E0B',
-    },
-    { name: 'Hot Leads', value: hotLeads, color: '#F97316' },
     { name: 'Converted', value: convertedCount, color: '#10B981' },
-  ].filter((item) => item.value > 0);
+    { name: 'Lost', value: lostCount, color: '#94A3B8' },
+  ];
 
   const leadSources = sourceAgg
     .map((s, i) => ({
@@ -431,6 +434,7 @@ async function buildExecutiveDashboard(userId, options = {}) {
       quotationsSent: quotesSentCount,
       convertedLeads: convertedCount,
       monthlyRevenue,
+      totalBudget,
     },
     kpiTrends: {
       myLeads: { change: pctChange(myLeads, lastMonthLeads), period: 'from last month' },
