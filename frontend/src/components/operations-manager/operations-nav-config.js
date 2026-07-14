@@ -76,7 +76,7 @@ export const operationsAdminMenuChildren = [
   ...operationsInsightsChildren,
 ];
 
-/** Grouped main menu for Operations Manager layout */
+/** Grouped main menu for Operations Manager layout — matches Command Center sidebar */
 export const operationsManagerNavItems = [
   { path: '/operations-manager/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   {
@@ -115,6 +115,9 @@ export const operationsManagerNavItems = [
     icon: BarChart3,
     children: operationsInsightsChildren,
   },
+  { path: '/operations-manager/reports', label: 'Reports', icon: BarChart3 },
+  { path: '/operations-manager/tasks', label: 'Tasks', icon: ListTodo, badgeKey: 'tasks.pending' },
+  { path: '/operations-manager/operations/alerts', label: 'Alerts', icon: Bell },
   { path: '/operations-manager/profile', label: 'Profile', icon: User },
 ];
 
@@ -122,7 +125,7 @@ export const operationsQuickActions = [
   { path: '/operations-manager/trip-execution', label: 'Trip Execution', icon: MapPin },
   { path: '/operations-manager/vouchers', label: 'Voucher Center', icon: Ticket },
   { path: '/operations-manager/trips/active', label: 'Active Trips', icon: Plane },
-  { path: '/operations-manager/vendors/confirmations', label: 'Vendor Confirmations', icon: Building2 },
+  { path: '/operations-manager/vendors/confirmations', label: 'Vendor Confirmation', icon: Building2 },
   { path: '/operations-manager/tasks', label: 'Assign Tasks', icon: ListTodo },
 ];
 

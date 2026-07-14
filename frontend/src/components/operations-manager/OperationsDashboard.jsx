@@ -2,8 +2,9 @@ import { useDashboardQuery } from '../../features/dashboard/hooks/useDashboardQu
 import OperationsDashboardHeader from './dashboard/OperationsDashboardHeader';
 import OperationsExecutionHub from './dashboard/OperationsExecutionHub';
 import OperationsKpiCards from './dashboard/OperationsKpiCards';
-import OperationsDashboardCharts from './dashboard/OperationsDashboardCharts';
 import NewBookingsPanel from './dashboard/NewBookingsPanel';
+import OperationsPerformanceSection from './dashboard/OperationsPerformanceSection';
+import OperationsRightRail from './dashboard/OperationsRightRail';
 import OperationsDashboardPanels from './dashboard/OperationsDashboardPanels';
 
 export default function OperationsDashboard() {
@@ -12,7 +13,7 @@ export default function OperationsDashboard() {
   if (isLoading && !data) {
     return (
       <div className="flex justify-center py-32">
-        <div className="w-9 h-9 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-9 h-9 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -36,31 +37,41 @@ export default function OperationsDashboard() {
   return (
     <div className="space-y-6 pb-8">
       {isFetching && (
-        <div className="h-0.5 w-full bg-blue-500/30 rounded-full overflow-hidden">
-          <div className="h-full w-1/3 bg-blue-500 animate-pulse" />
+        <div className="h-0.5 w-full bg-violet-500/30 rounded-full overflow-hidden">
+          <div className="h-full w-1/3 bg-violet-500 animate-pulse" />
         </div>
       )}
 
       <OperationsDashboardHeader />
 
-      <OperationsExecutionHub kpis={data?.kpis} hubStats={data?.hubStats} />
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <div className="space-y-5 min-w-0">
+          <OperationsExecutionHub kpis={data?.kpis} hubStats={data?.hubStats} />
 
-      <NewBookingsPanel bookings={data?.newBookings} />
+          <OperationsKpiCards
+            kpis={data?.kpis}
+            kpiTrends={data?.kpiTrends}
+            sparklines={data?.sparklines}
+            loading={isLoading}
+          />
 
-      <OperationsKpiCards
-        kpis={data?.kpis}
-        kpiTrends={data?.kpiTrends}
-        sparklines={data?.sparklines}
-        loading={isLoading}
-      />
+          <NewBookingsPanel bookings={data?.newBookings || data?.recentBookings || []} />
 
-      <OperationsDashboardCharts
-        branchStats={data?.branchStats}
-        bookingsByStatus={data?.bookingsByStatus}
-        todaySchedule={data?.todaySchedule}
-      />
+          <OperationsPerformanceSection
+            weeklyPerformance={data?.weeklyPerformance}
+            topDestinations={data?.topDestinations}
+          />
 
-      <OperationsDashboardPanels data={data} />
+          <OperationsDashboardPanels data={data} />
+        </div>
+
+        <aside className="xl:sticky xl:top-4">
+          <OperationsRightRail
+            scheduleEvents={data?.scheduleEvents}
+            alerts={data?.alerts}
+          />
+        </aside>
+      </div>
     </div>
   );
 }

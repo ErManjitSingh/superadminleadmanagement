@@ -1,20 +1,64 @@
 import {
-  Car,
+  ClipboardList,
   CircleCheck,
   Clock,
-  Hotel,
   Plane,
+  IndianRupee,
 } from 'lucide-react';
 import KpiCard from '../../dashboard/KpiCard';
 import { buildSparkline } from '../bookings/bookingListUtils';
 
-/** Matches Operations Command Center design — 5 status cards only. */
+function formatRevenue(amount) {
+  const n = Number(amount) || 0;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(2)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
+  return `₹${n.toLocaleString('en-IN')}`;
+}
+
+/** Matches Operations Command Center design — Total / Confirmed / Pending / On Trip / Revenue */
 const KPI_CONFIG = [
-  { key: 'pendingBookings', label: 'Pending Bookings', icon: Clock, iconColor: 'bg-orange-500', sparkColor: '#F97316' },
-  { key: 'hotelPending', label: 'Hotel Pending', icon: Hotel, iconColor: 'bg-sky-500', sparkColor: '#0EA5E9' },
-  { key: 'cabPending', label: 'Cab Pending', icon: Car, iconColor: 'bg-pink-500', sparkColor: '#EC4899' },
-  { key: 'activeTrips', label: 'Active Trips', icon: Plane, iconColor: 'bg-emerald-500', sparkColor: '#22C55E' },
-  { key: 'completedTrips', label: 'Completed Trips', icon: CircleCheck, iconColor: 'bg-slate-500', sparkColor: '#64748B' },
+  {
+    key: 'totalBookings',
+    label: 'Total Bookings',
+    icon: ClipboardList,
+    iconColor: 'bg-blue-500',
+    sparkColor: '#3B82F6',
+    format: (v) => (v ?? 0).toLocaleString('en-IN'),
+  },
+  {
+    key: 'confirmedBookings',
+    label: 'Confirmed',
+    icon: CircleCheck,
+    iconColor: 'bg-emerald-500',
+    sparkColor: '#22C55E',
+    format: (v) => (v ?? 0).toLocaleString('en-IN'),
+  },
+  {
+    key: 'pendingBookings',
+    label: 'Pending',
+    icon: Clock,
+    iconColor: 'bg-orange-500',
+    sparkColor: '#F97316',
+    format: (v) => (v ?? 0).toLocaleString('en-IN'),
+  },
+  {
+    key: 'activeTrips',
+    label: 'On Trip',
+    icon: Plane,
+    iconColor: 'bg-violet-500',
+    sparkColor: '#8B5CF6',
+    format: (v) => (v ?? 0).toLocaleString('en-IN'),
+    trendKey: 'onTrip',
+    sparkKey: 'onTrip',
+  },
+  {
+    key: 'totalRevenue',
+    label: 'Revenue',
+    icon: IndianRupee,
+    iconColor: 'bg-sky-500',
+    sparkColor: '#0EA5E9',
+    format: formatRevenue,
+  },
 ];
 
 export default function OperationsKpiCards({ kpis, kpiTrends, sparklines, loading }) {
@@ -33,19 +77,21 @@ export default function OperationsKpiCards({ kpis, kpiTrends, sparklines, loadin
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
       {KPI_CONFIG.map((item, i) => {
-        const trend = kpiTrends?.[item.key] || { change: 'No change', changeType: 'neutral' };
-        const sparkData = sparklines?.[item.key]?.length
-          ? sparklines[item.key]
+        const trendKey = item.trendKey || item.key;
+        const sparkKey = item.sparkKey || item.key;
+        const trend = kpiTrends?.[trendKey] || { change: 'No change', changeType: 'neutral' };
+        const sparkData = sparklines?.[sparkKey]?.length
+          ? sparklines[sparkKey]
           : buildSparkline(kpis[item.key]);
 
         return (
           <KpiCard
             key={item.key}
             label={item.label}
-            value={(kpis[item.key] ?? 0).toLocaleString('en-IN')}
+            value={item.format(kpis[item.key])}
             change={trend.change}
             changeType={trend.changeType || 'neutral'}
-            changeLabel={trend.changeType === 'neutral' ? '' : 'vs last 7 days'}
+            changeLabel={trend.changeType === 'neutral' ? '' : 'vs last week'}
             icon={item.icon}
             iconColor={item.iconColor}
             sparkColor={item.sparkColor}

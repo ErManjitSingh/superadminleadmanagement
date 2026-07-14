@@ -7,15 +7,9 @@ export default function OperationsDashboardHeader({ dateFrom, dateTo }) {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-5"
+      className="mb-1"
     >
-      <nav className="text-xs text-content-muted mb-2 flex items-center gap-1.5">
-        <span>Operations Manager</span>
-        <span>/</span>
-        <span className="text-content-secondary font-medium">Dashboard</span>
-      </nav>
-
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <BadgeCheck className="w-7 h-7 text-blue-500 shrink-0" strokeWidth={2.25} />

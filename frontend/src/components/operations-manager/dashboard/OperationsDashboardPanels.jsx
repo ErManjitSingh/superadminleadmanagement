@@ -21,7 +21,7 @@ export default function OperationsDashboardPanels({ data }) {
       key: 'bookingNumber',
       header: 'Booking #',
       render: (b) => (
-        <Link to={`/operations-manager/booking/${b._id}`} className="font-mono text-sm font-bold text-teal-600 hover:underline" onClick={(e) => e.stopPropagation()}>
+        <Link to={`/operations-manager/booking/${b._id}`} className="font-mono text-sm font-bold text-violet-600 hover:underline" onClick={(e) => e.stopPropagation()}>
           {b.bookingNumber}
         </Link>
       ),
@@ -53,7 +53,7 @@ export default function OperationsDashboardPanels({ data }) {
       >
         <div className="px-5 py-4 border-b border-subtle flex items-center justify-between">
           <h3 className="font-bold text-content-primary">Pending Confirmations</h3>
-          <Link to="/operations-manager/bookings/pending" className="text-xs text-teal-600 hover:text-teal-500 flex items-center gap-1">
+          <Link to="/operations-manager/bookings/pending" className="text-xs text-violet-600 hover:text-violet-500 flex items-center gap-1">
             View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -62,10 +62,10 @@ export default function OperationsDashboardPanels({ data }) {
             <Link
               key={b._id}
               to={`/operations-manager/booking/${b._id}`}
-              className="flex items-center gap-4 px-5 py-3.5 hover:bg-teal-500/[0.04] transition-colors"
+              className="flex items-center gap-4 px-5 py-3.5 hover:bg-violet-500/[0.04] transition-colors"
             >
               <div className="flex-1 min-w-0">
-                <p className="font-mono text-xs text-teal-600 font-bold">{b.bookingNumber}</p>
+                <p className="font-mono text-xs text-violet-600 font-bold">{b.bookingNumber}</p>
                 <p className="text-sm font-medium text-content-primary truncate">{b.customerName} · {b.destination}</p>
               </div>
               <div className="flex gap-2 shrink-0">
@@ -87,7 +87,7 @@ export default function OperationsDashboardPanels({ data }) {
           <h3 className="font-bold text-content-primary flex items-center gap-2">
             <Headphones className="w-4 h-4 text-rose-500" /> Open Support Tickets
           </h3>
-          <Link to="/operations-manager/support" className="text-xs text-teal-600 hover:text-teal-500 flex items-center gap-1">
+          <Link to="/operations-manager/support" className="text-xs text-violet-600 hover:text-violet-500 flex items-center gap-1">
             View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
@@ -113,7 +113,7 @@ export default function OperationsDashboardPanels({ data }) {
       >
         <div className="flex items-center justify-between px-1">
           <h3 className="font-bold text-content-primary">Recent Bookings</h3>
-          <Link to="/operations-manager/bookings/pending" className="text-xs text-teal-600 hover:text-teal-500 flex items-center gap-1">
+          <Link to="/operations-manager/bookings/pending" className="text-xs text-violet-600 hover:text-violet-500 flex items-center gap-1">
             View all <ArrowRight className="w-3 h-3" />
           </Link>
         </div>

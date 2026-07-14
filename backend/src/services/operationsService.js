@@ -305,6 +305,117 @@ async function buildDashboard(branchId) {
   });
 
   const guestsOnTrip = guestsOnTripAgg[0] || { guests: 0, bookings: 0 };
+  const confirmedBookings = bookingsByStatus.confirmed;
+
+  const fourteenDaysAgo = startOfDay();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13);
+
+  const [
+    revenueAgg,
+    revenueThisWeek,
+    revenueLastWeek,
+    confirmedThis,
+    confirmedLast,
+    totalThis,
+    totalLast,
+    onTripThis,
+    onTripLast,
+    destinationsAgg,
+    dailyPerfAgg,
+    vouchersExpiringToday,
+  ] = await Promise.all([
+    Booking.aggregate([
+      { $match: { ...base, status: { $nin: ['cancelled'] } } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } },
+    ]),
+    Booking.aggregate([
+      { $match: { ...base, createdAt: { $gte: thisWeek.start, $lte: thisWeek.end }, status: { $nin: ['cancelled'] } } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } },
+    ]),
+    Booking.aggregate([
+      { $match: { ...base, createdAt: { $gte: lastWeek.start, $lte: lastWeek.end }, status: { $nin: ['cancelled'] } } },
+      { $group: { _id: null, total: { $sum: { $ifNull: ['$totalAmount', 0] } } } },
+    ]),
+    Booking.countDocuments({ ...base, status: 'confirmed', createdAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'confirmed', createdAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...base, createdAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...base, createdAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'in_progress', updatedAt: { $gte: thisWeek.start, $lte: thisWeek.end } }),
+    Booking.countDocuments({ ...base, status: 'in_progress', updatedAt: { $gte: lastWeek.start, $lte: lastWeek.end } }),
+    Booking.aggregate([
+      { $match: { ...base, destination: { $nin: [null, ''] }, status: { $nin: ['cancelled'] } } },
+      { $group: { _id: '$destination', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 6 },
+    ]),
+    Booking.aggregate([
+      {
+        $match: {
+          ...base,
+          createdAt: { $gte: fourteenDaysAgo, $lte: todayEnd },
+          status: { $nin: ['cancelled'] },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          bookings: { $sum: 1 },
+          revenue: { $sum: { $ifNull: ['$totalAmount', 0] } },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
+    Voucher.countDocuments({
+      ...withBranch({}, branchId),
+      isActive: true,
+      $or: [
+        { status: 'draft' },
+        { vendorStatus: 'pending', status: { $in: ['issued', 'sent', 'vendor_pending'] } },
+      ],
+    }).catch(() => 0),
+  ]);
+
+  const totalRevenue = revenueAgg[0]?.total || 0;
+  const revThis = revenueThisWeek[0]?.total || 0;
+  const revLast = revenueLastWeek[0]?.total || 0;
+
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dailyMap = Object.fromEntries((dailyPerfAgg || []).map((r) => [r._id, r]));
+  const weeklyPerformance = { bookings: [], revenue: [] };
+  for (let i = 6; i >= 0; i -= 1) {
+    const thisDate = new Date(todayEnd);
+    thisDate.setDate(thisDate.getDate() - i);
+    const lastDate = new Date(thisDate);
+    lastDate.setDate(lastDate.getDate() - 7);
+    const thisKey = thisDate.toISOString().slice(0, 10);
+    const lastKey = lastDate.toISOString().slice(0, 10);
+    const day = dayNames[thisDate.getDay()];
+    weeklyPerformance.bookings.push({
+      day,
+      thisWeek: dailyMap[thisKey]?.bookings || 0,
+      lastWeek: dailyMap[lastKey]?.bookings || 0,
+    });
+    weeklyPerformance.revenue.push({
+      day,
+      thisWeek: Math.round((dailyMap[thisKey]?.revenue || 0) / 1000) / 10,
+      lastWeek: Math.round((dailyMap[lastKey]?.revenue || 0) / 1000) / 10,
+    });
+  }
+
+  const destTotal = destinationsAgg.reduce((s, d) => s + d.count, 0) || 1;
+  const topDestinations = destinationsAgg.map((d) => ({
+    name: d._id,
+    count: d.count,
+    percent: Math.round((d.count / destTotal) * 100),
+  }));
+
+  const opsDone = Math.max(0, totalBookings - pendingBookings);
+  const operationsProgress = totalBookings
+    ? Math.min(100, Math.round((opsDone / totalBookings) * 100))
+    : 0;
+
+  const revenueSparkline = weeklyPerformance.revenue.map((d) => d.thisWeek);
+  const totalBookingsSparkline = weeklyPerformance.bookings.map((d) => d.thisWeek);
 
   const kpiTrends = {
     todaysArrivals: pctChangeLabel(todaysArrivals, 0),
@@ -317,7 +428,80 @@ async function buildDashboard(branchId) {
     voucherPending: pctChangeLabel(trendVoucherThis, trendVoucherLast),
     activeTrips: pctChangeLabel(trendActiveThis, trendActiveLast),
     completedTrips: pctChangeLabel(trendCompletedThis, trendCompletedLast),
+    totalBookings: pctChangeLabel(totalThis, totalLast),
+    confirmedBookings: pctChangeLabel(confirmedThis, confirmedLast),
+    onTrip: pctChangeLabel(onTripThis, onTripLast),
+    totalRevenue: pctChangeLabel(revThis, revLast),
   };
+
+  const alerts = [
+    pendingBookings > 0 && {
+      id: 'ops-setup',
+      tone: 'rose',
+      title: `${pendingBookings} Booking${pendingBookings === 1 ? '' : 's'} need operations setup`,
+      timeAgo: 'Just now',
+      href: '/operations-manager/bookings/pending',
+    },
+    vouchersExpiringToday > 0 && {
+      id: 'vouchers-expiring',
+      tone: 'amber',
+      title: `${vouchersExpiringToday} Voucher${vouchersExpiringToday === 1 ? '' : 's'} awaiting issue`,
+      timeAgo: 'Today',
+      href: '/operations-manager/vouchers',
+    },
+    (hotelPending + cabPending) > 0 && {
+      id: 'vendor-confirm',
+      tone: 'emerald',
+      title: `${hotelPending + cabPending} Vendor confirmation${hotelPending + cabPending === 1 ? '' : 's'} pending`,
+      timeAgo: 'Today',
+      href: '/operations-manager/vendors/confirmations',
+    },
+    openTickets > 0 && {
+      id: 'support',
+      tone: 'sky',
+      title: `${openTickets} open support ticket${openTickets === 1 ? '' : 's'}`,
+      timeAgo: 'Today',
+      href: '/operations-manager/support',
+    },
+  ].filter(Boolean);
+
+  const scheduleEvents = [
+    todaysArrivals > 0 && {
+      id: 'arrivals',
+      time: '09:00 AM',
+      title: 'Guest Arrivals',
+      subtitle: `${todaysArrivals} arrival${todaysArrivals === 1 ? '' : 's'} scheduled`,
+      color: 'sky',
+    },
+    {
+      id: 'ops-review',
+      time: '10:00 AM',
+      title: 'Trip Execution Review',
+      subtitle: pendingBookings ? `${pendingBookings} bookings need setup` : 'All bookings ready',
+      color: 'violet',
+    },
+    activeTrips > 0 && {
+      id: 'active-monitor',
+      time: '01:00 PM',
+      title: 'Active Trip Monitor',
+      subtitle: `${activeTrips} trip${activeTrips === 1 ? '' : 's'} currently on road`,
+      color: 'emerald',
+    },
+    (hotelPending + cabPending) > 0 && {
+      id: 'vendor-sync',
+      time: '03:00 PM',
+      title: 'Vendor Confirmations',
+      subtitle: `${hotelPending} hotel · ${cabPending} cab pending`,
+      color: 'amber',
+    },
+    {
+      id: 'daily-sync',
+      time: '05:00 PM',
+      title: 'Daily Operations Sync',
+      subtitle: pendingTasks ? `${pendingTasks} pending task${pendingTasks === 1 ? '' : 's'}` : 'Wrap-up & handoff',
+      color: 'indigo',
+    },
+  ].filter(Boolean);
 
   return {
     kpis: {
@@ -336,11 +520,14 @@ async function buildDashboard(branchId) {
       totalActiveTrips: activeTrips,
       openTickets,
       totalBookings,
+      confirmedBookings,
+      totalRevenue,
       pendingConfirmations: hotelPending + cabPending,
       pendingTasks,
       tripsStartingTomorrow,
       guestsOnTrip: guestsOnTrip.guests,
       onTripBookings: guestsOnTrip.bookings,
+      operationsProgress,
     },
     hubStats: {
       onTrip: activeTrips,
@@ -348,9 +535,16 @@ async function buildDashboard(branchId) {
       onTripBookings: guestsOnTrip.bookings,
       departuresToday: todaysDepartures,
       arrivalsToday: todaysArrivals,
+      operationsProgress,
     },
     kpiTrends,
-    sparklines,
+    sparklines: {
+      ...sparklines,
+      totalBookings: totalBookingsSparkline,
+      confirmedBookings: sparklines?.pendingBookings || totalBookingsSparkline,
+      onTrip: sparklines?.activeTrips || totalBookingsSparkline,
+      totalRevenue: revenueSparkline,
+    },
     branchStats: enrichedBranchStats,
     bookingsByStatus: [
       { status: 'confirmed', label: 'Confirmed', count: bookingsByStatus.confirmed },
@@ -358,6 +552,10 @@ async function buildDashboard(branchId) {
       { status: 'active', label: 'Active', count: bookingsByStatus.active },
       { status: 'completed', label: 'Completed', count: bookingsByStatus.completed },
     ],
+    weeklyPerformance,
+    topDestinations,
+    alerts,
+    scheduleEvents,
     todaySchedule: {
       arrivals: {
         count: todaysArrivals,
@@ -378,12 +576,16 @@ async function buildDashboard(branchId) {
         count: pendingTasks,
         subtitle: pendingTasks ? 'Need immediate attention' : 'All tasks clear',
       },
+      activeTrips: {
+        count: activeTrips,
+        subtitle: activeTrips ? 'Trips currently running' : 'No active trips',
+      },
     },
     recentBookings,
     newBookings: await Booking.find({ ...base, isNewBooking: true })
       .sort({ createdAt: -1 })
       .limit(10)
-      .select('bookingNumber customerName destination travelDate returnDate status totalAmount advanceReceived totalPaid remainingBalance paymentStatus paymentProgress isNewBooking priority operationsStatus')
+      .select('bookingNumber customerName customerPhone destination packageName travelDate returnDate status totalAmount advanceReceived totalPaid remainingBalance paymentStatus paymentProgress isNewBooking priority operationsStatus')
       .lean(),
     pendingConfirmations,
     openTickets: openTicketsList,
