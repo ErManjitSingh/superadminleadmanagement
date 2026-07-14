@@ -429,6 +429,7 @@ export function resolvePaymentPlan(quote, total = 0) {
 export function resolveQuoteTotal(quote) {
   const p = quote?.pricing || {};
   const c = quote?.costing || {};
+  const lead = quote?.lead && typeof quote.lead === 'object' ? quote.lead : {};
 
   const candidates = [
     p.grandTotal,
@@ -438,6 +439,9 @@ export function resolveQuoteTotal(quote) {
     c.subtotal,
     quote?.totalPrice,
     quote?.packageInfo?.totalCost,
+    lead.budget,
+    lead.packageCost,
+    quote?.budget,
   ];
 
   for (const value of candidates) {

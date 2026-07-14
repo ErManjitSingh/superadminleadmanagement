@@ -1914,6 +1914,15 @@
   color: #4a5f75;
 }
 
+.qp-pay-amt {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
 /* Premium inclusions & exclusions */
 .qp-inc-exc-premium {
   display: grid;

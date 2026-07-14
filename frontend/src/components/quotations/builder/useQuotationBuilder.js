@@ -192,7 +192,9 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
 
   const buildSavePayload = useCallback(
     (statusOverride) => {
-      const total = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
+      const priced = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
+      const leadBudget = Number(selectedLead?.budget) || 0;
+      const total = priced > 0 ? priced : leadBudget;
       const destList = hotelDestination ? [{ name: hotelDestination }] : [];
       return {
         leadId: state.leadId || selectedLead?._id,
@@ -202,9 +204,12 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
           ...state.pricing,
           total,
           grandTotal: total,
-          baseCost: total,
+          baseCost: total || Number(state.pricing.baseCost) || 0,
         },
-        packageInfo: state.packageInfo,
+        packageInfo: {
+          ...state.packageInfo,
+          totalCost: total,
+        },
         paymentPlan: syncPaymentAmounts(state.paymentPlan, total),
         importantNotes: {
           ...state.importantNotes,
@@ -237,8 +242,9 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       || Number(state.pricing?.grandTotal)
       || Number(state.pricing?.baseCost)
       || 0;
-    // Prefer explicit package total; fall back to transport cost only if pricing not set.
-    const total = priced > 0 ? priced : transportCost;
+    const leadBudget = Number(selectedLead?.budget) || 0;
+    // Prefer explicit package total; then lead budget; then transport-only cost.
+    const total = priced > 0 ? priced : (leadBudget > 0 ? leadBudget : transportCost);
     const destList = hotelDestination ? [{ name: hotelDestination }] : [];
     return {
       quoteNumber: draftId ? `DRAFT` : 'PREVIEW',
@@ -323,19 +329,36 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         }
         setSelectedLead(lead);
         const leadNoHotel = isNoHotelLabel(lead.hotelCategory);
-        setState((s) => ({
-          ...s,
-          leadId: id,
-          packageInfo: {
-            ...s.packageInfo,
-            destination: lead.destination || s.packageInfo.destination,
-            ...(leadNoHotel
-              ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
-              : lead.hotelCategory
-                ? { hotelCategory: s.packageInfo.hotelCategory || lead.hotelCategory }
-                : {}),
-          },
-        }));
+        const leadBudget = Number(lead.budget) || 0;
+        setState((s) => {
+          const currentPrice = Number(s.pricing?.total) || Number(s.pricing?.grandTotal) || 0;
+          const nextTotal = currentPrice > 0 ? currentPrice : leadBudget;
+          return {
+            ...s,
+            leadId: id,
+            packageInfo: {
+              ...s.packageInfo,
+              destination: lead.destination || s.packageInfo.destination,
+              ...(leadNoHotel
+                ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
+                : lead.hotelCategory
+                  ? { hotelCategory: s.packageInfo.hotelCategory || lead.hotelCategory }
+                  : {}),
+              ...(nextTotal > 0 ? { totalCost: nextTotal } : {}),
+            },
+            ...(currentPrice <= 0 && leadBudget > 0
+              ? {
+                  pricing: {
+                    ...s.pricing,
+                    total: leadBudget,
+                    grandTotal: leadBudget,
+                    baseCost: leadBudget,
+                  },
+                  paymentPlan: syncPaymentAmounts(s.paymentPlan, leadBudget),
+                }
+              : {}),
+          };
+        });
         if (leadNoHotel) {
           setBuilderUi((ui) => ({ ...ui, skipHotel: true }));
         }
@@ -483,6 +506,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
 
   const selectLead = (lead) => {
     const leadNoHotel = isNoHotelLabel(lead?.hotelCategory);
+    const leadBudget = Number(lead?.budget) || 0;
     setSelectedLead(lead);
     setState((s) => ({
       ...defaultWizardState,
@@ -494,6 +518,13 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
           ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
           : {}),
       },
+      pricing: {
+        ...defaultWizardState.pricing,
+        total: leadBudget,
+        grandTotal: leadBudget,
+        baseCost: leadBudget,
+      },
+      paymentPlan: syncPaymentAmounts(defaultWizardState.paymentPlan || s.paymentPlan, leadBudget),
     }));
     setSelectedPkgDetail(null);
     setCustomItinerary([]);
@@ -517,7 +548,10 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     const fromPkg = builderUiFromPackage(normalized);
     setBuilderUi(keepSkipHotel ? { ...fromPkg, skipHotel: true } : fromPkg);
     const packageTotal = Number(detail.pricing?.finalPrice) || Number(normalized.startingPrice) || 0;
-    setState((s) => ({
+    setState((s) => {
+      const leadBudget = Number(selectedLead?.budget) || 0;
+      const nextTotal = packageTotal > 0 ? packageTotal : (Number(s.pricing?.total) || leadBudget || 0);
+      return {
       ...s,
       packageInfo: {
         ...s.packageInfo,
@@ -525,6 +559,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         destination: normalized.destination || s.packageInfo.destination,
         duration: normalized.duration || s.packageInfo.duration,
         coverImage: normalized.coverImage,
+        totalCost: nextTotal,
       },
       importantNotes: detail.importantNotes
         ? {
@@ -537,12 +572,13 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         : s.importantNotes,
       pricing: {
         ...s.pricing,
-        total: packageTotal,
-        grandTotal: packageTotal,
-        baseCost: packageTotal,
+        total: nextTotal,
+        grandTotal: nextTotal,
+        baseCost: nextTotal,
       },
-      paymentPlan: syncPaymentAmounts(s.paymentPlan, packageTotal),
-    }));
+      paymentPlan: syncPaymentAmounts(s.paymentPlan, nextTotal),
+    };
+    });
   };
 
   const selectPackage = async (pkg) => {

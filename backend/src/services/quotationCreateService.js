@@ -55,14 +55,37 @@ async function persistQuotation({
   const sanitized = sanitizeBuilderBody(body, lead);
   const snapshot = sanitized.packageSnapshot || sanitized.package;
 
+  const incomingPricing = sanitized.pricing || body.pricing || {};
+  const priced =
+    Number(incomingPricing.total)
+    || Number(incomingPricing.grandTotal)
+    || Number(incomingPricing.baseCost)
+    || 0;
+  const leadBudget = Number(lead.budget) || 0;
+  const resolvedTotal = priced > 0 ? priced : leadBudget;
+  const pricing = {
+    ...incomingPricing,
+    total: resolvedTotal,
+    grandTotal: resolvedTotal || Number(incomingPricing.grandTotal) || 0,
+    baseCost: resolvedTotal || Number(incomingPricing.baseCost) || 0,
+  };
+
   const quotation = await Quotation.create({
     quoteNumber: sanitized.quoteNumber || body.quoteNumber || generateQuoteNumber(),
     lead: lead._id,
     package: resolvePackageReference(sanitized.packageId || body.packageId),
     packageSnapshot: snapshot,
-    packageInfo: sanitized.packageInfo,
+    packageInfo: {
+      ...(sanitized.packageInfo || {}),
+      ...(resolvedTotal > 0 ? { totalCost: resolvedTotal } : {}),
+    },
     status,
-    pricing: sanitized.pricing || body.pricing,
+    pricing,
+    costing: {
+      ...(sanitized.costing || body.costing || {}),
+      subtotal: resolvedTotal,
+      grandTotal: resolvedTotal,
+    },
     selectedHotels: sanitized.selectedHotels || [],
     selectedCabs: sanitized.selectedCabs || body.selectedCabs || [],
     selectedFlights: sanitized.selectedFlights || body.selectedFlights || [],

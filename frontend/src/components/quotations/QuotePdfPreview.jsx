@@ -268,7 +268,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </section>
       )}
 
-      {/* Payment schedule — percentage only, no line-item amounts */}
+      {/* Payment schedule */}
       <section className="qp-section-block qp-section-block-keep">
         <h2 className="qp-section">Payment Schedule</h2>
         <div className="qp-pay-grid">
@@ -276,6 +276,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             <div key={row.label} className="qp-pay-card">
               <span className="qp-pay-pct">{row.percent}%</span>
               <span className="qp-pay-lbl">{row.label}</span>
+              {displayTotal > 0 && (
+                <span className="qp-pay-amt">{formatINR(row.amount)}</span>
+              )}
             </div>
           ))}
         </div>
