@@ -3,9 +3,8 @@ import { Eye, Loader2, MessageCircle, X } from 'lucide-react';
 import AppModal from '../ui/AppModal';
 import { Button } from '../ui/button';
 import PaymentSummaryCard from './PaymentSummaryCard';
-import { previewReceiptPdf, resendPaymentReceipt } from '../../services/bookingPaymentsApi';
+import { previewReceiptPdf, resendPaymentReceipt, fetchReceiptPdfBlob } from '../../services/bookingPaymentsApi';
 import { toast } from '../../context/ToastContext';
-import API from '../../api/axios';
 
 export default function PaymentReceiptReviewModal({
   open,
@@ -32,12 +31,9 @@ export default function PaymentReceiptReviewModal({
 
     let objectUrl = '';
     setLoadingPdf(true);
-    API.get(`/booking-payments/bookings/${bookingId}/payments/${paymentId}/receipt`, {
-      responseType: 'blob',
-      skipSuccessToast: true,
-    })
-      .then((res) => {
-        objectUrl = URL.createObjectURL(res.data);
+    fetchReceiptPdfBlob(bookingId, paymentId)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
         setPdfUrl(objectUrl);
       })
       .catch(() => {

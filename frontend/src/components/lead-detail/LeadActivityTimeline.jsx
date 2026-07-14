@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Eye, Loader2 } from 'lucide-react';
 import { ACTIVITY_CONFIG, findQuotationForActivity } from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
+import ReceiptPdfPreviewModal from '../payments/ReceiptPdfPreviewModal';
 import { Button } from '../ui/button';
 import { DETAIL_CARD } from './leadDetailUtils';
-import { previewReceiptPdf, downloadReceiptPdf } from '../../services/bookingPaymentsApi';
+import { downloadReceiptPdf, getLeadBooking } from '../../services/bookingPaymentsApi';
 import { toast } from '../../context/ToastContext';
 
 function formatActivityDate(iso) {
@@ -16,39 +17,100 @@ function formatActivityDate(iso) {
   };
 }
 
-function hasReceiptPdf(item) {
-  return (
-    ['advance_payment_received', 'payment_received', 'receipt_sent'].includes(item?.type) &&
-    item?.meta?.bookingId &&
-    item?.meta?.paymentId
-  );
+function idOf(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object') return String(value._id || value.id || '');
+  return String(value);
 }
 
-export default function LeadActivityTimeline({ activities, loading = false, quotations = [] }) {
-  const [pdfQuote, setPdfQuote] = useState(null);
-  const [receiptLoading, setReceiptLoading] = useState(null);
-  const pdfRef = useRef(null);
-  const sorted = [...activities].sort((a, b) => new Date(b.date) - new Date(a.date));
+function isPaymentActivity(type) {
+  return ['advance_payment_received', 'payment_received', 'receipt_sent'].includes(type);
+}
 
-  const openReceipt = async (item, mode = 'preview') => {
-    const bookingId = item.meta?.bookingId;
-    const paymentId = item.meta?.paymentId;
+export default function LeadActivityTimeline({
+  activities,
+  loading = false,
+  quotations = [],
+  leadId,
+}) {
+  const [pdfQuote, setPdfQuote] = useState(null);
+  const [receiptPreview, setReceiptPreview] = useState(null);
+  const [receiptLoading, setReceiptLoading] = useState(null);
+  const [bookingFallback, setBookingFallback] = useState(null);
+  const pdfRef = useRef(null);
+  const sorted = useMemo(
+    () => [...activities].sort((a, b) => new Date(b.date) - new Date(a.date)),
+    [activities],
+  );
+
+  useEffect(() => {
+    if (!leadId) {
+      setBookingFallback(null);
+      return;
+    }
+    const needsFallback = sorted.some(
+      (item) => isPaymentActivity(item.type) && (!idOf(item.meta?.bookingId) || !idOf(item.meta?.paymentId)),
+    );
+    if (!needsFallback) {
+      setBookingFallback(null);
+      return;
+    }
+
+    let cancelled = false;
+    getLeadBooking(leadId)
+      .then((res) => {
+        if (!cancelled) setBookingFallback(res);
+      })
+      .catch(() => {
+        if (!cancelled) setBookingFallback(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId, sorted]);
+
+  const resolveReceiptIds = (item) => {
+    const bookingId = idOf(item.meta?.bookingId) || idOf(bookingFallback?.booking?._id);
+    const paymentId = idOf(item.meta?.paymentId) || idOf(bookingFallback?.advancePayment?._id);
+    return { bookingId, paymentId };
+  };
+
+  const canOpenReceipt = (item) => {
+    if (!isPaymentActivity(item.type)) return false;
+    const { bookingId, paymentId } = resolveReceiptIds(item);
+    return Boolean(bookingId && paymentId);
+  };
+
+  const openReceiptPreview = (item) => {
+    const { bookingId, paymentId } = resolveReceiptIds(item);
+    if (!bookingId || !paymentId) {
+      toast.error('Advance voucher PDF available nahi hai.');
+      return;
+    }
+    setReceiptPreview({
+      bookingId,
+      paymentId,
+      title: item.title || ACTIVITY_CONFIG[item.type]?.label || 'Payment Voucher',
+      fileName: item.meta?.receiptNumber ? `${item.meta.receiptNumber}.pdf` : 'advance-voucher.pdf',
+    });
+  };
+
+  const downloadReceipt = async (item) => {
+    const { bookingId, paymentId } = resolveReceiptIds(item);
     if (!bookingId || !paymentId) return;
 
-    const key = `${item.id}-${mode}`;
+    const key = `${item.id}-download`;
     setReceiptLoading(key);
     try {
-      if (mode === 'download') {
-        await downloadReceiptPdf(
-          bookingId,
-          paymentId,
-          item.meta?.receiptNumber ? `${item.meta.receiptNumber}.pdf` : 'advance-voucher.pdf',
-        );
-      } else {
-        await previewReceiptPdf(bookingId, paymentId);
-      }
+      await downloadReceiptPdf(
+        bookingId,
+        paymentId,
+        item.meta?.receiptNumber ? `${item.meta.receiptNumber}.pdf` : 'advance-voucher.pdf',
+      );
     } catch {
-      toast.error('Advance voucher PDF open nahi ho paya.');
+      toast.error('Advance voucher PDF download nahi ho paya.');
     } finally {
       setReceiptLoading(null);
     }
@@ -79,7 +141,7 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                     ? findQuotationForActivity(item, quotations)
                     : null;
                   const canDownloadQuote = Boolean(quote?._id && (quote.pricing || quote.packageSnapshot));
-                  const canOpenReceipt = hasReceiptPdf(item);
+                  const showReceiptActions = canOpenReceipt(item);
 
                   return (
                     <motion.div
@@ -113,21 +175,16 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                                 <Download className="w-3 h-3" /> PDF
                               </Button>
                             )}
-                            {canOpenReceipt && (
+                            {showReceiptActions && (
                               <>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  disabled={!!receiptLoading}
-                                  onClick={() => openReceipt(item, 'preview')}
+                                  onClick={() => openReceiptPreview(item)}
                                   className="rounded-lg h-7 gap-1 text-[11px] text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
                                 >
-                                  {receiptLoading === `${item.id}-preview` ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <Eye className="w-3 h-3" />
-                                  )}
+                                  <Eye className="w-3 h-3" />
                                   View PDF
                                 </Button>
                                 <Button
@@ -135,7 +192,7 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                                   variant="outline"
                                   size="sm"
                                   disabled={!!receiptLoading}
-                                  onClick={() => openReceipt(item, 'download')}
+                                  onClick={() => downloadReceipt(item)}
                                   className="rounded-lg h-7 gap-1 text-[11px] text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
                                 >
                                   {receiptLoading === `${item.id}-download` ? (
@@ -169,6 +226,15 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
         open={!!pdfQuote}
         onClose={() => setPdfQuote(null)}
         pdfRef={pdfRef}
+      />
+
+      <ReceiptPdfPreviewModal
+        open={!!receiptPreview}
+        onClose={() => setReceiptPreview(null)}
+        bookingId={receiptPreview?.bookingId}
+        paymentId={receiptPreview?.paymentId}
+        title={receiptPreview?.title}
+        fileName={receiptPreview?.fileName}
       />
     </>
   );

@@ -49,11 +49,34 @@ export function getReceiptPdfUrl(bookingId, paymentId) {
   return `${base}/booking-payments/bookings/${bookingId}/payments/${paymentId}/receipt`;
 }
 
+export async function fetchReceiptPdfBlob(bookingId, paymentId, { fresh = false } = {}) {
+  const { data, headers } = await API.get(
+    `/booking-payments/bookings/${bookingId}/payments/${paymentId}/receipt`,
+    {
+      params: fresh ? { fresh: 1 } : undefined,
+      responseType: 'blob',
+      skipSuccessToast: true,
+      skipErrorToast: true,
+    },
+  );
+
+  const contentType = String(headers?.['content-type'] || data?.type || '');
+  if (!contentType.includes('pdf') && data instanceof Blob) {
+    const text = await data.text();
+    let message = 'Receipt PDF not found';
+    try {
+      message = JSON.parse(text)?.message || message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+
+  return data;
+}
+
 export async function downloadReceiptPdf(bookingId, paymentId, fileName = 'receipt.pdf') {
-  const { data } = await API.get(`/booking-payments/bookings/${bookingId}/payments/${paymentId}/receipt`, {
-    responseType: 'blob',
-    skipSuccessToast: true,
-  });
+  const data = await fetchReceiptPdfBlob(bookingId, paymentId);
   const url = URL.createObjectURL(data);
   const a = document.createElement('a');
   a.href = url;
@@ -63,13 +86,21 @@ export async function downloadReceiptPdf(bookingId, paymentId, fileName = 'recei
 }
 
 export async function previewReceiptPdf(bookingId, paymentId) {
-  const { data } = await API.get(`/booking-payments/bookings/${bookingId}/payments/${paymentId}/receipt`, {
-    responseType: 'blob',
-    skipSuccessToast: true,
-  });
-  const url = URL.createObjectURL(data);
-  window.open(url, '_blank', 'noopener,noreferrer');
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  // Open tab synchronously so popup blockers don't block after the await.
+  const tab = window.open('about:blank', '_blank');
+  try {
+    const data = await fetchReceiptPdfBlob(bookingId, paymentId);
+    const url = URL.createObjectURL(data);
+    if (tab) {
+      tab.location.href = url;
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch (err) {
+    if (tab) tab.close();
+    throw err;
+  }
 }
 
 export async function getPaymentsDashboard() {

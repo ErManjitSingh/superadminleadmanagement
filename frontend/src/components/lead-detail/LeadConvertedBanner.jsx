@@ -9,10 +9,10 @@ import {
   downloadReceiptPdf,
   previewReceiptPdf,
   resendPaymentReceipt,
+  fetchReceiptPdfBlob,
 } from '../../services/bookingPaymentsApi';
 import { formatINR, formatDate } from '../operations-manager/operationsUtils';
 import { Button } from '../ui/button';
-import API from '../../api/axios';
 import { toast } from '../../context/ToastContext';
 
 const OPS_ROLES = ['operations_manager', 'admin'];
@@ -54,12 +54,9 @@ export default function LeadConvertedBanner({ status, leadId }) {
 
     let objectUrl = '';
     setLoadingPdf(true);
-    API.get(`/booking-payments/bookings/${booking._id}/payments/${advancePayment._id}/receipt`, {
-      responseType: 'blob',
-      skipSuccessToast: true,
-    })
-      .then((res) => {
-        objectUrl = URL.createObjectURL(res.data);
+    fetchReceiptPdfBlob(booking._id, advancePayment._id)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
         setPdfUrl(objectUrl);
       })
       .catch(() => {

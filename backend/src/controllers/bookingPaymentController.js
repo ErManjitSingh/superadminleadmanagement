@@ -138,7 +138,8 @@ const getPaymentReceipt = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Payment not found for this booking');
   }
 
-  const buffer = await getReceiptPdfBuffer(payment);
+  const forceRegenerate = ['1', 'true', 'yes'].includes(String(req.query.fresh || '').toLowerCase());
+  const buffer = await getReceiptPdfBuffer(payment, { forceRegenerate });
   if (!buffer) throw new ApiError(404, 'Receipt PDF not found');
 
   res.setHeader('Content-Type', 'application/pdf');

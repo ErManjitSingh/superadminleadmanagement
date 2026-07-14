@@ -572,7 +572,12 @@ async function resendReceipt(paymentId, actor, { channel = 'both' } = {}) {
   return results;
 }
 
-async function getReceiptPdfBuffer(payment) {
+async function getReceiptPdfBuffer(payment, { forceRegenerate = false } = {}) {
+  if (!forceRegenerate && payment.receiptPdfPath) {
+    const existing = readReceiptPdfBuffer(payment.receiptPdfPath);
+    if (existing?.length) return existing;
+  }
+
   const booking = await Booking.findById(payment.booking).lean();
   if (!booking) {
     return payment.receiptPdfPath ? readReceiptPdfBuffer(payment.receiptPdfPath) : null;

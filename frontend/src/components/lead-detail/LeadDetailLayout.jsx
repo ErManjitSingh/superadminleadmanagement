@@ -84,6 +84,7 @@ export default function LeadDetailLayout({
             activities={activities}
             loading={timelineLoading}
             quotations={quotations}
+            leadId={leadId}
           />
         </main>
 
