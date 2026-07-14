@@ -4,6 +4,7 @@ import {
   Car,
   Check,
   PenLine,
+  Save,
   Search,
   ShoppingCart,
   Truck,
@@ -15,7 +16,10 @@ import {
   getVehicleMeta,
   mergeFleetWithCabs,
 } from './fleetConstants';
+import ExistingOrNewTabs from './ExistingOrNewTabs';
 import { formatINR } from '../quotations/quotationUtils';
+import API from '../../api/axios';
+import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 
 function inputCls(extra = '') {
@@ -26,12 +30,27 @@ function inputCls(extra = '') {
   );
 }
 
-export default function SimplifiedTransportSection({ builderUi, onChange, cabs = [] }) {
+function inferVendorMode(builderUi, catalogVendors = []) {
+  if (builderUi.vendorMode === 'existing' || builderUi.vendorMode === 'new') return builderUi.vendorMode;
+  if (builderUi.vendorId) return 'existing';
+  if (builderUi.vendorName?.trim()) return 'new';
+  return catalogVendors.length ? 'existing' : 'new';
+}
+
+export default function SimplifiedTransportSection({
+  builderUi,
+  onChange,
+  cabs = [],
+  catalogVendors = [],
+  onCatalogVendorsChange,
+}) {
   const fleet = mergeFleetWithCabs(cabs);
   const update = (patch) => onChange({ ...builderUi, ...patch });
   const category = builderUi.fleetCategory || 'Sedan';
   const [search, setSearch] = useState('');
   const [customCount, setCustomCount] = useState(false);
+  const [savingVendor, setSavingVendor] = useState(false);
+  const [vendorMsg, setVendorMsg] = useState('');
 
   const vehicles = fleet[category] || [];
   const filtered = useMemo(() => {
@@ -39,6 +58,12 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
     if (!q) return vehicles;
     return vehicles.filter((name) => name.toLowerCase().includes(q));
   }, [vehicles, search]);
+
+  const transportVendors = useMemo(
+    () => catalogVendors.filter((v) => !v.type || v.type === 'transport' || v.type === 'cab' || v.type === 'other'),
+    [catalogVendors],
+  );
+  const vendorMode = inferVendorMode(builderUi, transportVendors);
 
   const count = Number(builderUi.vehicleCount) || 1;
   const perVehicle = Number(builderUi.perVehicleCost) || 0;
@@ -49,11 +74,136 @@ export default function SimplifiedTransportSection({ builderUi, onChange, cabs =
 
   const isCustomCount = customCount || !VEHICLE_COUNT_OPTIONS.includes(count);
 
+  const pickVendor = (vendorId) => {
+    if (!vendorId) {
+      update({ vendorMode: 'existing', vendorId: '', vendorName: '', vendorPhone: '' });
+      return;
+    }
+    const vendor = transportVendors.find((v) => String(v._id) === String(vendorId));
+    if (!vendor) return;
+    update({
+      vendorMode: 'existing',
+      vendorId: vendor._id,
+      vendorName: vendor.name || '',
+      vendorPhone: vendor.phone || '',
+    });
+  };
+
+  const saveVendorToCompany = async () => {
+    const name = String(builderUi.vendorName || '').trim();
+    if (!name) {
+      setVendorMsg('Enter vendor name first');
+      return;
+    }
+    setSavingVendor(true);
+    setVendorMsg('');
+    try {
+      const { data } = await API.post('/vendors', {
+        name,
+        type: 'transport',
+        phone: builderUi.vendorPhone || '',
+        status: 'active',
+      });
+      update({
+        vendorMode: 'existing',
+        vendorId: data._id,
+        vendorName: data.name,
+        vendorPhone: data.phone || builderUi.vendorPhone || '',
+      });
+      const next = [data, ...catalogVendors.filter((v) => String(v._id) !== String(data._id))];
+      onCatalogVendorsChange?.(next);
+      setVendorMsg('Saved — available on all leads now');
+    } catch (err) {
+      setVendorMsg(err.response?.data?.message || 'Could not save vendor');
+    } finally {
+      setSavingVendor(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Transport</h2>
         <p className="text-sm text-slate-500 mt-0.5">Select from fleet or enter a custom vehicle</p>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Cab / Transport Vendor</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Existing partners appear on every lead after you save them once
+          </p>
+        </div>
+        <ExistingOrNewTabs
+          mode={vendorMode}
+          onChange={(mode) => update({
+            vendorMode: mode,
+            ...(mode === 'new' ? { vendorId: '' } : {}),
+          })}
+          existingLabel="Existing Vendor"
+          newLabel="Add New Vendor"
+          existingCount={transportVendors.length}
+        />
+        {vendorMode === 'existing' ? (
+          transportVendors.length ? (
+            <select
+              value={builderUi.vendorId || ''}
+              onChange={(e) => pickVendor(e.target.value)}
+              className={inputCls()}
+            >
+              <option value="">— Choose vendor —</option>
+              {transportVendors.map((v) => (
+                <option key={v._id} value={v._id}>
+                  {v.name}{v.phone ? ` · ${v.phone}` : ''}{v.destination || v.location ? ` · ${v.destination || v.location}` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+              No vendors saved yet — use <strong>Add New Vendor</strong> and save for reuse.
+            </div>
+          )
+        ) : (
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600">Vendor Name</label>
+              <input
+                value={builderUi.vendorName || ''}
+                onChange={(e) => update({ vendorMode: 'new', vendorId: '', vendorName: e.target.value })}
+                className={cn(inputCls(), 'mt-1.5')}
+                placeholder="Travel partners / cab operator"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600">Phone</label>
+              <input
+                value={builderUi.vendorPhone || ''}
+                onChange={(e) => update({ vendorPhone: e.target.value })}
+                className={cn(inputCls(), 'mt-1.5')}
+                placeholder="Optional"
+              />
+            </div>
+            <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-xl gap-1.5 border-violet-200 text-violet-700"
+                disabled={savingVendor || !builderUi.vendorName?.trim()}
+                onClick={saveVendorToCompany}
+              >
+                <Save className="w-3.5 h-3.5" />
+                {savingVendor ? 'Saving…' : 'Save to company vendors'}
+              </Button>
+              <span className="text-[11px] text-slate-500">Shows under Existing on all future leads</span>
+            </div>
+            {vendorMsg && (
+              <p className={cn('sm:col-span-2 text-xs', vendorMsg.includes('Saved') ? 'text-emerald-600' : 'text-amber-600')}>
+                {vendorMsg}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">

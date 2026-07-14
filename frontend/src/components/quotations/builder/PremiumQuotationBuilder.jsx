@@ -304,6 +304,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                   onChange={b.updateBuilderUi}
                   destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
                   durationDays={b.state.packageInfo?.duration}
+                  catalogHotels={b.catalogHotels}
+                  onCatalogHotelsChange={b.setCatalogHotels}
                 />
               )}
               {b.step === 4 && (
@@ -311,6 +313,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                   builderUi={b.builderUi}
                   onChange={b.updateBuilderUi}
                   cabs={b.cabs}
+                  catalogVendors={b.catalogVendors}
+                  onCatalogVendorsChange={b.setCatalogVendors}
                 />
               )}
               {b.step === 5 && (

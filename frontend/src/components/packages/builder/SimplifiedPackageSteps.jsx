@@ -210,6 +210,9 @@ export function StepHotelsSimplified({ b }) {
       builderUi={b.builderUi}
       onChange={b.updateBuilderUi}
       destinations={b.state.destinations}
+      durationDays={b.state.days || b.state.duration}
+      catalogHotels={b.catalogHotels}
+      onCatalogHotelsChange={b.setCatalogHotels}
     />
   );
 }
@@ -220,6 +223,8 @@ export function StepTransportSimplified({ b }) {
       builderUi={b.builderUi}
       onChange={b.updateBuilderUi}
       cabs={b.cabs}
+      catalogVendors={b.catalogVendors}
+      onCatalogVendorsChange={b.setCatalogVendors}
     />
   );
 }

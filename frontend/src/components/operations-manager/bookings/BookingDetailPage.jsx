@@ -68,6 +68,7 @@ export default function BookingDetailPage() {
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [catalogHotels, setCatalogHotels] = useState([]);
   const [catalogCabs, setCatalogCabs] = useState([]);
+  const [catalogVendors, setCatalogVendors] = useState([]);
   const [manageOpen, setManageOpen] = useState(false);
   const [pdfQuote, setPdfQuote] = useState(null);
   const [quotationLoading, setQuotationLoading] = useState(false);
@@ -121,15 +122,18 @@ export default function BookingDetailPage() {
 
   useEffect(() => {
     if (!manageOpen) return;
-    if (catalogHotels.length && catalogCabs.length) return;
+    if (catalogHotels.length && catalogCabs.length && catalogVendors.length) return;
     Promise.all([
-      API.get('/operations-manager/hotels', { params: { limit: 500 }, skipSuccessToast: true }),
-      API.get('/operations-manager/transport', { params: { catalog: true }, skipSuccessToast: true }),
-    ]).then(([hotelsRes, transportRes]) => {
+      API.get('/hotels', { skipSuccessToast: true, skipErrorToast: true }),
+      API.get('/operations-manager/transport', { params: { catalog: true }, skipSuccessToast: true, skipErrorToast: true })
+        .catch(() => ({ data: { cabs: [] } })),
+      API.get('/vendors', { params: { status: 'active' }, skipSuccessToast: true, skipErrorToast: true }),
+    ]).then(([hotelsRes, transportRes, vendorsRes]) => {
       setCatalogHotels(hotelsRes.data?.data ?? hotelsRes.data ?? []);
       setCatalogCabs(transportRes.data?.cabs || []);
+      setCatalogVendors(Array.isArray(vendorsRes.data) ? vendorsRes.data : vendorsRes.data?.data || []);
     }).catch(() => {});
-  }, [manageOpen, catalogHotels.length, catalogCabs.length]);
+  }, [manageOpen, catalogHotels.length, catalogCabs.length, catalogVendors.length]);
 
   const syncFromQuotation = async () => {
     setSyncingQuote(true);
@@ -384,6 +388,7 @@ export default function BookingDetailPage() {
                 onSave={saveHotels}
                 saving={savingHotels}
                 catalogHotels={catalogHotels}
+                onCatalogHotelsChange={setCatalogHotels}
               />
             )}
             <BookingTransportEditor
@@ -392,6 +397,8 @@ export default function BookingDetailPage() {
               onSave={saveTransport}
               saving={savingTransport}
               catalogCabs={catalogCabs}
+              catalogVendors={catalogVendors}
+              onCatalogVendorsChange={setCatalogVendors}
             />
           </div>
         )}

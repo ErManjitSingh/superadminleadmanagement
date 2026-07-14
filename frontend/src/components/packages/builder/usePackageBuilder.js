@@ -11,6 +11,8 @@ export function usePackageBuilder(packageId) {
   const [maxReached, setMaxReached] = useState(1);
   const [state, setState] = useState(() => defaultPackageState());
   const [cabs, setCabs] = useState([]);
+  const [catalogHotels, setCatalogHotels] = useState([]);
+  const [catalogVendors, setCatalogVendors] = useState([]);
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(Boolean(packageId));
   const [saving, setSaving] = useState(false);
@@ -24,9 +26,20 @@ export function usePackageBuilder(packageId) {
   }, [step]);
 
   useEffect(() => {
-    API.get('/cabs', { skipSuccessToast: true, skipErrorToast: true })
-      .then((res) => setCabs(Array.isArray(res.data) ? res.data : res.data?.data || []))
-      .catch(() => setCabs([]));
+    Promise.allSettled([
+      API.get('/cabs', { skipSuccessToast: true, skipErrorToast: true }),
+      API.get('/hotels', { skipSuccessToast: true, skipErrorToast: true }),
+      API.get('/vendors', { params: { status: 'active' }, skipSuccessToast: true, skipErrorToast: true }),
+    ]).then((results) => {
+      const pick = (i) => {
+        if (results[i].status !== 'fulfilled') return [];
+        const data = results[i].value.data;
+        return Array.isArray(data) ? data : data?.data || [];
+      };
+      setCabs(pick(0));
+      setCatalogHotels(pick(1));
+      setCatalogVendors(pick(2));
+    });
   }, []);
 
   useEffect(() => {
@@ -128,6 +141,10 @@ export function usePackageBuilder(packageId) {
     state,
     builderUi: state.builderUi || defaultBuilderUi(),
     cabs,
+    catalogHotels,
+    setCatalogHotels,
+    catalogVendors,
+    setCatalogVendors,
     update,
     updateBuilderUi,
     updatePricing,

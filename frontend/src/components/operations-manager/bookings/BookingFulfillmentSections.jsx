@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Hotel, Car, Calendar, MapPin, Utensils, Bus, Compass,
@@ -6,6 +7,7 @@ import {
 import { Button } from '../../ui/button';
 import { formatDate } from '../operationsUtils';
 import { CONFIRMATION_CONFIG } from '../constants';
+import API from '../../../api/axios';
 import { cn } from '../../../lib/utils';
 
 const VEHICLE_TYPES = [
@@ -369,7 +371,10 @@ export function QuotationSyncBanner({ meta, onSync, syncing, autoSynced }) {
   );
 }
 
-export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogHotels = [] }) {
+export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogHotels = [], onCatalogHotelsChange }) {
+  const [rowModes, setRowModes] = useState({});
+  const [savingRow, setSavingRow] = useState(null);
+
   const update = (i, field, value) => {
     onChange(hotels.map((h, idx) => (idx === i ? { ...h, [field]: value } : h)));
   };
@@ -386,7 +391,9 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
       category: hotel.category || '',
       roomType: hotel.roomTypes?.[0]?.name || hotel.roomType || '',
       mealPlan: hotel.mealPlan || '',
+      phone: hotel.phone || h.phone || '',
     } : h)));
+    setRowModes((m) => ({ ...m, [i]: 'existing' }));
   };
 
   const addHotel = () => {
@@ -395,12 +402,51 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
 
   const remove = (i) => onChange(hotels.filter((_, idx) => idx !== i));
 
+  const getMode = (h, i) => {
+    if (rowModes[i]) return rowModes[i];
+    if (h.hotelId) return 'existing';
+    if (h.hotelName?.trim()) return 'new';
+    return catalogHotels.length ? 'existing' : 'new';
+  };
+
+  const saveHotelToCatalog = async (i) => {
+    const h = (hotels.length ? hotels : [{ hotelName: '' }])[i];
+    const name = String(h?.hotelName || '').trim();
+    if (!name) return;
+    setSavingRow(i);
+    try {
+      const location = String(h.destination || 'India').trim() || 'India';
+      const { data } = await API.post('/hotels', {
+        name,
+        location,
+        destination: h.destination || location,
+        category: h.category || '4 Star',
+        roomType: h.roomType || 'Standard',
+        mealPlan: h.mealPlan || '',
+        phone: h.phone || '',
+        status: 'active',
+      });
+      onChange((hotels.length ? hotels : [{ hotelName: '' }]).map((row, idx) => (idx === i ? {
+        ...row,
+        hotelId: data._id,
+        hotelName: data.name,
+        destination: data.destination || data.location || row.destination,
+      } : row)));
+      onCatalogHotelsChange?.([data, ...catalogHotels.filter((c) => String(c._id) !== String(data._id))]);
+      setRowModes((m) => ({ ...m, [i]: 'existing' }));
+    } catch {
+      /* toast handled by API */
+    } finally {
+      setSavingRow(null);
+    }
+  };
+
   return (
     <SectionShell
       gradient="from-teal-500 to-emerald-600"
       icon={Hotel}
       title="Hotel Assignments"
-      subtitle="Pulled from quotation — edit rooms, dates & confirmation status"
+      subtitle="Existing company hotels or add new — saved hotels appear on all leads"
       actions={(
         <>
           <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={addHotel}>
@@ -414,7 +460,9 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
       )}
     >
       <div className="space-y-4">
-        {(hotels.length ? hotels : [{ hotelName: '', status: 'pending' }]).map((h, i) => (
+        {(hotels.length ? hotels : [{ hotelName: '', status: 'pending' }]).map((h, i) => {
+          const mode = getMode(h, i);
+          return (
           <div key={i} className="rounded-2xl border border-subtle/80 bg-white/40 dark:bg-surface-elevated/40 p-4 sm:p-5 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <span className={cn('text-[10px] font-bold uppercase px-2.5 py-1 rounded-full', CONFIRMATION_CONFIG[h.status]?.className || 'bg-slate-500/15')}>
@@ -426,7 +474,32 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
                 </button>
               )}
             </div>
-            {catalogHotels.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setRowModes((m) => ({ ...m, [i]: 'existing' }))}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold border',
+                  mode === 'existing' ? 'bg-teal-50 border-teal-500 text-teal-800' : 'border-subtle text-content-muted',
+                )}
+              >
+                Existing
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRowModes((m) => ({ ...m, [i]: 'new' }));
+                  update(i, 'hotelId', '');
+                }}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold border',
+                  mode === 'new' ? 'bg-teal-50 border-teal-500 text-teal-800' : 'border-subtle text-content-muted',
+                )}
+              >
+                Add New
+              </button>
+            </div>
+            {mode === 'existing' ? (
               <select
                 value={h.hotelId || ''}
                 onChange={(e) => applyCatalogToRow(i, e.target.value)}
@@ -437,9 +510,19 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
                   <option key={opt._id} value={opt._id}>{opt.name} · {opt.location || opt.destination}</option>
                 ))}
               </select>
+            ) : (
+              <div className="flex flex-wrap gap-2 items-center">
+                <input value={h.hotelName || ''} onChange={(e) => update(i, 'hotelName', e.target.value)} placeholder="Hotel name" className="input-premium h-10 rounded-xl text-sm font-medium flex-1 min-w-[160px]" />
+                <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1" disabled={savingRow === i || !h.hotelName?.trim()} onClick={() => saveHotelToCatalog(i)}>
+                  {savingRow === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  Save to inventory
+                </Button>
+              </div>
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input value={h.hotelName || ''} onChange={(e) => update(i, 'hotelName', e.target.value)} placeholder="Hotel name" className="input-premium h-10 rounded-xl text-sm font-medium" />
+              {mode === 'existing' && (
+                <input value={h.hotelName || ''} onChange={(e) => update(i, 'hotelName', e.target.value)} placeholder="Hotel name" className="input-premium h-10 rounded-xl text-sm font-medium" />
+              )}
               <input value={h.destination || ''} onChange={(e) => update(i, 'destination', e.target.value)} placeholder="Destination / city" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.roomType || ''} onChange={(e) => update(i, 'roomType', e.target.value)} placeholder="Room type" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.mealPlan || ''} onChange={(e) => update(i, 'mealPlan', e.target.value)} placeholder="Meal plan (MAP/CP)" className="input-premium h-10 rounded-xl text-sm" />
@@ -450,13 +533,25 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
               </select>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </SectionShell>
   );
 }
 
-export function BookingTransportEditor({ transport, onChange, onSave, saving, catalogCabs = [] }) {
+export function BookingTransportEditor({
+  transport,
+  onChange,
+  onSave,
+  saving,
+  catalogCabs = [],
+  catalogVendors = [],
+  onCatalogVendorsChange,
+}) {
+  const [rowModes, setRowModes] = useState({});
+  const [savingVendorRow, setSavingVendorRow] = useState(null);
+
   const update = (i, field, value) => {
     onChange(transport.map((t, idx) => (idx === i ? { ...t, [field]: value } : t)));
   };
@@ -473,18 +568,70 @@ export function BookingTransportEditor({ transport, onChange, onSave, saving, ca
     } : t)));
   };
 
+  const applyVendorToRow = (i, vendorId) => {
+    if (!vendorId) return;
+    const vendor = catalogVendors.find((v) => String(v._id) === String(vendorId));
+    if (!vendor) return;
+    onChange(transport.map((t, idx) => (idx === i ? {
+      ...t,
+      vendorId: vendor._id,
+      vendorName: vendor.name || '',
+      vendorPhone: vendor.phone || '',
+      driverPhone: t.driverPhone || vendor.phone || '',
+    } : t)));
+    setRowModes((m) => ({ ...m, [i]: 'existing' }));
+  };
+
   const addRow = () => {
     onChange([...transport, { vehicleType: 'suv', pickupLocation: '', dropLocation: '', status: 'pending' }]);
   };
 
   const remove = (i) => onChange(transport.filter((_, idx) => idx !== i));
 
+  const getMode = (t, i) => {
+    if (rowModes[i]) return rowModes[i];
+    if (t.vendorId) return 'existing';
+    if (t.vendorName?.trim()) return 'new';
+    return catalogVendors.length ? 'existing' : 'new';
+  };
+
+  const saveVendorToCatalog = async (i) => {
+    const t = (transport.length ? transport : [{ vendorName: '' }])[i];
+    const name = String(t?.vendorName || '').trim();
+    if (!name) return;
+    setSavingVendorRow(i);
+    try {
+      const { data } = await API.post('/vendors', {
+        name,
+        type: 'transport',
+        phone: t.vendorPhone || t.driverPhone || '',
+        status: 'active',
+      });
+      onChange((transport.length ? transport : [{ vendorName: '' }]).map((row, idx) => (idx === i ? {
+        ...row,
+        vendorId: data._id,
+        vendorName: data.name,
+        vendorPhone: data.phone || row.vendorPhone,
+      } : row)));
+      onCatalogVendorsChange?.([data, ...catalogVendors.filter((v) => String(v._id) !== String(data._id))]);
+      setRowModes((m) => ({ ...m, [i]: 'existing' }));
+    } catch {
+      /* API toast */
+    } finally {
+      setSavingVendorRow(null);
+    }
+  };
+
+  const transportVendors = catalogVendors.filter(
+    (v) => !v.type || v.type === 'transport' || v.type === 'cab' || v.type === 'other',
+  );
+
   return (
     <SectionShell
       gradient="from-violet-500 to-purple-600"
       icon={Car}
       title="Transport & Cabs"
-      subtitle="Vehicle, driver & route from quotation — fully editable"
+      subtitle="Existing vendor or add new — saved vendors appear on all leads"
       actions={(
         <>
           <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={addRow}>
@@ -498,7 +645,9 @@ export function BookingTransportEditor({ transport, onChange, onSave, saving, ca
       )}
     >
       <div className="space-y-4">
-        {(transport.length ? transport : [{ vehicleType: 'suv', status: 'pending' }]).map((t, i) => (
+        {(transport.length ? transport : [{ vehicleType: 'suv', status: 'pending' }]).map((t, i) => {
+          const mode = getMode(t, i);
+          return (
           <div key={i} className="rounded-2xl border border-subtle/80 bg-white/40 dark:bg-surface-elevated/40 p-4 sm:p-5 space-y-3">
             <div className="flex justify-between items-center">
               <span className="text-xs font-semibold text-violet-600 uppercase tracking-wider">Vehicle #{i + 1}</span>
@@ -508,6 +657,57 @@ export function BookingTransportEditor({ transport, onChange, onSave, saving, ca
                 </button>
               )}
             </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setRowModes((m) => ({ ...m, [i]: 'existing' }))}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold border',
+                  mode === 'existing' ? 'bg-violet-50 border-violet-500 text-violet-800' : 'border-subtle text-content-muted',
+                )}
+              >
+                Existing Vendor
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRowModes((m) => ({ ...m, [i]: 'new' }));
+                  update(i, 'vendorId', '');
+                }}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-xs font-semibold border',
+                  mode === 'new' ? 'bg-violet-50 border-violet-500 text-violet-800' : 'border-subtle text-content-muted',
+                )}
+              >
+                Add New Vendor
+              </button>
+            </div>
+
+            {mode === 'existing' ? (
+              <select
+                value={t.vendorId || ''}
+                onChange={(e) => applyVendorToRow(i, e.target.value)}
+                className="input-premium h-10 w-full rounded-xl text-sm"
+              >
+                <option value="">— Pick vendor partner —</option>
+                {transportVendors.map((v) => (
+                  <option key={v._id} value={v._id}>{v.name}{v.phone ? ` · ${v.phone}` : ''}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input value={t.vendorName || ''} onChange={(e) => update(i, 'vendorName', e.target.value)} placeholder="Vendor name" className="input-premium h-10 rounded-xl text-sm" />
+                <div className="flex gap-2">
+                  <input value={t.vendorPhone || ''} onChange={(e) => update(i, 'vendorPhone', e.target.value)} placeholder="Vendor phone" className="input-premium h-10 rounded-xl text-sm flex-1" />
+                  <Button type="button" variant="outline" size="sm" className="rounded-xl gap-1 shrink-0" disabled={savingVendorRow === i || !t.vendorName?.trim()} onClick={() => saveVendorToCatalog(i)}>
+                    {savingVendorRow === i ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    Save
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {catalogCabs.length > 0 && (
               <select
                 value=""
@@ -531,7 +731,8 @@ export function BookingTransportEditor({ transport, onChange, onSave, saving, ca
               <input value={t.dropLocation || ''} onChange={(e) => update(i, 'dropLocation', e.target.value)} placeholder="Drop location" className="input-premium h-10 rounded-xl text-sm" />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </SectionShell>
   );

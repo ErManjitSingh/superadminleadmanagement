@@ -6,6 +6,8 @@ export function defaultBuilderUi() {
     skipHotel: false,
     hotelMode: 'same',
     sameHotel: {
+      entryMode: 'existing',
+      hotelId: '',
       name: '',
       checkIn: '',
       checkOut: '',
@@ -18,6 +20,10 @@ export function defaultBuilderUi() {
     fleetVehicle: FLEET_CATALOG.Sedan[0] || 'Swift Dzire',
     vehicleCount: 1,
     perVehicleCost: 0,
+    vendorMode: 'existing',
+    vendorId: '',
+    vendorName: '',
+    vendorPhone: '',
     manualTransport: {
       vehicleName: '',
       vehicleType: 'Sedan',
@@ -33,6 +39,8 @@ export function emptyDestinationHotel(destination = '') {
   return {
     id: `dh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     destination,
+    entryMode: 'existing',
+    hotelId: '',
     name: '',
     checkIn: '',
     checkOut: '',
@@ -50,9 +58,10 @@ export function builderUiToHotels(builderUi = {}, destinations = []) {
       .filter((h) => h.name?.trim())
       .map((h, index) => ({
         day: index + 1,
+        hotelId: h.hotelId || undefined,
         name: h.name,
-        location: h.destination || '',
-        category: '4 Star',
+        location: h.destination || h.location || '',
+        category: h.category || '4 Star',
         roomType: h.roomType || 'Deluxe',
         mealPlan: h.mealPlan || '',
         checkIn: h.checkIn || '',
@@ -69,9 +78,10 @@ export function builderUiToHotels(builderUi = {}, destinations = []) {
   return [
     {
       day: 1,
+      hotelId: same.hotelId || undefined,
       name: same.name,
-      location: destinations[0]?.name || '',
-      category: '4 Star',
+      location: same.location || destinations[0]?.name || '',
+      category: same.category || '4 Star',
       roomType: same.roomType || 'Deluxe',
       mealPlan: same.mealPlan || '',
       checkIn: same.checkIn || '',
@@ -88,6 +98,11 @@ export function builderUiToTransport(builderUi = {}) {
   const count = Number(builderUi.vehicleCount) || 1;
   const perVehicle = Number(builderUi.perVehicleCost) || 0;
   const totalCost = perVehicle * count;
+  const vendorFields = {
+    vendorId: builderUi.vendorId || undefined,
+    vendorName: builderUi.vendorName || '',
+    vendorPhone: builderUi.vendorPhone || '',
+  };
 
   if (builderUi.transportMode === 'manual') {
     const m = builderUi.manualTransport || {};
@@ -107,6 +122,7 @@ export function builderUiToTransport(builderUi = {}) {
         cost: Number(m.price) || totalCost,
         notes: m.notes || '',
         vehicleCount: count,
+        ...vendorFields,
       },
     ];
   }
@@ -128,6 +144,7 @@ export function builderUiToTransport(builderUi = {}) {
       cost: totalCost,
       notes: `${count} vehicle(s) · ${builderUi.fleetCategory}`,
       vehicleCount: count,
+      ...vendorFields,
     },
   ];
 }
@@ -143,7 +160,11 @@ export function builderUiFromPackage(pkg = {}) {
   } else if (hotels.length === 1) {
     base.hotelMode = 'same';
     base.sameHotel = {
+      entryMode: hotels[0].hotelId ? 'existing' : 'new',
+      hotelId: hotels[0].hotelId || '',
       name: hotels[0].name || '',
+      category: hotels[0].category || '',
+      location: hotels[0].location || '',
       checkIn: hotels[0].checkIn || '',
       checkOut: hotels[0].checkOut || '',
       roomType: hotels[0].roomType || 'Deluxe',
@@ -155,7 +176,11 @@ export function builderUiFromPackage(pkg = {}) {
       ...emptyDestinationHotel(h.location || ''),
       id: `dh-${i}`,
       destination: h.location || '',
+      entryMode: h.hotelId ? 'existing' : 'new',
+      hotelId: h.hotelId || '',
       name: h.name || '',
+      category: h.category || '',
+      location: h.location || '',
       checkIn: h.checkIn || '',
       checkOut: h.checkOut || '',
       roomType: h.roomType || 'Deluxe',
@@ -184,6 +209,10 @@ export function builderUiFromPackage(pkg = {}) {
       };
       base.vehicleCount = t.vehicleCount || 1;
     }
+    base.vendorId = t.vendorId || '';
+    base.vendorName = t.vendorName || '';
+    base.vendorPhone = t.vendorPhone || '';
+    base.vendorMode = t.vendorId ? 'existing' : (t.vendorName ? 'new' : 'existing');
   }
 
   base.internalNotes =
@@ -199,7 +228,8 @@ export function builderUiToSelectedHotelsSnapshot(builderUi = {}, destinations =
   if (builderUi.skipHotel) return [];
   return builderUiToHotels(builderUi, destinations).map((h) => ({
     day: h.day,
-    _id: `hotel-${h.day}`,
+    _id: h.hotelId || `hotel-${h.day}`,
+    hotelId: h.hotelId,
     name: h.name,
     location: h.location,
     city: h.location,
@@ -208,14 +238,14 @@ export function builderUiToSelectedHotelsSnapshot(builderUi = {}, destinations =
     nights: 1,
     price: 0,
     total: 0,
-    externalSource: 'manual',
+    externalSource: h.hotelId ? 'catalog' : 'manual',
   }));
 }
 
 /** Quotation save payload — transport as cab snapshots */
 export function builderUiToSelectedCabs(builderUi = {}) {
   return builderUiToTransport(builderUi).map((t, index) => ({
-    _id: `quote-transport-${index}`,
+    _id: t.vendorId || `quote-transport-${index}`,
     vehicleName: t.vehicle,
     vehicleType: builderUi.fleetCategory || builderUi.manualTransport?.vehicleType || 'SUV',
     cost: Number(t.cost) || 0,
@@ -223,5 +253,8 @@ export function builderUiToSelectedCabs(builderUi = {}) {
     pickupLocation: '',
     dropLocation: '',
     notes: t.notes || '',
+    vendorId: t.vendorId,
+    vendorName: t.vendorName || '',
+    vendorPhone: t.vendorPhone || '',
   }));
 }

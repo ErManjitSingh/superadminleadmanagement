@@ -116,6 +116,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   const [templates, setTemplates] = useState([]);
   const [packages, setPackages] = useState([]);
   const [cabs, setCabs] = useState([]);
+  const [catalogHotels, setCatalogHotels] = useState([]);
+  const [catalogVendors, setCatalogVendors] = useState([]);
   const [flights, setFlights] = useState([]);
   const [activities, setActivities] = useState([]);
 
@@ -295,11 +297,15 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       API.get('/cabs', { skipErrorToast: true }),
       API.get('/flights', { skipErrorToast: true }),
       API.get('/activities', { skipErrorToast: true }),
+      API.get('/hotels', { skipErrorToast: true }),
+      API.get('/vendors', { params: { status: 'active' }, skipErrorToast: true }),
     ]).then((results) => {
       const pick = (i) => (results[i].status === 'fulfilled' ? unwrapList(results[i].value.data) : []);
       setCabs(pick(0));
       setFlights(pick(1));
       setActivities(pick(2));
+      setCatalogHotels(pick(3));
+      setCatalogVendors(pick(4));
     });
   }, []);
 
@@ -775,6 +781,10 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     updateBuilderUi,
     updatePricingTotal,
     cabs,
+    catalogHotels,
+    setCatalogHotels,
+    catalogVendors,
+    setCatalogVendors,
     flights,
     activities,
     availableActivities,

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   BadgeCheck,
   Building2,
@@ -7,6 +8,7 @@ import {
   MapPin,
   Moon,
   Plus,
+  Save,
   ShieldCheck,
   Trash2,
 } from 'lucide-react';
@@ -14,6 +16,8 @@ import { Button } from '../ui/button';
 import { MEAL_PLANS_WITH_HOTEL } from '../quotations/constants';
 import { ROOM_TYPES } from './fleetConstants';
 import { emptyDestinationHotel } from './builderUiUtils';
+import ExistingOrNewTabs from './ExistingOrNewTabs';
+import API from '../../api/axios';
 import { cn } from '../../lib/utils';
 
 function inputCls(extra = '') {
@@ -66,23 +70,55 @@ function addDays(dateStr, days) {
   return formatDateOnly(start);
 }
 
-function HotelFields({ hotel, onChange, defaultNights = 0 }) {
+function inferEntryMode(hotel, catalogHotels = []) {
+  if (hotel?.entryMode === 'existing' || hotel?.entryMode === 'new') return hotel.entryMode;
+  if (hotel?.hotelId) return 'existing';
+  if (hotel?.name?.trim() && !catalogHotels.some((h) => String(h._id) === String(hotel.hotelId))) {
+    return hotel.name ? 'new' : 'existing';
+  }
+  return catalogHotels.length ? 'existing' : 'new';
+}
+
+function applyCatalogHotel(hotel, catalog) {
+  if (!catalog) return hotel;
+  const roomFromCatalog = catalog.roomTypes?.[0]?.name || catalog.roomType || hotel.roomType || 'Deluxe';
+  return {
+    ...hotel,
+    entryMode: 'existing',
+    hotelId: catalog._id,
+    name: catalog.name || '',
+    category: catalog.category || '4 Star',
+    location: catalog.location || catalog.destination || hotel.location || '',
+    roomType: roomFromCatalog,
+    mealPlan: catalog.mealPlan || hotel.mealPlan || MEAL_PLANS_WITH_HOTEL[2],
+  };
+}
+
+function HotelFields({
+  hotel,
+  onChange,
+  defaultNights = 0,
+  catalogHotels = [],
+  onCatalogSaved,
+  destinationHint = '',
+}) {
+  const [savingCatalog, setSavingCatalog] = useState(false);
+  const [catalogMsg, setCatalogMsg] = useState('');
   const checkIn = hotel.checkIn?.slice?.(0, 10) || hotel.checkIn || '';
   const checkOut = hotel.checkOut?.slice?.(0, 10) || hotel.checkOut || '';
   const nights = nightsBetween(checkIn, checkOut);
+  const entryMode = inferEntryMode(hotel, catalogHotels);
 
   const setDates = (patch) => {
     let next = { ...hotel, ...patch };
     const inDate = next.checkIn?.slice?.(0, 10) || next.checkIn || '';
     let outDate = next.checkOut?.slice?.(0, 10) || next.checkOut || '';
 
-    // Check-in set, check-out empty → auto fill from package nights
     if (patch.checkIn && inDate && !outDate && defaultNights > 0) {
       outDate = addDays(inDate, defaultNights);
       next = { ...next, checkOut: outDate };
     }
 
-    // If check-out is before check-in, push check-out forward
     if (inDate && outDate && nightsBetween(inDate, outDate) === 0 && outDate <= inDate) {
       outDate = addDays(inDate, Math.max(1, defaultNights || 1));
       next = { ...next, checkOut: outDate };
@@ -92,19 +128,142 @@ function HotelFields({ hotel, onChange, defaultNights = 0 }) {
     onChange({ ...next, nights: n });
   };
 
+  const setEntryMode = (mode) => {
+    if (mode === 'new') {
+      onChange({
+        ...hotel,
+        entryMode: 'new',
+        hotelId: '',
+      });
+      return;
+    }
+    onChange({ ...hotel, entryMode: 'existing' });
+  };
+
+  const pickExisting = (hotelId) => {
+    if (!hotelId) {
+      onChange({ ...hotel, entryMode: 'existing', hotelId: '', name: '' });
+      return;
+    }
+    const catalog = catalogHotels.find((h) => String(h._id) === String(hotelId));
+    onChange(applyCatalogHotel(hotel, catalog));
+  };
+
+  const saveToCompanyHotels = async () => {
+    const name = String(hotel.name || '').trim();
+    if (!name) {
+      setCatalogMsg('Enter hotel name first');
+      return;
+    }
+    setSavingCatalog(true);
+    setCatalogMsg('');
+    try {
+      const location = String(hotel.location || destinationHint || 'India').trim() || 'India';
+      const { data } = await API.post('/hotels', {
+        name,
+        location,
+        destination: destinationHint || location,
+        category: hotel.category || '4 Star',
+        roomType: hotel.roomType || 'Deluxe',
+        mealPlan: hotel.mealPlan || MEAL_PLANS_WITH_HOTEL[2],
+        status: 'active',
+      });
+      onChange({
+        ...hotel,
+        entryMode: 'existing',
+        hotelId: data._id,
+        name: data.name,
+        location: data.location || location,
+        category: data.category || hotel.category,
+      });
+      onCatalogSaved?.(data);
+      setCatalogMsg('Saved — available on all leads now');
+    } catch (err) {
+      setCatalogMsg(err.response?.data?.message || 'Could not save to company hotels');
+    } finally {
+      setSavingCatalog(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <Field label="Hotel Name">
-        <div className="relative">
-          <Hotel className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            value={hotel.name || ''}
-            onChange={(e) => onChange({ ...hotel, name: e.target.value })}
-            className={inputCls('pl-10')}
-            placeholder="Hotel Snow View"
-          />
+      <ExistingOrNewTabs
+        mode={entryMode}
+        onChange={setEntryMode}
+        existingLabel="Existing Hotel"
+        newLabel="Add New Hotel"
+        existingCount={catalogHotels.length}
+      />
+
+      {entryMode === 'existing' ? (
+        <Field label="Select from company hotels">
+          {catalogHotels.length ? (
+            <select
+              value={hotel.hotelId || ''}
+              onChange={(e) => pickExisting(e.target.value)}
+              className={inputCls()}
+            >
+              <option value="">— Choose hotel —</option>
+              {catalogHotels.map((opt) => (
+                <option key={opt._id} value={opt._id}>
+                  {opt.name}
+                  {opt.location || opt.destination ? ` · ${opt.location || opt.destination}` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+              No hotels in company list yet — use <strong>Add New Hotel</strong> and save it for reuse.
+            </div>
+          )}
+        </Field>
+      ) : (
+        <div className="space-y-3">
+          <Field label="Hotel Name">
+            <div className="relative">
+              <Hotel className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                value={hotel.name || ''}
+                onChange={(e) => onChange({ ...hotel, entryMode: 'new', hotelId: '', name: e.target.value })}
+                className={inputCls('pl-10')}
+                placeholder="Hotel Snow View"
+              />
+            </div>
+          </Field>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1.5 border-violet-200 text-violet-700"
+              disabled={savingCatalog || !hotel.name?.trim()}
+              onClick={saveToCompanyHotels}
+            >
+              <Save className="w-3.5 h-3.5" />
+              {savingCatalog ? 'Saving…' : 'Save to company hotels'}
+            </Button>
+            <span className="text-[11px] text-slate-500">
+              Once saved, it will appear under Existing on every lead
+            </span>
+          </div>
+          {catalogMsg && (
+            <p className={cn('text-xs', catalogMsg.includes('Saved') ? 'text-emerald-600' : 'text-amber-600')}>
+              {catalogMsg}
+            </p>
+          )}
         </div>
-      </Field>
+      )}
+
+      {entryMode === 'existing' && hotel.name && (
+        <p className="text-sm text-slate-600">
+          Selected: <span className="font-semibold text-slate-900">{hotel.name}</span>
+          {(hotel.location || hotel.category) && (
+            <span className="text-slate-500">
+              {' '}· {[hotel.category, hotel.location].filter(Boolean).join(' · ')}
+            </span>
+          )}
+        </p>
+      )}
 
       <div className="grid sm:grid-cols-3 gap-3">
         <Field label="Check In">
@@ -185,17 +344,27 @@ export default function SimplifiedHotelSection({
   onChange,
   destinations = [],
   durationDays = 0,
+  catalogHotels = [],
+  onCatalogHotelsChange,
 }) {
   const update = (patch) => onChange({ ...builderUi, ...patch });
   const hotelMode = builderUi.hotelMode || 'same';
   const defaultNights = Math.max(0, Number(durationDays) > 0 ? Number(durationDays) - 1 : 0);
+
+  const handleCatalogSaved = (hotel) => {
+    if (!hotel?._id) return;
+    const next = [hotel, ...catalogHotels.filter((h) => String(h._id) !== String(hotel._id))];
+    onCatalogHotelsChange?.(next);
+  };
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-900">Hotels</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Choose stay options for this package</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Pick an existing company hotel or add a new one (saved hotels appear on all leads)
+          </p>
         </div>
         <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white cursor-pointer text-sm font-medium text-slate-700 hover:bg-slate-50">
           <input
@@ -250,6 +419,9 @@ export default function SimplifiedHotelSection({
               <HotelFields
                 hotel={builderUi.sameHotel || {}}
                 defaultNights={defaultNights}
+                catalogHotels={catalogHotels}
+                destinationHint={destinations[0]?.name || ''}
+                onCatalogSaved={handleCatalogSaved}
                 onChange={(sameHotel) => update({ sameHotel })}
               />
             </div>
@@ -284,6 +456,9 @@ export default function SimplifiedHotelSection({
                   <HotelFields
                     hotel={hotel}
                     defaultNights={defaultNights}
+                    catalogHotels={catalogHotels}
+                    destinationHint={hotel.destination || destinations[index]?.name || ''}
+                    onCatalogSaved={handleCatalogSaved}
                     onChange={(next) => {
                       const list = [...builderUi.destinationHotels];
                       list[index] = next;

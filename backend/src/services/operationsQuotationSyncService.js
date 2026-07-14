@@ -76,6 +76,7 @@ function mapQuoteHotels(quotation, travelDate) {
       const checkOut = checkIn ? addDays(checkIn, nights) : h.checkOut || null;
 
       return {
+        hotelId: h.hotelId || undefined,
         hotelName: h.name || h.hotelName || '',
         destination: h.location || h.city || h.destination || '',
         category: h.category || '',
@@ -98,6 +99,7 @@ function mapQuoteHotels(quotation, travelDate) {
   if (hasExplicitEmptySelection) return [];
 
   return (snap.hotels || []).map((h) => ({
+    hotelId: h.hotelId || undefined,
     hotelName: h.name || h.hotelName || '',
     destination: h.location || h.destination || '',
     category: h.category || '',
@@ -110,12 +112,14 @@ function mapQuoteHotels(quotation, travelDate) {
 function mapQuoteTransport(quotation) {
   const selected = quotation?.selectedCabs || [];
   return selected.map((t) => ({
+    vendorId: t.vendorId || undefined,
     vendorName: t.vendorName || t.vendor || '',
+    vendorPhone: t.vendorPhone || '',
     vehicleType: (t.vehicleType || t.type || 'suv').toLowerCase().replace(/\s+/g, '_'),
     pickupLocation: t.pickup || t.pickupLocation || '',
     dropLocation: t.drop || t.dropLocation || '',
     driverName: t.driverName || '',
-    driverPhone: t.driverPhone || '',
+    driverPhone: t.driverPhone || t.vendorPhone || '',
     vehicleNumber: t.vehicleNumber || '',
     status: 'pending',
   }));
