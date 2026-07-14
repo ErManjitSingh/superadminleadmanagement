@@ -21,7 +21,7 @@ function OperationsManagerShell() {
 
   return (
     <div className="flex min-h-screen bg-surface-app">
-      <div className="hidden lg:block h-screen sticky top-0">
+      <div className="hidden lg:block h-screen sticky top-0 z-40">
         <AppSidebar {...sidebarProps} className="h-screen border-r-violet-500/10" />
       </div>
 

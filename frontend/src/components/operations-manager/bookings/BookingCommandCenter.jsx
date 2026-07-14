@@ -26,6 +26,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Button } from '../../ui/button';
 import BookingStatusBadge from './BookingStatusBadge';
+import { useSidebar } from '../../../context/SidebarContext';
 import { formatINR, formatDate, formatPax, formatTravelRange } from '../operationsUtils';
 import {
   bookingHasHotels,
@@ -635,8 +636,14 @@ export function BookingCommandFooter({
   onComplete,
   showPayment = true,
 }) {
+  const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
+  const sidebarOffset = collapsed ? collapsedWidth : expandedWidth;
+
   return (
-    <div className="fixed bottom-0 inset-x-0 z-40 border-t border-subtle bg-white/95 backdrop-blur-xl shadow-[0_-8px_30px_rgba(15,23,42,0.08)]">
+    <div
+      className="fixed bottom-0 left-0 right-0 z-30 border-t border-subtle bg-white/95 backdrop-blur-xl shadow-[0_-8px_30px_rgba(15,23,42,0.08)] lg:left-[var(--ops-sidebar-offset)] lg:transition-[left] lg:duration-300"
+      style={{ '--ops-sidebar-offset': `${sidebarOffset}px` }}
+    >
       <div className="max-w-[1680px] mx-auto px-3 sm:px-6 py-2.5 sm:py-3">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-0.5">
           <FooterBtn variant="outline" onClick={onSave}>Save Draft</FooterBtn>
