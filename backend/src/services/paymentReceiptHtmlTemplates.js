@@ -80,6 +80,21 @@ html, body {
 .balance-row span:last-child { font-weight: 800; }
 .green { color: #059669; }
 .red { color: #dc2626; }
+.amount-banner {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  margin: 0 14px; padding: 10px 0 0;
+}
+.amount-box {
+  border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; background: #fff; text-align: center;
+}
+.amount-box.advance { background: #ecfdf5; border-color: #a7f3d0; }
+.amount-box.remaining { background: #fff7ed; border-color: #fed7aa; }
+.amount-box.package { background: #f5f3ff; border-color: #ddd6fe; }
+.amount-box label { display: block; font-size: 7px; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em; }
+.amount-box p { font-size: 14px; font-weight: 900; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.amount-box.advance p { color: #059669; }
+.amount-box.remaining p { color: #c2410c; }
+.amount-box.package p { color: #5b21b6; }
 .progress-wrap { margin-top: 8px; }
 .progress-label { display: flex; justify-content: space-between; font-size: 7px; font-weight: 700; margin-bottom: 4px; }
 .progress-bar { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
@@ -174,9 +189,19 @@ function buildPaymentHistoryRows(paymentHistory = [], currentReceiptNumber) {
 
 async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   const receiptNumber = payment.receiptNumber || 'RCP';
-  const totalAmount = booking.totalAmount || 0;
-  const totalPaid = booking.totalPaid ?? booking.advanceReceived ?? payment.amount;
-  const remaining = Math.max(0, totalAmount - totalPaid);
+  const isAdvance = !!payment.isFirstAdvance || payment.paymentType === 'advance';
+  const totalAmount = Number(booking.totalAmount) || 0;
+  const thisPayment = Number(payment.amount) || 0;
+  const advanceReceived = Number(
+    booking.advanceReceived
+      ?? paymentHistory.find((p) => p.isFirstAdvance)?.amount
+      ?? (isAdvance ? thisPayment : 0)
+  ) || 0;
+  const totalPaid = Number(booking.totalPaid ?? booking.advanceReceived ?? thisPayment) || 0;
+  const remaining = Math.max(
+    0,
+    Number(booking.remainingBalance ?? booking.pendingAmount ?? (totalAmount - totalPaid)) || 0
+  );
   const progress = totalAmount > 0 ? Math.min(100, Math.round((totalPaid / totalAmount) * 100)) : 0;
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const receivedBy = payment.createdByName
@@ -185,6 +210,8 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   const roleLabel = payment.createdByRole === 'sales_executive' ? 'Sales Executive'
     : payment.createdByRole === 'operations_manager' ? 'Operations'
     : payment.department === 'sales' ? 'Sales Executive' : 'Accounts';
+  const docTitle = isAdvance ? 'ADVANCE PAYMENT VOUCHER' : 'PAYMENT RECEIPT';
+  const amountLabel = isAdvance ? 'Advance Received' : 'Amount Received';
   const verifyUrl = `${(branding.websiteUrl || '').replace(/\/$/, '')}/receipt/${receiptNumber}`;
   let qrSrc = '';
   try {
@@ -209,10 +236,11 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
         <div class="thank-ribbon">THANK YOU<br/>for choosing<br/>${esc(branding.brandName)}</div>
       </div>
     </div>
-    <div class="title">PAYMENT RECEIPT</div>
+    <div class="title">${docTitle}</div>
     <div class="pills">
       <span class="pill">Receipt No: ${esc(receiptNumber)}</span>
       <span class="pill outline">Booking ID: ${esc(booking.bookingNumber)}</span>
+      ${isAdvance ? '<span class="pill">First Advance</span>' : ''}
     </div>
     <div class="issued">Issued On: ${fmtIssued(payment.paymentDate || payment.createdAt)}</div>
   </div>
@@ -222,11 +250,25 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
     <div><label>Travel Dates</label><p>${fmtDate(booking.travelDate)} – ${fmtDate(booking.returnDate)}</p></div>
     <div><label>Guests</label><p>${guests}</p></div>
   </div>
+  <div class="amount-banner">
+    <div class="amount-box package">
+      <label>Package Cost</label>
+      <p>${fmtINR(totalAmount)}</p>
+    </div>
+    <div class="amount-box advance">
+      <label>${isAdvance ? 'Advance Received' : 'Paid Now'} (${esc(modeLabel(payment.mode))})</label>
+      <p>${fmtINR(isAdvance ? advanceReceived || thisPayment : thisPayment)}</p>
+    </div>
+    <div class="amount-box remaining">
+      <label>Remaining Balance</label>
+      <p>${fmtINR(remaining)}</p>
+    </div>
+  </div>
   <div class="main">
     <div class="card">
       <div class="card-title">Payment Details</div>
       <div class="grid-2">
-        ${cell('₹', 'Amount Received', fmtINR(payment.amount))}
+        ${cell('₹', amountLabel, fmtINR(thisPayment))}
         ${cell('◆', 'Payment Mode', modeLabel(payment.mode))}
         ${cell('▣', 'Payment Date', fmtDate(payment.paymentDate || payment.createdAt))}
         ${cell('#', 'Transaction ID', payment.transactionId || payment.referenceNumber || '-')}
@@ -236,8 +278,9 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
     </div>
     <div class="card">
       <div class="card-title">Balance Summary</div>
-      <div class="balance-row"><span>Package Cost</span><span>${fmtINR(totalAmount)}</span></div>
-      <div class="balance-row"><span>Total Paid</span><span class="green">${fmtINR(totalPaid)}</span></div>
+      <div class="balance-row"><span>Total Package Cost</span><span>${fmtINR(totalAmount)}</span></div>
+      <div class="balance-row"><span>Advance Received</span><span class="green">${fmtINR(advanceReceived || (isAdvance ? thisPayment : 0))}</span></div>
+      <div class="balance-row"><span>Total Paid Till Now</span><span class="green">${fmtINR(totalPaid)}</span></div>
       <div class="balance-row"><span>Remaining Balance</span><span class="red">${fmtINR(remaining)}</span></div>
       <div class="progress-wrap">
         <div class="progress-label"><span>Payment Progress</span><span>${progress}%</span></div>
@@ -249,7 +292,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = []) {
   <div class="verify">
     <div>
       <div class="note-title">Payment Note</div>
-      <div class="note-text">This receipt confirms your payment towards the package. Total package cost is ${fmtINR(totalAmount)}. You have paid ${fmtINR(totalPaid)} so far and ${fmtINR(remaining)} remains before travel.</div>
+      <div class="note-text">Package cost ${fmtINR(totalAmount)}. Advance received ${fmtINR(advanceReceived || thisPayment)}. Remaining balance ${fmtINR(remaining)} — please clear before travel.</div>
       <div class="note-sign">Thank you! We look forward to serving you.</div>
     </div>
     <div class="qr-box">

@@ -140,11 +140,8 @@ export default function ManagerLeadDetailPage() {
         open={convertModalOpen}
         onClose={() => setConvertModalOpen(false)}
         leadId={id}
-        onSuccess={async (result) => {
+        onSuccess={async () => {
           await loadLead();
-          if (result?.booking?._id) {
-            navigate(`/operations-manager/booking/${result.booking._id}`);
-          }
         }}
       />
     </motion.div>

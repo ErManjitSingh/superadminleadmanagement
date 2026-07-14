@@ -138,7 +138,7 @@ const getPaymentReceipt = asyncHandler(async (req, res) => {
     throw new ApiError(404, 'Payment not found for this booking');
   }
 
-  const buffer = getReceiptPdfBuffer(payment);
+  const buffer = await getReceiptPdfBuffer(payment);
   if (!buffer) throw new ApiError(404, 'Receipt PDF not found');
 
   res.setHeader('Content-Type', 'application/pdf');
@@ -214,10 +214,25 @@ const acknowledgeNewBooking = asyncHandler(async (req, res) => {
 const getLeadBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.findOne(tenantFilter({ lead: req.params.id }, req))
     .select(
-      '_id bookingNumber customerName destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress createdAt'
+      '_id bookingNumber customerName customerPhone customerEmail destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress firstAdvancePaymentId createdAt'
     )
     .lean();
-  res.json({ booking: booking || null });
+
+  if (!booking) {
+    return res.json({ booking: null, advancePayment: null });
+  }
+
+  const advanceFilter = booking.firstAdvancePaymentId
+    ? { _id: booking.firstAdvancePaymentId }
+    : { booking: booking._id, isFirstAdvance: true };
+
+  const advancePayment = await BookingPayment.findOne(advanceFilter)
+    .select(
+      '_id receiptNumber amount mode paymentDate isFirstAdvance receiptFileName whatsappSentAt emailSentAt createdByName createdAt'
+    )
+    .lean();
+
+  res.json({ booking, advancePayment: advancePayment || null });
 });
 
 const sendPaymentReminderHandler = asyncHandler(async (req, res) => {

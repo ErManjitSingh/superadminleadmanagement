@@ -178,7 +178,14 @@ export default function BookingPaymentsPanel({
               {payments.map((p) => (
                 <tr key={p._id} className="border-b border-subtle/50 hover:bg-violet-50/30 dark:hover:bg-violet-900/10 transition-colors">
                   <td className="px-5 py-3 text-content-muted whitespace-nowrap">{formatDate(p.paymentDate || p.createdAt)}</td>
-                  <td className="px-5 py-3 font-mono text-xs font-semibold">{p.receiptNumber}</td>
+                  <td className="px-5 py-3 font-mono text-xs font-semibold">
+                    {p.receiptNumber}
+                    {p.isFirstAdvance && (
+                      <span className="ml-2 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-violet-700">
+                        Advance Voucher
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 capitalize">{MODE_LABELS[p.mode] || p.mode}</td>
                   <td className="px-5 py-3 text-xs text-content-muted">{p.transactionId || p.referenceNumber || '—'}</td>
                   <td className="px-5 py-3 font-bold text-emerald-600 tabular-nums whitespace-nowrap">{formatINR(p.amount)}</td>

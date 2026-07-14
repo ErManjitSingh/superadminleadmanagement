@@ -322,18 +322,28 @@ async function recordBookingPayment(bookingId, data, actor, { isFirstAdvance = f
     paymentMode: paymentRecord.mode,
   });
 
+  const sideEffects = await processPaymentSideEffects(paymentRecord, syncedBooking, actor, { sendReceipt });
+
   if (booking.lead) {
+    const receiptNumber = sideEffects?.receipt?.receiptNumber || paymentRecord.receiptNumber;
     await logLeadActivity({
       leadId: booking.lead,
       branchId: booking.branchId,
       type: isFirstAdvance ? 'advance_payment_received' : 'payment_received',
-      description: `Payment of ₹${paymentRecord.amount} received (${paymentRecord.mode})`,
+      description: receiptNumber
+        ? `Payment of ₹${paymentRecord.amount} received (${paymentRecord.mode}) · Receipt ${receiptNumber}`
+        : `Payment of ₹${paymentRecord.amount} received (${paymentRecord.mode})`,
       actor,
-      meta: { paymentId: paymentRecord._id, amount: paymentRecord.amount, bookingId },
+      meta: {
+        paymentId: paymentRecord._id,
+        amount: paymentRecord.amount,
+        bookingId,
+        mode: paymentRecord.mode,
+        receiptNumber: receiptNumber || '',
+        isFirstAdvance: !!isFirstAdvance,
+      },
     });
   }
-
-  const sideEffects = await processPaymentSideEffects(paymentRecord, syncedBooking, actor, { sendReceipt });
 
   if (syncedBooking.paymentStatus === 'paid') {
     await logPaymentEvent({
@@ -438,9 +448,14 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
     notifyUser(opsManager._id, {
       type: 'operations_task',
       title: 'NEW BOOKING',
-      message: `${lead.name} — ${lead.destination} (${booking.bookingNumber})`,
+      message: `${lead.name} — ${lead.destination} (${booking.bookingNumber}) · Advance ₹${Number(amount).toLocaleString('en-IN')}`,
       branchId: lead.branchId,
-      meta: { bookingId: booking._id, leadId: lead._id, isNewBooking: true },
+      meta: {
+        bookingId: booking._id,
+        leadId: lead._id,
+        isNewBooking: true,
+        advanceAmount: amount,
+      },
     }).catch(() => {});
   }
 
@@ -506,10 +521,26 @@ async function getPaymentTimeline(bookingId) {
 }
 
 async function resendReceipt(paymentId, actor, { channel = 'both' } = {}) {
-  const payment = await BookingPayment.findById(paymentId).lean();
+  let payment = await BookingPayment.findById(paymentId).lean();
   if (!payment) throw new Error('Payment not found');
   const booking = await Booking.findById(payment.booking).lean();
   if (!booking) throw new Error('Booking not found');
+
+  try {
+    const receipt = await generateReceiptPdf(payment, booking);
+    payment = await BookingPayment.findByIdAndUpdate(
+      paymentId,
+      {
+        receiptNumber: receipt.receiptNumber || payment.receiptNumber,
+        receiptPdfUrl: receipt.pdfUrl,
+        receiptPdfPath: receipt.filePath,
+        receiptFileName: receipt.fileName,
+      },
+      { new: true }
+    ).lean();
+  } catch (err) {
+    console.error('[ReceiptPDF] regenerate before resend failed', err.message);
+  }
 
   const results = {};
   if (channel === 'both' || channel === 'email') {
@@ -541,11 +572,25 @@ async function resendReceipt(paymentId, actor, { channel = 'both' } = {}) {
   return results;
 }
 
-function getReceiptPdfBuffer(payment) {
-  if (payment.receiptPdfPath) {
-    return readReceiptPdfBuffer(payment.receiptPdfPath);
+async function getReceiptPdfBuffer(payment) {
+  const booking = await Booking.findById(payment.booking).lean();
+  if (!booking) {
+    return payment.receiptPdfPath ? readReceiptPdfBuffer(payment.receiptPdfPath) : null;
   }
-  return null;
+
+  try {
+    const receipt = await generateReceiptPdf(payment, booking);
+    await BookingPayment.findByIdAndUpdate(payment._id, {
+      receiptNumber: receipt.receiptNumber || payment.receiptNumber,
+      receiptPdfUrl: receipt.pdfUrl,
+      receiptPdfPath: receipt.filePath,
+      receiptFileName: receipt.fileName,
+    });
+    return readReceiptPdfBuffer(receipt.filePath);
+  } catch (err) {
+    console.error('[ReceiptPDF] regenerate failed', err.message);
+    return payment.receiptPdfPath ? readReceiptPdfBuffer(payment.receiptPdfPath) : null;
+  }
 }
 
 async function buildPaymentDashboardStats(branchId) {

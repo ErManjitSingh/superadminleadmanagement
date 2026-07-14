@@ -97,7 +97,7 @@ async function sendPaymentReceiptWhatsApp(payment, booking, actor) {
     'Thank you for your payment. Your payment voucher is attached.',
     '',
     `Package Cost: ₹${totalAmount.toLocaleString('en-IN')}`,
-    `This Payment: ₹${Number(payment.amount).toLocaleString('en-IN')} (${payment.mode || 'payment'})`,
+    `${payment.isFirstAdvance || payment.paymentType === 'advance' ? 'Advance Received' : 'This Payment'}: ₹${Number(payment.amount).toLocaleString('en-IN')} (${payment.mode || 'payment'})`,
     `Total Paid: ₹${totalPaid.toLocaleString('en-IN')}`,
     `Remaining Balance: ₹${remaining.toLocaleString('en-IN')}`,
     `Payment Progress: ${progress}%`,

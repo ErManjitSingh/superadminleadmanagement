@@ -91,7 +91,7 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
             <p className="text-xs font-bold uppercase tracking-widest text-violet-600 mb-1">Lead Conversion</p>
             <h2 className="text-2xl font-black text-content-primary tracking-tight">Convert Lead Into Booking</h2>
             <p className="text-sm text-content-muted mt-1">
-              Advance payment record karein. Uske baad payment voucher review karke client ko WhatsApp par bhej sakte hain.
+              Advance payment record karein. Uske baad advance voucher PDF review karke client ko WhatsApp par bhejein — yehi voucher lead aur operations mein dikhega.
             </p>
           </div>
 

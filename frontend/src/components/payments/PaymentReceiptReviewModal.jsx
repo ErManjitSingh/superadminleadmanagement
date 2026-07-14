@@ -69,6 +69,13 @@ export default function PaymentReceiptReviewModal({
   };
 
   const handleDone = () => {
+    if (!sent) {
+      const ok = window.confirm(
+        'Advance voucher abhi client ko nahi gaya. Bina bheje close karein?',
+      );
+      if (!ok) return;
+      toast.error('Voucher client ko nahi gaya — lead detail se baad mein WhatsApp/Email se bhej sakte hain.');
+    }
     onDone?.({ voucherSent: sent });
     onClose?.();
   };
@@ -78,10 +85,10 @@ export default function PaymentReceiptReviewModal({
       <div className="p-6 sm:p-8 max-h-[92vh] overflow-y-auto">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-1">Payment Voucher</p>
-            <h2 className="text-2xl font-black text-content-primary tracking-tight">Review Before Sending</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-1">Advance Payment Voucher</p>
+            <h2 className="text-2xl font-black text-content-primary tracking-tight">Review & Send to Client</h2>
             <p className="text-sm text-content-muted mt-1">
-              Pehle voucher ache se check karein — package cost, payments aur bachi hui amount sab dikhegi.
+              Voucher check karein, phir WhatsApp se client ko bhejein. Yehi PDF lead aur operations booking mein save rahegi.
             </p>
           </div>
           <button
@@ -146,17 +153,25 @@ export default function PaymentReceiptReviewModal({
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 mt-6 pt-4 border-t border-subtle">
-          <Button variant="secondary" onClick={handleDone} disabled={sending}>
-            {sent ? 'Done' : 'Skip for now'}
-          </Button>
-          <Button
-            onClick={handleSendWhatsApp}
-            disabled={sending || !customerPhone || loadingPdf}
-            className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold"
-          >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MessageCircle className="w-4 h-4 mr-2" />}
-            Send Voucher on WhatsApp
-          </Button>
+          {sent ? (
+            <Button onClick={handleDone} disabled={sending} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+              Done
+            </Button>
+          ) : (
+            <>
+              <Button variant="secondary" onClick={handleDone} disabled={sending}>
+                Close without sending
+              </Button>
+              <Button
+                onClick={handleSendWhatsApp}
+                disabled={sending || !customerPhone || loadingPdf}
+                className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-bold"
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <MessageCircle className="w-4 h-4 mr-2" />}
+                Send Voucher on WhatsApp
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </AppModal>

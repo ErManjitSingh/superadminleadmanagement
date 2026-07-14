@@ -1,10 +1,12 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download } from 'lucide-react';
+import { Download, Eye, Loader2 } from 'lucide-react';
 import { ACTIVITY_CONFIG, findQuotationForActivity } from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import { Button } from '../ui/button';
 import { DETAIL_CARD } from './leadDetailUtils';
+import { previewReceiptPdf, downloadReceiptPdf } from '../../services/bookingPaymentsApi';
+import { toast } from '../../context/ToastContext';
 
 function formatActivityDate(iso) {
   const d = new Date(iso);
@@ -14,10 +16,43 @@ function formatActivityDate(iso) {
   };
 }
 
+function hasReceiptPdf(item) {
+  return (
+    ['advance_payment_received', 'payment_received', 'receipt_sent'].includes(item?.type) &&
+    item?.meta?.bookingId &&
+    item?.meta?.paymentId
+  );
+}
+
 export default function LeadActivityTimeline({ activities, loading = false, quotations = [] }) {
   const [pdfQuote, setPdfQuote] = useState(null);
+  const [receiptLoading, setReceiptLoading] = useState(null);
   const pdfRef = useRef(null);
   const sorted = [...activities].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const openReceipt = async (item, mode = 'preview') => {
+    const bookingId = item.meta?.bookingId;
+    const paymentId = item.meta?.paymentId;
+    if (!bookingId || !paymentId) return;
+
+    const key = `${item.id}-${mode}`;
+    setReceiptLoading(key);
+    try {
+      if (mode === 'download') {
+        await downloadReceiptPdf(
+          bookingId,
+          paymentId,
+          item.meta?.receiptNumber ? `${item.meta.receiptNumber}.pdf` : 'advance-voucher.pdf',
+        );
+      } else {
+        await previewReceiptPdf(bookingId, paymentId);
+      }
+    } catch {
+      toast.error('Advance voucher PDF open nahi ho paya.');
+    } finally {
+      setReceiptLoading(null);
+    }
+  };
 
   return (
     <>
@@ -43,7 +78,8 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                   const quote = item.type?.startsWith('quotation_')
                     ? findQuotationForActivity(item, quotations)
                     : null;
-                  const canDownload = Boolean(quote?._id && (quote.pricing || quote.packageSnapshot));
+                  const canDownloadQuote = Boolean(quote?._id && (quote.pricing || quote.packageSnapshot));
+                  const canOpenReceipt = hasReceiptPdf(item);
 
                   return (
                     <motion.div
@@ -65,17 +101,53 @@ export default function LeadActivityTimeline({ activities, loading = false, quot
                               {' · '}{date} at {time}
                             </p>
                           </div>
-                          {canDownload && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setPdfQuote(quote)}
-                              className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
-                            >
-                              <Download className="w-3 h-3" /> PDF
-                            </Button>
-                          )}
+                          <div className="flex flex-wrap gap-1.5">
+                            {canDownloadQuote && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPdfQuote(quote)}
+                                className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
+                              >
+                                <Download className="w-3 h-3" /> PDF
+                              </Button>
+                            )}
+                            {canOpenReceipt && (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={!!receiptLoading}
+                                  onClick={() => openReceipt(item, 'preview')}
+                                  className="rounded-lg h-7 gap-1 text-[11px] text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                                >
+                                  {receiptLoading === `${item.id}-preview` ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Eye className="w-3 h-3" />
+                                  )}
+                                  View PDF
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={!!receiptLoading}
+                                  onClick={() => openReceipt(item, 'download')}
+                                  className="rounded-lg h-7 gap-1 text-[11px] text-emerald-700 border-emerald-200 bg-emerald-50 hover:bg-emerald-100"
+                                >
+                                  {receiptLoading === `${item.id}-download` ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <Download className="w-3 h-3" />
+                                  )}
+                                  PDF
+                                </Button>
+                              </>
+                            )}
+                          </div>
                         </div>
                         {item.notes && (
                           <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700">
