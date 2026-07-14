@@ -48,7 +48,7 @@ export const DESTINATIONS = [
   'Himachal Pradesh', 'Uttarakhand', 'Ladakh', 'Spiti Valley', 'Rishikesh',
 ];
 
-export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v7';
+export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v8';
 
 export const defaultWizardValues = {
   name: '',
@@ -59,7 +59,7 @@ export const defaultWizardValues = {
   state: '',
   destination: '',
   travelDate: '',
-  adults: 2,
+  adults: 1,
   children: 0,
   infants: 0,
   hotelCategory: '3_star',

@@ -36,7 +36,7 @@ export const travelFieldsSchema = z.object({
   companyName: z.string().optional(),
   destination: z.string().min(2, 'Destination is required'),
   travelDate: z.string().min(1, 'Travel date is required'),
-  returnDate: z.string().min(1, 'Return date is required'),
+  returnDate: z.string().optional().or(z.literal('')),
   adults: numberField(1, 'At least 1 adult required'),
   children: numberField(0, 'Children cannot be negative'),
   infants: numberField(0, 'Infants cannot be negative'),

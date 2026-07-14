@@ -213,7 +213,29 @@ function vendorUrl(voucher) {
 
 async function resolveBrand(booking) {
   const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
-  return resolveCompanyDocumentBranding(booking?.companyId);
+  const brand = await resolveCompanyDocumentBranding(booking?.companyId);
+  // Prefer executive phone on vouchers when available
+  if (booking?.executivePhone) {
+    return { ...brand, phone: booking.executivePhone || brand.phone };
+  }
+  if (!booking?.executivePhone && booking?.lead) {
+    try {
+      const Lead = require('../models/Lead');
+      const User = require('../models/User');
+      const lead = await Lead.findById(booking.lead).select('assignedTo').lean();
+      if (lead?.assignedTo) {
+        const exec = await User.findById(lead.assignedTo).select('phone name').lean();
+        if (exec?.phone) {
+          booking.executivePhone = exec.phone;
+          booking.executiveName = booking.executiveName || exec.name;
+          return { ...brand, phone: exec.phone };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return brand;
 }
 
 function footerHtml(brand) {
@@ -368,8 +390,9 @@ async function buildCabVoucherHtml(voucher, booking) {
   ];
 
   const contacts = [
+    [`Sales Executive${booking.executiveName ? ` (${booking.executiveName})` : ''}`, booking.executivePhone || brand.phone || '-'],
     [`${brand.name} Support`, brand.phone || '-'],
-    ['Operations Manager', p.opsPhone || booking.executivePhone || '-'],
+    ['Operations Manager', p.opsPhone || '-'],
     [`Driver (${p.driverName || 'Assigned'})`, p.driverPhone || '-'],
   ];
 
@@ -444,8 +467,9 @@ async function buildHotelVoucherHtml(voucher, booking) {
   ];
 
   const contacts = [
+    [`Sales Executive${booking.executiveName ? ` (${booking.executiveName})` : ''}`, booking.executivePhone || brand.phone || '-'],
     [`${brand.name} Support`, brand.phone || '-'],
-    ['Operations Manager', p.opsPhone || booking.executivePhone || '-'],
+    ['Operations Manager', p.opsPhone || '-'],
     ['Hotel Front Desk', p.hotelPhone || p.frontOfficePhone || '-'],
     [`Local Office (${destCity})`, p.localOfficePhone || brand.phone || '-'],
   ];

@@ -45,12 +45,12 @@ const FOLLOWUP_POPULATE = [
 const QUOTATION_POPULATE = [
   {
     path: 'lead',
-    populate: [{ path: 'assignedTo', select: 'name email' }],
+    populate: [{ path: 'assignedTo', select: 'name email phone' }],
   },
   { path: 'package' },
-  { path: 'createdBy', select: 'name email role' },
-  { path: 'createdByExecutive', select: 'name email' },
-  { path: 'teamLeader', select: 'name email' },
+  { path: 'createdBy', select: 'name email role phone' },
+  { path: 'createdByExecutive', select: 'name email phone' },
+  { path: 'teamLeader', select: 'name email phone' },
   { path: 'approvedBy', select: 'name email' },
 ];
 

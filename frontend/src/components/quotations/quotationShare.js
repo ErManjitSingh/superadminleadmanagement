@@ -82,7 +82,7 @@ export async function shareQuotationWithPdf({
     return false;
   }
 
-  const fileName = `Quotation-${quoteNumber || 'draft'}.pdf`.replace(/[^\w.-]+/g, '_');
+  const fileName = `Quotation-${quoteNumber && !/^draft$/i.test(quoteNumber) ? quoteNumber : 'No'}.pdf`.replace(/[^\w.-]+/g, '_');
   const message = buildQuotationWhatsAppMessage({
     lead,
     packageName,

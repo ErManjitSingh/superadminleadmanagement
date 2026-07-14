@@ -58,21 +58,43 @@ async function generateReceiptPdf(payment, booking) {
   );
 
   // Backfill customer phone from lead when booking phone is empty
-  let bookingForPdf = booking;
+  let bookingForPdf = { ...booking };
   if ((!booking.customerPhone || !String(booking.customerPhone).trim()) && booking.lead) {
     try {
       const Lead = require('../models/Lead');
-      const lead = await Lead.findById(booking.lead).select('phone whatsapp email').lean();
+      const lead = await Lead.findById(booking.lead).select('phone whatsapp email assignedTo').lean();
       if (lead) {
         bookingForPdf = {
-          ...booking,
+          ...bookingForPdf,
           customerPhone: lead.whatsapp || lead.phone || '',
           customerEmail: booking.customerEmail || lead.email || '',
+          _leadAssignedTo: lead.assignedTo,
         };
       }
     } catch {
       /* ignore */
     }
+  }
+
+  // Sales executive phone for voucher PDFs
+  try {
+    const User = require('../models/User');
+    const execId = payment.createdBy || bookingForPdf._leadAssignedTo || booking.assignedTo;
+    if (execId) {
+      const exec = await User.findById(execId).select('name phone email role').lean();
+      if (exec) {
+        bookingForPdf = {
+          ...bookingForPdf,
+          executiveName: booking.executiveName || exec.name || payment.createdByName || '',
+          executivePhone: exec.phone || '',
+        };
+      }
+    }
+    if (!bookingForPdf.executivePhone && payment.createdByName) {
+      bookingForPdf.executiveName = bookingForPdf.executiveName || payment.createdByName;
+    }
+  } catch {
+    /* ignore */
   }
 
   const enrichedPayment = { ...payment, receiptNumber };

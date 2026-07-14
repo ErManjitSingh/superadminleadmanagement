@@ -18,6 +18,7 @@ import {
   resolveTravelerCounts,
   resolvePaymentPlan,
   resolveQuoteTotal,
+  resolveQuoteDisplayNumber,
 } from './quotePdfHelpers';
 import DestinationGallery from './DestinationGallery';
 
@@ -84,7 +85,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
   const itinerary = pkg.itinerary || [];
-  const quoteNo = quote.quoteNumber || 'QUOTE';
+  const quoteNo = resolveQuoteDisplayNumber(quote);
+  const executivePhone = planner.phone || '';
   const coverImage = pkg.coverImage || packageInfo.coverImage || DEFAULT_COVER;
 
   return (
@@ -111,9 +113,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           </div>
         </div>
         <div className="qp-header-right">
-          <p className="qp-quote-no">{quoteNo}</p>
+          <p className="qp-quote-no">Quote No: {quoteNo}</p>
           <p>{formatQuoteDate(quote.createdAt)}</p>
-          <p>{brand.phone}</p>
+          <p>{executivePhone || brand.phone}</p>
         </div>
       </header>
 
@@ -177,7 +179,9 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               ? [['Hotel Category', packageInfo.hotelCategory]]
               : []),
             ['Customer', lead.name || 'Guest'],
-            ...(lead.phone ? [['Phone', lead.phone]] : []),
+            ...(lead.phone ? [['Customer Phone', lead.phone]] : []),
+            ...(planner.name ? [['Sales Executive', planner.name]] : []),
+            ...(executivePhone ? [['Executive Phone', executivePhone]] : []),
           ].map(([label, value]) => (
             <div key={label} className="qp-overview-item">
               <span className="qp-overview-lbl">{label}</span>
@@ -378,21 +382,21 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       {/* Contact */}
       <div className="qp-contact">
         <div>
-          <h4>Trip Planner</h4>
+          <h4>Sales Executive</h4>
           <p>{planner.name}</p>
-          <p>{planner.phone || brand.phone}</p>
+          <p>{executivePhone || '—'}</p>
         </div>
         <div>
           <h4>Contact Us</h4>
           <p>{brand.address}</p>
-          <p>{brand.phone}</p>
+          <p>{executivePhone || brand.phone}</p>
           <p>{brand.email}</p>
         </div>
       </div>
 
       <footer className="qp-footer">
         <p>Thank you for choosing {brand.name}</p>
-        <p>{brand.phone} · {brand.email}</p>
+        <p>{executivePhone || brand.phone} · {brand.email}</p>
       </footer>
     </div>
   );

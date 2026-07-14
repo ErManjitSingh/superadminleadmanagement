@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import API from '../../../api/axios';
+import { useAuth } from '../../../context/AuthContext';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { buildListParams, unwrapList, unwrapPagination } from '../../../utils/apiHelpers';
 import { parsePackageNights } from '../UnoHotelSelector';
@@ -97,10 +98,12 @@ function syncPaymentAmounts(plan, total) {
 
 export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) {
   const config = BUILDER_CONFIG[mode] || BUILDER_CONFIG.executive;
+  const { user } = useAuth();
 
   const [step, setStep] = useState(1);
   const [maxReached, setMaxReached] = useState(1);
   const [draftId, setDraftId] = useState(null);
+  const [savedQuoteNumber, setSavedQuoteNumber] = useState('');
   const [autosaveStatus, setAutosaveStatus] = useState('idle');
   const [versions, setVersions] = useState([]);
   const [shareToken, setShareToken] = useState('');
@@ -246,10 +249,17 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     // Prefer explicit package total; then lead budget; then transport-only cost.
     const total = priced > 0 ? priced : (leadBudget > 0 ? leadBudget : transportCost);
     const destList = hotelDestination ? [{ name: hotelDestination }] : [];
+    const realQuoteNo = savedQuoteNumber && !/^draft$/i.test(savedQuoteNumber) ? savedQuoteNumber : 'No';
     return {
-      quoteNumber: draftId ? `DRAFT` : 'PREVIEW',
+      quoteNumber: realQuoteNo,
       createdAt: new Date().toISOString(),
       lead: selectedLead,
+      createdByExecutive: user
+        ? { _id: user._id || user.id, name: user.name, phone: user.phone || '', email: user.email || '' }
+        : undefined,
+      createdBy: user
+        ? { _id: user._id || user.id, name: user.name, phone: user.phone || '', email: user.email || '' }
+        : undefined,
       package: buildPackageSnapshot(activePkg || {}),
       pricing: {
         ...state.pricing,
@@ -278,7 +288,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       selectedCabs: builderUiToSelectedCabs(builderUi),
       selectedActivities: [],
     };
-  }, [selectedLead, activePkg, state, builderUi, buildPackageSnapshot, draftId, hotelDestination]);
+  }, [selectedLead, activePkg, state, builderUi, buildPackageSnapshot, savedQuoteNumber, hotelDestination, user]);
 
   useEffect(() => {
     if (step > maxReached) setMaxReached(step);
@@ -491,6 +501,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       .then((res) => {
         if (cancelled) return;
         setDraftId(res.data._id);
+        if (res.data.quoteNumber) setSavedQuoteNumber(res.data.quoteNumber);
         setShareToken(res.data.shareToken || '');
         setVersions(res.data.versions || []);
         setAutosaveStatus('saved');
@@ -771,6 +782,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     const payload = buildSavePayload('draft');
     const { data } = await API.post(`${config.savePath}/autosave`, payload, { skipErrorToast: true });
     setDraftId(data._id);
+    if (data.quoteNumber) setSavedQuoteNumber(data.quoteNumber);
     setShareToken(data.shareToken || '');
     setVersions(data.versions || []);
     return data._id;

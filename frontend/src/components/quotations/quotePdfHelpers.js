@@ -380,10 +380,20 @@ export function resolveQuoteVehicles(quote) {
 
 export function resolveTripPlanner(quote) {
   const exec = quote.createdByExecutive || quote.createdBy;
+  const leadExec = quote.lead?.assignedTo && typeof quote.lead.assignedTo === 'object'
+    ? quote.lead.assignedTo
+    : null;
+  const person = exec?.name ? exec : leadExec;
   return {
-    name: quote.tripPlanner?.name || exec?.name || 'Travel Desk',
-    phone: quote.tripPlanner?.phone || exec?.phone || '',
+    name: quote.tripPlanner?.name || person?.name || 'Travel Desk',
+    phone: quote.tripPlanner?.phone || person?.phone || leadExec?.phone || '',
   };
+}
+
+export function resolveQuoteDisplayNumber(quote) {
+  const raw = String(quote?.quoteNumber || '').trim();
+  if (!raw || /^draft$/i.test(raw) || /^preview$/i.test(raw)) return 'No';
+  return raw;
 }
 
 export function resolvePolicies(quote) {

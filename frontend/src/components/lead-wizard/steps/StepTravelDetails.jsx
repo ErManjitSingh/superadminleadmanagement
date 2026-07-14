@@ -132,7 +132,16 @@ export default function StepTravelDetails() {
         ].map(({ key, label, min }) => (
           <WizardField key={key} label={label} error={errors[key]?.message}>
             <WizardInput
-              {...register(key)}
+              {...register(key, {
+                valueAsNumber: true,
+                setValueAs: (v) => {
+                  if (v === '' || v == null) return key === 'adults' ? 1 : 0;
+                  const n = Number(v);
+                  if (Number.isNaN(n)) return key === 'adults' ? 1 : 0;
+                  if (key === 'adults') return Math.max(1, n);
+                  return Math.max(0, n);
+                },
+              })}
               type="number"
               min={min}
               className="text-center font-semibold metric-tabular"

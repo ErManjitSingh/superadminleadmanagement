@@ -20,7 +20,7 @@ function inferBudgetRange(budget) {
 }
 
 export function leadToWizardValues(lead) {
-  const adults = lead.adults ?? Math.max(1, (lead.travelers || 2) - (lead.children || 0));
+  const adults = lead.adults ?? Math.max(1, (lead.travelers || 1) - (lead.children || 0));
   const children = lead.children ?? 0;
   const infants = lead.infants ?? 0;
 
@@ -69,10 +69,10 @@ export function wizardValuesToPayload(values) {
     leadType: values.leadType || 'fit',
     companyName: values.companyName || undefined,
     travelDate: values.travelDate ? new Date(values.travelDate).toISOString() : undefined,
-    adults: Number(values.adults) || 2,
+    adults: Number(values.adults) || 1,
     children: Number(values.children) || 0,
     infants: Number(values.infants) || 0,
-    travelers: travelers || 2,
+    travelers: travelers || Number(values.adults) || 1,
     leadSource: values.leadSource,
     source: values.leadSource,
     sourceLabel: sourceLabel(values.leadSource),

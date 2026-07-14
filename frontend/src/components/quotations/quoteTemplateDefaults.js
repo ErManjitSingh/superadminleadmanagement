@@ -50,7 +50,7 @@ export function resolveQuoteWelcomeText(quote = {}) {
 }
 
 export const QUOTE_PAYMENT_DETAILS = [
-  'A minimum 50% non-refundable advance payment is mandatory to confirm any booking.',
+  'Token amount is non-refundable and is mandatory to confirm any booking.',
   'The remaining balance must be paid before the tour begins.',
   'We\'ll mail you our company\'s voucher and final itinerary as your payment reflects in our account. Please share screenshots of payment for convenience.',
 ];
@@ -60,15 +60,15 @@ export const QUOTE_TERMS_AND_CONDITIONS = [
   {
     title: '1. Booking Confirmation',
     items: [
-      'A minimum 50% non-refundable advance payment is mandatory to confirm any booking.',
-      'Bookings are confirmed only after receipt of the advance payment and written confirmation from Explore My Bharat Tours.',
+      'Token amount is non-refundable and is mandatory to confirm any booking.',
+      'Bookings are confirmed only after receipt of the token / advance payment and written confirmation from Explore My Bharat Tours.',
     ],
   },
   {
     title: '2. Full Payment',
     items: [
       'The remaining balance must be paid before the tour begins.',
-      'Failure to make full payment may result in automatic cancellation without any refund of the advance amount.',
+      'Failure to make full payment may result in automatic cancellation without any refund of the token amount.',
     ],
   },
   {
@@ -78,6 +78,7 @@ export const QUOTE_TERMS_AND_CONDITIONS = [
       '15–30 days before departure: 50% cancellation charges',
       '7–14 days before departure: 75% cancellation charges',
       'Less than 7 days before departure or No Show: 100% cancellation charges',
+      'Token amount is non-refundable in all cases.',
       'No refund will be provided after the tour has commenced or for any unused services.',
     ],
   },
@@ -93,7 +94,7 @@ export const QUOTE_TERMS_AND_CONDITIONS = [
     items: [
       'The vehicle will operate strictly as per the confirmed itinerary.',
       'Extra sightseeing, route diversions, waiting charges, or additional kilometers will be charged separately.',
-      'Night driving (after 9:00 PM) is subject to driver discretion, local regulations, and additional charges.',
+      'Night driving (after 7:30 PM) is subject to driver discretion, local regulations, and additional charges.',
     ],
   },
   {

@@ -222,7 +222,10 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
   const customerPhone = booking.customerPhone || booking.phone || payment.customerPhone || '-';
   const receivedBy = payment.createdByName
     || (payment.createdBy?.name ? `${payment.createdBy.name}` : '')
+    || booking.executiveName
     || 'Accounts Team';
+  const executivePhone = booking.executivePhone || '';
+  const executiveName = booking.executiveName || payment.createdByName || receivedBy;
   const roleLabel = payment.createdByRole === 'sales_executive' ? 'Sales Executive'
     : payment.createdByRole === 'operations_manager' ? 'Operations'
     : payment.department === 'sales' ? 'Sales Executive' : 'Accounts';
@@ -304,6 +307,8 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
         ${cell('◎', 'Receipt No', receiptNumber)}
         ${cell('☎', 'Customer Phone', customerPhone)}
         ${cell('@', 'Customer Email', booking.customerEmail || '-')}
+        ${cell('✎', 'Sales Executive', executiveName)}
+        ${cell('☎', 'Executive Phone', executivePhone || '-')}
       </div>
     </div>
     <div class="card">
@@ -343,7 +348,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     </div>
   </div>
   <div class="foot">
-    <span>Phone: ${esc(footPhone)}</span>
+    <span>Exec: ${esc(executivePhone || footPhone)}</span>
     <span>Email: ${esc(footEmail)}</span>
     <span>Web: ${esc(footSite)}</span>
     <span>${esc(footPlace)}</span>
