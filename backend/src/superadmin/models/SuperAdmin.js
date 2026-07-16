@@ -10,6 +10,8 @@ const superAdminSchema = new mongoose.Schema(
     status: { type: String, enum: ['active', 'disabled'], default: 'active', index: true },
     lastLogin: { type: Date },
     avatar: { type: String, default: null },
+    /** Optional Website Management ACL (module → actions). super_admin always has full access. */
+    websitePermissions: { type: mongoose.Schema.Types.Mixed, default: null },
     deletedAt: { type: Date, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'SuperAdmin' },
     updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'SuperAdmin' },

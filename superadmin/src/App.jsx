@@ -27,6 +27,23 @@ import ApiKeysPage from './pages/ApiKeysPage';
 import BackupsPage from './pages/BackupsPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
+import WebsiteDashboardPage from './pages/website/WebsiteDashboardPage';
+import WebsiteHomepagePage from './pages/website/WebsiteHomepagePage';
+import WebsiteTreksPage from './pages/website/WebsiteTreksPage';
+import WebsiteDestinationsPage from './pages/website/WebsiteDestinationsPage';
+import WebsiteCategoriesPage from './pages/website/WebsiteCategoriesPage';
+import WebsiteBlogsPage from './pages/website/WebsiteBlogsPage';
+import WebsiteMediaPage from './pages/website/WebsiteMediaPage';
+import WebsiteGalleryPage from './pages/website/WebsiteGalleryPage';
+import WebsiteTestimonialsPage from './pages/website/WebsiteTestimonialsPage';
+import WebsiteFaqsPage from './pages/website/WebsiteFaqsPage';
+import WebsiteMenusPage from './pages/website/WebsiteMenusPage';
+import WebsiteSeoPage from './pages/website/WebsiteSeoPage';
+import WebsiteLeadsPage from './pages/website/WebsiteLeadsPage';
+import WebsiteCouponsPage from './pages/website/WebsiteCouponsPage';
+import WebsiteSettingsPage from './pages/website/WebsiteSettingsPage';
+import WebsiteRedirectsPage from './pages/website/WebsiteRedirectsPage';
+import WebsiteActivityPage from './pages/website/WebsiteActivityPage';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30000 } },
@@ -70,6 +87,25 @@ export default function App() {
                 <Route path="backups" element={<BackupsPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+
+                {/* Website Management — isolated trekking CMS */}
+                <Route path="website" element={<WebsiteDashboardPage />} />
+                <Route path="website/homepage" element={<WebsiteHomepagePage />} />
+                <Route path="website/treks" element={<WebsiteTreksPage />} />
+                <Route path="website/destinations" element={<WebsiteDestinationsPage />} />
+                <Route path="website/categories" element={<WebsiteCategoriesPage />} />
+                <Route path="website/blogs" element={<WebsiteBlogsPage />} />
+                <Route path="website/media" element={<WebsiteMediaPage />} />
+                <Route path="website/gallery" element={<WebsiteGalleryPage />} />
+                <Route path="website/testimonials" element={<WebsiteTestimonialsPage />} />
+                <Route path="website/faqs" element={<WebsiteFaqsPage />} />
+                <Route path="website/menus" element={<WebsiteMenusPage />} />
+                <Route path="website/seo" element={<WebsiteSeoPage />} />
+                <Route path="website/leads" element={<WebsiteLeadsPage />} />
+                <Route path="website/coupons" element={<WebsiteCouponsPage />} />
+                <Route path="website/settings" element={<WebsiteSettingsPage />} />
+                <Route path="website/redirects" element={<WebsiteRedirectsPage />} />
+                <Route path="website/activity" element={<WebsiteActivityPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/admin/login" replace />} />
             </Routes>

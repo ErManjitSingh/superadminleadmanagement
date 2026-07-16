@@ -18,6 +18,7 @@ const { startEmailInboxPoller } = require('./services/emailInboxService');
 const { archiveOldTrips } = require('./services/operationsArchiveService');
 const { startSubscriptionLifecycleJob } = require('./services/subscriptionLifecycleService');
 const superAdminRoutes = require('./superadmin/routes');
+const websitePublicRoutes = require('./superadmin/website/routes/publicRoutes');
 const { ensurePlatformIndexes } = require('./superadmin/config/ensurePlatformIndexes');
 const { ensureDefaultSettings } = require('./superadmin/services/platformSettingsService');
 
@@ -61,6 +62,7 @@ app.get('/api', (req, res) => {
 
 app.use('/api', apiLimiter, apiRoutes);
 app.use('/api/superadmin', apiLimiter, superAdminRoutes);
+app.use('/api/website', apiLimiter, websitePublicRoutes);
 app.use(errorHandler);
 
 async function start() {

@@ -51,6 +51,23 @@ async function ensurePlatformIndexes() {
     Booking.collection.createIndex({ companyId: 1, status: 1, createdAt: -1 }, { background: true }),
     FollowUp.collection.createIndex({ companyId: 1, status: 1, scheduledAt: 1 }, { background: true }),
   ]);
+
+  // Website Management indexes (isolated website_* collections)
+  try {
+    const WebsiteTrek = require('../website/models/WebsiteTrek');
+    const WebsiteLead = require('../website/models/WebsiteLead');
+    const WebsiteBlog = require('../website/models/WebsiteBlog');
+    const WebsiteMedia = require('../website/models/WebsiteMedia');
+    await Promise.all([
+      WebsiteTrek.collection.createIndex({ status: 1, sortOrder: 1, createdAt: -1 }, { background: true }),
+      WebsiteTrek.collection.createIndex({ deletedAt: 1, status: 1 }, { background: true }),
+      WebsiteLead.collection.createIndex({ type: 1, status: 1, createdAt: -1 }, { background: true }),
+      WebsiteBlog.collection.createIndex({ status: 1, publishedAt: -1 }, { background: true }),
+      WebsiteMedia.collection.createIndex({ folder: 1, createdAt: -1 }, { background: true }),
+    ]);
+  } catch (err) {
+    console.warn('[Indexes] website indexes:', err.message);
+  }
 }
 
 module.exports = { ensurePlatformIndexes };

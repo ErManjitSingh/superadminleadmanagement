@@ -16,6 +16,7 @@ const adminRoutes = require('./adminRoutes');
 const reportsRoutes = require('./reportsRoutes');
 const platformFeatureRoutes = require('./platformFeatureRoutes');
 const paymentRequestRoutes = require('./paymentRequestRoutes');
+const websiteRoutes = require('../website/routes');
 
 const router = express.Router();
 
@@ -36,5 +37,6 @@ router.use('/logs', logsRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/platform-features', platformFeatureRoutes);
 router.use('/payment-requests', paymentRequestRoutes);
+router.use('/website', websiteRoutes);
 
 module.exports = router;

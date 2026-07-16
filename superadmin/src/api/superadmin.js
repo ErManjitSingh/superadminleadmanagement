@@ -60,4 +60,99 @@ export const superAdminApi = {
   getPlatformFeatures: () => api.get('/platform-features'),
   savePlatformFeatureDefaults: (data) => api.patch('/platform-features/defaults', data),
   rolloutPlatformFeatures: (data) => api.post('/platform-features/rollout', data),
+
+  // Website Management
+  getWebsiteDashboard: () => api.get('/website/dashboard'),
+  listHomepageSections: () => api.get('/website/homepage'),
+  upsertHomepageSection: (data) => api.post('/website/homepage', data),
+  updateHomepageSection: (id, data) => api.patch(`/website/homepage/${id}`, data),
+  deleteHomepageSection: (id) => api.delete(`/website/homepage/${id}`),
+  reorderHomepageSections: (orders) => api.post('/website/homepage/reorder', { orders }),
+
+  listWebsiteTreks: (params) => api.get('/website/treks', { params }),
+  getWebsiteTrek: (id) => api.get(`/website/treks/${id}`),
+  createWebsiteTrek: (data) => api.post('/website/treks', data),
+  updateWebsiteTrek: (id, data) => api.patch(`/website/treks/${id}`, data),
+  deleteWebsiteTrek: (id) => api.delete(`/website/treks/${id}`),
+  duplicateWebsiteTrek: (id) => api.post(`/website/treks/${id}/duplicate`),
+  scheduleWebsiteTrek: (id, data) => api.post(`/website/treks/${id}/schedule`, data),
+  archiveWebsiteTrek: (id) => api.post(`/website/treks/${id}/archive`),
+
+  listWebsiteDestinations: (params) => api.get('/website/destinations', { params }),
+  getWebsiteDestination: (id) => api.get(`/website/destinations/${id}`),
+  createWebsiteDestination: (data) => api.post('/website/destinations', data),
+  updateWebsiteDestination: (id, data) => api.patch(`/website/destinations/${id}`, data),
+  deleteWebsiteDestination: (id) => api.delete(`/website/destinations/${id}`),
+  duplicateWebsiteDestination: (id) => api.post(`/website/destinations/${id}/duplicate`),
+
+  listWebsiteCategories: (params) => api.get('/website/categories', { params }),
+  createWebsiteCategory: (data) => api.post('/website/categories', data),
+  updateWebsiteCategory: (id, data) => api.patch(`/website/categories/${id}`, data),
+  deleteWebsiteCategory: (id) => api.delete(`/website/categories/${id}`),
+
+  listWebsiteBlogs: (params) => api.get('/website/blogs', { params }),
+  getWebsiteBlog: (id) => api.get(`/website/blogs/${id}`),
+  createWebsiteBlog: (data) => api.post('/website/blogs', data),
+  updateWebsiteBlog: (id, data) => api.patch(`/website/blogs/${id}`, data),
+  deleteWebsiteBlog: (id) => api.delete(`/website/blogs/${id}`),
+  autosaveWebsiteBlog: (id, data) => api.post(`/website/blogs/${id}/autosave`, data),
+  restoreWebsiteBlogRevision: (id, revisionId) => api.post(`/website/blogs/${id}/revisions/${revisionId}/restore`),
+  duplicateWebsiteBlog: (id) => api.post(`/website/blogs/${id}/duplicate`),
+
+  listWebsiteMedia: (params) => api.get('/website/media', { params }),
+  uploadWebsiteMedia: (data) => api.post('/website/media/upload', data),
+  createWebsiteMediaFolder: (folder) => api.post('/website/media/folders', { folder }),
+  updateWebsiteMedia: (id, data) => api.patch(`/website/media/${id}`, data),
+  deleteWebsiteMedia: (id) => api.delete(`/website/media/${id}`),
+  bulkDeleteWebsiteMedia: (ids) => api.post('/website/media/bulk-delete', { ids }),
+
+  listWebsiteGalleries: (params) => api.get('/website/galleries', { params }),
+  createWebsiteGallery: (data) => api.post('/website/galleries', data),
+  updateWebsiteGallery: (id, data) => api.patch(`/website/galleries/${id}`, data),
+  deleteWebsiteGallery: (id) => api.delete(`/website/galleries/${id}`),
+
+  listWebsiteTestimonials: (params) => api.get('/website/testimonials', { params }),
+  createWebsiteTestimonial: (data) => api.post('/website/testimonials', data),
+  updateWebsiteTestimonial: (id, data) => api.patch(`/website/testimonials/${id}`, data),
+  deleteWebsiteTestimonial: (id) => api.delete(`/website/testimonials/${id}`),
+
+  listWebsiteFaqs: (params) => api.get('/website/faqs', { params }),
+  createWebsiteFaq: (data) => api.post('/website/faqs', data),
+  updateWebsiteFaq: (id, data) => api.patch(`/website/faqs/${id}`, data),
+  deleteWebsiteFaq: (id) => api.delete(`/website/faqs/${id}`),
+  reorderWebsiteFaqs: (orders) => api.post('/website/faqs/reorder', { orders }),
+
+  listWebsiteMenus: () => api.get('/website/menus'),
+  updateWebsiteMenu: (id, data) => api.patch(`/website/menus/${id}`, data),
+
+  listWebsiteSeo: (params) => api.get('/website/seo', { params }),
+  upsertWebsiteSeo: (data) => api.post('/website/seo', data),
+  updateWebsiteSeo: (id, data) => api.patch(`/website/seo/${id}`, data),
+  syncWebsiteSeo: () => api.post('/website/seo/sync'),
+  deleteWebsiteSeo: (id) => api.delete(`/website/seo/${id}`),
+
+  listWebsiteLeads: (params) => api.get('/website/leads', { params }),
+  updateWebsiteLead: (id, data) => api.patch(`/website/leads/${id}`, data),
+  assignWebsiteLead: (id, data) => api.post(`/website/leads/${id}/assign`, data),
+  deleteWebsiteLead: (id) => api.delete(`/website/leads/${id}`),
+  exportWebsiteLeads: (params) => api.get('/website/leads/export', { params, responseType: 'blob' }),
+
+  listWebsiteReviews: (params) => api.get('/website/reviews', { params }),
+  moderateWebsiteReview: (id, data) => api.patch(`/website/reviews/${id}`, data),
+  deleteWebsiteReview: (id) => api.delete(`/website/reviews/${id}`),
+
+  listWebsiteCoupons: (params) => api.get('/website/coupons', { params }),
+  createWebsiteCoupon: (data) => api.post('/website/coupons', data),
+  updateWebsiteCoupon: (id, data) => api.patch(`/website/coupons/${id}`, data),
+  deleteWebsiteCoupon: (id) => api.delete(`/website/coupons/${id}`),
+
+  getWebsiteSettings: () => api.get('/website/settings'),
+  updateWebsiteSettings: (data) => api.patch('/website/settings', data),
+
+  listWebsiteRedirects: (params) => api.get('/website/redirects', { params }),
+  createWebsiteRedirect: (data) => api.post('/website/redirects', data),
+  updateWebsiteRedirect: (id, data) => api.patch(`/website/redirects/${id}`, data),
+  deleteWebsiteRedirect: (id) => api.delete(`/website/redirects/${id}`),
+
+  listWebsiteActivity: (params) => api.get('/website/activity', { params }),
 };
