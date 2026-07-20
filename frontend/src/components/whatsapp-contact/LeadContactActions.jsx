@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
 } from '../ui/dropdown-menu';
 import { DETAIL_CARD } from '../lead-detail/leadDetailUtils';
+import { cn } from '../../lib/utils';
 
 export default function LeadContactActions({
   lead,
@@ -20,12 +21,13 @@ export default function LeadContactActions({
   onEmailSent,
   onChangeStatus,
   className = '',
+  embedded = false,
 }) {
   const phone = lead?.phone;
 
   return (
-    <div className={`${DETAIL_CARD} p-4 mb-6 ${className}`}>
-      <div className="flex flex-wrap gap-2">
+    <div className={cn(!embedded && DETAIL_CARD, !embedded && 'p-4 mb-5', className)}>
+      <div className="flex flex-wrap gap-2.5">
         <a href={phone ? `tel:${phone}` : '#'} className={!phone ? 'pointer-events-none opacity-50' : ''}>
           <Button
             type="button"
@@ -53,7 +55,7 @@ export default function LeadContactActions({
           size="lg"
           showLabel
           label="Send Email"
-          className="!rounded-xl !h-11 !px-5 !bg-green-800 hover:!bg-green-700 !text-white !border-0 !shadow-sm !font-semibold"
+          className="!rounded-xl !h-11 !px-5 !bg-[#5f7a6e] hover:!bg-[#51685e] !text-white !border-0 !shadow-sm !font-semibold"
         />
 
         {onCreateQuote && (
@@ -83,7 +85,7 @@ export default function LeadContactActions({
             <Button
               type="button"
               variant="outline"
-              className="rounded-xl gap-2 h-11 px-4 border-slate-200 text-slate-600 font-semibold"
+              className="rounded-xl gap-2 h-11 px-4 border-slate-200 bg-white text-slate-600 font-semibold"
             >
               <MoreHorizontal className="w-4 h-4" />
               More

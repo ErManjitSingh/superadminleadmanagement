@@ -4,13 +4,15 @@ import { PIPELINE_STAGES } from './leadDetailData';
 import { DETAIL_CARD } from './leadDetailUtils';
 import { cn } from '../../lib/utils';
 
-export default function LeadStatusPipeline({ status }) {
+export default function LeadStatusPipeline({ status, embedded = false, className = '' }) {
   const current = normalizeLeadStatus(status);
   const currentIdx = PIPELINE_STAGES.findIndex((s) => s.value === current);
 
   return (
-    <div className={cn(DETAIL_CARD, 'p-4 sm:p-5 mb-6')}>
-      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-4">Lead Pipeline</p>
+    <div className={cn(!embedded && DETAIL_CARD, !embedded && 'p-4 sm:p-5 mb-5', embedded && 'mb-0', className)}>
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-4">
+        Lead Pipeline
+      </p>
       <div className="flex items-start overflow-x-auto gap-0 pb-1 scrollbar-thin">
         {PIPELINE_STAGES.map((stage, i) => {
           const done = i <= currentIdx && currentIdx >= 0;
@@ -18,13 +20,13 @@ export default function LeadStatusPipeline({ status }) {
           const isConverted = stage.value === 'converted' && active;
 
           return (
-            <div key={stage.value} className="flex items-start flex-1 min-w-[76px]">
-              <div className="flex flex-col items-center flex-1 px-1">
+            <div key={stage.value} className="flex items-start flex-1 min-w-[72px]">
+              <div className="flex flex-col items-center flex-1 px-0.5">
                 <div
                   className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all shrink-0',
                     isConverted && 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/30',
-                    active && !isConverted && 'bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/30',
+                    active && !isConverted && 'bg-violet-600 border-violet-600 text-white shadow-md shadow-violet-500/30 ring-4 ring-violet-100',
                     done && !active && 'bg-violet-100 border-violet-300 dark:bg-violet-950/40',
                     !done && !active && 'bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700'
                   )}
@@ -32,12 +34,12 @@ export default function LeadStatusPipeline({ status }) {
                   {isConverted ? (
                     <Trophy className="w-3.5 h-3.5" />
                   ) : (
-                    <span className={cn('w-2 h-2 rounded-full', done ? 'bg-violet-500' : 'bg-slate-300')} />
+                    <span className={cn('w-2 h-2 rounded-full', active || done ? 'bg-white' : 'bg-slate-300', done && !active && 'bg-violet-500')} />
                   )}
                 </div>
                 <span
                   className={cn(
-                    'text-[9px] sm:text-[10px] mt-2 font-semibold text-center leading-tight',
+                    'text-[9px] sm:text-[10px] mt-2 font-semibold text-center leading-tight max-w-[78px]',
                     active ? 'text-violet-700 dark:text-violet-300' : done ? 'text-slate-600' : 'text-slate-400'
                   )}
                 >
@@ -47,7 +49,7 @@ export default function LeadStatusPipeline({ status }) {
               {i < PIPELINE_STAGES.length - 1 && (
                 <div
                   className={cn(
-                    'h-0.5 flex-1 mt-4 min-w-[8px] max-w-[24px]',
+                    'h-0.5 flex-1 mt-4 min-w-[6px] max-w-[28px]',
                     i < currentIdx ? 'bg-violet-400' : 'bg-slate-200 dark:bg-slate-700'
                   )}
                 />

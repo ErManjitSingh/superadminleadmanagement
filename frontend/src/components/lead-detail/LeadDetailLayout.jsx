@@ -12,6 +12,8 @@ import LeadQuotationSection from './LeadQuotationSection';
 import LeadScoreBreakdown from './LeadScoreBreakdown';
 import { useLeadQuotationsQuery, useLeadNotesQuery } from '../../features/leads/hooks/useLeadRelatedQueries';
 import { getLeadDetailData } from './leadDetailData';
+import { DETAIL_CARD } from './leadDetailUtils';
+import { cn } from '../../lib/utils';
 
 export default function LeadDetailLayout({
   lead,
@@ -60,19 +62,25 @@ export default function LeadDetailLayout({
     <>
       <LeadDetailHeader lead={lead} backHref={backHref} backLabel={backLabel} />
       {headerExtra}
-      <LeadStatusPipeline status={lead.status} />
-      <LeadConvertedBanner status={lead.status} leadId={leadId} />
 
-      <LeadContactActions
-        lead={lead}
-        leadId={leadId}
-        contactEndpoint={contactEndpoint}
-        onCreateQuote={onCreateQuote}
-        onScheduleFollowUp={onScheduleFollowUp}
-        onContactLogged={onContactLogged}
-        onEmailSent={onEmailSent}
-        onChangeStatus={onChangeStatus}
-      />
+      <div className={cn(DETAIL_CARD, 'p-4 sm:p-5 mb-5')}>
+        <LeadStatusPipeline status={lead.status} embedded />
+        <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
+          <LeadContactActions
+            embedded
+            lead={lead}
+            leadId={leadId}
+            contactEndpoint={contactEndpoint}
+            onCreateQuote={onCreateQuote}
+            onScheduleFollowUp={onScheduleFollowUp}
+            onContactLogged={onContactLogged}
+            onEmailSent={onEmailSent}
+            onChangeStatus={onChangeStatus}
+          />
+        </div>
+      </div>
+
+      <LeadConvertedBanner status={lead.status} leadId={leadId} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start mb-5">
         <aside className="xl:col-span-3 space-y-4 order-2 xl:order-1">
