@@ -69,7 +69,9 @@ export default function OperationsDashboardPanels({ data }) {
                 <p className="text-sm font-medium text-content-primary truncate">{b.customerName} · {b.destination}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <span className="flex items-center gap-1 text-[10px] text-content-muted"><Hotel className="w-3 h-3" /><ConfirmBadge status={b.hotelConfirmation} /></span>
+                {b.hotelConfirmation !== 'not_required' && b.hotelConfirmation !== 'na' && (
+                  <span className="flex items-center gap-1 text-[10px] text-content-muted"><Hotel className="w-3 h-3" /><ConfirmBadge status={b.hotelConfirmation} /></span>
+                )}
                 <span className="flex items-center gap-1 text-[10px] text-content-muted"><Car className="w-3 h-3" /><ConfirmBadge status={b.cabConfirmation} /></span>
               </div>
             </Link>

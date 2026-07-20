@@ -65,8 +65,10 @@ const EMPTY_FILTERS = {
 };
 
 function ConfirmationCell({ value, detail, listStatus, icon: Icon }) {
-  const cfg = CONFIRMATION_CONFIG[value] || CONFIRMATION_CONFIG.pending;
+  const resolved = value === 'not_required' || value === 'na' ? 'not_required' : value;
+  const cfg = CONFIRMATION_CONFIG[resolved] || CONFIRMATION_CONFIG.pending;
   const showDetail = listStatus === 'confirmed' || listStatus === 'active';
+  const hideDetail = resolved === 'not_required';
 
   return (
     <div className="min-w-[108px]">
@@ -74,7 +76,7 @@ function ConfirmationCell({ value, detail, listStatus, icon: Icon }) {
         {Icon && <Icon className="w-3 h-3 shrink-0 opacity-80" />}
         {cfg.label}
       </span>
-      {showDetail && detail && (
+      {showDetail && !hideDetail && detail && (
         <p className="text-[11px] text-content-muted mt-1 truncate max-w-[150px]">{detail}</p>
       )}
     </div>
@@ -216,14 +218,24 @@ function buildColumns(listStatus, selection) {
     {
       key: 'hotel',
       header: 'Hotel',
-      render: (b) => (
-        <ConfirmationCell
-          value={b.hotelConfirmation}
-          detail={showDetail ? getHotelDisplayDetail(b) : getPrimaryHotelName(b)}
-          listStatus={listStatus}
-          icon={Building2}
-        />
-      ),
+      render: (b) => {
+        const hasHotels = Array.isArray(b.hotels)
+          ? b.hotels.some((h) => String(h?.hotelName || h?.name || '').trim())
+          : null;
+        const resolved = hasHotels === false
+          || b.hotelConfirmation === 'not_required'
+          || b.hotelConfirmation === 'na'
+          ? 'not_required'
+          : (b.hotelConfirmation || 'pending');
+        return (
+          <ConfirmationCell
+            value={resolved}
+            detail={showDetail ? getHotelDisplayDetail(b) : getPrimaryHotelName(b)}
+            listStatus={listStatus}
+            icon={Building2}
+          />
+        );
+      },
     },
     {
       key: 'cab',

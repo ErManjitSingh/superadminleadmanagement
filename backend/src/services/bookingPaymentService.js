@@ -145,6 +145,12 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
   }
 
   const { mapQuoteHotels, mapQuoteTransport, mapQuoteActivities, mapQuoteItinerary } = require('./operationsQuotationSyncService');
+  const { resolveHotelConfirmationStatus } = require('../utils/noHotelUtils');
+
+  const hotels = quotation ? mapQuoteHotels(quotation, travelDate) : [];
+  const transport = quotation ? mapQuoteTransport(quotation) : [];
+  const activities = quotation ? mapQuoteActivities(quotation) : [];
+  const itinerary = quotation ? mapQuoteItinerary(quotation, travelDate) : [];
 
   return {
     branchId: lead.branchId,
@@ -169,10 +175,11 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
     paymentProgress: computeProgress(totalAmount, paymentAmount),
     quotationReference: quotation?.quoteNumber || '',
     executiveName: executive?.name || '',
-    hotels: quotation ? mapQuoteHotels(quotation, travelDate) : [],
-    transport: quotation ? mapQuoteTransport(quotation) : [],
-    activities: quotation ? mapQuoteActivities(quotation) : [],
-    itinerary: quotation ? mapQuoteItinerary(quotation, travelDate) : [],
+    hotels,
+    transport,
+    activities,
+    itinerary,
+    hotelConfirmation: resolveHotelConfirmationStatus({ hotels }),
     isNewBooking: true,
     operationsStatus: 'new',
     priority: 'high',

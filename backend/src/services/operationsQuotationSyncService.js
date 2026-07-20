@@ -223,14 +223,19 @@ async function syncBookingFromQuotation(bookingId, { force = false } = {}) {
   if (force || !booking.itinerary?.length) {
     if (extracted.itinerary.length) patch.itinerary = extracted.itinerary;
   }
-  if (omitsHotels) {
+  if (omitsHotels || !(extracted.hotels || []).length) {
     // Clear leaked package hotels / hotel confirmation when quote is cab-only / no hotel
     patch.hotels = [];
-    if (booking.hotelConfirmation && booking.hotelConfirmation !== 'not_required') {
+    if (booking.hotelConfirmation !== 'not_required') {
       patch.hotelConfirmation = 'not_required';
     }
   } else if (force || !booking.hotels?.length) {
-    if (extracted.hotels.length) patch.hotels = extracted.hotels;
+    if (extracted.hotels.length) {
+      patch.hotels = extracted.hotels;
+      if (!booking.hotelConfirmation || booking.hotelConfirmation === 'not_required') {
+        patch.hotelConfirmation = 'pending';
+      }
+    }
   }
   if (force || !booking.transport?.length) {
     if (extracted.transport.length) patch.transport = extracted.transport;

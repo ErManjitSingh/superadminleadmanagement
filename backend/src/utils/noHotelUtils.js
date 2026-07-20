@@ -114,6 +114,28 @@ function sanitizeQuotationPayloadForNoHotel(body = {}, lead = null) {
   };
 }
 
+function bookingHasNamedHotels(booking = {}) {
+  return (booking.hotels || []).some((h) => String(h?.hotelName || h?.name || '').trim());
+}
+
+/**
+ * Cab-only / no-hotel bookings must not stay on hotelConfirmation "pending".
+ */
+function resolveHotelConfirmationStatus(booking = {}, preferred) {
+  if (!bookingHasNamedHotels(booking)) return 'not_required';
+  if (preferred && preferred !== 'not_required') return preferred;
+  const current = booking.hotelConfirmation;
+  if (current && current !== 'not_required') return current;
+  return 'pending';
+}
+
+function normalizeBookingHotelConfirmation(booking = {}) {
+  if (!booking || typeof booking !== 'object') return booking;
+  const hotelConfirmation = resolveHotelConfirmationStatus(booking, booking.hotelConfirmation);
+  if (hotelConfirmation === booking.hotelConfirmation) return booking;
+  return { ...booking, hotelConfirmation };
+}
+
 module.exports = {
   isNoHotelLabel,
   isNoHotelMealPlan,
@@ -121,4 +143,7 @@ module.exports = {
   quoteHasHotels,
   stripHotelsFromPackageSnapshot,
   sanitizeQuotationPayloadForNoHotel,
+  bookingHasNamedHotels,
+  resolveHotelConfirmationStatus,
+  normalizeBookingHotelConfirmation,
 };

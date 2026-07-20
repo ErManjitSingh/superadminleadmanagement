@@ -26,6 +26,10 @@ const { notifyBookingConfirmed } = require('./notificationService');
 const cacheService = require('./cacheService');
 const { assertBookingLimit } = require('./subscriptionLimitsService');
 const { getCompanyId } = require('../utils/tenantContextStore');
+const {
+  resolveHotelConfirmationStatus,
+  normalizeBookingHotelConfirmation,
+} = require('../utils/noHotelUtils');
 
 const OPS_DASHBOARD_TTL = 30_000;
 
@@ -146,7 +150,15 @@ async function buildDashboard(branchId) {
 
   const pendingHotel = {
     ...base,
-    $or: [{ hotelConfirmation: 'pending' }, { 'hotels.status': { $in: ['pending', 'requested'] } }],
+    hotelConfirmation: 'pending',
+    hotels: {
+      $elemMatch: {
+        $or: [
+          { hotelName: { $exists: true, $nin: [null, ''] } },
+          { name: { $exists: true, $nin: [null, ''] } },
+        ],
+      },
+    },
   };
   const pendingCab = {
     ...base,
@@ -207,12 +219,26 @@ async function buildDashboard(branchId) {
     Booking.find({
       ...base,
       status: { $in: STATUS_ROUTE_MAP.pending },
-      $or: [{ hotelConfirmation: 'pending' }, { cabConfirmation: 'pending' }],
+      $or: [
+        {
+          hotelConfirmation: 'pending',
+          hotels: {
+            $elemMatch: {
+              $or: [
+                { hotelName: { $exists: true, $nin: [null, ''] } },
+                { name: { $exists: true, $nin: [null, ''] } },
+              ],
+            },
+          },
+        },
+        { cabConfirmation: 'pending' },
+      ],
     })
       .sort({ travelDate: 1 })
       .limit(8)
-      .select('bookingNumber customerName destination hotelConfirmation cabConfirmation travelDate')
-      .lean(),
+      .select('bookingNumber customerName destination hotelConfirmation cabConfirmation travelDate hotels')
+      .lean()
+      .then((rows) => rows.map(normalizeBookingHotelConfirmation)),
     SupportTicket.find({ status: { $in: ['open', 'in_progress'] } })
       .sort({ updatedAt: -1 })
       .limit(8)
@@ -1094,8 +1120,18 @@ async function listBookings(query = {}, { branchId } = {}) {
     Booking.distinct('packageName', { ...filter, packageName: { $nin: [null, ''] } }),
   ]);
 
+  const normalizedRows = rows.map(normalizeBookingHotelConfirmation);
+  const stale = normalizedRows.filter((b, i) => b.hotelConfirmation !== rows[i].hotelConfirmation);
+  if (stale.length) {
+    Promise.all(
+      stale.map((b) =>
+        Booking.updateOne({ _id: b._id }, { $set: { hotelConfirmation: b.hotelConfirmation } }),
+      ),
+    ).catch(() => {});
+  }
+
   return {
-    ...paginatedResponse(rows, { page, limit, total }),
+    ...paginatedResponse(normalizedRows, { page, limit, total }),
     summary,
     filters: {
       destinations: destinations.filter(Boolean).sort(),
@@ -1112,10 +1148,15 @@ async function createBooking(payload, actor) {
   const advance = Number(payload.advanceReceived || 0);
   const total = Number(payload.totalAmount || 0);
   const pendingAmount = Math.max(0, total - advance);
+  const hotelConfirmation = resolveHotelConfirmationStatus(
+    { hotels: payload.hotels || [], hotelConfirmation: payload.hotelConfirmation },
+    payload.hotelConfirmation,
+  );
 
   const booking = await Booking.create({
     ...payload,
     bookingNumber,
+    hotelConfirmation,
     status: payload.status || 'booking_received',
     pendingAmount,
     remainingBalance: payload.remainingBalance ?? pendingAmount,
@@ -1182,6 +1223,11 @@ async function buildBookingPayloadFromPayment(payment) {
     returnDate.setDate(returnDate.getDate() + Number(snap.duration));
   }
 
+  const hotels = quotation ? mapQuoteHotels(quotation, travelDate) : [];
+  const transport = quotation ? mapQuoteTransport(quotation) : [];
+  const activities = quotation ? mapQuoteActivities(quotation) : [];
+  const itinerary = quotation ? mapQuoteItinerary(quotation, travelDate) : [];
+
   return {
     branchId: payment.branchId || lead?.branchId,
     lead: payment.lead || lead?._id,
@@ -1202,11 +1248,11 @@ async function buildBookingPayloadFromPayment(payment) {
     pendingAmount: Math.max(0, totalAmount - (payment.paidAmount || 0)),
     quotationReference: quotation?.quoteNumber || '',
     executiveName: executive?.name || '',
-    hotels: quotation ? mapQuoteHotels(quotation, travelDate) : [],
-    transport: quotation ? mapQuoteTransport(quotation) : [],
-    activities: quotation ? mapQuoteActivities(quotation) : [],
-    itinerary: quotation ? mapQuoteItinerary(quotation, travelDate) : [],
-    hotelConfirmation: 'pending',
+    hotels,
+    transport,
+    activities,
+    itinerary,
+    hotelConfirmation: resolveHotelConfirmationStatus({ hotels }),
     cabConfirmation: 'pending',
     voucherStatus: 'pending',
   };
@@ -1391,7 +1437,9 @@ function enrichTripRow(booking, category, now = new Date()) {
     durationNights,
     durationLabel: durationDays ? `${durationDays} Days / ${durationNights} Nights` : null,
     activitiesBooked,
-    hotelStatus: booking.hotelConfirmation === 'confirmed' ? 'confirmed' : 'pending',
+    hotelStatus: booking.hotelConfirmation === 'not_required' || booking.hotelConfirmation === 'na'
+      ? 'not_required'
+      : booking.hotelConfirmation === 'confirmed' ? 'confirmed' : 'pending',
     transportStatus: booking.cabConfirmation === 'confirmed' ? 'confirmed' : 'pending',
     displayStatus,
     footerMessage,

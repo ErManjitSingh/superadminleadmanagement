@@ -17,6 +17,8 @@ export const CONFIRMATION_CONFIG = {
   confirmed: { label: 'Confirmed', className: 'bg-emerald-500/15 text-emerald-700' },
   rejected: { label: 'Rejected', className: 'bg-rose-500/15 text-rose-700' },
   cancelled: { label: 'Cancelled', className: 'bg-slate-500/15 text-slate-600' },
+  not_required: { label: 'N/A', className: 'bg-slate-100 text-slate-500' },
+  na: { label: 'N/A', className: 'bg-slate-100 text-slate-500' },
 };
 
 export const TICKET_STATUS_CONFIG = {
