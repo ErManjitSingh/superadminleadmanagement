@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarClock, Flame, Bell, HelpCircle, LifeBuoy } from 'lucide-react';
+import { HelpCircle, LifeBuoy } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import SidebarUserCard from './SidebarUserCard';
 import { cn } from '../../lib/utils';
