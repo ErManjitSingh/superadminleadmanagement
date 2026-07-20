@@ -38,11 +38,15 @@ function lineMentionsHotel(text) {
   return /\bhotels?\b|\baccommodation\b|\bstay\b|\bcheck-?ins?\b|\bcheck-?outs?\b/i.test(String(text || ''));
 }
 
+function lineMentionsMeals(text) {
+  return /\bbreakfast\b|\blunch\b|\bdinner\b|\bmeals?\b|\bmeal\s*plan\b/i.test(String(text || ''));
+}
+
 export function stripHotelMentionsFromLines(lines = []) {
   return (lines || [])
     .map((line) => String(line || '').trim())
     .filter(Boolean)
-    .filter((line) => !lineMentionsHotel(line));
+    .filter((line) => !lineMentionsHotel(line) && !lineMentionsMeals(line));
 }
 
 export function resolveQuoteWelcomeText(quote = {}) {

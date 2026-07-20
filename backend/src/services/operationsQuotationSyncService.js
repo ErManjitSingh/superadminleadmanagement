@@ -110,7 +110,8 @@ function mapQuoteHotels(quotation, travelDate) {
 
 function mapQuoteTransport(quotation) {
   const selected = quotation?.selectedCabs || [];
-  return selected.map((t) => ({
+  // Operations keeps a single cab voucher for the whole trip
+  return selected.slice(0, 1).map((t) => ({
     vendorId: t.vendorId || undefined,
     vendorName: t.vendorName || t.vendor || '',
     vendorPhone: t.vendorPhone || '',

@@ -10,6 +10,31 @@ import {
 } from './quoteTemplateDefaults';
 import { quotationOmitsHotels, quoteHasHotels } from './constants';
 
+/** Remove "AC" from private cab wording in PDFs (new + saved itineraries). */
+export function sanitizeTransportLabel(text = '') {
+  return String(text || '')
+    .replace(/\bprivate\s+AC\s+cab\b/gi, 'Private cab')
+    .replace(/\bPrivate\s+AC\s+cab\b/g, 'Private cab')
+    .replace(/\bAC\s+cab\b/gi, 'cab')
+    .replace(/\bprivate\s+AC\s+vehicle\b/gi, 'private vehicle')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/** When no hotel is selected, drop breakfast/meal phrasing from day copy. */
+export function stripBreakfastFromText(text = '') {
+  if (!text) return '';
+  return String(text)
+    .replace(/\bafter\s+(a\s+hearty\s+)?breakfast(\s+at\s+the\s+hotel)?[,.]?\s*/gi, '')
+    .replace(/\benjoy\s+breakfast(\s+at\s+the\s+hotel)?[,.]?\s*/gi, '')
+    .replace(/\bbreakfast\s+at\s+(the\s+)?hotel[,.]?\s*/gi, '')
+    .replace(/\b(morning\s+)?breakfast(\s+&|\s+and)?\s*(dinner)?\b/gi, '')
+    .replace(/\bBreakfast(\s*&\s*Dinner|\s*\+\s*Dinner)?\b/g, '')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function resolveQuotePackage(quote) {
   const snap = quote?.packageSnapshot && typeof quote.packageSnapshot === 'object' ? quote.packageSnapshot : {};
   const pop = quote?.package && typeof quote.package === 'object' ? quote.package : {};
@@ -20,8 +45,10 @@ export function resolveQuotePackage(quote) {
     id: day.id || day._id || `day-${i}`,
     hotel: omitHotels ? '' : (day.hotel || day.accommodation || ''),
     accommodation: omitHotels ? '' : (day.accommodation || ''),
+    meals: omitHotels ? '' : (day.meals || ''),
+    description: omitHotels ? stripBreakfastFromText(day.description) : (day.description || ''),
     activities: day.activities || '',
-    transport: day.transport || '',
+    transport: sanitizeTransportLabel(day.transport || ''),
     sightseeing: day.sightseeing || '',
     activityNotes: day.activityNotes || '',
   }));

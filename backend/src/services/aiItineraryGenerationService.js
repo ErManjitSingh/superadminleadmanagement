@@ -29,7 +29,7 @@ Return ONLY valid JSON (no markdown):
       "description": "Morning: ...\\n\\nAfternoon: ...\\n\\nEvening: ...",
       "meals": "Breakfast / Breakfast & Dinner / etc.",
       "activities": "Short comma-separated highlights",
-      "transport": "Private AC cab · details",
+      "transport": "Private cab · details",
       "accommodation": "City or hotel area if known"
     }
   ],

@@ -434,7 +434,8 @@ async function buildCabVoucherHtml(voucher, booking) {
 
 async function buildHotelVoucherHtml(voucher, booking) {
   const brand = await resolveBrand(booking);
-  const p = voucher.payload || booking.hotels?.[0] || {};
+  const hotelIndex = Number(voucher.assignmentIndex ?? 0);
+  const p = voucher.payload || booking.hotels?.[hotelIndex] || booking.hotels?.[0] || {};
   const url = vendorUrl(voucher);
   const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${brand.websiteUrl || branding.websiteUrl}/app`);
   const hotelName = p.hotelName || p.name || 'Hotel';
@@ -445,8 +446,9 @@ async function buildHotelVoucherHtml(voucher, booking) {
   const customerPhone = booking.customerPhone || booking.phone || '-';
 
   const fields = [
+    ...(p.day ? [['Stay Day', `Day ${p.day}${p.nights ? ` · ${p.nights} Night${p.nights > 1 ? 's' : ''}` : ''}`]] : []),
     ['Room Type', p.roomType || 'Deluxe'],
-    ['Meal Plan', p.mealPlan || 'Breakfast & Dinner'],
+    ['Meal Plan', p.mealPlan || 'As per booking'],
     ['No. of Rooms', `${p.roomCount || 1} Room`],
     ['Check In', fmtDateTime(p.checkIn, p.checkInTime || '02:00 PM')],
     ['Check Out', fmtDateTime(p.checkOut, p.checkOutTime || '11:00 AM')],

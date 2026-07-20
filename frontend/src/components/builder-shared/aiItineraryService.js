@@ -550,7 +550,7 @@ Afternoon/Evening:
 
 Dinner & overnight stay in ${slot.to}.`,
 
-    `Morning: Depart ${slot.from} at 9:00 AM in private AC cab${dist ? ` — ${leg.km}, ${leg.hours}` : ""}.
+    `Morning: Depart ${slot.from} at 9:00 AM in private cab${dist ? ` — ${leg.km}, ${leg.hours}` : ""}.
 
 En Route: ${leg.via}.${stops}
 
@@ -564,7 +564,7 @@ Overnight in ${slot.to}.`,
     description: descriptions[variationSeed % descriptions.length],
     meals: "Dinner",
     activities: `Pickup ${slot.from}, drive to ${slot.to}, hotel check-in`,
-    transport: `Private AC cab · ${slot.from} → ${slot.to}`,
+    transport: `Private cab · ${slot.from} → ${slot.to}`,
     accommodation: `Overnight stay in ${slot.to}`,
   };
 }
@@ -586,7 +586,7 @@ Afternoon:
 Overnight stay in ${slot.to}.`,
     meals: "Breakfast & Dinner",
     activities: `Jakhoo Temple, Kufri, drive to ${slot.to}`,
-    transport: `Private AC cab · ${slot.from} → ${slot.to}`,
+    transport: `Private cab · ${slot.from} → ${slot.to}`,
     accommodation: `Overnight stay in ${slot.to}`,
   };
 }
@@ -702,7 +702,7 @@ Journey: Via ${leg.via} with ${leg.stops?.join(", ") || "comfort stops"} en rout
 ${slot.to === slot.from ? "Overnight journey or hotel stay (as per package)." : `Arrive ${slot.to} by evening.`}`,
     meals: "Breakfast",
     activities: `Checkout ${slot.from}, drive to ${slot.to}`,
-    transport: `Private AC cab · ${slot.from} → ${slot.to}`,
+    transport: `Private cab · ${slot.from} → ${slot.to}`,
     accommodation: `Overnight in ${slot.to} or en route`,
   };
 }
@@ -778,7 +778,7 @@ function buildPickupDayDescription(pickup, firstStop, variationSeed = 0) {
   const variants = [
     `Day 1 — Pickup from ${pickup}
 
-Morning: Our chauffeur will pick you up from your preferred location in ${pickup} — hotel, home, airport (DEL), or railway station (on prior intimation). Settle into your private AC vehicle for a comfortable hill journey.
+Morning: Our chauffeur will pick you up from your preferred location in ${pickup} — hotel, home, airport (DEL), or railway station (on prior intimation). Settle into your private vehicle for a comfortable hill journey.
 
 En Route: Drive via ${via}. Enjoy panoramic views, optional refreshment breaks at dhabas/cafés, and photo stops at scenic viewpoints. Your driver knows the best routes and timing for a smooth ride.
 
@@ -1017,10 +1017,10 @@ function buildActivities(day, destination, planKey, logistics) {
 
 function buildTransport(day, totalDays, planKey, logistics, destination) {
   if (day === 1 && logistics.pickup) {
-    return `Private AC cab · Pickup: ${logistics.pickup} → ${destination}`;
+    return `Private cab · Pickup: ${logistics.pickup} → ${destination}`;
   }
   if (day === totalDays && logistics.drop) {
-    return `Private AC cab · ${destination} → Drop: ${logistics.drop}`;
+    return `Private cab · ${destination} → Drop: ${logistics.drop}`;
   }
   if (planKey === "sightseeing") return "Private cab for full-day sightseeing";
   return "Private transfer";

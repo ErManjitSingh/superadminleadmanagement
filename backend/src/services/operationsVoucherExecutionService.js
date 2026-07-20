@@ -62,6 +62,8 @@ function extractPayload(booking, type, index = 0) {
       hotelName: h.hotelName || h.name,
       roomType: h.roomType,
       mealPlan: h.mealPlan,
+      day: h.day,
+      nights: h.nights || 1,
       checkIn: h.checkIn,
       checkOut: h.checkOut,
       checkInTime: h.checkInTime || '02:00 PM',
@@ -742,13 +744,15 @@ async function generateAllVouchersForBooking(bookingId, actor) {
 
   const created = [];
   if (hasHotels) {
-    (booking.hotels || []).forEach((_, i) => {
+    (booking.hotels || []).forEach((h, i) => {
+      if (!(h?.hotelName || h?.name)) return;
       created.push(generateVoucherForAssignment(bookingId, { type: 'hotel', assignmentIndex: i, actor }));
     });
   }
-  (booking.transport || []).forEach((_, i) => {
-    created.push(generateVoucherForAssignment(bookingId, { type: 'transport', assignmentIndex: i, actor }));
-  });
+  // One cab voucher for the whole trip
+  if ((booking.transport || []).length > 0) {
+    created.push(generateVoucherForAssignment(bookingId, { type: 'transport', assignmentIndex: 0, actor }));
+  }
   (booking.activities || []).forEach((_, i) => {
     created.push(generateVoucherForAssignment(bookingId, { type: 'activity', assignmentIndex: i, actor }));
   });

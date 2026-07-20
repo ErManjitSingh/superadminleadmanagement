@@ -10,8 +10,6 @@ import {
 import { useDataRefresh } from '../../../hooks/useDataRefresh';
 import { bookingHasHotels } from '../bookings/bookingDetailUtils';
 
-const SLOT_TYPES = ['hotel', 'transport'];
-
 const SLOT_META = {
   hotel: {
     label: 'Hotel Voucher',
@@ -33,32 +31,44 @@ function normalizeVoucherType(type) {
   return type === 'cab' ? 'transport' : type;
 }
 
-function pickActiveVoucher(activeVouchers, type) {
+function sameAssignment(voucher, type, assignmentIndex) {
   const slotType = normalizeVoucherType(type);
+  const idx = Number(voucher?.assignmentIndex ?? 0);
+  return normalizeVoucherType(voucher?.type) === slotType && idx === Number(assignmentIndex ?? 0);
+}
+
+function pickActiveVoucher(activeVouchers, type, assignmentIndex = 0) {
   return activeVouchers
-    .filter((v) => normalizeVoucherType(v.type) === slotType && v.isActive !== false)
+    .filter((v) => sameAssignment(v, type, assignmentIndex) && v.isActive !== false)
     .sort((a, b) => (b.version || 0) - (a.version || 0))[0] || null;
 }
 
 function mergeVoucherIntoExecution(execution, voucher) {
   if (!execution || !voucher) return execution;
   const slotType = normalizeVoucherType(voucher.type);
+  const assignmentIndex = Number(voucher.assignmentIndex ?? 0);
   const normalizedNew = { ...voucher, type: slotType, isActive: true };
   const activeVouchers = [
     ...(execution.activeVouchers || []).filter(
-      (v) => normalizeVoucherType(v.type) !== slotType,
+      (v) => !sameAssignment(v, slotType, assignmentIndex),
     ),
     normalizedNew,
   ];
   const vouchers = [
     ...(execution.vouchers || []).map((v) => (
-      normalizeVoucherType(v.type) === slotType && v.isActive !== false
+      sameAssignment(v, slotType, assignmentIndex) && v.isActive !== false
         ? { ...v, isActive: false }
         : v
     )),
     normalizedNew,
   ];
   return { ...execution, activeVouchers, vouchers };
+}
+
+function hotelSlotLabel(hotel, index, total) {
+  if (hotel?.day) return `Day ${hotel.day} Hotel`;
+  if (total > 1) return `Hotel ${index + 1}`;
+  return 'Hotel Voucher';
 }
 
 export default function VoucherCenter({
@@ -115,13 +125,38 @@ export default function VoucherCenter({
   const hasHotels = bookingHasHotels(booking);
 
   const slots = useMemo(() => {
-    const types = hasHotels ? SLOT_TYPES : SLOT_TYPES.filter((t) => t !== 'hotel');
-    return types.map((type) => ({
-      type,
-      meta: SLOT_META[type],
-      voucher: pickActiveVoucher(activeVouchers, type),
-    }));
-  }, [activeVouchers, hasHotels]);
+    const result = [];
+    const hotels = (booking?.hotels || []).filter((h) => h?.hotelName || h?.name);
+
+    if (hasHotels && hotels.length > 0) {
+      hotels.forEach((hotel, index) => {
+        // Use original index in booking.hotels for assignmentIndex
+        const assignmentIndex = (booking.hotels || []).indexOf(hotel);
+        const idx = assignmentIndex >= 0 ? assignmentIndex : index;
+        result.push({
+          type: 'hotel',
+          assignmentIndex: idx,
+          hotel,
+          meta: {
+            ...SLOT_META.hotel,
+            label: hotelSlotLabel(hotel, index, hotels.length),
+          },
+          voucher: pickActiveVoucher(activeVouchers, 'hotel', idx),
+        });
+      });
+    }
+
+    // Single cab voucher for the trip
+    result.push({
+      type: 'transport',
+      assignmentIndex: 0,
+      hotel: null,
+      meta: SLOT_META.transport,
+      voucher: pickActiveVoucher(activeVouchers, 'transport', 0),
+    });
+
+    return result;
+  }, [activeVouchers, booking, hasHotels]);
 
   const runAction = async (key, fn) => {
     setActionLoading(key);
@@ -137,11 +172,11 @@ export default function VoucherCenter({
     }
   };
 
-  const handleGenerate = (type) => {
-    const index = 0;
-    runAction(type, () => generateVoucher(bookingId, {
+  const handleGenerate = (type, assignmentIndex = 0) => {
+    const key = `${type}:${assignmentIndex}`;
+    runAction(key, () => generateVoucher(bookingId, {
       type: type === 'transport' ? 'transport' : type,
-      assignmentIndex: index,
+      assignmentIndex,
     }));
   };
 
@@ -162,7 +197,9 @@ export default function VoucherCenter({
             Voucher Center
           </h3>
           <p className="text-sm text-content-muted mt-0.5">
-            {hasHotels ? 'Hotel & cab vouchers — generate, send & track partners' : 'Cab vouchers — generate, send & track partners'}
+            {hasHotels
+              ? 'Day-wise hotel vouchers + one cab voucher — generate, send & track partners'
+              : 'Cab voucher — generate, send & track partners'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -179,16 +216,18 @@ export default function VoucherCenter({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {slots.map(({ type, meta, voucher }) => (
+        {slots.map(({ type, meta, voucher, assignmentIndex, hotel }) => (
           <VoucherCompactCard
-            key={type}
+            key={`${type}-${assignmentIndex}`}
             type={type}
             meta={meta}
             voucher={voucher}
             booking={booking}
-            generating={actionLoading === type}
+            assignmentIndex={assignmentIndex}
+            hotelAssignment={hotel}
+            generating={actionLoading === `${type}:${assignmentIndex}`}
             onRefresh={() => load(true)}
-            onGenerate={() => handleGenerate(type)}
+            onGenerate={() => handleGenerate(type, assignmentIndex)}
             onVoucherPatched={patchVoucher}
           />
         ))}

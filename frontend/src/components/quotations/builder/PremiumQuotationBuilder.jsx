@@ -559,12 +559,16 @@ function StepPackage({ b, initialLeadId }) {
           value={info.travelDate?.slice?.(0, 10) || info.travelDate || ''}
           onChange={(v) => b.updatePackageInfo({ travelDate: v })}
         />
-        <IconSelectField
+        <IconField
           label="Adults"
           icon={Users}
+          type="number"
+          min={1}
           value={info.adults}
-          options={GUEST_COUNT_OPTIONS}
-          onChange={(v) => b.updatePackageInfo({ adults: Number(v) })}
+          onChange={(v) => {
+            const n = Number(v);
+            b.updatePackageInfo({ adults: Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1 });
+          }}
         />
         <IconSelectField
           label="Children"
@@ -806,7 +810,7 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
   );
 }
 
-function IconField({ label, icon: Icon, value, onChange, type = 'text' }) {
+function IconField({ label, icon: Icon, value, onChange, type = 'text', min, max }) {
   return (
     <div>
       <label className="text-sm font-semibold text-slate-700 mb-1.5 block">{label}</label>
@@ -817,6 +821,8 @@ function IconField({ label, icon: Icon, value, onChange, type = 'text' }) {
         <input
           type={type}
           value={value ?? ''}
+          min={min}
+          max={max}
           onChange={(e) => onChange(e.target.value)}
           className="w-full h-11 pl-10 pr-4 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15"
         />

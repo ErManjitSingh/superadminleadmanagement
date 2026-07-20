@@ -64,6 +64,7 @@ function stripHotelsFromPackageSnapshot(snapshot = {}) {
         ...day,
         hotel: '',
         accommodation: '',
+        meals: '',
         dayHotel: undefined,
       }))
     : snapshot.itinerary;
@@ -71,7 +72,11 @@ function stripHotelsFromPackageSnapshot(snapshot = {}) {
   const inclusions = Array.isArray(snapshot.inclusions)
     ? snapshot.inclusions.filter((line) => {
         const t = String(line || '').toLowerCase();
-        return !/\bhotel/.test(t) && !/\baccommodation/.test(t) && !/\bstay\b/.test(t);
+        return !/\bhotel/.test(t)
+          && !/\baccommodation/.test(t)
+          && !/\bstay\b/.test(t)
+          && !/\bbreakfast/.test(t)
+          && !/\bmeal/.test(t);
       })
     : snapshot.inclusions;
 

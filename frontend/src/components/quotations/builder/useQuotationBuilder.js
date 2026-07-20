@@ -277,9 +277,9 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       },
       paymentPlan: syncPaymentAmounts(
         [
-          { label: 'Booking Amount', percent: 30, amount: 0 },
-          { label: 'Before Travel', percent: 50, amount: 0 },
-          { label: 'Before Departure', percent: 20, amount: 0 },
+          { label: 'Booking Confirmation (Advance)', percent: 30, amount: 0 },
+          { label: 'Before Tour Begins', percent: 50, amount: 0 },
+          { label: 'On Arrival (Balance)', percent: 20, amount: 0 },
         ],
         total,
       ),

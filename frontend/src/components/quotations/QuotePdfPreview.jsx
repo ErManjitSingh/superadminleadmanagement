@@ -19,6 +19,7 @@ import {
   resolvePaymentPlan,
   resolveQuoteTotal,
   resolveQuoteDisplayNumber,
+  sanitizeTransportLabel,
 } from './quotePdfHelpers';
 import DestinationGallery from './DestinationGallery';
 
@@ -239,7 +240,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                         <span>{mealLabel}</span>
                       )}
                       {(day.transport || vehicles[0]?.name) && (
-                        <span>{day.transport || vehicles[0]?.name}</span>
+                        <span>{sanitizeTransportLabel(day.transport || vehicles[0]?.name)}</span>
                       )}
                     </div>
                   </div>

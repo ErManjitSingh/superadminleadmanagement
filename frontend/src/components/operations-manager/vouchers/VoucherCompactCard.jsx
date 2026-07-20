@@ -16,6 +16,8 @@ export default function VoucherCompactCard({
   meta,
   voucher,
   booking,
+  assignmentIndex = 0,
+  hotelAssignment = null,
   onGenerate,
   generating,
   onRefresh,
@@ -30,9 +32,11 @@ export default function VoucherCompactCard({
     ? (VOUCHER_STATUS_CONFIG[voucher.status] || VOUCHER_STATUS_CONFIG.issued)
     : { label: 'Not Generated', className: 'bg-amber-500/15 text-amber-700' };
 
+  const hotelFromBooking = hotelAssignment || booking?.hotels?.[assignmentIndex];
+
   const title = (() => {
     if (!voucher) {
-      if (type === 'hotel') return booking?.hotels?.[0]?.hotelName || 'Assign Hotel';
+      if (type === 'hotel') return hotelFromBooking?.hotelName || hotelFromBooking?.name || 'Assign Hotel';
       return booking?.transport?.[0]?.vehicleType?.replace(/_/g, ' ') || 'Assign Cab';
     }
     if (type === 'hotel') return payload.hotelName || 'Hotel';
@@ -40,7 +44,14 @@ export default function VoucherCompactCard({
   })();
 
   const subtitle = type === 'hotel'
-    ? (payload.roomType || payload.address || booking?.destination)
+    ? (
+      [
+        hotelFromBooking?.day ? `Day ${hotelFromBooking.day}` : null,
+        payload.roomType || hotelFromBooking?.roomType,
+        payload.mealPlan || hotelFromBooking?.mealPlan,
+        payload.address || hotelFromBooking?.destination || booking?.destination,
+      ].filter(Boolean).join(' · ') || booking?.destination
+    )
     : (payload.driverName ? `Driver: ${payload.driverName}` : payload.pickupLocation || booking?.destination);
 
   const image = voucher?.coverImage || payload.image || getVoucherTypeImage(type);

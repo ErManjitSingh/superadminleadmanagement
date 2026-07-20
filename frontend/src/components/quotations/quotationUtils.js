@@ -70,8 +70,9 @@ export const defaultPackageInfo = {
 };
 
 export const DEFAULT_PAYMENT_PLAN = [
-  { label: 'Booking Confirmation (Advance)', percent: 50, amount: 0 },
-  { label: 'Balance (Before tour begins)', percent: 50, amount: 0 },
+  { label: 'Booking Confirmation (Advance)', percent: 30, amount: 0 },
+  { label: 'Before Tour Begins', percent: 50, amount: 0 },
+  { label: 'On Arrival (Balance)', percent: 20, amount: 0 },
 ];
 
 export const defaultImportantNotes = {

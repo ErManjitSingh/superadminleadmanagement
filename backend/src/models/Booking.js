@@ -26,6 +26,9 @@ const hotelAssignmentSchema = new mongoose.Schema(
     destination: String,
     category: String,
     roomType: String,
+    mealPlan: String,
+    day: Number,
+    nights: { type: Number, default: 1 },
     checkIn: Date,
     checkOut: Date,
     status: {
