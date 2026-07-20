@@ -126,6 +126,8 @@ export default function ExecutiveLeadDetailPage() {
         onConvertLead={!isLeadStatusLocked(lead.status) ? () => setConvertModalOpen(true) : undefined}
         canConvertLead={canConvertLead(lead.status)}
         canChangeStatus={!isLeadStatusLocked(lead.status)}
+        canEditLead
+        editHref={`/sales-executive/leads/${id}/edit`}
       />
 
       <ConvertLeadModal

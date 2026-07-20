@@ -25,14 +25,14 @@ export default function AppModal({
 }) {
   useEffect(() => {
     if (!open) return undefined;
-    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKeyDown = (e) => {
       if (!lockDismiss && e.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open, onClose, lockDismiss]);

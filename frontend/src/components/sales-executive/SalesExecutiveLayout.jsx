@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +13,12 @@ function SalesExecutiveShell() {
   const { user } = useAuth();
   const { mobileOpen, setMobileOpen } = useSidebar();
 
+  // Clear leftover body locks from modals/drawers so pages can scroll again.
+  useEffect(() => {
+    document.body.style.overflow = '';
+    document.body.style.pointerEvents = '';
+  }, []);
+
   const sidebarProps = {
     user,
     navItems: salesExecutiveNavItems,
@@ -22,9 +29,9 @@ function SalesExecutiveShell() {
   };
 
   return (
-    <div className="flex h-dvh max-h-dvh overflow-hidden bg-[#F8F9FB] dark:bg-surface-app">
-      <div className="hidden lg:block shrink-0">
-        <AppSidebar {...sidebarProps} className="h-dvh border-r-violet-500/10" />
+    <div className="flex min-h-screen bg-[#F8F9FB] dark:bg-surface-app">
+      <div className="hidden lg:block h-screen sticky top-0 z-40">
+        <AppSidebar {...sidebarProps} className="h-screen border-r-violet-500/10" />
       </div>
 
       <AnimatePresence>
@@ -50,9 +57,9 @@ function SalesExecutiveShell() {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      <div className="flex-1 flex flex-col min-w-0">
         <TopBar onMenuClick={() => setMobileOpen(true)} />
-        <main data-workspace-main className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pb-20 lg:pb-0">
+        <main data-workspace-main className="flex-1 overflow-auto pb-20 lg:pb-0">
           <div className="p-4 sm:p-6 lg:p-6 max-w-[1680px] mx-auto">
             <MissedFollowUpAlert />
             <Outlet />

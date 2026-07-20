@@ -1,5 +1,4 @@
 const Lead = require('../models/Lead');
-const Booking = require('../models/Booking');
 const LeadNote = require('../models/LeadNote');
 const FollowUp = require('../models/FollowUp');
 const Quotation = require('../models/Quotation');
@@ -12,7 +11,7 @@ const { buildExecutiveDashboard } = require('../services/dashboardService');
 const { getTeamLeaderForExecutive } = require('../services/teamScopeService');
 const { logActivity, getClientIp } = require('../services/activityService');
 const { logLeadActivity } = require('../services/leadActivityService');
-const { onLeadConverted, isLeadStatusLocked } = require('../services/leadConversionService');
+const { isLeadStatusLocked } = require('../services/leadConversionService');
 const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { notifyQuotationCreated } = require('../services/notificationService');
 const {
@@ -42,8 +41,13 @@ const {
   findScopedFollowUpsPaginated,
   findScopedQuotationsPaginated,
 } = require('../repositories/roleScopedRepository');
+const { normalizeLeadInput } = require('../utils/normalizeLeadInput');
+const { applyLeadMetrics } = require('../services/leadScoringService');
+const { logAudit, diffLeadChanges } = require('../services/leadAuditService');
 
 const LEAD_FILTER_KEYS = ['new', 'contacted', 'follow-up', 'hot', 'converted', 'lost', 'reactivated', 'all'];
+const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
+const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
 
 async function getExecutiveLeadIds(userId, branchId = null) {
   const leads = await Lead.find({
@@ -136,7 +140,7 @@ const getLeadNotesList = asyncHandler(async (req, res) => {
   res.json(result);
 });
 
-/** Executives may only update pipeline status — not edit lead details. */
+/** Executives may update details and status for leads assigned to them (not reassignment). */
 const updateLead = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({
     _id: req.params.id,
@@ -145,31 +149,123 @@ const updateLead = asyncHandler(async (req, res) => {
   });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
-  const { status, statusReason } = req.body;
-  const otherFields = Object.keys(req.body).filter((k) => !['status', 'statusReason'].includes(k));
-  if (otherFields.length > 0) {
-    throw new ApiError(403, 'You can only change lead status, not edit lead details');
-  }
-  if (!status) throw new ApiError(400, 'Status is required');
-  if (!LEAD_STATUSES.includes(status)) throw new ApiError(400, 'Invalid lead status');
-  const trimmedReason = typeof statusReason === 'string' ? statusReason.trim() : '';
-  if (['lost', 'booked_from_another_company'].includes(status) && !trimmedReason) {
-    throw new ApiError(400, 'Reason is required for this status');
-  }
-  if (isLeadStatusLocked(lead.status)) {
-    throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
-  }
-  if (status === 'converted') {
-    throw new ApiError(400, 'Use "Convert Lead" with advance payment to convert this lead into a booking');
-  }
+  const bodyKeys = Object.keys(req.body || {});
+  const isStatusOnly =
+    bodyKeys.length > 0 && bodyKeys.every((k) => ['status', 'statusReason'].includes(k));
 
   const prevStatus = lead.status;
-  lead.status = status;
-  lead.statusReason = trimmedReason;
-  lead.statusReasonUpdatedAt = new Date();
+  const before = lead.toObject();
+
+  if (isStatusOnly) {
+    const { status, statusReason } = req.body;
+    if (!status) throw new ApiError(400, 'Status is required');
+    if (!LEAD_STATUSES.includes(status)) throw new ApiError(400, 'Invalid lead status');
+    const trimmedReason = typeof statusReason === 'string' ? statusReason.trim() : '';
+    if (LOST_LEAD_STATUSES.includes(status) && !trimmedReason) {
+      throw new ApiError(400, 'Reason is required for this status');
+    }
+    if (isLeadStatusLocked(lead.status)) {
+      throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
+    }
+    if (status === 'converted') {
+      throw new ApiError(400, 'Use "Convert Lead" with advance payment to convert this lead into a booking');
+    }
+    if (WORKING_PIPELINE_STATUSES.includes(status) && !(Number(lead.budget) > 0)) {
+      throw new ApiError(400, 'Budget is required before moving lead into working pipeline');
+    }
+
+    lead.status = status;
+    lead.statusReason = trimmedReason;
+    lead.statusReasonUpdatedAt = new Date();
+    if (!lead.firstContactAt && ['contacted', 'working_progress', 'follow_up'].includes(status)) {
+      lead.firstContactAt = new Date();
+      if (!lead.slaContactedAt) lead.slaContactedAt = lead.firstContactAt;
+    }
+    await lead.save();
+
+    if (status !== prevStatus) {
+      const typeMap = {
+        lost: 'lead_lost',
+        booked_from_another_company: 'lead_lost',
+        converted: 'lead_converted',
+        quotation_sent: 'quotation_sent',
+        reactivated: 'lead_reactivated',
+      };
+      const statusLabel = status.replace(/_/g, ' ');
+      await logLeadActivity({
+        leadId: lead._id,
+        branchId: lead.branchId,
+        type: typeMap[status] || 'status_changed',
+        description: `Status changed from ${prevStatus.replace(/_/g, ' ')} to ${statusLabel}${trimmedReason ? ` — ${trimmedReason}` : ''}`,
+        actor: req.user,
+        meta: { from: prevStatus, to: status, reason: trimmedReason || undefined },
+      });
+      invalidateDashboardCache('sales_executive');
+      invalidateDashboardCache('sales_manager');
+      invalidateDashboardCache('team_leader');
+      invalidateDashboardCache('admin');
+      invalidateDashboardCache('nav:');
+    }
+
+    const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
+    return res.json(enrichLead(populated));
+  }
+
+  const data = normalizeLeadInput(req.body, { isUpdate: true });
+  delete data.assignedTo;
+  delete data.assignedManager;
+  delete data.assignedTeamLeader;
+  Object.keys(data).forEach((key) => {
+    if (data[key] === undefined) delete data[key];
+  });
+
+  const statusReasonRaw = typeof req.body.statusReason === 'string' ? req.body.statusReason.trim() : '';
+  if (statusReasonRaw) data.statusReason = statusReasonRaw;
+
+  if (data.status && !LEAD_STATUSES.includes(data.status)) throw new ApiError(400, 'Invalid lead status');
+
+  const nextStatus = data.status || lead.status;
+  if (data.status && LOST_LEAD_STATUSES.includes(data.status) && !data.statusReason?.trim() && !lead.statusReason?.trim()) {
+    throw new ApiError(400, 'Reason is required for this status');
+  }
+  if (data.status && data.status !== prevStatus && isLeadStatusLocked(prevStatus)) {
+    throw new ApiError(400, 'Lead status cannot be changed after conversion or closure');
+  }
+  if (data.status === 'converted' && data.status !== prevStatus) {
+    throw new ApiError(400, 'Use "Convert Lead" with advance payment to convert this lead into a booking');
+  }
+  if (WORKING_PIPELINE_STATUSES.includes(nextStatus)) {
+    const budget = data.budget ?? lead.budget;
+    if (!(Number(budget) > 0)) {
+      throw new ApiError(400, 'Budget is required before moving lead into working pipeline');
+    }
+  }
+
+  Object.assign(lead, data);
+  if (data.statusReason !== undefined) {
+    lead.statusReasonUpdatedAt = new Date();
+  }
+  if (!lead.firstContactAt && (data.status === 'contacted' || ['contacted', 'working_progress', 'follow_up'].includes(nextStatus))) {
+    lead.firstContactAt = new Date();
+    if (!lead.slaContactedAt) lead.slaContactedAt = lead.firstContactAt;
+  }
+  await applyLeadMetrics(lead);
   await lead.save();
 
-  if (status !== prevStatus) {
+  const changes = diffLeadChanges(before, lead.toObject());
+  if (changes.length) {
+    await logAudit({
+      entityType: 'lead',
+      entityId: lead._id,
+      branchId: lead.branchId,
+      action: data.status && data.status !== prevStatus ? 'lead.status_changed' : 'lead.updated',
+      actor: req.user,
+      changes,
+      ip: getClientIp(req),
+    });
+  }
+
+  if (data.status && data.status !== prevStatus) {
     const typeMap = {
       lost: 'lead_lost',
       booked_from_another_company: 'lead_lost',
@@ -177,33 +273,29 @@ const updateLead = asyncHandler(async (req, res) => {
       quotation_sent: 'quotation_sent',
       reactivated: 'lead_reactivated',
     };
-    const statusLabel = status.replace(/_/g, ' ');
+    const statusLabel = data.status.replace(/_/g, ' ');
+    const reason = lead.statusReason || '';
     await logLeadActivity({
       leadId: lead._id,
       branchId: lead.branchId,
-      type: typeMap[status] || 'status_changed',
-      description: `Status changed from ${prevStatus.replace(/_/g, ' ')} to ${statusLabel}${trimmedReason ? ` — ${trimmedReason}` : ''}`,
+      type: typeMap[data.status] || 'status_changed',
+      description: `Status changed from ${prevStatus.replace(/_/g, ' ')} to ${statusLabel}${reason ? ` — ${reason}` : ''}`,
       actor: req.user,
-      meta: { from: prevStatus, to: status, reason: trimmedReason || undefined },
+      meta: { from: prevStatus, to: data.status, reason: reason || undefined },
     });
-  }
-
-  if (status === 'converted') {
-    let needsBooking = prevStatus !== 'converted';
-    if (!needsBooking) {
-      needsBooking = !(await Booking.exists({ lead: lead._id }));
-    }
-    if (needsBooking) {
-      await onLeadConverted(lead, req.user).catch((err) => {
-        console.error('[LeadConversion]', err.message);
-      });
-    }
-  } else if (status !== prevStatus) {
     invalidateDashboardCache('sales_executive');
     invalidateDashboardCache('sales_manager');
     invalidateDashboardCache('team_leader');
     invalidateDashboardCache('admin');
     invalidateDashboardCache('nav:');
+  } else if (changes.length) {
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: 'lead_edited',
+      description: 'Lead details updated',
+      actor: req.user,
+    });
   }
 
   const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();

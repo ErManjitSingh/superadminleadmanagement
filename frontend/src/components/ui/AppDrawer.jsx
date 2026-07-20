@@ -13,14 +13,14 @@ export default function AppDrawer({
 }) {
   useEffect(() => {
     if (!open) return undefined;
-    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     const onKeyDown = (e) => {
       if (e.key === 'Escape') onClose?.();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = prevOverflow;
+      document.body.style.overflow = '';
+      document.body.style.pointerEvents = '';
       document.removeEventListener('keydown', onKeyDown);
     };
   }, [open, onClose]);

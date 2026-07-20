@@ -10,7 +10,17 @@ import { useLeadWizard } from './useLeadWizard';
 import { DRAFT_STORAGE_KEY } from './constants';
 import { leadToWizardValues, wizardValuesToPayload } from './leadWizardUtils';
 
-export default function LeadWizard() {
+const DEFAULT_PATHS = {
+  getLead: (id) => `/leads/${id}`,
+  updateLead: (id) => `/leads/${id}`,
+  createLead: '/leads',
+  list: '/leads',
+  detail: (id) => `/leads/${id}`,
+  back: '/leads',
+};
+
+export default function LeadWizard({ paths: pathsProp } = {}) {
+  const paths = { ...DEFAULT_PATHS, ...pathsProp };
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
@@ -23,11 +33,11 @@ export default function LeadWizard() {
 
   useEffect(() => {
     if (!isEdit) return;
-    API.get(`/leads/${id}`)
+    API.get(paths.getLead(id))
       .then((res) => setInitialValues(leadToWizardValues(res.data)))
       .catch((err) => setError(err.response?.data?.message || 'Failed to load lead'))
       .finally(() => setLoadingLead(false));
-  }, [id, isEdit]);
+  }, [id, isEdit, paths.getLead]);
 
   const wizard = useLeadWizard({ initialValues, draftKey, isEdit });
   const { formApi, step, maxReachable, draftStatus, lastSaved, goNext, goBack, goToStep, clearDraft, setStep, getValues, reset } = wizard;
@@ -48,10 +58,10 @@ export default function LeadWizard() {
       let saved;
       if (isEdit) {
         const { status, ...updatePayload } = payload;
-        const res = await API.put(`/leads/${id}`, updatePayload);
+        const res = await API.put(paths.updateLead(id), updatePayload);
         saved = res.data;
       } else {
-        const res = await API.post('/leads', payload);
+        const res = await API.post(paths.createLead, payload);
         saved = res.data;
       }
       clearDraft();
@@ -61,9 +71,9 @@ export default function LeadWizard() {
         setStep(1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (action === 'open') {
-        navigate(`/leads/${saved._id}`);
+        navigate(paths.detail(saved._id));
       } else {
-        navigate('/leads');
+        navigate(paths.list);
       }
     } catch (err) {
       const apiMsg = err.response?.data?.message;
@@ -86,7 +96,7 @@ export default function LeadWizard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-start gap-3">
           <Link
-            to="/leads"
+            to={paths.back}
             className="mt-1 p-2 rounded-xl border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
