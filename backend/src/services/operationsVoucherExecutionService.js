@@ -82,8 +82,7 @@ function extractPayload(booking, type, index = 0) {
     };
   }
   if (type === 'transport') {
-    const t = booking.transport?.[index];
-    if (!t) return null;
+    const t = booking.transport?.[index] || {};
     const vehicleType = t.vehicleType || 'suv';
     const itinerary = (booking.itinerary || []).map((d, i) => ({
       day: d.day || i + 1,
@@ -94,6 +93,7 @@ function extractPayload(booking, type, index = 0) {
       transport: d.transport || '',
       description: d.description || '',
     }));
+    // Allow cab itinerary voucher even before driver/vendor is assigned
     return {
       vehicleType,
       vehicleName: t.vehicleNumber,
@@ -113,7 +113,7 @@ function extractPayload(booking, type, index = 0) {
       reportingTime: t.reportingTime || '09:00 AM',
       tripType: t.tripType || 'Sightseeing with private cab',
       vehicleCount: t.vehicleCount || 1,
-      status: t.status,
+      status: t.status || 'pending',
       itinerary,
     };
   }
@@ -292,10 +292,24 @@ async function linkVoucherToAssignment(bookingId, type, index, voucherId) {
 
 async function regenerateVoucher(voucherId, actor) {
   const voucher = await Voucher.findById(voucherId);
-  if (!voucher || !voucher.isActive) throw new Error('Active voucher not found');
-  return generateVoucherForAssignment(voucher.booking, {
-    type: voucher.type,
-    assignmentIndex: voucher.assignmentIndex,
+  if (!voucher) throw new Error('Voucher not found');
+
+  const type = voucher.type === 'cab' ? 'transport' : voucher.type;
+  const assignmentIndex = Number(voucher.assignmentIndex ?? 0);
+
+  // UI may still hold an archived voucher id after a previous regen — prefer active slot
+  const active = await Voucher.findOne({
+    booking: voucher.booking,
+    type,
+    assignmentIndex,
+    isActive: { $ne: false },
+  }).sort({ version: -1, updatedAt: -1 });
+
+  const source = active || voucher;
+
+  return generateVoucherForAssignment(source.booking, {
+    type: source.type === 'cab' ? 'transport' : source.type,
+    assignmentIndex: Number(source.assignmentIndex ?? 0),
     actor,
     force: true,
   });
@@ -805,10 +819,8 @@ async function generateAllVouchersForBooking(bookingId, actor) {
       created.push(generateVoucherForAssignment(bookingId, { type: 'hotel', assignmentIndex: i, actor }));
     });
   }
-  // One cab voucher for the whole trip
-  if ((booking.transport || []).length > 0) {
-    created.push(generateVoucherForAssignment(bookingId, { type: 'transport', assignmentIndex: 0, actor }));
-  }
+  // One cab itinerary voucher for the whole trip (even before driver assigned)
+  created.push(generateVoucherForAssignment(bookingId, { type: 'transport', assignmentIndex: 0, actor }));
   (booking.activities || []).forEach((_, i) => {
     created.push(generateVoucherForAssignment(bookingId, { type: 'activity', assignmentIndex: i, actor }));
   });

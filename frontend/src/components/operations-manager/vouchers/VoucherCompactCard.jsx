@@ -7,7 +7,7 @@ import { cn } from '../../../lib/utils';
 import { VOUCHER_STATUS_CONFIG, VENDOR_STATUS_CONFIG } from '../constants';
 import { getVoucherTypeImage } from '../bookings/bookingDetailUtils';
 import VoucherSendModal from './VoucherSendModal';
-import { previewVoucherPdf, regenerateVoucher } from '../../../services/operationsVoucherApi';
+import { previewVoucherPdf, regenerateVoucher, generateVoucher } from '../../../services/operationsVoucherApi';
 import { formatDate } from '../operationsUtils';
 import { toast } from '../../../context/ToastContext';
 
@@ -70,15 +70,38 @@ export default function VoucherCompactCard({
   };
 
   const handleRegenerate = async () => {
-    if (!voucher?._id) return;
+    if (!voucher?._id && !booking?._id) return;
     setRegenerating(true);
     try {
-      const updated = await regenerateVoucher(voucher._id);
+      let updated = null;
+      if (voucher?._id) {
+        try {
+          updated = await regenerateVoucher(voucher._id);
+        } catch {
+          // Archived / stale id — create a fresh voucher for this slot
+          updated = null;
+        }
+      }
+      if (!updated?._id && booking?._id) {
+        updated = await generateVoucher(booking._id, {
+          type: type === 'transport' ? 'transport' : type,
+          assignmentIndex,
+        });
+      }
       if (updated?._id) {
         onVoucherPatched?.(updated);
-        await previewVoucherPdf(updated._id);
+        try {
+          await previewVoucherPdf(updated._id);
+        } catch {
+          /* preview optional after regen */
+        }
+        toast.success('Voucher regenerated');
+      } else {
+        toast.error('Could not regenerate voucher');
       }
       await onRefresh?.();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Could not regenerate voucher');
     } finally {
       setRegenerating(false);
     }
