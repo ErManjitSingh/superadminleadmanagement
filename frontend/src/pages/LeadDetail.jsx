@@ -149,7 +149,6 @@ export default function LeadDetail() {
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="pb-8">
       <LeadDetailLayout
-        variant="full"
         lead={lead}
         leadId={id}
         activities={activities}

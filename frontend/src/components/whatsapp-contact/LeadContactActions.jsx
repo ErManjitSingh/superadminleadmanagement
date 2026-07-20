@@ -1,5 +1,5 @@
-import { Phone, FileText, CalendarPlus, MoreHorizontal } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Phone, FileText, CalendarPlus, ChevronDown, MoreHorizontal } from 'lucide-react';
+import { Button } from '../ui/button';
 import WhatsAppActionButton from './WhatsAppActionButton';
 import EmailActionButton from '../email/EmailActionButton';
 import {
@@ -8,46 +8,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from '../ui/dropdown-menu';
-import { cn } from '../../lib/utils';
-
-function ActionTile({ icon: Icon, label, onClick, href, className, tone = 'violet' }) {
-  const tones = {
-    violet: 'text-violet-600 bg-violet-50',
-    emerald: 'text-emerald-600 bg-emerald-50',
-    orange: 'text-orange-600 bg-orange-50',
-    slate: 'text-slate-600 bg-slate-100',
-  };
-
-  const inner = (
-    <>
-      <span className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-2.5', tones[tone])}>
-        <Icon className="w-5 h-5" />
-      </span>
-      <span className="text-[12px] sm:text-[13px] font-semibold text-slate-700 dark:text-slate-200 text-center leading-tight">
-        {label}
-      </span>
-    </>
-  );
-
-  const tileClass = cn(
-    'group flex flex-col items-center justify-center min-h-[96px] w-full rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-700 px-3 py-3 shadow-sm hover:shadow-md hover:border-violet-200 transition-all',
-    className
-  );
-
-  if (href) {
-    return (
-      <a href={href} className={tileClass}>
-        {inner}
-      </a>
-    );
-  }
-
-  return (
-    <button type="button" onClick={onClick} className={tileClass}>
-      {inner}
-    </button>
-  );
-}
+import { DETAIL_CARD } from '../lead-detail/leadDetailUtils';
 
 export default function LeadContactActions({
   lead,
@@ -58,30 +19,30 @@ export default function LeadContactActions({
   onContactLogged,
   onEmailSent,
   onChangeStatus,
-  onConvertLead,
-  editHref,
   className = '',
-  embedded = false,
 }) {
   const phone = lead?.phone;
 
   return (
-    <div className={cn(!embedded && 'mb-5', className)}>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <ActionTile
-          icon={Phone}
-          label="Call"
-          tone="emerald"
-          href={phone ? `tel:${phone}` : undefined}
-          className={!phone ? 'opacity-50 pointer-events-none' : ''}
-        />
+    <div className={`${DETAIL_CARD} p-4 mb-6 ${className}`}>
+      <div className="flex flex-wrap gap-2">
+        <a href={phone ? `tel:${phone}` : '#'} className={!phone ? 'pointer-events-none opacity-50' : ''}>
+          <Button
+            type="button"
+            className="rounded-xl gap-2 h-11 px-5 bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-sm font-semibold"
+          >
+            <Phone className="w-4 h-4" />
+            Call
+          </Button>
+        </a>
 
         <WhatsAppActionButton
           lead={lead}
           leadId={leadId}
           contactEndpoint={contactEndpoint}
           onContactLogged={onContactLogged}
-          variant="tile"
+          size="lg"
+          className="!rounded-xl !h-11 !px-5 !bg-green-600 hover:!bg-green-500 !text-white !border-0 !shadow-sm !font-semibold"
         />
 
         <EmailActionButton
@@ -89,43 +50,49 @@ export default function LeadContactActions({
           leadId={leadId}
           emailEndpoint={contactEndpoint}
           onEmailSent={onEmailSent || onContactLogged}
-          variant="tile"
+          size="lg"
+          showLabel
           label="Send Email"
+          className="!rounded-xl !h-11 !px-5 !bg-green-800 hover:!bg-green-700 !text-white !border-0 !shadow-sm !font-semibold"
         />
 
         {onCreateQuote && (
-          <ActionTile icon={FileText} label="Create Quotation" tone="violet" onClick={onCreateQuote} />
+          <Button
+            type="button"
+            onClick={onCreateQuote}
+            className="rounded-xl gap-2 h-11 px-5 bg-violet-100 hover:bg-violet-200 text-violet-700 border border-violet-200 font-semibold shadow-sm"
+          >
+            <FileText className="w-4 h-4" />
+            Create Quotation
+          </Button>
         )}
 
         {onScheduleFollowUp && (
-          <ActionTile icon={CalendarPlus} label="Schedule Follow-up" tone="orange" onClick={onScheduleFollowUp} />
+          <Button
+            type="button"
+            onClick={onScheduleFollowUp}
+            className="rounded-xl gap-2 h-11 px-5 bg-orange-100 hover:bg-orange-200 text-orange-700 border border-orange-200 font-semibold shadow-sm"
+          >
+            <CalendarPlus className="w-4 h-4" />
+            Schedule Follow-up
+          </Button>
         )}
 
         <DropdownMenuRoot>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
               type="button"
-              className="group flex flex-col items-center justify-center min-h-[96px] w-full rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-700 px-3 py-3 shadow-sm hover:shadow-md hover:border-violet-200 transition-all"
+              variant="outline"
+              className="rounded-xl gap-2 h-11 px-4 border-slate-200 text-slate-600 font-semibold"
             >
-              <span className="w-10 h-10 rounded-xl flex items-center justify-center mb-2.5 bg-slate-100 text-slate-600">
-                <MoreHorizontal className="w-5 h-5" />
-              </span>
-              <span className="text-[12px] sm:text-[13px] font-semibold text-slate-700 dark:text-slate-200 text-center leading-tight">
-                More Actions
-              </span>
-            </button>
+              <MoreHorizontal className="w-4 h-4" />
+              More
+              <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            {editHref && (
-              <DropdownMenuItem asChild>
-                <Link to={editHref}>Edit Lead</Link>
-              </DropdownMenuItem>
-            )}
             {onChangeStatus && (
               <DropdownMenuItem onClick={onChangeStatus}>Change Status</DropdownMenuItem>
-            )}
-            {onConvertLead && (
-              <DropdownMenuItem onClick={onConvertLead}>Convert Lead</DropdownMenuItem>
             )}
             <DropdownMenuItem disabled>Export Lead</DropdownMenuItem>
           </DropdownMenuContent>

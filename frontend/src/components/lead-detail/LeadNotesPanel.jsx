@@ -1,59 +1,38 @@
-import { StickyNote, Plus } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { DETAIL_CARD } from './leadDetailUtils';
-import { cn } from '../../lib/utils';
 
-export default function LeadNotesPanel({ notes = [], legacyNote = '', loading = false, onAddNote }) {
-  const items = notes.length
-    ? notes
-    : legacyNote
-      ? [{ message: legacyNote, user: 'Team', date: null }]
-      : [];
+export default function LeadNotesPanel({ notes = [], legacyNote = '', loading = false }) {
+  const items = notes.length ? notes : legacyNote ? [{ message: legacyNote, user: 'Team', date: null }] : [];
 
   return (
-    <div className={cn(DETAIL_CARD, 'h-full flex flex-col min-h-[320px]')}>
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
-        <span className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 inline-flex items-center justify-center">
-          <StickyNote className="w-4 h-4" />
-        </span>
+    <div className={DETAIL_CARD}>
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lead Notes</h3>
       </div>
-      <div className="p-4 space-y-3 flex-1">
+      <div className="p-4 space-y-3">
         {loading ? (
-          <p className="text-sm text-slate-400 text-center py-6">Loading notes…</p>
-        ) : items.length ? (
-          items.slice(0, 3).map((n) => (
-            <div
-              key={n.id || n.message}
-              className="rounded-xl border border-slate-100 bg-[#fafafa] dark:bg-slate-800/40 dark:border-slate-700 p-3.5"
-            >
-              <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{n.message}</p>
-              <div className="flex items-center justify-between gap-2 mt-3">
-                {n.user && <p className="text-[11px] text-slate-500 font-medium">{n.user}</p>}
-                {n.date && (
-                  <p className="text-[11px] text-slate-400">
-                    {new Date(n.date).toLocaleString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                )}
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-slate-400 text-center py-10">No notes yet</p>
+          <p className="text-sm text-slate-400 text-center py-2">Loading notes…</p>
+        ) : items.length ? items.slice(0, 3).map((n) => (
+          <div key={n.id || n.message} className="rounded-xl border border-amber-100 bg-amber-50/80 dark:bg-amber-950/20 dark:border-amber-900/30 p-3">
+            <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">{n.message}</p>
+            {n.user && (
+              <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 mt-1.5 font-medium">{n.user}</p>
+            )}
+          </div>
+        )) : (
+          <p className="text-sm text-slate-400 text-center py-2">No notes yet</p>
         )}
-      </div>
-      <div className="p-4 pt-0 mt-auto">
-        <button
-          type="button"
-          onClick={onAddNote}
-          className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 text-sm font-semibold py-2.5 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Note
-        </button>
+        <div className="relative">
+          <input
+            type="text"
+            readOnly
+            placeholder="Add a quick note..."
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 pr-10 text-sm text-slate-500"
+          />
+          <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-violet-500 hover:bg-violet-50" aria-label="Send note">
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

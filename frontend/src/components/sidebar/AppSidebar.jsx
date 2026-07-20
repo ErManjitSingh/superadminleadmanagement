@@ -15,7 +15,6 @@ import SidebarNavItem from './SidebarNavItem';
 import SidebarNavGroup from './SidebarNavGroup';
 import SidebarNavSection from './SidebarNavSection';
 import SidebarQuickActions from './SidebarQuickActions';
-import SidebarFooter from './SidebarFooter';
 import { SidebarThemeProvider } from './SidebarThemeContext';
 import { mainNavItems } from './sidebar-config';
 import { filterNavItemsBySearch, injectSectionHeaders, isNavItemActive } from './sidebar-utils';
@@ -30,10 +29,6 @@ export default function AppSidebar({
   accent = 'brand',
   profilePath,
   quickActions,
-  footerLinks,
-  showFooter = false,
-  footerTip,
-  showUpgrade = false,
 }) {
   const location = useLocation();
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
@@ -107,15 +102,6 @@ export default function AppSidebar({
             </nav>
 
             <SidebarQuickActions actions={quickActions} />
-
-            {showFooter && (
-              <SidebarFooter
-                user={effectiveUser}
-                links={footerLinks}
-                tip={footerTip}
-                showUpgrade={showUpgrade}
-              />
-            )}
           </div>
         </motion.aside>
       </TooltipProvider>

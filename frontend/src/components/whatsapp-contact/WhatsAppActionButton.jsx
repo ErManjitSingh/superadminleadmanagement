@@ -15,7 +15,6 @@ export default function WhatsAppActionButton({
   className = '',
   size = 'default',
   showLabel = true,
-  variant = 'default',
 }) {
   const { user } = useAuth();
   const { can } = usePermissions();
@@ -60,37 +59,19 @@ export default function WhatsAppActionButton({
   };
 
   const sizeClass = size === 'lg' ? 'h-11 px-5 text-sm' : 'h-10 px-4 text-sm';
-  const isTile = variant === 'tile';
 
   return (
     <>
-      {isTile ? (
-        <button
-          type="button"
-          disabled={disabled || submitting}
-          title="Open WhatsApp"
-          onClick={() => setPickerOpen(true)}
-          className={`group flex flex-col items-center justify-center min-h-[96px] w-full rounded-2xl border border-slate-200/80 bg-white dark:bg-slate-900 dark:border-slate-700 px-3 py-3 shadow-sm hover:shadow-md hover:border-violet-200 transition-all disabled:opacity-50 ${className}`}
-        >
-          <span className="w-10 h-10 rounded-xl flex items-center justify-center mb-2.5 bg-green-50 text-green-600">
-            <MessageCircle className="w-5 h-5" />
-          </span>
-          {showLabel && (
-            <span className="text-[12px] sm:text-[13px] font-semibold text-slate-700 dark:text-slate-200">WhatsApp</span>
-          )}
-        </button>
-      ) : (
-        <Button
-          type="button"
-          disabled={disabled || submitting}
-          title="Open WhatsApp"
-          onClick={() => setPickerOpen(true)}
-          className={`rounded-xl gap-2 font-semibold bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0 shadow-md shadow-green-600/25 ${sizeClass} ${className}`}
-        >
-          <MessageCircle className="w-4 h-4" />
-          {showLabel && 'WhatsApp'}
-        </Button>
-      )}
+      <Button
+        type="button"
+        disabled={disabled || submitting}
+        title="Open WhatsApp"
+        onClick={() => setPickerOpen(true)}
+        className={`rounded-xl gap-2 font-semibold bg-[#25D366] hover:bg-[#1ebe5d] text-white border-0 shadow-md shadow-green-600/25 ${sizeClass} ${className}`}
+      >
+        <MessageCircle className="w-4 h-4" />
+        {showLabel && 'WhatsApp'}
+      </Button>
 
       <AppModal open={pickerOpen} onClose={() => !submitting && setPickerOpen(false)} size="md" className="p-0 overflow-hidden">
         <div className="p-5 border-b border-subtle bg-gradient-to-r from-green-500/10 to-emerald-500/5">

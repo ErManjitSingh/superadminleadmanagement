@@ -13,6 +13,7 @@ function SalesExecutiveShell() {
   const { user } = useAuth();
   const { mobileOpen, setMobileOpen } = useSidebar();
 
+  // Clear leftover body locks from modals/drawers so pages can scroll again.
   useEffect(() => {
     document.body.style.overflow = '';
     document.body.style.pointerEvents = '';
@@ -25,9 +26,6 @@ function SalesExecutiveShell() {
     accent: 'violet',
     profilePath: '/sales-executive/profile',
     quickActions: [],
-    showFooter: true,
-    showUpgrade: true,
-    footerLinks: [],
   };
 
   return (

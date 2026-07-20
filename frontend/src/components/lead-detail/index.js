@@ -7,7 +7,6 @@ export { default as LeadUpcomingFollowUp } from './LeadUpcomingFollowUp';
 export { default as LeadScoreBreakdown } from './LeadScoreBreakdown';
 export { default as LeadStatusPipeline } from './LeadStatusPipeline';
 export { default as LeadCustomerPanel } from './LeadCustomerPanel';
-export { default as LeadSummaryPanel } from './LeadSummaryPanel';
 export { default as LeadActivityTimeline } from './LeadActivityTimeline';
 export { default as LeadFollowUpSection } from './LeadFollowUpSection';
 export { default as LeadQuotationSection } from './LeadQuotationSection';

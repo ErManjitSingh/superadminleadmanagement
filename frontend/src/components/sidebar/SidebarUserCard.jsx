@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import { useSidebarTheme } from './SidebarThemeContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -17,58 +16,45 @@ function getInitials(name) {
   );
 }
 
-function formatRole(user) {
-  if (user?.roleName) return user.roleName;
-  const role = String(user?.role || 'Agent').replace(/_/g, ' ');
-  return role.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 export default function SidebarUserCard({ user }) {
   const { collapsed, setMobileOpen } = useSidebar();
   const { accent, profilePath } = useSidebarTheme();
   const initials = getInitials(user?.name);
-  const roleLabel = formatRole(user);
 
   const profileCard = (
     <Link
       to={profilePath}
       onClick={() => setMobileOpen(false)}
       className={cn(
-        'flex items-center gap-3 min-w-0 rounded-2xl p-2 transition-colors hover:bg-white/[0.08]',
-        collapsed && 'justify-center'
+        'flex items-center gap-3 min-w-0 rounded-2xl border border-sidebar-border/80 bg-white/50 backdrop-blur-md p-2.5 transition-colors hover:bg-white/70 dark:bg-slate-900/45 dark:hover:bg-slate-900/60',
+        collapsed && 'p-2 justify-center'
       )}
     >
       <div className="relative shrink-0">
-        <div
-          className={cn(
-            'w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center text-sm font-bold text-white shadow-md',
-            accent.avatarGradient
-          )}
-        >
+        <div className={cn('w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-xs font-bold text-white shadow-md', accent.avatarGradient)}>
           {initials}
         </div>
+        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
       </div>
 
       {!collapsed && (
-        <>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{user?.name || 'User'}</p>
-            <p className="text-[11px] text-slate-400 truncate">{roleLabel}</p>
-          </div>
-          <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
-        </>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-sidebar-text truncate">{user?.name || 'User'}</p>
+          <p className="text-[11px] text-sidebar-muted truncate">{user?.roleName || user?.role || 'Agent'}</p>
+          <p className="text-[10px] font-medium text-emerald-500 mt-0.5">● Online</p>
+        </div>
       )}
     </Link>
   );
 
   if (collapsed) {
     return (
-      <div className="p-3">
+      <div className="p-3 border-t border-sidebar-border">
         <Tooltip>
           <TooltipTrigger asChild>{profileCard}</TooltipTrigger>
           <TooltipContent side="right">
             <p className="font-semibold">{user?.name}</p>
-            <p className="text-content-muted">{roleLabel}</p>
+            <p className="text-content-muted">{user?.roleName || user?.role} · Online</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -80,7 +66,7 @@ export default function SidebarUserCard({ user }) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="p-3 pt-2 border-t border-white/[0.06]"
+        className="p-4 border-t border-sidebar-border"
       >
         {profileCard}
       </motion.div>
