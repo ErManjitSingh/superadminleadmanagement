@@ -6,7 +6,7 @@ import { getLeadStatusLabel } from '../../lib/leadStatusLabel';
 
 function Row({ label, value }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+    <div className="flex items-center justify-between gap-3 py-3.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
       <span className="text-sm text-slate-500 shrink-0">{label}</span>
       <span className="text-sm font-semibold text-slate-900 dark:text-white text-right">{value}</span>
     </div>
@@ -26,8 +26,8 @@ function formatBudget(lead) {
   }
   if (lead.budget) {
     const n = Number(lead.budget);
-    const low = Math.round(n * 0.9 / 1000) * 1000;
-    const high = Math.round(n * 1.1 / 1000) * 1000;
+    const low = Math.round((n * 0.9) / 1000) * 1000;
+    const high = Math.round((n * 1.1) / 1000) * 1000;
     return `₹${low.toLocaleString('en-IN')} - ₹${high.toLocaleString('en-IN')}`;
   }
   return '—';
@@ -75,9 +75,11 @@ export default function LeadSummaryPanel({ lead }) {
     : '—';
 
   return (
-    <div className={cn(DETAIL_CARD, 'h-full')}>
-      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2">
-        <ClipboardList className="w-4 h-4 text-violet-500" />
+    <div className={cn(DETAIL_CARD, 'h-full min-h-[320px]')}>
+      <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center gap-2.5">
+        <span className="w-8 h-8 rounded-xl bg-violet-50 text-violet-600 inline-flex items-center justify-center">
+          <ClipboardList className="w-4 h-4" />
+        </span>
         <h3 className="text-sm font-bold text-slate-900 dark:text-white">Lead Summary</h3>
       </div>
       <div className="px-5 py-1">

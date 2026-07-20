@@ -1,4 +1,5 @@
 import { Phone, FileText, CalendarPlus, MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import WhatsAppActionButton from './WhatsAppActionButton';
 import EmailActionButton from '../email/EmailActionButton';
 import {
@@ -57,6 +58,8 @@ export default function LeadContactActions({
   onContactLogged,
   onEmailSent,
   onChangeStatus,
+  onConvertLead,
+  editHref,
   className = '',
   embedded = false,
 }) {
@@ -113,8 +116,16 @@ export default function LeadContactActions({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
+            {editHref && (
+              <DropdownMenuItem asChild>
+                <Link to={editHref}>Edit Lead</Link>
+              </DropdownMenuItem>
+            )}
             {onChangeStatus && (
               <DropdownMenuItem onClick={onChangeStatus}>Change Status</DropdownMenuItem>
+            )}
+            {onConvertLead && (
+              <DropdownMenuItem onClick={onConvertLead}>Convert Lead</DropdownMenuItem>
             )}
             <DropdownMenuItem disabled>Export Lead</DropdownMenuItem>
           </DropdownMenuContent>

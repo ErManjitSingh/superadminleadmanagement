@@ -8,6 +8,7 @@ import LeadSummaryPanel from './LeadSummaryPanel';
 import LeadQuotationSection from './LeadQuotationSection';
 import LeadScoreBreakdown from './LeadScoreBreakdown';
 import LeadActionPanel from './LeadActionPanel';
+import LeadCustomerPanel from './LeadCustomerPanel';
 import { useLeadQuotationsQuery, useLeadNotesQuery } from '../../features/leads/hooks/useLeadRelatedQueries';
 import { getLeadDetailData } from './leadDetailData';
 import { DETAIL_CARD } from './leadDetailUtils';
@@ -38,6 +39,8 @@ export default function LeadDetailLayout({
   headerExtra,
   sidebarExtra,
   bottomExtra,
+  /** 'mockup' = Notes | Timeline | Summary (ChatGPT design). 'full' = classic admin panels */
+  variant = 'mockup',
 }) {
   const detail = getLeadDetailData(lead);
   const embeddedQuotations = lead.quotations || detail.quotations || [];
@@ -54,13 +57,14 @@ export default function LeadDetailLayout({
 
   const quotations = embeddedQuotations.length ? embeddedQuotations : (quotationsData?.items || []);
   const notes = embeddedNotes || notesData?.items || [];
+  const isMockup = variant !== 'full';
 
   return (
     <>
       <LeadDetailHeader lead={lead} backHref={backHref} backLabel={backLabel} />
       {headerExtra}
 
-      <div className={cn(DETAIL_CARD, 'p-4 sm:p-5 mb-4')}>
+      <div className={cn(DETAIL_CARD, 'p-4 sm:p-6 mb-4')}>
         <LeadStatusPipeline status={lead.status} embedded />
       </div>
 
@@ -75,48 +79,67 @@ export default function LeadDetailLayout({
         onContactLogged={onContactLogged}
         onEmailSent={onEmailSent}
         onChangeStatus={onChangeStatus}
+        editHref={canEditLead ? editHref : undefined}
+        onConvertLead={canConvertLead ? onConvertLead : undefined}
       />
 
       <LeadConvertedBanner status={lead.status} leadId={leadId} />
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch mb-5">
-        <div className="xl:col-span-3 order-2 xl:order-1">
-          <LeadNotesPanel notes={notes} legacyNote={lead.notes} loading={notesLoading} />
-        </div>
-
-        <div className="xl:col-span-6 order-1 xl:order-2">
-          <LeadActivityTimeline
-            activities={activities}
-            loading={timelineLoading}
-            quotations={quotations}
-            leadId={leadId}
-            compact
-          />
-        </div>
-
-        <div className="xl:col-span-3 order-3 space-y-4">
-          <LeadSummaryPanel lead={lead} />
-          {(canEditLead || canConvertLead || onChangeStatus) && (
-            <LeadActionPanel
-              onLogCallNote={onLogCallNote}
-              onAssign={onAssign}
-              onChangeStatus={onChangeStatus}
-              onConvertLead={onConvertLead}
-              canConvertLead={canConvertLead}
-              canCreateFollowUp={canCreateFollowUp}
-              canEditLead={canEditLead}
-              canChangeStatus={canChangeStatus}
-              editHref={editHref}
+      {isMockup ? (
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+          <div className="xl:col-span-3 order-2 xl:order-1">
+            <LeadNotesPanel notes={notes} legacyNote={lead.notes} loading={notesLoading} />
+          </div>
+          <div className="xl:col-span-6 order-1 xl:order-2">
+            <LeadActivityTimeline
+              activities={activities}
+              loading={timelineLoading}
+              quotations={quotations}
+              leadId={leadId}
+              compact
             />
-          )}
-          {sidebarExtra}
+          </div>
+          <div className="xl:col-span-3 order-3">
+            <LeadSummaryPanel lead={lead} />
+            {sidebarExtra}
+          </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <LeadQuotationSection quotations={quotations} loading={quotationsLoading} />
-        <LeadScoreBreakdown lead={lead} />
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start mb-5">
+            <aside className="xl:col-span-3 space-y-4 order-2 xl:order-1">
+              <LeadCustomerPanel lead={lead} />
+            </aside>
+            <main className="xl:col-span-6 space-y-4 order-1 xl:order-2">
+              <LeadActivityTimeline
+                activities={activities}
+                loading={timelineLoading}
+                quotations={quotations}
+                leadId={leadId}
+              />
+            </main>
+            <aside className="xl:col-span-3 space-y-4 order-3">
+              <LeadActionPanel
+                onLogCallNote={onLogCallNote}
+                onAssign={onAssign}
+                onChangeStatus={onChangeStatus}
+                onConvertLead={onConvertLead}
+                canConvertLead={canConvertLead}
+                canCreateFollowUp={canCreateFollowUp}
+                canEditLead={canEditLead}
+                canChangeStatus={canChangeStatus}
+                editHref={editHref}
+              />
+              {sidebarExtra}
+              <LeadNotesPanel notes={notes} legacyNote={lead.notes} loading={notesLoading} />
+            </aside>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <LeadQuotationSection quotations={quotations} loading={quotationsLoading} />
+            <LeadScoreBreakdown lead={lead} />
+          </div>
+        </>
+      )}
 
       {bottomExtra}
     </>

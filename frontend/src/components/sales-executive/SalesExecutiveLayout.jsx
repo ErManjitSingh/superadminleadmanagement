@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarClock, Flame, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SidebarProvider, useSidebar } from '../../context/SidebarContext';
 import AppSidebar from '../sidebar/AppSidebar';
@@ -9,12 +8,6 @@ import TopBar from '../TopBar';
 import MissedFollowUpAlert from '../notifications/MissedFollowUpAlert';
 import SalesExecutiveMobileNav from './SalesExecutiveMobileNav';
 import { salesExecutiveNavItems } from './sidebar-config';
-
-const SE_FOOTER_LINKS = [
-  { path: '/sales-executive/follow-ups', label: 'Follow-ups', icon: CalendarClock },
-  { path: '/sales-executive/leads/hot', label: 'Hot Leads', icon: Flame },
-  { path: '/sales-executive/notifications', label: 'Alerts', icon: Bell },
-];
 
 function SalesExecutiveShell() {
   const { user } = useAuth();
@@ -34,8 +27,7 @@ function SalesExecutiveShell() {
     quickActions: [],
     showFooter: true,
     showUpgrade: true,
-    footerLinks: SE_FOOTER_LINKS,
-    footerTip: undefined,
+    footerLinks: [],
   };
 
   return (

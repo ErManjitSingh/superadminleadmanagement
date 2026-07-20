@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useSidebar } from '../../context/SidebarContext';
 import { useSidebarTheme } from './SidebarThemeContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -34,20 +34,19 @@ export default function SidebarUserCard({ user }) {
       to={profilePath}
       onClick={() => setMobileOpen(false)}
       className={cn(
-        'flex items-center gap-3 min-w-0 rounded-2xl border border-white/[0.08] bg-white/[0.05] p-2.5 transition-colors hover:bg-white/[0.1]',
-        collapsed && 'p-2 justify-center'
+        'flex items-center gap-3 min-w-0 rounded-2xl p-2 transition-colors hover:bg-white/[0.08]',
+        collapsed && 'justify-center'
       )}
     >
       <div className="relative shrink-0">
         <div
           className={cn(
-            'w-9 h-9 rounded-xl bg-gradient-to-br flex items-center justify-center text-xs font-bold text-white shadow-md',
+            'w-10 h-10 rounded-full bg-gradient-to-br flex items-center justify-center text-sm font-bold text-white shadow-md',
             accent.avatarGradient
           )}
         >
           {initials}
         </div>
-        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0f1117]" />
       </div>
 
       {!collapsed && (
@@ -55,9 +54,8 @@ export default function SidebarUserCard({ user }) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-white truncate">{user?.name || 'User'}</p>
             <p className="text-[11px] text-slate-400 truncate">{roleLabel}</p>
-            <p className="text-[10px] font-medium text-emerald-400 mt-0.5">● Online</p>
           </div>
-          <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+          <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
         </>
       )}
     </Link>
@@ -70,7 +68,7 @@ export default function SidebarUserCard({ user }) {
           <TooltipTrigger asChild>{profileCard}</TooltipTrigger>
           <TooltipContent side="right">
             <p className="font-semibold">{user?.name}</p>
-            <p className="text-content-muted">{roleLabel} · Online</p>
+            <p className="text-content-muted">{roleLabel}</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -82,7 +80,7 @@ export default function SidebarUserCard({ user }) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="p-3 pt-2"
+        className="p-3 pt-2 border-t border-white/[0.06]"
       >
         {profileCard}
       </motion.div>
