@@ -558,6 +558,44 @@ async function respondVendorConfirmation(token, { action, notes } = {}) {
     vendorNotes: notes || '',
   });
 
+  // Vendor Accept on cab voucher should clear Cab Pending in operations list
+  if (action === 'accept' && (voucher.type === 'transport' || voucher.type === 'cab')) {
+    const booking = await Booking.findById(voucher.booking);
+    if (booking) {
+      booking.cabConfirmation = 'confirmed';
+      booking.transport = (booking.transport || []).map((t, i) => {
+        const row = t.toObject?.() || t;
+        if (Number(voucher.assignmentIndex ?? 0) === i || (booking.transport || []).length === 1) {
+          return { ...row, status: 'confirmed' };
+        }
+        return row;
+      });
+      if (['booking_received', 'pending_verification', 'pending'].includes(booking.status)) {
+        booking.status = 'confirmed';
+      }
+      await booking.save();
+    }
+  }
+
+  if (action === 'accept' && voucher.type === 'hotel') {
+    const booking = await Booking.findById(voucher.booking);
+    if (booking) {
+      const idx = Number(voucher.assignmentIndex ?? 0);
+      booking.hotels = (booking.hotels || []).map((h, i) => {
+        const row = h.toObject?.() || h;
+        if (i === idx) return { ...row, status: 'confirmed' };
+        return row;
+      });
+      const allHotelsConfirmed = (booking.hotels || []).every((h) => h.status === 'confirmed')
+        || (booking.hotels || []).length <= 1;
+      if (allHotelsConfirmed) booking.hotelConfirmation = 'confirmed';
+      if (['booking_received', 'pending_verification', 'pending'].includes(booking.status)) {
+        booking.status = 'confirmed';
+      }
+      await booking.save();
+    }
+  }
+
   await logEvent({
     bookingId: voucher.booking,
     voucherId: voucher._id,

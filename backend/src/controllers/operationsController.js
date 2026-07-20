@@ -96,6 +96,9 @@ const confirmCab = asyncHandler(async (req, res) => {
   assertTenantDocument(booking, req, 'Booking');
   booking.cabConfirmation = 'confirmed';
   booking.transport = (booking.transport || []).map((t) => ({ ...t.toObject?.() || t, status: 'confirmed' }));
+  if (['booking_received', 'pending_verification', 'pending'].includes(booking.status)) {
+    booking.status = 'confirmed';
+  }
   await booking.save();
   await cacheService.invalidate('ops:');
   res.json(booking);

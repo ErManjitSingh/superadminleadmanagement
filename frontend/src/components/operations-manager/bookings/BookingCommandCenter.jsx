@@ -293,10 +293,11 @@ export function BookingActionCenter({ items = [], onResolveAll }) {
 
 /* ─── Detail Grid ──────────────────────────────────────────── */
 
-export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCallHotel }) {
+export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCallHotel, onConfirmCab, confirmingCab }) {
   const hasHotels = bookingHasHotels(booking);
   const hotel = booking.hotels?.[0] || {};
   const cab = booking.transport?.[0] || {};
+  const cabConfirmed = booking.cabConfirmation === 'confirmed';
   const cols = hasHotels
     ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
     : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3';
@@ -330,11 +331,16 @@ export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCall
       <DetailCard
         icon={Car}
         title="Cab Details"
-        badge={<StatusPill tone={booking.cabConfirmation === 'confirmed' ? 'emerald' : 'amber'}>{booking.cabConfirmation === 'confirmed' ? 'Confirmed' : 'Pending'}</StatusPill>}
+        badge={<StatusPill tone={cabConfirmed ? 'emerald' : 'amber'}>{cabConfirmed ? 'Confirmed' : 'Pending'}</StatusPill>}
         accent="sky"
         actions={(
           <>
-            <GhostBtn onClick={onCabManage}>Live Location</GhostBtn>
+            {!cabConfirmed && (
+              <GhostBtn onClick={onConfirmCab} disabled={confirmingCab}>
+                {confirmingCab ? 'Saving…' : 'Mark Confirmed'}
+              </GhostBtn>
+            )}
+            <GhostBtn onClick={onCabManage}>Manage Cab</GhostBtn>
             <GhostBtn onClick={onCabManage}>Change Driver</GhostBtn>
           </>
         )}
@@ -429,12 +435,13 @@ function VendorRow({ label, name, phone }) {
   );
 }
 
-function GhostBtn({ children, onClick }) {
+function GhostBtn({ children, onClick, disabled }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-subtle bg-white hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700 transition-colors"
+      disabled={disabled}
+      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-subtle bg-white hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700 transition-colors disabled:opacity-50 disabled:pointer-events-none"
     >
       {children}
     </button>

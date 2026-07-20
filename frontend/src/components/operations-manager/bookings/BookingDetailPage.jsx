@@ -73,6 +73,7 @@ export default function BookingDetailPage() {
   const [pdfQuote, setPdfQuote] = useState(null);
   const [quotationLoading, setQuotationLoading] = useState(false);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
+  const [confirmingCab, setConfirmingCab] = useState(false);
   const pdfRef = useRef(null);
   const manageRef = useRef(null);
   const voucherRef = useRef(null);
@@ -169,10 +170,30 @@ export default function BookingDetailPage() {
   const saveTransport = async () => {
     setSavingTransport(true);
     try {
-      await API.put(`/operations-manager/bookings/${id}`, { transport });
+      const allConfirmed = (transport || []).length > 0
+        && (transport || []).every((t) => t.status === 'confirmed');
+      await API.put(`/operations-manager/bookings/${id}`, {
+        transport,
+        ...(allConfirmed ? { cabConfirmation: 'confirmed' } : {}),
+      });
       await refreshBookingData(true);
     } finally {
       setSavingTransport(false);
+    }
+  };
+
+  const confirmCab = async () => {
+    if (!window.confirm('Mark cab as confirmed? Use this after you finalize driver/vendor by call or WhatsApp.')) return;
+    setConfirmingCab(true);
+    try {
+      const { data } = await API.post(`/operations-manager/bookings/${id}/confirm-cab`);
+      if (data) {
+        setBooking((b) => ({ ...b, ...data }));
+        setTransport(data.transport?.length ? data.transport : []);
+      }
+      await refreshBookingData(true);
+    } finally {
+      setConfirmingCab(false);
     }
   };
 
@@ -276,6 +297,8 @@ export default function BookingDetailPage() {
             booking={booking}
             onHotelVoucher={scrollToVouchers}
             onCabManage={openManage}
+            onConfirmCab={confirmCab}
+            confirmingCab={confirmingCab}
             onCallHotel={() => {
               const phone = booking.hotels?.[0]?.phone || booking.hotels?.[0]?.vendorPhone;
               if (phone) window.open(`tel:${phone}`, '_self');
@@ -399,6 +422,9 @@ export default function BookingDetailPage() {
               catalogCabs={catalogCabs}
               catalogVendors={catalogVendors}
               onCatalogVendorsChange={setCatalogVendors}
+              onConfirmCab={confirmCab}
+              confirmingCab={confirmingCab}
+              cabConfirmed={booking.cabConfirmation === 'confirmed'}
             />
           </div>
         )}

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Hotel, Car, Calendar, MapPin, Utensils, Bus, Compass,
-  Save, Plus, Trash2, RefreshCw, Sparkles, Loader2, FileText, ExternalLink,
+  Save, Plus, Trash2, RefreshCw, Sparkles, Loader2, FileText, ExternalLink, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { formatDate } from '../operationsUtils';
@@ -19,6 +19,7 @@ const VEHICLE_TYPES = [
 ];
 
 const HOTEL_STATUS = ['pending', 'requested', 'confirmed', 'rejected', 'cancelled'];
+const TRANSPORT_STATUS = ['pending', 'requested', 'confirmed', 'completed', 'cancelled'];
 
 const MANUAL_HOTEL = '__manual_hotel__';
 const MANUAL_CAB = '__manual_cab__';
@@ -548,6 +549,9 @@ export function BookingTransportEditor({
   catalogCabs = [],
   catalogVendors = [],
   onCatalogVendorsChange,
+  onConfirmCab,
+  confirmingCab,
+  cabConfirmed,
 }) {
   const [rowModes, setRowModes] = useState({});
   const [savingVendorRow, setSavingVendorRow] = useState(null);
@@ -634,6 +638,18 @@ export function BookingTransportEditor({
       subtitle="Existing vendor or add new — saved vendors appear on all leads"
       actions={(
         <>
+          {!cabConfirmed && onConfirmCab && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              disabled={confirmingCab || saving}
+              onClick={onConfirmCab}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {confirmingCab ? 'Saving…' : 'Mark Cab Confirmed'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={addRow}>
             <Plus className="w-3.5 h-3.5" /> Add
           </Button>
@@ -729,6 +745,9 @@ export function BookingTransportEditor({
               <input value={t.vehicleNumber || ''} onChange={(e) => update(i, 'vehicleNumber', e.target.value)} placeholder="Vehicle number" className="input-premium h-10 rounded-xl text-sm" />
               <input value={t.pickupLocation || ''} onChange={(e) => update(i, 'pickupLocation', e.target.value)} placeholder="Pickup location" className="input-premium h-10 rounded-xl text-sm" />
               <input value={t.dropLocation || ''} onChange={(e) => update(i, 'dropLocation', e.target.value)} placeholder="Drop location" className="input-premium h-10 rounded-xl text-sm" />
+              <select value={t.status || 'pending'} onChange={(e) => update(i, 'status', e.target.value)} className="input-premium h-10 rounded-xl text-sm sm:col-span-2">
+                {TRANSPORT_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
           </div>
           );
