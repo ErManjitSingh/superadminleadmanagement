@@ -33,6 +33,7 @@ export default function AppSidebar({
   footerLinks,
   showFooter = false,
   footerTip,
+  showUpgrade = false,
 }) {
   const location = useLocation();
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
@@ -112,6 +113,7 @@ export default function AppSidebar({
                 user={effectiveUser}
                 links={footerLinks}
                 tip={footerTip}
+                showUpgrade={showUpgrade}
               />
             )}
           </div>

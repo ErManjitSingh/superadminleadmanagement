@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Eye, Loader2 } from 'lucide-react';
+import { Download, Eye, Loader2, Plus } from 'lucide-react';
 import { ACTIVITY_CONFIG, findQuotationForActivity } from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import ReceiptPdfPreviewModal from '../payments/ReceiptPdfPreviewModal';
@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { DETAIL_CARD } from './leadDetailUtils';
 import { downloadReceiptPdf, getLeadBooking } from '../../services/bookingPaymentsApi';
 import { toast } from '../../context/ToastContext';
+import { cn } from '../../lib/utils';
 
 function formatActivityDate(iso) {
   const d = new Date(iso);
@@ -33,16 +34,19 @@ export default function LeadActivityTimeline({
   loading = false,
   quotations = [],
   leadId,
+  compact = false,
 }) {
   const [pdfQuote, setPdfQuote] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(null);
   const [bookingFallback, setBookingFallback] = useState(null);
+  const [expanded, setExpanded] = useState(false);
   const pdfRef = useRef(null);
   const sorted = useMemo(
     () => [...activities].sort((a, b) => new Date(b.date) - new Date(a.date)),
     [activities],
   );
+  const visible = compact && !expanded ? sorted.slice(0, 5) : sorted;
 
   useEffect(() => {
     if (!leadId) {
@@ -130,10 +134,10 @@ export default function LeadActivityTimeline({
             <p className="text-sm text-slate-400 text-center py-6">No activity yet</p>
           )}
           {!loading && sorted.length > 0 && (
-            <div className="relative max-h-[26.5rem] overflow-y-auto overscroll-contain pr-1">
+            <div className={cn('relative overscroll-contain pr-1', compact ? 'max-h-[22rem]' : 'max-h-[26.5rem]', 'overflow-y-auto')}>
               <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-violet-300 via-slate-200 to-transparent dark:from-violet-800 dark:via-slate-700" />
               <div className="space-y-1">
-                {sorted.map((item, i) => {
+                {visible.map((item, i) => {
                   const cfg = ACTIVITY_CONFIG[item.type] || ACTIVITY_CONFIG.status_changed;
                   const Icon = cfg.icon;
                   const { date, time } = formatActivityDate(item.date);
@@ -217,6 +221,16 @@ export default function LeadActivityTimeline({
                 })}
               </div>
             </div>
+          )}
+          {compact && sorted.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-violet-300 bg-violet-50/50 hover:bg-violet-50 text-violet-700 text-sm font-semibold py-2.5 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {expanded ? 'Show Less' : 'View All Activities'}
+            </button>
           )}
         </div>
       </div>

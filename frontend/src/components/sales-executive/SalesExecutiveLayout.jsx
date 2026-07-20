@@ -33,8 +33,9 @@ function SalesExecutiveShell() {
     profilePath: '/sales-executive/profile',
     quickActions: [],
     showFooter: true,
+    showUpgrade: true,
     footerLinks: SE_FOOTER_LINKS,
-    footerTip: 'Stuck on a lead? Ask your Team Leader or open Support.',
+    footerTip: undefined,
   };
 
   return (
