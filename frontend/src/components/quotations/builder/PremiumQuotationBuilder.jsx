@@ -559,16 +559,12 @@ function StepPackage({ b, initialLeadId }) {
           value={info.travelDate?.slice?.(0, 10) || info.travelDate || ''}
           onChange={(v) => b.updatePackageInfo({ travelDate: v })}
         />
-        <IconField
+        <IconNumberField
           label="Adults"
           icon={Users}
-          type="number"
-          min={1}
           value={info.adults}
-          onChange={(v) => {
-            const n = Number(v);
-            b.updatePackageInfo({ adults: Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1 });
-          }}
+          min={1}
+          onChange={(n) => b.updatePackageInfo({ adults: n })}
         />
         <IconSelectField
           label="Children"
@@ -824,6 +820,52 @@ function IconField({ label, icon: Icon, value, onChange, type = 'text', min, max
           min={min}
           max={max}
           onChange={(e) => onChange(e.target.value)}
+          className="w-full h-11 pl-10 pr-4 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15"
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Manual number entry that allows clearing/retyping (e.g. 2 → 1 or 2 → 12). */
+function IconNumberField({ label, icon: Icon, value, onChange, min = 1 }) {
+  const [draft, setDraft] = useState(value == null ? '' : String(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setDraft(value == null || value === '' ? '' : String(value));
+  }, [value, focused]);
+
+  return (
+    <div>
+      <label className="text-sm font-semibold text-slate-700 mb-1.5 block">{label}</label>
+      <div className="relative">
+        {Icon && (
+          <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-500 pointer-events-none" />
+        )}
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={focused ? draft : (value == null || value === '' ? '' : String(value))}
+          onFocus={() => {
+            setFocused(true);
+            setDraft(value == null || value === '' ? '' : String(value));
+          }}
+          onBlur={() => {
+            setFocused(false);
+            const n = parseInt(String(draft).replace(/\D/g, ''), 10);
+            const next = Number.isFinite(n) && n >= min ? n : min;
+            onChange(next);
+            setDraft(String(next));
+          }}
+          onChange={(e) => {
+            const raw = e.target.value.replace(/\D/g, '');
+            setDraft(raw);
+            if (raw === '') return;
+            const n = parseInt(raw, 10);
+            if (Number.isFinite(n)) onChange(n);
+          }}
           className="w-full h-11 pl-10 pr-4 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15"
         />
       </div>
