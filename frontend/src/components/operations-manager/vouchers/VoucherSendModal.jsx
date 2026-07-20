@@ -15,10 +15,11 @@ function defaultRecipient(type, voucher, booking) {
     };
   }
   if (type === 'transport') {
+    const t = booking?.transport?.[0] || {};
     return {
-      phone: p.driverPhone || p.vendorPhone || '',
+      phone: p.vendorPhone || p.driverPhone || t.vendorPhone || t.driverPhone || '',
       email: p.vendorEmail || p.driverEmail || '',
-      label: p.driverName || p.vendorName || 'Cab Vendor',
+      label: p.vendorName || p.driverName || t.vendorName || t.driverName || 'Cab Vendor / Driver',
     };
   }
   return {
@@ -70,7 +71,9 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
           {isWa ? 'Send via WhatsApp' : 'Send via Email'}
         </h3>
         <p className="text-sm text-content-muted mt-1 mb-4">
-          {type === 'hotel' ? 'Send hotel voucher to the property' : 'Send cab voucher to the driver / vendor'}
+          {type === 'hotel'
+            ? 'Send hotel voucher to the property'
+            : 'Send cab itinerary voucher (pickup, drop & places) to driver / vendor on WhatsApp'}
           {' — '}
           <strong>{defaults.label}</strong>
         </p>

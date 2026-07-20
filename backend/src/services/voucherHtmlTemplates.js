@@ -121,6 +121,22 @@ html, body {
   content: '\\2713'; position: absolute; left: 1.5px; top: 1px;
   color: #fff; font-size: 6px; font-weight: 800;
 }
+.itinerary-list { display: flex; flex-direction: column; gap: 6px; }
+.itinerary-day {
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: 7px 8px; background: #fafafa;
+}
+.itinerary-day-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 3px;
+}
+.itinerary-day-num {
+  font-size: 8px; font-weight: 800; color: #5b21b6; text-transform: uppercase; letter-spacing: 0.03em;
+}
+.itinerary-day-date { font-size: 7px; color: #64748b; font-weight: 600; }
+.itinerary-day-title { font-size: 9px; font-weight: 800; line-height: 1.25; }
+.itinerary-day-places { font-size: 8px; color: #334155; margin-top: 3px; line-height: 1.35; }
+.itinerary-day-route { font-size: 7px; color: #64748b; margin-top: 3px; font-weight: 600; }
+.main.stack { grid-template-columns: 1fr; }
+.main.stack .card { width: 100%; }
 .emerg {
   margin-top: 8px; background: #f5f3ff; border-radius: 8px; padding: 8px;
 }
@@ -346,6 +362,49 @@ function tripTypeLabel(payload = {}) {
   return 'Point to Point';
 }
 
+function truncateText(text = '', max = 220) {
+  const s = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
+function resolveCabItinerary(booking = {}, payload = {}) {
+  const days = Array.isArray(payload.itinerary) && payload.itinerary.length
+    ? payload.itinerary
+    : (booking.itinerary || []);
+  return days.map((d, i) => {
+    const dayNum = d.day || i + 1;
+    const places = String(
+      d.activities || d.sightseeing || d.activityNotes || d.places || '',
+    ).trim();
+    const description = truncateText(d.description || '', 200);
+    return {
+      day: dayNum,
+      date: d.date || null,
+      title: d.title || `Day ${dayNum}`,
+      places: places || description,
+      transport: String(d.transport || '').trim(),
+    };
+  }).filter((d) => d.title || d.places || d.transport);
+}
+
+function cabItineraryHtml(rows = []) {
+  if (!rows.length) {
+    return `<div class="note">Itinerary will be shared by operations if not listed here. Follow pickup &amp; drop as mentioned above.</div>`;
+  }
+  return `<div class="itinerary-list">${rows.map((d) => `
+    <div class="itinerary-day">
+      <div class="itinerary-day-head">
+        <span class="itinerary-day-num">Day ${esc(d.day)}</span>
+        ${d.date ? `<span class="itinerary-day-date">${fmtDate(d.date)}</span>` : ''}
+      </div>
+      <div class="itinerary-day-title">${esc(d.title)}</div>
+      ${d.places ? `<div class="itinerary-day-places"><strong>Places / Sightseeing:</strong> ${esc(d.places)}</div>` : ''}
+      ${d.transport ? `<div class="itinerary-day-route">Route: ${esc(d.transport)}</div>` : ''}
+    </div>
+  `).join('')}</div>`;
+}
+
 function cell(label, value) {
   return `<div class="cell"><label>${esc(label)}</label><p>${esc(value || '-')}</p></div>`;
 }
@@ -357,6 +416,7 @@ async function buildCabVoucherHtml(voucher, booking) {
   const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${brand.websiteUrl || branding.websiteUrl}/app`);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Child`;
   const customerPhone = booking.customerPhone || booking.phone || '-';
+  const itineraryRows = resolveCabItinerary(booking, p);
 
   const fields = [
     ['Vehicle Type', vehicleLabel(p.vehicleType)],
@@ -364,14 +424,13 @@ async function buildCabVoucherHtml(voucher, booking) {
     ['Vehicle Reg. No.', p.vehicleNumber || p.vehicleName],
     ['Driver Name', p.driverName],
     ['Driver Phone', p.driverPhone],
-    ['Driver License No.', p.driverLicense || p.licenseNumber || 'As per records'],
-    ['Pickup Location', p.pickupLocation],
-    ['Pickup Date & Time', fmtDateTime(p.pickupDate, p.pickupTime)],
-    ['Drop Location', p.dropLocation],
-    ['Drop Date & Time', fmtDateTime(p.dropDate || p.pickupDate, p.dropTime)],
-    ['Reporting Time', p.reportingTime || '09:30 AM'],
+    ['Vendor', p.vendorName],
+    ['Pickup Location', p.pickupLocation || booking.destination],
+    ['Pickup Date & Time', fmtDateTime(p.pickupDate || booking.travelDate, p.pickupTime || p.reportingTime || '09:00 AM')],
+    ['Drop Location', p.dropLocation || booking.destination],
+    ['Drop Date & Time', fmtDateTime(p.dropDate || booking.returnDate || booking.travelDate, p.dropTime)],
+    ['Reporting Time', p.reportingTime || '09:00 AM'],
     ['Trip Type', tripTypeLabel(p)],
-    ['No. of Vehicles', String(p.vehicleCount || 1)],
   ];
 
   const gridHtml = [];
@@ -381,12 +440,12 @@ async function buildCabVoucherHtml(voucher, booking) {
   }
 
   const notes = [
-    'Driver will wait at the arrival gate with a name placard.',
-    'Vehicle is available for the mentioned route & reporting time only.',
-    'Additional waiting charges may apply after 30 minutes.',
-    'Please carry a valid photo ID during travel.',
-    'Inform operations 2 hours before for any schedule change.',
-    'Toll, parking & night charges as per actual unless included.',
+    'This voucher is for the cab driver / vendor — follow pickup, drop and day-wise sightseeing only.',
+    'Report at pickup point on time with name placard for the guest.',
+    'Cover sightseeing places as listed in the itinerary below (unless operations advise otherwise).',
+    'Vehicle is for the mentioned guest & travel dates only.',
+    'Inform operations immediately for any delay, breakdown or route change.',
+    'Toll, parking & night charges as per actual unless included in package.',
   ];
 
   const contacts = [
@@ -403,7 +462,7 @@ async function buildCabVoucherHtml(voucher, booking) {
 <style>${PRINT_CSS}</style>
 </head><body>
 <div class="page">
-  ${headerHtml({ title: 'CAB / TRANSPORT VOUCHER', voucher, booking, qrSrc, heroSrc: CAB_HERO_IMG, brand })}
+  ${headerHtml({ title: 'CAB DRIVER VOUCHER / ITINERARY', voucher, booking, qrSrc, heroSrc: CAB_HERO_IMG, brand })}
   <div class="strip cols-5">
     <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
     <div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>
@@ -411,13 +470,17 @@ async function buildCabVoucherHtml(voucher, booking) {
     <div><label>Travel Date</label><p>${fmtDate(booking.travelDate)}</p></div>
     <div><label>Travelers</label><p>${guests}</p></div>
   </div>
-  <div class="main">
+  <div class="main stack">
     <div class="card">
-      <div class="card-title">Service Details</div>
+      <div class="card-title">Pickup · Drop · Vehicle</div>
       <div class="grid-2">${gridHtml.join('')}</div>
     </div>
     <div class="card">
-      <div class="card-title">Important Notes</div>
+      <div class="card-title">Day-wise Itinerary (Places to Cover)</div>
+      ${cabItineraryHtml(itineraryRows)}
+    </div>
+    <div class="card">
+      <div class="card-title">Important Notes for Driver</div>
       ${notes.map((n) => `<div class="note">${esc(n)}</div>`).join('')}
       <div class="emerg">
         <div class="emerg-title">Emergency Contacts</div>

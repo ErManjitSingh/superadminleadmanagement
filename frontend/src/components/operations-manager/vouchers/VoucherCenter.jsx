@@ -19,7 +19,7 @@ const SLOT_META = {
     ring: 'ring-violet-500/20',
   },
   transport: {
-    label: 'Cab Voucher',
+    label: 'Cab Itinerary Voucher',
     icon: Car,
     gradient: 'from-sky-600 via-blue-600 to-indigo-700',
     accent: 'text-sky-600',
@@ -198,8 +198,8 @@ export default function VoucherCenter({
           </h3>
           <p className="text-sm text-content-muted mt-0.5">
             {hasHotels
-              ? 'Day-wise hotel vouchers + one cab voucher — generate, send & track partners'
-              : 'Cab voucher — generate, send & track partners'}
+              ? 'Day-wise hotel vouchers + cab itinerary voucher (pickup/drop & places) — View & WhatsApp'
+              : 'Cab itinerary voucher (pickup/drop & places) — View & WhatsApp'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

@@ -153,12 +153,12 @@ export default function VoucherCompactCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 min-w-[80px] h-9 rounded-xl text-xs gap-1"
+                className="flex-1 min-w-[100px] h-9 rounded-xl text-xs gap-1.5 font-semibold"
                 disabled={previewing || regenerating}
                 onClick={handleView}
               >
                 {previewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
-                View PDF
+                View
               </Button>
               <Button
                 size="sm"
@@ -166,6 +166,7 @@ export default function VoucherCompactCard({
                 className="h-9 rounded-xl text-xs gap-1 px-3"
                 disabled={regenerating || previewing}
                 onClick={handleRegenerate}
+                title="Regenerate PDF"
               >
                 {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                 Regen
@@ -174,17 +175,18 @@ export default function VoucherCompactCard({
                 <>
                   <Button
                     size="sm"
-                    variant="outline"
-                    className="h-9 rounded-xl text-xs gap-1 text-emerald-700 border-emerald-200 px-3"
+                    className="flex-1 min-w-[110px] h-9 rounded-xl text-xs gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={() => setSendChannel('whatsapp')}
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
+                    WhatsApp
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-9 rounded-xl text-xs gap-1 px-3"
                     onClick={() => setSendChannel('email')}
+                    title="Send Email"
                   >
                     <Mail className="w-3.5 h-3.5" />
                   </Button>
@@ -199,7 +201,7 @@ export default function VoucherCompactCard({
               onClick={onGenerate}
             >
               {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              Generate Voucher
+              {type === 'transport' ? 'Generate Cab Itinerary Voucher' : 'Generate Voucher'}
             </Button>
           )}
         </div>

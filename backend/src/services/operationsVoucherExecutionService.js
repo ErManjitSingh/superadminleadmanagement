@@ -85,6 +85,15 @@ function extractPayload(booking, type, index = 0) {
     const t = booking.transport?.[index];
     if (!t) return null;
     const vehicleType = t.vehicleType || 'suv';
+    const itinerary = (booking.itinerary || []).map((d, i) => ({
+      day: d.day || i + 1,
+      date: d.date || null,
+      title: d.title || `Day ${d.day || i + 1}`,
+      activities: d.activities || d.sightseeing || d.activityNotes || '',
+      sightseeing: d.sightseeing || '',
+      transport: d.transport || '',
+      description: d.description || '',
+    }));
     return {
       vehicleType,
       vehicleName: t.vehicleNumber,
@@ -93,17 +102,19 @@ function extractPayload(booking, type, index = 0) {
       driverName: t.driverName,
       driverPhone: t.driverPhone,
       driverLicense: t.driverLicense,
-      pickupLocation: t.pickupLocation,
-      dropLocation: t.dropLocation,
-      pickupDate: t.pickupDate,
-      pickupTime: t.pickupTime,
-      dropDate: t.dropDate,
-      dropTime: t.dropTime,
-      reportingTime: t.reportingTime || '09:30 AM',
-      tripType: t.tripType,
-      vehicleCount: t.vehicleCount || 1,
       vendorName: t.vendorName,
+      vendorPhone: t.vendorPhone || t.driverPhone,
+      pickupLocation: t.pickupLocation || booking.destination || '',
+      dropLocation: t.dropLocation || booking.destination || '',
+      pickupDate: t.pickupDate || booking.travelDate || null,
+      pickupTime: t.pickupTime,
+      dropDate: t.dropDate || booking.returnDate || null,
+      dropTime: t.dropTime,
+      reportingTime: t.reportingTime || '09:00 AM',
+      tripType: t.tripType || 'Sightseeing with private cab',
+      vehicleCount: t.vehicleCount || 1,
       status: t.status,
+      itinerary,
     };
   }
   if (type === 'activity') {
@@ -472,15 +483,22 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
     ? [
         `Hello,`,
         '',
-        `${typeLabel} booking voucher for ${booking.bookingNumber}.`,
+        voucher.type === 'transport'
+          ? `Cab driver itinerary / voucher for ${booking.bookingNumber}.`
+          : `${typeLabel} booking voucher for ${booking.bookingNumber}.`,
         '',
         `Guest: ${booking.customerName}`,
+        `Phone: ${booking.customerPhone || '-'}`,
         `Destination: ${booking.destination}`,
         `Travel Date: ${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
         voucher.type === 'hotel' ? `Hotel: ${payload.hotelName || payload.name || ''}` : '',
-        voucher.type === 'transport' ? `Driver: ${payload.driverName || ''}` : '',
+        voucher.type === 'transport' ? `Pickup: ${payload.pickupLocation || booking.destination || '-'}` : '',
+        voucher.type === 'transport' ? `Drop: ${payload.dropLocation || booking.destination || '-'}` : '',
+        voucher.type === 'transport' && Array.isArray(payload.itinerary) && payload.itinerary.length
+          ? `Days: ${payload.itinerary.length} (places listed in PDF)`
+          : '',
         '',
-        'Please find the voucher attached and confirm via the link inside.',
+        'Please open the attached PDF for full day-wise itinerary and confirm via the link inside.',
         '',
         `Team ${branding.brandName}`,
       ].filter(Boolean).join('\n')
