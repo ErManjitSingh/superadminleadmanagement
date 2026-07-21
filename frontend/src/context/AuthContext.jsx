@@ -6,6 +6,7 @@ import { goToLogin } from '../auth/paths';
 import store from '../store';
 import { setCredentials, clearCredentials } from '../store/slices/authSlice';
 import { useRestrictedSessionTimeout } from '../hooks/useRestrictedSessionTimeout';
+import { useJwtExpiryLogout } from '../hooks/useJwtExpiryLogout';
 
 const AuthContext = createContext(null);
 
@@ -13,9 +14,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const logout = useCallback(async ({ redirect = false } = {}) => {
+  const logout = useCallback(async ({ redirect = false, skipRequest = false } = {}) => {
     try {
-      await authService.logout();
+      if (skipRequest) authStorage.clearSession();
+      else await authService.logout();
     } finally {
       setUser(null);
       store.dispatch(clearCredentials());
@@ -24,10 +26,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useRestrictedSessionTimeout(user, logout);
+  useJwtExpiryLogout(user, logout);
 
   useEffect(() => {
     const bootstrap = async () => {
-      if (authStorage.isRestrictedSessionExpired()) {
+      if (authStorage.isTokenExpired() || authStorage.isRestrictedSessionExpired()) {
         authStorage.clearSession();
         setUser(null);
         setLoading(false);

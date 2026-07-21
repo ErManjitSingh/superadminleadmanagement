@@ -1,6 +1,20 @@
 import { AUTH_STORAGE_KEYS } from './constants';
 import { requiresRestrictedSession, SESSION_TIMEOUT_MS } from './sessionPolicy';
 
+function readJwtExpiry(token) {
+  if (!token || typeof token !== 'string') return null;
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const decoded = JSON.parse(window.atob(padded));
+    return Number.isFinite(Number(decoded.exp)) ? Number(decoded.exp) * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 export const authStorage = {
   saveSession(user, token, options = {}) {
     localStorage.setItem(AUTH_STORAGE_KEYS.USER, JSON.stringify(user));
@@ -62,7 +76,7 @@ export const authStorage = {
   },
 
   isAuthenticated() {
-    if (this.isRestrictedSessionExpired()) {
+    if (this.isTokenExpired() || this.isRestrictedSessionExpired()) {
       this.clearSession();
       return false;
     }
@@ -71,6 +85,15 @@ export const authStorage = {
 
   getToken() {
     return localStorage.getItem('token');
+  },
+
+  getTokenExpiresAt() {
+    return readJwtExpiry(this.getToken());
+  },
+
+  isTokenExpired() {
+    const expiresAt = this.getTokenExpiresAt();
+    return expiresAt !== null && Date.now() >= expiresAt;
   },
 
   getStoredUser() {
