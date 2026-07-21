@@ -189,7 +189,7 @@ export default function VoucherCenter({
   }
 
   return (
-    <div id="voucher-center" className="space-y-4 scroll-mt-24">
+    <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-black text-lg flex items-center gap-2 text-content-primary">

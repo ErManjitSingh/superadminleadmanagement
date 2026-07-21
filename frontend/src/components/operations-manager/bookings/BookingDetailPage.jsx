@@ -35,6 +35,16 @@ import { useDataRefresh } from '../../../hooks/useDataRefresh';
 
 const QuotationPdfOverlay = lazy(() => import('../../quotations/QuotationPdfOverlay'));
 
+const SECTION_TABS = [
+  { id: 'booking-progress', label: 'Progress' },
+  { id: 'booking-actions', label: 'Actions' },
+  { id: 'booking-details', label: 'Details' },
+  { id: 'voucher-center', label: 'Vouchers' },
+  { id: 'booking-activity', label: 'Activity' },
+  { id: 'booking-payments', label: 'Payments' },
+  { id: 'booking-fulfillment', label: 'Fulfillment' },
+];
+
 function applyBookingState(data, setters) {
   const { setBooking, setItinerary, setHotels, setTransport } = setters;
   setBooking(data);
@@ -74,9 +84,8 @@ export default function BookingDetailPage() {
   const [quotationLoading, setQuotationLoading] = useState(false);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [confirmingCab, setConfirmingCab] = useState(false);
+  const [activeSection, setActiveSection] = useState(SECTION_TABS[0].id);
   const pdfRef = useRef(null);
-  const manageRef = useRef(null);
-  const voucherRef = useRef(null);
 
   const setters = { setBooking, setItinerary, setHotels, setTransport };
   const canAddPayment = ['operations_manager', 'admin', 'accountant'].includes(user?.role);
@@ -120,6 +129,27 @@ export default function BookingDetailPage() {
   useDataRefresh(['operations', `booking:${id}`], () => refreshBookingData(true), true, 400);
 
   useEffect(() => { fetchBooking(); }, [id, user?.role]);
+
+  useEffect(() => {
+    if (!booking) return undefined;
+    const sections = SECTION_TABS
+      .map(({ id: sectionId }) => document.getElementById(sectionId))
+      .filter(Boolean);
+    if (!sections.length) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]?.target?.id) setActiveSection(visible[0].target.id);
+      },
+      { rootMargin: '-120px 0px -65% 0px', threshold: 0 },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [booking, manageOpen]);
 
   useEffect(() => {
     if (!manageOpen) return;
@@ -220,13 +250,25 @@ export default function BookingDetailPage() {
     }
   };
 
+  const scrollToSection = useCallback((sectionId) => {
+    setActiveSection(sectionId);
+    const scroll = () => {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    if (sectionId === 'booking-fulfillment') {
+      setManageOpen(true);
+      setTimeout(scroll, 80);
+      return;
+    }
+    scroll();
+  }, []);
+
   const openManage = () => {
-    setManageOpen(true);
-    setTimeout(() => manageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    scrollToSection('booking-fulfillment');
   };
 
   const scrollToVouchers = () => {
-    voucherRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToSection('voucher-center');
   };
 
   const callCustomer = () => {
@@ -287,57 +329,85 @@ export default function BookingDetailPage() {
         onViewQuote={showQuotation ? openQuotation : undefined}
       />
 
-      <BookingCommandProgress steps={progressSteps} />
+      <nav
+        aria-label="Booking detail sections"
+        className="sticky top-16 z-30 -mx-1 rounded-2xl border border-subtle bg-white/95 p-1.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85"
+      >
+        <div className="flex gap-1 overflow-x-auto scrollbar-none">
+          {SECTION_TABS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              onClick={() => scrollToSection(section.id)}
+              className={`shrink-0 rounded-xl px-3.5 py-2 text-xs font-bold transition-colors ${
+                activeSection === section.id
+                  ? 'bg-violet-600 text-white shadow-sm'
+                  : 'text-content-muted hover:bg-violet-50 hover:text-violet-700'
+              }`}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
-      <BookingActionCenter items={actionItems} onResolveAll={openManage} />
+      <section id="booking-progress" className="scroll-mt-32">
+        <BookingCommandProgress steps={progressSteps} />
+      </section>
+
+      <section id="booking-actions" className="scroll-mt-32">
+        <BookingActionCenter items={actionItems} onResolveAll={openManage} />
+      </section>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-4 sm:gap-5 items-start">
         <div className="space-y-4 sm:space-y-5 min-w-0">
-          <BookingDetailGrid
-            booking={booking}
-            onHotelVoucher={scrollToVouchers}
-            onCabManage={openManage}
-            onConfirmCab={confirmCab}
-            confirmingCab={confirmingCab}
-            onCallHotel={() => {
-              const phone = booking.hotels?.[0]?.phone || booking.hotels?.[0]?.vendorPhone;
-              if (phone) window.open(`tel:${phone}`, '_self');
-            }}
-          />
+          <section id="booking-details" className="scroll-mt-32 space-y-4 sm:space-y-5">
+            <BookingDetailGrid
+              booking={booking}
+              onHotelVoucher={scrollToVouchers}
+              onCabManage={openManage}
+              onConfirmCab={confirmCab}
+              confirmingCab={confirmingCab}
+              onCallHotel={() => {
+                const phone = booking.hotels?.[0]?.phone || booking.hotels?.[0]?.vendorPhone;
+                if (phone) window.open(`tel:${phone}`, '_self');
+              }}
+            />
 
-          <QuotationSyncBanner
-            meta={booking.quotationMeta || booking.quotationPreview?.meta}
-            autoSynced={booking.autoSyncedFromQuotation}
-            syncing={syncingQuote}
-            onSync={syncFromQuotation}
-          />
+            <QuotationSyncBanner
+              meta={booking.quotationMeta || booking.quotationPreview?.meta}
+              autoSynced={booking.autoSyncedFromQuotation}
+              syncing={syncingQuote}
+              onSync={syncFromQuotation}
+            />
+          </section>
 
-          <div ref={voucherRef} id="voucher-center">
+          <section id="voucher-center" className="scroll-mt-32">
             <VoucherCenter
               bookingId={id}
               booking={booking}
               execution={execution}
               onExecutionChange={setExecution}
             />
-          </div>
+          </section>
 
-          <BookingFeedsRow
-            timelineEvents={timelineEvents}
-            notes={booking.internalNotes || []}
-            onAddNote={openManage}
-          />
+          <section id="booking-activity" className="scroll-mt-32">
+            <BookingFeedsRow
+              timelineEvents={timelineEvents}
+              notes={booking.internalNotes || []}
+              onAddNote={openManage}
+            />
+          </section>
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-4">
-          <div id="booking-payments">
-            <BookingPaymentDonut
-              summary={paymentSummary}
-              onCollect={() => {
-                document.getElementById('booking-payments')?.scrollIntoView({ behavior: 'smooth' });
-                setAddPaymentOpen(true);
-              }}
-            />
-          </div>
+          <BookingPaymentDonut
+            summary={paymentSummary}
+            onCollect={() => {
+              scrollToSection('booking-payments');
+              setAddPaymentOpen(true);
+            }}
+          />
           <BookingDocumentCenter
             booking={booking}
             execution={execution}
@@ -367,17 +437,22 @@ export default function BookingDetailPage() {
         </aside>
       </div>
 
-      <BookingPaymentsPanel
-        bookingId={id}
-        variant="history"
-        paymentsData={paymentData}
-        onUpdated={(updated) => {
-          if (updated) setBooking((b) => ({ ...b, ...updated }));
-          refreshBookingData(true);
-        }}
-      />
+      <section id="booking-payments" className="scroll-mt-32">
+        <BookingPaymentsPanel
+          bookingId={id}
+          variant="history"
+          paymentsData={paymentData}
+          onUpdated={(updated) => {
+            if (updated) setBooking((b) => ({ ...b, ...updated }));
+            refreshBookingData(true);
+          }}
+        />
+      </section>
 
-      <div ref={manageRef} className="rounded-2xl border border-subtle bg-white shadow-sm overflow-hidden">
+      <section
+        id="booking-fulfillment"
+        className="scroll-mt-32 rounded-2xl border border-subtle bg-white shadow-sm overflow-hidden"
+      >
         <button
           type="button"
           onClick={() => setManageOpen((o) => !o)}
@@ -428,14 +503,14 @@ export default function BookingDetailPage() {
             />
           </div>
         )}
-      </div>
+      </section>
 
       <BookingCommandFooter
         onSave={openManage}
         onAssignVendor={openManage}
         onGenerateVoucher={scrollToVouchers}
         onCollectPayment={() => {
-          document.getElementById('booking-payments')?.scrollIntoView({ behavior: 'smooth' });
+          scrollToSection('booking-payments');
           setAddPaymentOpen(true);
         }}
         onDownloadPdf={generateItineraryPdf}
