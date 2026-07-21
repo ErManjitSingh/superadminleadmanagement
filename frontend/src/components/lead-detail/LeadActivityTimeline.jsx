@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { DETAIL_CARD } from './leadDetailUtils';
 import { downloadReceiptPdf, getLeadBooking } from '../../services/bookingPaymentsApi';
 import { toast } from '../../context/ToastContext';
+import API from '../../api/axios';
 
 function formatActivityDate(iso) {
   const d = new Date(iso);
@@ -39,6 +40,7 @@ export default function LeadActivityTimeline({
   const [receiptLoading, setReceiptLoading] = useState(null);
   const [bookingFallback, setBookingFallback] = useState(null);
   const [autoPrintQuote, setAutoPrintQuote] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(null);
   const pdfRef = useRef(null);
   const timelineRef = useRef(null);
   const sorted = useMemo(
@@ -126,6 +128,31 @@ export default function LeadActivityTimeline({
     }
   };
 
+  const openQuotation = async (item, quote, autoPrint = false) => {
+    const quotationId = item?.meta?.quotationId;
+    setQuoteLoading(item.id);
+    try {
+      let resolved = quote;
+      if (!resolved && quotationId) {
+        const { data } = await API.get(`/quotations/${quotationId}`, {
+          skipSuccessToast: true,
+          skipErrorToast: true,
+        });
+        resolved = data;
+      }
+      if (!resolved?._id) {
+        toast.error('Quotation PDF available nahi hai.');
+        return;
+      }
+      setAutoPrintQuote(autoPrint);
+      setPdfQuote(resolved);
+    } catch {
+      toast.error('Quotation PDF load nahi ho paya.');
+    } finally {
+      setQuoteLoading(null);
+    }
+  };
+
   return (
     <>
       <div
@@ -154,7 +181,7 @@ export default function LeadActivityTimeline({
                   const quote = item.type?.startsWith('quotation_')
                     ? findQuotationForActivity(item, quotations)
                     : null;
-                  const canOpenQuote = Boolean(quote?._id && (quote.pricing || quote.packageSnapshot));
+                  const canOpenQuote = Boolean(quote?._id || item.meta?.quotationId);
                   const showReceiptActions = canOpenReceipt(item);
 
                   return (
@@ -184,22 +211,21 @@ export default function LeadActivityTimeline({
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setAutoPrintQuote(false);
-                                    setPdfQuote(quote);
-                                  }}
+                                  disabled={quoteLoading === item.id}
+                                  onClick={() => openQuotation(item, quote, false)}
                                   className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
                                 >
-                                  <Eye className="w-3 h-3" /> View
+                                  {quoteLoading === item.id
+                                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                                    : <Eye className="w-3 h-3" />}
+                                  View
                                 </Button>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setAutoPrintQuote(true);
-                                    setPdfQuote(quote);
-                                  }}
+                                  disabled={quoteLoading === item.id}
+                                  onClick={() => openQuotation(item, quote, true)}
                                   className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
                                 >
                                   <Download className="w-3 h-3" /> PDF

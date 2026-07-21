@@ -83,9 +83,14 @@ function formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status, sent =
 export function findQuotationForActivity(item, quotations = []) {
   const id = item?.meta?.quotationId;
   const num = item?.meta?.quoteNumber;
-  return quotations.find(
+  const matched = quotations.find(
     (q) => (id && String(q._id) === String(id)) || (num && q.quoteNumber === num)
   );
+  if (matched) return matched;
+  if (!id && !num && item?.type === 'quotation_sent') {
+    return quotations.find((q) => q.sentAt || q.status === 'sent') || null;
+  }
+  return null;
 }
 
 /** Add price and download meta to quotation timeline rows from lead quotations. */
