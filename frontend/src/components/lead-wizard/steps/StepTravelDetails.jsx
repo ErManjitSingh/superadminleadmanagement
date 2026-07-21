@@ -132,24 +132,21 @@ export default function StepTravelDetails() {
         ].map(({ key, label, min }) => (
           <WizardField key={key} label={label} error={errors[key]?.message}>
             <WizardInput
-              {...register(key, {
-                valueAsNumber: true,
-                setValueAs: (v) => {
-                  if (v === '' || v == null) return key === 'adults' ? 1 : 0;
-                  const n = Number(v);
-                  if (Number.isNaN(n)) return key === 'adults' ? 1 : 0;
-                  if (key === 'adults') return Math.max(1, n);
-                  return Math.max(0, n);
-                },
-              })}
+              {...register(key)}
               type="number"
               min={min}
+              step={1}
+              inputMode="numeric"
+              placeholder="Enter count"
               className="text-center font-semibold metric-tabular"
               error={errors[key]}
             />
           </WizardField>
         ))}
       </div>
+      <p className="-mt-4 text-xs text-content-muted">
+        Enter the required traveler count manually. There is no maximum limit.
+      </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <WizardField label="Hotel Category">

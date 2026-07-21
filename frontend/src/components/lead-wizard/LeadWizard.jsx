@@ -40,12 +40,26 @@ export default function LeadWizard({ paths: pathsProp } = {}) {
   }, [id, isEdit, paths.getLead]);
 
   const wizard = useLeadWizard({ initialValues, draftKey, isEdit });
-  const { formApi, step, maxReachable, draftStatus, lastSaved, goNext, goBack, goToStep, clearDraft, setStep, getValues, reset } = wizard;
+  const { formApi, step, maxReachable, draftStatus, lastSaved, goNext, goBack, goToStep, clearDraft, setStep, getValues, reset, validateStep } = wizard;
 
   const saveLead = async (action = 'list') => {
     setSaving(true);
     setError('');
     const values = getValues();
+    const travelerCountsAreValid = [
+      [values.adults, 1],
+      [values.children, 0],
+      [values.infants, 0],
+    ].every(([value, minimum]) => Number.isInteger(Number(value)) && Number(value) >= minimum);
+
+    if (!travelerCountsAreValid) {
+      validateStep(2);
+      setStep(2);
+      setError('Enter a valid whole-number traveler count before creating lead');
+      setSaving(false);
+      return;
+    }
+
     const budgetValue = values.budgetRange === 'custom' ? Number(values.customBudget) : Number(values.budget);
     if (!(budgetValue > 0)) {
       setError('Budget is required before creating lead');

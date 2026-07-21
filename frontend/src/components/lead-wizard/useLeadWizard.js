@@ -8,7 +8,7 @@ function mergeValues(partial) {
 
 function readFieldValue(values, name) {
   const v = values[name];
-  if (v !== undefined && v !== null && v !== '') return v;
+  if (v !== undefined && v !== null) return v;
   const fallback = defaultWizardValues[name];
   return fallback !== undefined ? fallback : '';
 }
@@ -99,6 +99,19 @@ export function useLeadWizard({ initialValues, draftKey = DRAFT_STORAGE_KEY, isE
       if (!values.phone?.trim()) nextErrors.phone = { message: 'Phone is required' };
     }
     if (currentStep === 2) {
+      const travelerFields = [
+        ['adults', 1, 'Enter at least 1 adult'],
+        ['children', 0, 'Children must be 0 or more'],
+        ['infants', 0, 'Infants must be 0 or more'],
+      ];
+
+      travelerFields.forEach(([field, minimum, message]) => {
+        const count = Number(values[field]);
+        if (!Number.isInteger(count) || count < minimum) {
+          nextErrors[field] = { message };
+        }
+      });
+
       const budgetValue = values.budgetRange === 'custom' ? Number(values.customBudget) : Number(values.budget);
       if (!(budgetValue > 0)) nextErrors.budget = { message: 'Budget is required' };
     }
