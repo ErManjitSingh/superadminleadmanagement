@@ -25,8 +25,21 @@ import MergeLeadModal from '../components/leads/MergeLeadModal';
 import { checkLeadDuplicate } from '../services/leadEnterpriseApi';
 import LeadEmailHistory from '../components/email/LeadEmailHistory';
 import AddFollowUpModal from '../components/followups/AddFollowUpModal';
-import { canConvertLead } from '../utils/leadUtils';
+import { createExecutiveFollowUp, buildFollowUpPayload } from '../components/followups/followupApi';
+import { ActionModal } from '../components/sales-executive/LeadActionsMenu';
+import { canConvertLead, isLeadStatusLocked } from '../utils/leadUtils';
 import ConvertLeadModal from '../components/payments/ConvertLeadModal';
+
+const STATUSES = [
+  'new',
+  'contacted',
+  'working_progress',
+  'follow_up',
+  'quotation_sent',
+  'negotiation',
+  'lost',
+  'booked_from_another_company',
+];
 
 export default function LeadDetail() {
   const { id } = useParams();
@@ -43,6 +56,9 @@ export default function LeadDetail() {
   const [reactivationMode, setReactivationMode] = useState('');
   const [reactivationExecs, setReactivationExecs] = useState([]);
   const [callNoteOpen, setCallNoteOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState('contacted');
+  const [modalStatusReason, setModalStatusReason] = useState('');
   const [mergeOpen, setMergeOpen] = useState(false);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
   const [hasDuplicates, setHasDuplicates] = useState(false);
@@ -121,6 +137,19 @@ export default function LeadDetail() {
     await refreshLead();
   };
 
+  const handleChangeStatus = async () => {
+    await API.put(`/leads/${id}`, {
+      status: modalStatus,
+      statusReason: modalStatusReason,
+    });
+    setStatusModalOpen(false);
+    setModalStatusReason('');
+    await refreshLead();
+  };
+
+  const canChangeStatus = canEditLead && !isLeadStatusLocked(lead.status);
+  const reasonRequired = ['lost', 'booked_from_another_company'].includes(modalStatus);
+
   const reactivationBlock = ['admin', 'sales_manager', 'team_leader'].includes(user?.role) ? (
     <div className="mb-4 space-y-2">
       {['lost', 'booked_from_another_company'].includes(lead.status) && (
@@ -165,11 +194,17 @@ export default function LeadDetail() {
         onContactLogged={refreshLead}
         onEmailSent={refreshLead}
         onLogCallNote={() => setCallNoteOpen(true)}
+        onChangeStatus={canChangeStatus ? () => {
+          setModalStatus(lead.status || 'new');
+          setModalStatusReason(lead.statusReason || '');
+          setStatusModalOpen(true);
+        } : undefined}
         onAssign={userCanAssignLeads ? () => openAssign(lead) : undefined}
         onConvertLead={canEditLead && canConvertLead(lead.status) ? () => setConvertModalOpen(true) : undefined}
         canConvertLead={canEditLead && canConvertLead(lead.status)}
         canCreateFollowUp={canCreateFollowUp}
         canEditLead={canEditLead}
+        canChangeStatus={canChangeStatus}
         editHref={canEditLead ? `/leads/${id}/edit` : undefined}
         sidebarExtra={reactivationBlock}
         bottomExtra={(
@@ -200,7 +235,10 @@ export default function LeadDetail() {
           fixedLeadId={lead._id}
           fixedLeadName={lead.name}
           onSubmit={async (data) => {
-            await createExecutiveFollowUp(buildFollowUpPayload({ ...data, lead: lead._id }));
+            await createExecutiveFollowUp(
+              buildFollowUpPayload({ ...data, lead: lead._id }),
+              '/followups',
+            );
             setFollowUpModalOpen(false);
             refreshLead();
           }}
@@ -241,6 +279,39 @@ export default function LeadDetail() {
           }
         }}
       />
+
+      <ActionModal open={statusModalOpen} title="Change Status" onClose={() => setStatusModalOpen(false)}>
+        <select
+          value={modalStatus}
+          onChange={(e) => setModalStatus(e.target.value)}
+          className="w-full rounded-xl border border-subtle bg-white p-3 text-sm mb-4"
+        >
+          {STATUSES.map((status) => (
+            <option key={status} value={status}>{status.replace(/_/g, ' ')}</option>
+          ))}
+        </select>
+        <textarea
+          value={modalStatusReason}
+          onChange={(e) => setModalStatusReason(e.target.value)}
+          rows={3}
+          placeholder="Reason for status change"
+          className="w-full rounded-xl border border-subtle bg-white p-3 text-sm mb-4"
+        />
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setStatusModalOpen(false);
+              setModalStatusReason('');
+            }}
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleChangeStatus} disabled={reasonRequired && !modalStatusReason.trim()}>
+            Update
+          </Button>
+        </div>
+      </ActionModal>
     </motion.div>
   );
 }

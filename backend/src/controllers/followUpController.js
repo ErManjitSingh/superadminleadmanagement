@@ -14,25 +14,29 @@ const {
   getTeamFollowUpReport,
 } = require('../services/followUpSummaryService');
 
-async function syncMissedFollowUps() {
+async function syncMissedFollowUps(req) {
   const todayStart = startOfDay();
   await FollowUp.updateMany(
-    { status: 'pending', scheduledAt: { $lt: todayStart } },
+    {
+      status: 'pending',
+      scheduledAt: { $lt: todayStart },
+      ...(req?.companyId ? { companyId: req.companyId } : {}),
+    },
     { status: 'missed' }
   );
 }
 
 const listFollowUps = asyncHandler(async (req, res) => {
-  await syncMissedFollowUps();
-  const result = await findFollowUpsPaginated(req.query);
+  await syncMissedFollowUps(req);
+  const result = await findFollowUpsPaginated(req.query, { companyId: req.companyId });
   res.json(result);
 });
 
 const getFollowUpSummary = asyncHandler(async (req, res) => {
-  await syncMissedFollowUps();
+  await syncMissedFollowUps(req);
   const [summary, missedPreview, teamReport] = await Promise.all([
-    getAdminFollowUpSummary(),
-    getMissedFollowUpsPreview({}, 8),
+    getAdminFollowUpSummary(req.companyId),
+    getMissedFollowUpsPreview({}, 8, req.companyId),
     getTeamFollowUpReport(req.branchId),
   ]);
   res.json({ ...summary, missedPreview, teamReport });
@@ -45,7 +49,11 @@ const getFollowUp = asyncHandler(async (req, res) => {
 });
 
 const createFollowUp = asyncHandler(async (req, res) => {
-  const populated = await createFollowUpForLead({ body: req.body, user: req.user });
+  const populated = await createFollowUpForLead({
+    body: req.body,
+    user: req.user,
+    leadFilter: req.companyId ? { companyId: req.companyId } : null,
+  });
   res.status(201).json(populated);
 });
 
@@ -68,7 +76,7 @@ const deleteFollowUp = asyncHandler(async (req, res) => {
 });
 
 const markMissedFollowUps = asyncHandler(async (req, res) => {
-  await syncMissedFollowUps();
+  await syncMissedFollowUps(req);
   res.json({ message: 'Missed follow-ups updated' });
 });
 

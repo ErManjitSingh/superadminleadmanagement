@@ -37,8 +37,9 @@ export default function FollowUpPage() {
   const { user } = useAuth();
   const canCreate = canManageFollowUps(user);
   const isAdminView = user?.role === 'admin';
-  const followEndpoint = canCreate ? '/sales-executive/followups' : '/followups';
-  const leadsEndpoint = canCreate ? '/sales-executive/leads' : '/leads';
+  const isExecutiveView = user?.role === 'sales_executive';
+  const followEndpoint = isExecutiveView ? '/sales-executive/followups' : '/followups';
+  const leadsEndpoint = isExecutiveView ? '/sales-executive/leads' : '/leads';
 
   const [view, setView] = useState('list');
   const [filters, setFilters] = useState(emptyFilters);
@@ -67,7 +68,7 @@ export default function FollowUpPage() {
   });
 
   const summaryQuery = useFollowUpSummaryQuery(
-    canCreate ? '/sales-executive/followups/summary' : '/followups/summary',
+    `${followEndpoint}/summary`,
     true
   );
 
@@ -138,9 +139,9 @@ export default function FollowUpPage() {
         remarks: data.notes,
         category: data.category,
         priority: data.priority,
-      });
+      }, followEndpoint);
     } else {
-      await createExecutiveFollowUp(buildFollowUpPayload(data));
+      await createExecutiveFollowUp(buildFollowUpPayload(data), followEndpoint);
     }
     setEditFollowup(null);
     invalidate();
@@ -149,7 +150,11 @@ export default function FollowUpPage() {
   const handleComplete = async (id) => {
     if (!canCreate) return;
     try {
-      await updateExecutiveFollowUp(id, { action: 'complete', remarks: 'Follow-up completed successfully' });
+      await updateExecutiveFollowUp(
+        id,
+        { action: 'complete', remarks: 'Follow-up completed successfully' },
+        followEndpoint,
+      );
       setSelected(null);
       invalidate();
     } catch {

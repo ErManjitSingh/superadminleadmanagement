@@ -2,10 +2,10 @@ const FollowUp = require('../models/FollowUp');
 const User = require('../models/User');
 const { getFollowUpSummary } = require('../repositories/roleScopedRepository');
 const { buildFollowUpTabFilter, startOfDay } = require('../utils/queryHelpers');
-const { withBranch } = require('../utils/branchScope');
+const { withBranch, withCompany } = require('../utils/branchScope');
 
-async function getAdminFollowUpSummary() {
-  return getFollowUpSummary({});
+async function getAdminFollowUpSummary(companyId = null) {
+  return getFollowUpSummary(withCompany({}, companyId));
 }
 
 async function getExecutiveFollowUpSummary(userId, leadIds) {
@@ -14,14 +14,14 @@ async function getExecutiveFollowUpSummary(userId, leadIds) {
   });
 }
 
-async function getMissedFollowUpsPreview(baseFilter, limit = 8) {
+async function getMissedFollowUpsPreview(baseFilter, limit = 8, companyId = null) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  return FollowUp.find({
+  return FollowUp.find(withCompany({
     ...baseFilter,
     ...buildFollowUpTabFilter('missed'),
-  })
+  }, companyId))
     .populate('lead', 'name phone destination')
     .populate('assignedTo', 'name')
     .sort({ scheduledAt: 1 })

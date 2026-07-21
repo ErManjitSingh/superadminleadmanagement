@@ -10,26 +10,27 @@ const {
 } = require('../utils/leadQueryFields');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
 const { DETAIL_RELATED_LIMIT } = require('../constants/detailLimits');
+const { withCompany } = require('../utils/branchScope');
 
-async function loadLeadCore(leadId, { branchId, extraFilter = {} } = {}) {
-  return Lead.findOne({
+async function loadLeadCore(leadId, { branchId, companyId, extraFilter = {} } = {}) {
+  return Lead.findOne(withCompany({
     _id: leadId,
     isDeleted: { $ne: true },
     ...(branchId ? { branchId } : {}),
     ...extraFilter,
-  })
+  }, companyId))
     .select(LEAD_DETAIL_SELECT)
     .populate(LEAD_DETAIL_POPULATE)
     .lean();
 }
 
-async function loadLeadFollowups(leadId, { branchId, extraFilter = {}, query = {} } = {}) {
+async function loadLeadFollowups(leadId, { branchId, companyId, extraFilter = {}, query = {} } = {}) {
   const { page, limit, skip } = parsePagination(query, { defaultLimit: 20, maxLimit: 50 });
-  const filter = {
+  const filter = withCompany({
     lead: leadId,
     ...(branchId ? { branchId } : {}),
     ...extraFilter,
-  };
+  }, companyId);
 
   const [rows, total] = await Promise.all([
     FollowUp.find(filter)
@@ -48,13 +49,13 @@ async function loadLeadFollowups(leadId, { branchId, extraFilter = {}, query = {
   };
 }
 
-async function loadLeadQuotations(leadId, { branchId, extraFilter = {}, query = {} } = {}) {
+async function loadLeadQuotations(leadId, { branchId, companyId, extraFilter = {}, query = {} } = {}) {
   const { page, limit, skip } = parsePagination(query, { defaultLimit: 20, maxLimit: 50 });
-  const filter = {
+  const filter = withCompany({
     lead: leadId,
     ...(branchId ? { branchId } : {}),
     ...extraFilter,
-  };
+  }, companyId);
 
   const [rows, total] = await Promise.all([
     Quotation.find(filter)
@@ -73,9 +74,9 @@ async function loadLeadQuotations(leadId, { branchId, extraFilter = {}, query = 
   };
 }
 
-async function loadLeadNotes(leadId, { query = {} } = {}) {
+async function loadLeadNotes(leadId, { companyId, query = {} } = {}) {
   const { page, limit, skip } = parsePagination(query, { defaultLimit: 20, maxLimit: 50 });
-  const filter = { lead: leadId };
+  const filter = withCompany({ lead: leadId }, companyId);
 
   const [rows, total] = await Promise.all([
     LeadNote.find(filter)

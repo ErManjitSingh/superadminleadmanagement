@@ -198,6 +198,13 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const handleFinish = async (saveAs) => {
     const data = await b.handleSubmit(saveAs);
     if (!data) return;
+    const leadId = b.state.leadId || b.selectedLead?._id;
+    if (data.status === 'sent' && leadId) {
+      navigate(`${b.config.leadDetailPath(leadId)}#activity-timeline`, {
+        state: { message: 'Quotation sent successfully.' },
+      });
+      return;
+    }
     navigate(b.config.successPath, {
       state: {
         message:

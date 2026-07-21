@@ -44,6 +44,7 @@ async function createFollowUpForLead({ body, user, leadFilter = null }) {
   try {
     payload = normalizeFollowUpPayload(body, user, lead);
     payload.branchId = lead.branchId || user.branchId || null;
+    payload.companyId = lead.companyId || user.companyId || null;
   } catch (e) {
     throw new ApiError(e.statusCode || 400, e.message);
   }

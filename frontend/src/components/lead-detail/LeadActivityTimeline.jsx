@@ -39,10 +39,19 @@ export default function LeadActivityTimeline({
   const [receiptLoading, setReceiptLoading] = useState(null);
   const [bookingFallback, setBookingFallback] = useState(null);
   const pdfRef = useRef(null);
+  const timelineRef = useRef(null);
   const sorted = useMemo(
     () => [...activities].sort((a, b) => new Date(b.date) - new Date(a.date)),
     [activities],
   );
+
+  useEffect(() => {
+    if (!leadId || window.location.hash !== '#activity-timeline') return undefined;
+    const timer = window.setTimeout(() => {
+      timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [leadId, loading]);
 
   useEffect(() => {
     if (!leadId) {
@@ -118,7 +127,11 @@ export default function LeadActivityTimeline({
 
   return (
     <>
-      <div className={`${DETAIL_CARD} overflow-hidden`}>
+      <div
+        ref={timelineRef}
+        id="activity-timeline"
+        className={`${DETAIL_CARD} scroll-mt-24 overflow-hidden`}
+      >
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">Activity Timeline</h3>
         </div>

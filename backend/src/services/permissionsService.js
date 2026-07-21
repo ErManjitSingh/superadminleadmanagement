@@ -20,6 +20,14 @@ async function resolveUserPermissions(user) {
     if (role?.permissions) perms = mergePermissions(role.permissions, defaults);
   }
   if (user.role === 'admin') {
+    perms.leads = {
+      ...perms.leads,
+      view: true,
+      create: true,
+      edit: true,
+      delete: true,
+      assign: true,
+    };
     perms.quotations = {
       ...perms.quotations,
       view: true,

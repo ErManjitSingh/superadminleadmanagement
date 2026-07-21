@@ -1,13 +1,13 @@
 import API from '../../api/axios';
 
-/** Create follow-up (sales executive only). */
-export async function createExecutiveFollowUp(payload) {
-  const res = await API.post('/sales-executive/followups', payload, { skipErrorToast: true });
+/** Create a follow-up through the caller's role-appropriate endpoint. */
+export async function createExecutiveFollowUp(payload, endpoint = '/sales-executive/followups') {
+  const res = await API.post(endpoint, payload, { skipErrorToast: true });
   return res.data;
 }
 
-export async function updateExecutiveFollowUp(id, payload) {
-  const res = await API.put(`/sales-executive/followups/${id}`, payload, { skipErrorToast: true });
+export async function updateExecutiveFollowUp(id, payload, endpoint = '/sales-executive/followups') {
+  const res = await API.put(`${endpoint}/${id}`, payload, { skipErrorToast: true });
   return res.data;
 }
 

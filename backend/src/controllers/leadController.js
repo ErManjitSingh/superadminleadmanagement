@@ -43,6 +43,7 @@ const { logLeadActivity } = require('../services/leadActivityService');
 const { logLeadTransfer } = require('../services/leadTransferService');
 const { logAudit, diffLeadChanges } = require('../services/leadAuditService');
 const { applyLeadMetrics } = require('../services/leadScoringService');
+const { companyScopedIdFilter } = require('../utils/tenantDocument');
 const {
   getLeaderLeadScopeFilter,
   getExecutiveIdsForLeader,
@@ -137,7 +138,7 @@ const listLeads = asyncHandler(async (req, res) => {
 });
 
 const getLead = asyncHandler(async (req, res) => {
-  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId, companyId: req.companyId });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   const includeRelated = req.query.includeRelated === '1' || req.query.includeRelated === 'true';
@@ -148,29 +149,38 @@ const getLead = asyncHandler(async (req, res) => {
 
   const related = await loadLeadRelated(lead._id, {
     branchId: req.branchId,
+    companyId: req.companyId,
     followupsLimit: req.query.followupsLimit,
   });
   res.json({ ...enrichLead(lead), ...related });
 });
 
 const getLeadFollowups = asyncHandler(async (req, res) => {
-  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId, companyId: req.companyId });
   if (!lead) throw new ApiError(404, 'Lead not found');
-  const result = await loadLeadFollowups(lead._id, { branchId: req.branchId, query: req.query });
+  const result = await loadLeadFollowups(lead._id, {
+    branchId: req.branchId,
+    companyId: req.companyId,
+    query: req.query,
+  });
   res.json(result);
 });
 
 const getLeadQuotations = asyncHandler(async (req, res) => {
-  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId, companyId: req.companyId });
   if (!lead) throw new ApiError(404, 'Lead not found');
-  const result = await loadLeadQuotations(lead._id, { branchId: req.branchId, query: req.query });
+  const result = await loadLeadQuotations(lead._id, {
+    branchId: req.branchId,
+    companyId: req.companyId,
+    query: req.query,
+  });
   res.json(result);
 });
 
 const getLeadNotesList = asyncHandler(async (req, res) => {
-  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId });
+  const lead = await loadLeadCore(req.params.id, { branchId: req.branchId, companyId: req.companyId });
   if (!lead) throw new ApiError(404, 'Lead not found');
-  const result = await loadLeadNotes(lead._id, { query: req.query });
+  const result = await loadLeadNotes(lead._id, { companyId: req.companyId, query: req.query });
   res.json(result);
 });
 
@@ -380,7 +390,10 @@ const clearAllLeads = asyncHandler(async (req, res) => {
 });
 
 const updateLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne({
+    ...companyScopedIdFilter(req.params.id, req),
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   if (req.body.status && !LEAD_STATUSES.includes(req.body.status)) {
@@ -523,7 +536,10 @@ const deleteLead = asyncHandler(async (req, res) => {
 });
 
 const reactivateLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne({
+    ...companyScopedIdFilter(req.params.id, req),
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
   if (!lead) throw new ApiError(404, 'Lead not found');
   await assertLeadReactivationAccess(req, lead);
   if (!LOST_LEAD_STATUSES.includes(lead.status)) {
@@ -742,7 +758,10 @@ const addLeadNote = asyncHandler(async (req, res) => {
   const { text } = req.body;
   if (!text?.trim()) throw new ApiError(400, 'Note text is required');
 
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne({
+    ...companyScopedIdFilter(req.params.id, req),
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   const note = await LeadNote.create({

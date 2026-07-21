@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Send, FileText, CheckCircle2 } from 'lucide-react';
 import API from '../../api/axios';
@@ -42,6 +42,7 @@ const STATUS_LABELS = {
 
 export default function ExecutiveQuotationsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [quotes, setQuotes] = useState([]);
   const [statusTab, setStatusTab] = useState('all');
@@ -87,29 +88,35 @@ export default function ExecutiveQuotationsPage() {
   const handleSend = async (quote) => {
     const id = quote?._id || quote;
     const row = typeof quote === 'object' ? quote : quotes.find((q) => q._id === id);
+    const leadId = row?.lead?._id || row?.lead;
+    let markedSent = false;
     try {
       await API.put(`/sales-executive/quotations/${id}`, { action: 'send' });
+      markedSent = true;
       fetchQuotes();
 
       const lead = row?.lead || {};
       const phone = lead.whatsapp || lead.phone;
       if (!phone) {
         toast.info('Marked as sent. Add customer phone to send via WhatsApp.');
-        return;
+      } else {
+        setSendTarget(row);
+        await new Promise((r) => setTimeout(r, 400));
+        await shareQuoteObjectOnWhatsApp({
+          quote: row,
+          pdfRef: sendPdfRef,
+          phone,
+          executiveName: user?.name,
+          savePath: '/sales-executive/quotations',
+        });
       }
-
-      setSendTarget(row);
-      await new Promise((r) => setTimeout(r, 400));
-      await shareQuoteObjectOnWhatsApp({
-        quote: row,
-        pdfRef: sendPdfRef,
-        phone,
-        executiveName: user?.name,
-        savePath: '/sales-executive/quotations',
-      });
+    } catch {
+      // API/share errors are surfaced by their existing handlers.
+    } finally {
       setSendTarget(null);
-    } catch (err) {
-      setSendTarget(null);
+      if (markedSent && leadId) {
+        navigate(`/sales-executive/leads/${leadId}/view#activity-timeline`);
+      }
     }
   };
 

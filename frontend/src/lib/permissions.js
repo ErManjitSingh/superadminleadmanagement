@@ -9,6 +9,14 @@ function resolvePermissions(user) {
   if (user?.role === 'admin') {
     perms = {
       ...perms,
+      leads: {
+        ...perms.leads,
+        view: true,
+        create: true,
+        edit: true,
+        delete: true,
+        assign: true,
+      },
       quotations: {
         ...perms.quotations,
         view: true,

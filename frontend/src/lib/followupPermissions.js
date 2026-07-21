@@ -1,4 +1,4 @@
-/** Only sales executives may create or edit follow-ups. All other roles are read-only. */
+/** Executives manage assigned work; admins may manage any lead in their company. */
 export function canManageFollowUps(user) {
-  return user?.role === 'sales_executive';
+  return ['sales_executive', 'admin'].includes(user?.role);
 }

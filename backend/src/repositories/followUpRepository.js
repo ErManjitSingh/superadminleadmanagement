@@ -7,6 +7,7 @@ const {
   buildLeadSearchFilter,
 } = require('../utils/queryHelpers');
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
+const { withCompany } = require('../utils/branchScope');
 
 function buildFollowUpListFilter(query = {}) {
   const { status, tab, kpiTab, leadId, category, search, priority } = query;
@@ -27,15 +28,15 @@ function buildFollowUpListFilter(query = {}) {
   return filter;
 }
 
-async function findFollowUpsPaginated(query = {}) {
+async function findFollowUpsPaginated(query = {}, { companyId } = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { scheduledAt: 1 });
-  const filter = buildFollowUpListFilter(query);
+  const filter = withCompany(buildFollowUpListFilter(query), companyId);
 
   if (filter._leadSearch) {
     const q = filter._leadSearch;
     delete filter._leadSearch;
-    const leads = await Lead.find(buildLeadSearchFilter(q)).select('_id').limit(200).lean();
+    const leads = await Lead.find(withCompany(buildLeadSearchFilter(q), companyId)).select('_id').limit(200).lean();
     filter.lead = { $in: leads.map((l) => l._id) };
   }
 

@@ -20,6 +20,7 @@ const {
 } = require('../services/leadAnalyticsService');
 const { getSlaDashboard } = require('../services/slaService');
 const { listBranchAuditLogs } = require('../services/leadAuditService');
+const { companyScopedIdFilter } = require('../utils/tenantDocument');
 const checkDuplicate = asyncHandler(async (req, res) => {
   const { phone, alternatePhone, excludeId } = req.query;
   const duplicates = await findDuplicateLeads({
@@ -55,7 +56,7 @@ const checkDuplicate = asyncHandler(async (req, res) => {
 
 const getTimeline = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({
-    _id: req.params.id,
+    ...companyScopedIdFilter(req.params.id, req),
     ...(req.branchId ? { branchId: req.branchId } : {}),
     isDeleted: { $ne: true },
   }).select('_id');
@@ -73,7 +74,7 @@ const getAudit = asyncHandler(async (req, res) => {
     throw new ApiError(403, 'Audit log access restricted');
   }
   const lead = await Lead.findOne({
-    _id: req.params.id,
+    ...companyScopedIdFilter(req.params.id, req),
     ...(req.branchId ? { branchId: req.branchId } : {}),
   }).select('_id');
   if (!lead) throw new ApiError(404, 'Lead not found');
@@ -160,7 +161,7 @@ const getAgingAnalytics = asyncHandler(async (req, res) => {
 
 const listCallNotes = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({
-    _id: req.params.id,
+    ...companyScopedIdFilter(req.params.id, req),
     ...(req.branchId ? { branchId: req.branchId } : {}),
     isDeleted: { $ne: true },
   }).select('_id');
@@ -185,7 +186,7 @@ const addCallNote = asyncHandler(async (req, res) => {
   if (!outcome || !notes?.trim()) throw new ApiError(400, 'Outcome and notes are required');
 
   const lead = await Lead.findOne({
-    _id: req.params.id,
+    ...companyScopedIdFilter(req.params.id, req),
     ...(req.branchId ? { branchId: req.branchId } : {}),
     isDeleted: { $ne: true },
   });
