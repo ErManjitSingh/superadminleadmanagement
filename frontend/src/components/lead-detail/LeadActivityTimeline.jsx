@@ -38,6 +38,7 @@ export default function LeadActivityTimeline({
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(null);
   const [bookingFallback, setBookingFallback] = useState(null);
+  const [autoPrintQuote, setAutoPrintQuote] = useState(false);
   const pdfRef = useRef(null);
   const timelineRef = useRef(null);
   const sorted = useMemo(
@@ -153,7 +154,7 @@ export default function LeadActivityTimeline({
                   const quote = item.type?.startsWith('quotation_')
                     ? findQuotationForActivity(item, quotations)
                     : null;
-                  const canDownloadQuote = Boolean(quote?._id && (quote.pricing || quote.packageSnapshot));
+                  const canOpenQuote = Boolean(quote?._id && (quote.pricing || quote.packageSnapshot));
                   const showReceiptActions = canOpenReceipt(item);
 
                   return (
@@ -177,16 +178,33 @@ export default function LeadActivityTimeline({
                             </p>
                           </div>
                           <div className="flex flex-wrap gap-1.5">
-                            {canDownloadQuote && (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setPdfQuote(quote)}
-                                className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
-                              >
-                                <Download className="w-3 h-3" /> PDF
-                              </Button>
+                            {canOpenQuote && (
+                              <>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setAutoPrintQuote(false);
+                                    setPdfQuote(quote);
+                                  }}
+                                  className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
+                                >
+                                  <Eye className="w-3 h-3" /> View
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setAutoPrintQuote(true);
+                                    setPdfQuote(quote);
+                                  }}
+                                  className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
+                                >
+                                  <Download className="w-3 h-3" /> PDF
+                                </Button>
+                              </>
                             )}
                             {showReceiptActions && (
                               <>
@@ -237,8 +255,13 @@ export default function LeadActivityTimeline({
       <QuotationPdfOverlay
         quote={pdfQuote}
         open={!!pdfQuote}
-        onClose={() => setPdfQuote(null)}
+        onClose={() => {
+          setPdfQuote(null);
+          setAutoPrintQuote(false);
+        }}
         pdfRef={pdfRef}
+        autoPrint={autoPrintQuote}
+        onAutoPrintDone={() => setAutoPrintQuote(false)}
       />
 
       <ReceiptPdfPreviewModal

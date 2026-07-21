@@ -497,7 +497,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
     const payload = buildSavePayload('draft');
     const url = draftId ? `${config.savePath}/${draftId}/autosave` : `${config.savePath}/autosave`;
 
-    API.post(url, payload, { skipErrorToast: true })
+    API.post(url, payload, { skipSuccessToast: true, skipErrorToast: true })
       .then((res) => {
         if (cancelled) return;
         setDraftId(res.data._id);
@@ -780,7 +780,10 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       throw new Error('Pehle lead aur package/template select karein, phir share karein.');
     }
     const payload = buildSavePayload('draft');
-    const { data } = await API.post(`${config.savePath}/autosave`, payload, { skipErrorToast: true });
+    const { data } = await API.post(`${config.savePath}/autosave`, payload, {
+      skipSuccessToast: true,
+      skipErrorToast: true,
+    });
     setDraftId(data._id);
     if (data.quoteNumber) setSavedQuoteNumber(data.quoteNumber);
     setShareToken(data.shareToken || '');

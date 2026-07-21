@@ -80,6 +80,7 @@ async function persistQuotation({
       ...(resolvedTotal > 0 ? { totalCost: resolvedTotal } : {}),
     },
     status,
+    sentAt: status === 'sent' ? new Date() : undefined,
     pricing,
     costing: {
       ...(sanitized.costing || body.costing || {}),
@@ -101,7 +102,7 @@ async function persistQuotation({
     createdBy: req.user._id,
   });
 
-  if (status === 'pending_approval' && lead.status === 'new') {
+  if (['pending_approval', 'sent'].includes(status) && lead.status === 'new') {
     lead.status = 'quotation_sent';
     await lead.save();
   }
@@ -138,7 +139,7 @@ async function persistQuotation({
     },
   });
 
-  if (status === 'pending_approval' && lead.status === 'quotation_sent') {
+  if (status === 'sent') {
     await logLeadActivity({
       leadId: lead._id,
       branchId,

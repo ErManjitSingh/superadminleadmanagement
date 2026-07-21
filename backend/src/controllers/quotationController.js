@@ -12,6 +12,7 @@ const { findQuotationsPaginated } = require('../repositories/quotationRepository
 const { getQuotationStats } = require('../repositories/roleScopedRepository');
 const { calculateQuotationPricing } = require('../services/quotationCostingService');
 const { markOnboardingStep } = require('../services/onboardingService');
+const { logLeadActivity } = require('../services/leadActivityService');
 const { saveQuotationPdfBuffer, buildPublicPdfUrl } = require('../services/quotationPdfService');
 const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 const { assertStorageAvailable, recordStorageUsage } = require('../services/subscriptionLimitsService');
@@ -299,8 +300,10 @@ const autosaveQuotation = asyncHandler(async (req, res) => {
     computedPayload
   );
 
+  const becameSent = req.body.status === 'sent' && quotation.status !== 'sent';
   if (req.body.status && req.body.status !== quotation.status) {
     quotation.status = req.body.status;
+    if (req.body.status === 'sent') quotation.sentAt = new Date();
     quotation.timeline = [
       ...(quotation.timeline || []),
       { type: req.body.status, date: new Date(), user: req.user.name, notes: 'Status updated via builder' },
@@ -312,6 +315,30 @@ const autosaveQuotation = asyncHandler(async (req, res) => {
   }
 
   await quotation.save();
+  if (becameSent) {
+    const lead = await loadLead(req, quotation.lead);
+    if (lead.status === 'new') {
+      lead.status = 'quotation_sent';
+      await lead.save();
+    }
+    const quoteTotal =
+      Number(quotation.pricing?.total) ||
+      Number(quotation.costing?.grandTotal) ||
+      0;
+    const packageName = quotation.packageSnapshot?.name || lead.destination || 'Package';
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: quotation.branchId || lead.branchId,
+      type: 'quotation_sent',
+      description: `${quotation.quoteNumber} sent to customer · ${packageName} · ₹${quoteTotal.toLocaleString('en-IN')}`,
+      actor: req.user,
+      meta: {
+        quotationId: quotation._id,
+        quoteNumber: quotation.quoteNumber,
+        amount: quoteTotal,
+      },
+    });
+  }
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
 });

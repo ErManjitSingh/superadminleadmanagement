@@ -493,7 +493,7 @@ const createQuotation = asyncHandler(async (req, res) => {
     },
   });
 
-  if (lead.status === 'quotation_sent') {
+  if (status === 'sent') {
     await logLeadActivity({
       leadId: lead._id,
       branchId: lead.branchId,
@@ -571,6 +571,26 @@ const updateQuotation = asyncHandler(async (req, res) => {
   }
 
   await quotation.save();
+  if (action === 'send') {
+    const lead = await Lead.findById(quotation.lead).select('destination branchId').lean();
+    const quoteTotal =
+      Number(quotation.pricing?.total) ||
+      Number(quotation.costing?.grandTotal) ||
+      0;
+    const packageName = quotation.packageSnapshot?.name || lead?.destination || 'Package';
+    await logLeadActivity({
+      leadId: quotation.lead,
+      branchId: quotation.branchId || lead?.branchId,
+      type: 'quotation_sent',
+      description: `${quotation.quoteNumber} sent to customer · ${packageName} · ₹${quoteTotal.toLocaleString('en-IN')}`,
+      actor: req.user,
+      meta: {
+        quotationId: quotation._id,
+        quoteNumber: quotation.quoteNumber,
+        amount: quoteTotal,
+      },
+    });
+  }
   const populated = await Quotation.findById(quotation._id).populate(QUOTATION_POPULATE).lean();
   res.json(populated);
 });
