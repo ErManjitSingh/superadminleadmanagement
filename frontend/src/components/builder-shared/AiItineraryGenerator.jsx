@@ -19,6 +19,20 @@ function inputCls(extra = '') {
   return cn('input-premium w-full rounded-xl text-sm', extra);
 }
 
+function applyFixedBoundaryMeals(days = []) {
+  const lastIndex = days.length - 1;
+  return days.map((day, index) => ({
+    ...day,
+    meals: days.length === 1
+      ? 'Breakfast & Dinner'
+      : index === 0
+        ? 'Dinner'
+        : index === lastIndex
+          ? 'Breakfast'
+          : day.meals,
+  }));
+}
+
 export default function AiItineraryGenerator({
   prompt,
   onPromptChange,
@@ -63,7 +77,7 @@ export default function AiItineraryGenerator({
         nights,
         variationSeed: nextSeed,
       });
-      onItineraryChange(result.days);
+      onItineraryChange(applyFixedBoundaryMeals(result.days));
       if (result.logistics) setLastLogistics(result.logistics);
       if (onDurationChange) {
         onDurationChange({ days: result.totalDays, nights: result.totalNights });

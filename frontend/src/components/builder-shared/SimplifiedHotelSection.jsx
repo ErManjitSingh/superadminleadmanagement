@@ -349,7 +349,7 @@ export default function SimplifiedHotelSection({
 }) {
   const update = (patch) => onChange({ ...builderUi, ...patch });
   const hotelMode = builderUi.hotelMode || 'same';
-  const defaultNights = Math.max(0, Number(durationDays) > 0 ? Number(durationDays) - 1 : 0);
+  const defaultNights = Math.max(0, Number(durationDays) || 0);
 
   const handleCatalogSaved = (hotel) => {
     if (!hotel?._id) return;
