@@ -11,12 +11,20 @@ const asyncHandler = require('../utils/asyncHandler');
 const { companyScopedIdFilter, assertTenantDocument, tenantFilter } = require('../utils/tenantDocument');
 const ops = require('../services/operationsService');
 const cacheService = require('../services/cacheService');
+const { invalidate: invalidateDashboardCache } = require('../services/dashboardCacheService');
 const { generateVoucherDocument, generateItineraryDocument } = require('../services/operationsVoucherService');
 const {
   enrichBookingWithQuotation,
   syncBookingFromQuotation,
   resolveQuotationForBooking,
 } = require('../services/operationsQuotationSyncService');
+
+async function invalidateOperationsCounts() {
+  await Promise.all([
+    cacheService.invalidate('ops:'),
+    invalidateDashboardCache('nav:'),
+  ]);
+}
 
 const getDashboard = asyncHandler(async (req, res) => {
   // Command center shows org-wide metrics across all branches.
@@ -31,6 +39,7 @@ const listBookings = asyncHandler(async (req, res) => {
 
 const createBooking = asyncHandler(async (req, res) => {
   const booking = await ops.createBooking({ ...req.body, branchId: req.branchId || req.body.branchId }, req.user);
+  await invalidateOperationsCounts();
   res.status(201).json(booking);
 });
 
@@ -75,6 +84,7 @@ const getBookingQuotation = asyncHandler(async (req, res) => {
 const updateBooking = asyncHandler(async (req, res) => {
   const booking = await ops.updateBooking(req.params.id, req.body, req.user);
   if (!booking) throw new ApiError(404, 'Booking not found');
+  await invalidateOperationsCounts();
   res.json(booking);
 });
 
@@ -87,7 +97,7 @@ const confirmHotel = asyncHandler(async (req, res) => {
     booking.status = 'confirmed';
   }
   await booking.save();
-  await cacheService.invalidate('ops:');
+  await invalidateOperationsCounts();
   res.json(booking);
 });
 
@@ -100,7 +110,7 @@ const confirmCab = asyncHandler(async (req, res) => {
     booking.status = 'confirmed';
   }
   await booking.save();
-  await cacheService.invalidate('ops:');
+  await invalidateOperationsCounts();
   res.json(booking);
 });
 
@@ -265,6 +275,7 @@ const createTicket = asyncHandler(async (req, res) => {
     ticketNumber: `TKT-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`,
     lastUpdate: new Date(),
   });
+  await invalidateOperationsCounts();
   res.status(201).json(ticket);
 });
 
@@ -275,6 +286,7 @@ const updateTicket = asyncHandler(async (req, res) => {
   }
   const ticket = await SupportTicket.findOneAndUpdate(companyScopedIdFilter(req.params.id, req), patch, { new: true });
   assertTenantDocument(ticket, req, 'Support ticket');
+  await invalidateOperationsCounts();
   res.json(ticket);
 });
 
@@ -285,12 +297,14 @@ const listTasks = asyncHandler(async (req, res) => {
 
 const createTask = asyncHandler(async (req, res) => {
   const task = await ops.createTask({ ...req.body, branchId: req.branchId }, req.user);
+  await invalidateOperationsCounts();
   res.status(201).json(task);
 });
 
 const updateTask = asyncHandler(async (req, res) => {
   const task = await ops.updateTask(req.params.id, req.body);
   if (!task) throw new ApiError(404, 'Task not found');
+  await invalidateOperationsCounts();
   res.json(task);
 });
 
