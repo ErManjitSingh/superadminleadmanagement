@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Eye, Loader2 } from 'lucide-react';
+import { Download, Eye, Loader2, Pencil } from 'lucide-react';
 import { ACTIVITY_CONFIG, findQuotationForActivity } from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import ReceiptPdfPreviewModal from '../payments/ReceiptPdfPreviewModal';
@@ -34,7 +35,9 @@ export default function LeadActivityTimeline({
   loading = false,
   quotations = [],
   leadId,
+  quoteEditPath = '',
 }) {
+  const navigate = useNavigate();
   const [pdfQuote, setPdfQuote] = useState(null);
   const [receiptPreview, setReceiptPreview] = useState(null);
   const [receiptLoading, setReceiptLoading] = useState(null);
@@ -153,6 +156,15 @@ export default function LeadActivityTimeline({
     }
   };
 
+  const editQuotation = (item, quote) => {
+    const quotationId = quote?._id || item?.meta?.quotationId;
+    if (!quotationId || !quoteEditPath || !leadId) {
+      toast.error('Quotation edit available nahi hai.');
+      return;
+    }
+    navigate(`${quoteEditPath}?leadId=${leadId}&quoteId=${quotationId}`);
+  };
+
   return (
     <>
       <div
@@ -220,6 +232,17 @@ export default function LeadActivityTimeline({
                                     : <Eye className="w-3 h-3" />}
                                   View
                                 </Button>
+                                {quoteEditPath && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => editQuotation(item, quote)}
+                                    className="rounded-lg h-7 gap-1 text-[11px] text-sky-700 border-sky-200 bg-sky-50 hover:bg-sky-100"
+                                  >
+                                    <Pencil className="w-3 h-3" /> Edit
+                                  </Button>
+                                )}
                                 <Button
                                   type="button"
                                   variant="outline"

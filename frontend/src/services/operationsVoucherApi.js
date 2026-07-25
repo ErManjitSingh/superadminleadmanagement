@@ -72,13 +72,19 @@ export async function previewVoucherPdf(voucherId) {
   }
 }
 
-export async function sendVoucherEmail(voucherId, to) {
-  const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-email`, { to });
+export async function sendVoucherEmail(voucherId, to, options = {}) {
+  const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-email`, {
+    to,
+    showGuestPhone: options.showGuestPhone !== false,
+  });
   return data;
 }
 
-export async function sendVoucherWhatsApp(voucherId, phone) {
-  const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-whatsapp`, { phone });
+export async function sendVoucherWhatsApp(voucherId, phone, options = {}) {
+  const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-whatsapp`, {
+    phone,
+    showGuestPhone: options.showGuestPhone !== false,
+  });
 
   await openWhatsAppWithPdf({
     waMeUrl: data.waMeUrl,

@@ -103,6 +103,7 @@ export default function LeaderLeadDetailPage() {
         backHref="/team-leader/leads"
         backLabel="Back to Team Leads"
         contactEndpoint="/leads"
+        quoteEditPath="/team-leader/quotations/new"
         onCreateQuote={() => navigate(`/team-leader/quotations/new?leadId=${id}`)}
         onContactLogged={loadLead}
         onEmailSent={loadLead}

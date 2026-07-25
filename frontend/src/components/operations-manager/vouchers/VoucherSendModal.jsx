@@ -4,6 +4,7 @@ import AppModal from '../../ui/AppModal';
 import { Button } from '../../ui/button';
 import { sendVoucherEmail, sendVoucherWhatsApp } from '../../../services/operationsVoucherApi';
 import { normalizeWaPhone } from '../../../lib/phoneUtils';
+import { cn } from '../../../lib/utils';
 
 function defaultRecipient(type, voucher, booking) {
   const p = voucher?.payload || {};
@@ -33,6 +34,7 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
   const defaults = defaultRecipient(type, voucher, booking);
   const [phone, setPhone] = useState(defaults.phone);
   const [email, setEmail] = useState(defaults.email);
+  const [showGuestPhone, setShowGuestPhone] = useState(true);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
       const d = defaultRecipient(type, voucher, booking);
       setPhone(d.phone);
       setEmail(d.email);
+      setShowGuestPhone(voucher?.payload?.showGuestPhone !== false);
     }
   }, [open, type, voucher, booking]);
 
@@ -50,9 +53,9 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
       if (channel === 'whatsapp') {
         const normalized = normalizeWaPhone(phone);
         if (!normalized) return;
-        await sendVoucherWhatsApp(voucher._id, normalized);
+        await sendVoucherWhatsApp(voucher._id, normalized, { showGuestPhone });
       } else {
-        await sendVoucherEmail(voucher._id, email);
+        await sendVoucherEmail(voucher._id, email, { showGuestPhone });
       }
       onSent?.();
       onClose?.();
@@ -99,6 +102,33 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
             />
           </label>
         )}
+
+        <div className="mt-4 rounded-xl border border-subtle bg-surface-elevated/60 p-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-content-primary">Show guest phone on voucher</p>
+            <p className="text-xs text-content-muted mt-0.5">
+              Off hone par PDF mein guest number nahi aayega
+            </p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showGuestPhone}
+            onClick={() => setShowGuestPhone((v) => !v)}
+            className={cn(
+              'relative h-7 w-12 rounded-full transition-colors shrink-0',
+              showGuestPhone ? 'bg-emerald-500' : 'bg-slate-300',
+            )}
+          >
+            <span
+              className={cn(
+                'absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform',
+                showGuestPhone && 'translate-x-5',
+              )}
+            />
+          </button>
+        </div>
+
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="secondary" onClick={onClose} disabled={sending}>Cancel</Button>
           <Button

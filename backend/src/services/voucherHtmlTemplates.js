@@ -415,7 +415,9 @@ async function buildCabVoucherHtml(voucher, booking) {
   const url = vendorUrl(voucher);
   const qrSrc = await qrDataUrl(url.includes('vendor-confirm') ? url : `${brand.websiteUrl || branding.websiteUrl}/app`);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Child`;
-  const customerPhone = booking.customerPhone || booking.phone || '-';
+  const showGuestPhone = voucher?.payload?.showGuestPhone !== false
+    && booking?.showGuestPhone !== false;
+  const customerPhone = showGuestPhone ? (booking.customerPhone || booking.phone || '-') : '';
   const itineraryRows = resolveCabItinerary(booking, p);
 
   const fields = [
@@ -465,7 +467,7 @@ async function buildCabVoucherHtml(voucher, booking) {
   ${headerHtml({ title: 'CAB DRIVER VOUCHER / ITINERARY', voucher, booking, qrSrc, heroSrc: CAB_HERO_IMG, brand })}
   <div class="strip cols-5">
     <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
-    <div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>
+    ${showGuestPhone ? `<div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>` : ''}
     <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
     <div><label>Travel Date</label><p>${fmtDate(booking.travelDate)}</p></div>
     <div><label>Travelers</label><p>${guests}</p></div>
@@ -506,7 +508,9 @@ async function buildHotelVoucherHtml(voucher, booking) {
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const address = p.address || p.location || booking.destination || '-';
   const destCity = (booking.destination || '').split(',')[0] || 'Branch';
-  const customerPhone = booking.customerPhone || booking.phone || '-';
+  const showGuestPhone = voucher?.payload?.showGuestPhone !== false
+    && booking?.showGuestPhone !== false;
+  const customerPhone = showGuestPhone ? (booking.customerPhone || booking.phone || '-') : '';
 
   const fields = [
     ...(p.day ? [['Stay Day', `Day ${p.day}${p.nights ? ` · ${p.nights} Night${p.nights > 1 ? 's' : ''}` : ''}`]] : []),
@@ -549,7 +553,7 @@ async function buildHotelVoucherHtml(voucher, booking) {
   ${headerHtml({ title: 'HOTEL VOUCHER', voucher, booking, qrSrc, heroSrc: HERO_IMG, brand })}
   <div class="strip cols-5">
     <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
-    <div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>
+    ${showGuestPhone ? `<div><label>Guest Phone</label><p>${esc(customerPhone)}</p></div>` : ''}
     <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
     <div><label>Travel Dates</label><p>${fmtDate(booking.travelDate)} to ${fmtDate(booking.returnDate)}</p></div>
     <div><label>Guests</label><p>${guests}</p></div>

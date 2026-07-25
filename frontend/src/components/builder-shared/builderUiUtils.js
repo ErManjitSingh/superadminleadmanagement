@@ -1,4 +1,4 @@
-import { MEAL_PLANS } from '../quotations/constants';
+import { MEAL_PLANS, isNoHotelMealPlan } from '../quotations/constants';
 import { normalizeCabType, FLEET_CATALOG } from './fleetConstants';
 
 export function defaultBuilderUi() {
@@ -223,23 +223,78 @@ export function builderUiFromPackage(pkg = {}) {
   return base;
 }
 
+/** Infer builderUi from a saved quotation (edit mode) */
+export function builderUiFromQuotation(quote = {}) {
+  const snap = quote.packageSnapshot || quote.package || {};
+  const selected = Array.isArray(quote.selectedHotels) ? quote.selectedHotels : [];
+  const hotelsFromSnap = Array.isArray(snap.hotels) ? snap.hotels : [];
+  const hotels = (selected.length ? selected : hotelsFromSnap).map((h, i) => ({
+    day: h.day || i + 1,
+    hotelId: h.hotelId || h._id || '',
+    name: h.name || h.hotelName || '',
+    location: h.location || h.city || '',
+    category: h.category || '',
+    roomType: h.room?.name || h.roomType || 'Deluxe',
+    mealPlan: h.mealPlan?.label || (typeof h.mealPlan === 'string' ? h.mealPlan : '') || '',
+    checkIn: h.checkIn ? String(h.checkIn).slice(0, 10) : '',
+    checkOut: h.checkOut ? String(h.checkOut).slice(0, 10) : '',
+    nights: h.nights || 0,
+  })).filter((h) => h.name);
+
+  const cabs = Array.isArray(quote.selectedCabs) ? quote.selectedCabs : [];
+  const transport = cabs.map((c) => ({
+    vehicle: c.vehicleName || c.name || '',
+    type: c.vehicleType || c.type || '',
+    cost: Number(c.cost || c.price) || 0,
+    vehicleCount: c.vehicleCount || c.count || 1,
+    notes: c.notes || '',
+    vendorId: c.vendorId || '',
+    vendorName: c.vendorName || '',
+    vendorPhone: c.vendorPhone || '',
+  }));
+
+  const base = builderUiFromPackage({
+    ...snap,
+    hotels,
+    transport,
+    importantNotes: quote.importantNotes || snap.importantNotes,
+  });
+
+  if (quote.packageInfo?.mealPlan && isNoHotelMealPlan(quote.packageInfo.mealPlan)) {
+    base.skipHotel = true;
+  }
+  return base;
+}
+
 /** Quotation PDF snapshot — hotels */
 export function builderUiToSelectedHotelsSnapshot(builderUi = {}, destinations = []) {
   if (builderUi.skipHotel) return [];
-  return builderUiToHotels(builderUi, destinations).map((h) => ({
-    day: h.day,
-    _id: h.hotelId || `hotel-${h.day}`,
-    hotelId: h.hotelId,
-    name: h.name,
-    location: h.location,
-    city: h.location,
-    room: { name: h.roomType },
-    mealPlan: { label: h.mealPlan },
-    nights: 1,
-    price: 0,
-    total: 0,
-    externalSource: h.hotelId ? 'catalog' : 'manual',
-  }));
+  return builderUiToHotels(builderUi, destinations).map((h) => {
+    const nights = Number(h.nights) > 0
+      ? Number(h.nights)
+      : (h.checkIn && h.checkOut
+        ? Math.max(1, Math.round((new Date(h.checkOut) - new Date(h.checkIn)) / (1000 * 60 * 60 * 24)))
+        : 1);
+    return {
+      day: h.day,
+      _id: h.hotelId || `hotel-${h.day}`,
+      hotelId: h.hotelId,
+      name: h.name,
+      location: h.location,
+      city: h.location,
+      category: h.category || '4 Star',
+      room: { name: h.roomType },
+      roomType: h.roomType,
+      mealPlan: { label: h.mealPlan },
+      meals: h.mealPlan,
+      checkIn: h.checkIn || '',
+      checkOut: h.checkOut || '',
+      nights,
+      price: 0,
+      total: 0,
+      externalSource: h.hotelId ? 'catalog' : 'manual',
+    };
+  });
 }
 
 /** Quotation save payload — transport as cab snapshots */

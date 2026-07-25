@@ -53,6 +53,8 @@ const leadSchema = new mongoose.Schema(
     companyName: { type: String, trim: true, default: '' },
     travelDate: { type: Date },
     returnDate: { type: Date },
+    /** Trip length in days (e.g. 4D) — used to prefill quotation duration / hotel nights */
+    tripDays: { type: Number, default: 0, min: 0 },
     budget: { type: Number, default: 0 },
     budgetRange: { type: String, enum: BUDGET_RANGES, default: 'custom' },
     leadScore: { type: String, enum: LEAD_SCORES, default: 'low', index: true },

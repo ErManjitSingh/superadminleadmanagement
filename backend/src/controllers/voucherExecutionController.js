@@ -73,13 +73,19 @@ const regenerateVoucherHandler = asyncHandler(async (req, res) => {
 });
 
 const sendVoucherEmailHandler = asyncHandler(async (req, res) => {
-  const result = await sendVoucherEmail(req.params.id, req.user, { to: req.body.to });
+  const result = await sendVoucherEmail(req.params.id, req.user, {
+    to: req.body.to,
+    showGuestPhone: req.body.showGuestPhone !== false && req.body.showGuestPhone !== 'false',
+  });
   await cacheService.invalidate('ops:');
   res.json(result);
 });
 
 const sendVoucherWhatsAppHandler = asyncHandler(async (req, res) => {
-  const result = await sendVoucherWhatsApp(req.params.id, req.user, { phone: req.body.phone });
+  const result = await sendVoucherWhatsApp(req.params.id, req.user, {
+    phone: req.body.phone,
+    showGuestPhone: req.body.showGuestPhone !== false && req.body.showGuestPhone !== 'false',
+  });
   await cacheService.invalidate('ops:');
   res.json(result);
 });

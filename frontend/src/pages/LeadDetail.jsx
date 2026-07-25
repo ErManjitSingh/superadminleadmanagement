@@ -185,6 +185,7 @@ export default function LeadDetail() {
         backHref="/leads"
         backLabel="Back to Leads"
         contactEndpoint="/leads"
+        quoteEditPath="/quotations/new"
         onCreateQuote={
           can('quotations', 'create')
             ? () => navigate(`/quotations/new?leadId=${id}`)

@@ -64,6 +64,7 @@ function normalizeLeadInput(body = {}, { isUpdate = false } = {}) {
     destination: body.destination?.trim(),
     travelDate: body.travelDate,
     returnDate: body.returnDate,
+    tripDays: Number(body.tripDays) > 0 ? Number(body.tripDays) : undefined,
     budget,
     budgetRange: parseBudgetRange(body, budget),
     leadScore: body.leadScore || computeLeadScoreByBudget(budget),

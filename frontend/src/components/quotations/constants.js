@@ -73,6 +73,32 @@ export function isNoHotelLabel(value) {
   return NO_HOTEL_VALUES.has(v);
 }
 
+/** Map lead wizard values (3_star) → quotation builder labels (3 Star). */
+export function mapLeadHotelCategory(value) {
+  if (value == null || value === '') return '';
+  const raw = String(typeof value === 'object' ? (value.label || value.name || value.value || '') : value).trim();
+  if (!raw) return '';
+  if (isNoHotelLabel(raw)) return '';
+  const key = raw.toLowerCase().replace(/[\s-]+/g, '_');
+  const map = {
+    '3_star': '3 Star',
+    '3star': '3 Star',
+    '3 star': '3 Star',
+    '4_star': '4 Star',
+    '4star': '4 Star',
+    '4 star': '4 Star',
+    '5_star': '5 Star',
+    '5star': '5 Star',
+    '5 star': '5 Star',
+    luxury: 'Luxury',
+    budget: 'Budget',
+    boutique: 'Boutique',
+  };
+  if (map[key]) return map[key];
+  if (HOTEL_CATEGORIES.includes(raw)) return raw;
+  return raw;
+}
+
 export function isNoHotelMealPlan(mealPlan) {
   return isNoHotelLabel(mealPlan);
 }

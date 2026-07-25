@@ -117,12 +117,27 @@ export default function StepTravelDetails() {
         </div>
       </WizardField>
 
-      <WizardField label="Travel Date" error={errors.travelDate?.message}>
-        <div className="relative max-w-xs">
-          <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />
-          <WizardInput {...register('travelDate')} type="date" className="pl-10" error={errors.travelDate} />
-        </div>
-      </WizardField>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <WizardField label="Travel Date" error={errors.travelDate?.message}>
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />
+            <WizardInput {...register('travelDate')} type="date" className="pl-10" error={errors.travelDate} />
+          </div>
+        </WizardField>
+        <WizardField label="Trip Days" error={errors.tripDays?.message}>
+          <WizardInput
+            {...register('tripDays')}
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            placeholder="e.g. 4"
+            className="font-semibold metric-tabular"
+            error={errors.tripDays}
+          />
+          <p className="mt-1 text-xs text-content-muted">Same days auto-fill in quotation & hotel stay</p>
+        </WizardField>
+      </div>
 
       <div className="grid grid-cols-3 gap-4">
         {[

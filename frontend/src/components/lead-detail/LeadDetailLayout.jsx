@@ -35,6 +35,7 @@ export default function LeadDetailLayout({
   canChangeStatus,
   canConvertLead,
   editHref,
+  quoteEditPath = '',
   headerExtra,
   sidebarExtra,
   bottomExtra,
@@ -85,6 +86,7 @@ export default function LeadDetailLayout({
             loading={timelineLoading}
             quotations={quotations}
             leadId={leadId}
+            quoteEditPath={quoteEditPath}
           />
         </main>
 

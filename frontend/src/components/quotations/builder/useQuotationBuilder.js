@@ -5,7 +5,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { buildListParams, unwrapList, unwrapPagination } from '../../../utils/apiHelpers';
 import { parsePackageNights } from '../UnoHotelSelector';
 import { cleanInclusionExclusionLines } from '../InclusionExclusionEditor';
-import { isNoHotelMealPlan, isNoHotelLabel, NO_HOTEL_MEAL_PLAN } from '../constants';
+import { isNoHotelMealPlan, isNoHotelLabel, NO_HOTEL_MEAL_PLAN, mapLeadHotelCategory } from '../constants';
 import {
   defaultItineraryDay,
   defaultWizardState,
@@ -16,6 +16,7 @@ import { normalizePackageForQuotation } from '../../packages/builder/packageBuil
 import {
   defaultBuilderUi,
   builderUiFromPackage,
+  builderUiFromQuotation,
   builderUiToSelectedHotelsSnapshot,
   builderUiToSelectedCabs,
 } from '../../builder-shared/builderUiUtils';
@@ -27,6 +28,7 @@ export const BUILDER_CONFIG = {
     leadDetailPath: (id) => `/sales-executive/leads/${id}/view`,
     contactEndpoint: '/sales-executive/leads',
     savePath: '/sales-executive/quotations',
+    quoteDetailPath: (id) => `/sales-executive/quotations/${id}`,
     backPath: '/sales-executive/quotations',
     successPath: '/sales-executive/quotations',
     draftStatus: 'draft',
@@ -42,6 +44,7 @@ export const BUILDER_CONFIG = {
     leadDetailPath: (id) => `/team-leader/leads/${id}/view`,
     leadsParams: { filter: 'all', page: 1, limit: 50 },
     savePath: '/team-leader/quotations',
+    quoteDetailPath: (id) => `/team-leader/quotations/${id}`,
     backPath: '/team-leader/quotations/pending',
     successPath: '/team-leader/quotations/approved',
     draftStatus: 'draft',
@@ -56,6 +59,7 @@ export const BUILDER_CONFIG = {
     leadDetailPath: (id) => `/sales-manager/leads/${id}/view`,
     leadsParams: { filter: 'all', page: 1, limit: 50 },
     savePath: '/sales-manager/quotations',
+    quoteDetailPath: (id) => `/sales-manager/quotations/${id}`,
     backPath: '/sales-manager/quotations/pending',
     successPath: '/sales-manager/quotations/approved',
     draftStatus: 'draft',
@@ -70,6 +74,7 @@ export const BUILDER_CONFIG = {
     leadDetailPath: (id) => `/leads/${id}`,
     contactEndpoint: '/leads',
     savePath: '/quotations',
+    quoteDetailPath: (id) => `/quotations/${id}`,
     backPath: '/quotations',
     successPath: '/quotations',
     title: 'Quotation Builder',
@@ -81,6 +86,48 @@ export const BUILDER_CONFIG = {
     approvalNote: null,
   },
 };
+
+function toDateInputValue(value) {
+  if (!value) return '';
+  const s = String(value);
+  if (s.includes('T')) return s.slice(0, 10);
+  return s.slice(0, 10);
+}
+
+function deriveLeadTripDays(lead) {
+  const explicit = Number(lead?.tripDays) || 0;
+  if (explicit > 0) return explicit;
+  if (lead?.travelDate && lead?.returnDate) {
+    const start = new Date(lead.travelDate);
+    const end = new Date(lead.returnDate);
+    if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+      const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+      if (days > 0) return days;
+    }
+  }
+  return 0;
+}
+
+function packageInfoFromLead(lead, existing = {}) {
+  const leadNoHotel = isNoHotelLabel(lead?.hotelCategory);
+  const tripDays = deriveLeadTripDays(lead);
+  const mappedCategory = mapLeadHotelCategory(lead?.hotelCategory);
+  const travelDate = toDateInputValue(lead?.travelDate);
+  return {
+    ...existing,
+    destination: lead?.destination || existing.destination || '',
+    ...(travelDate && !existing.travelDate ? { travelDate } : {}),
+    ...(tripDays > 0 && !(Number(existing.duration) > 0) ? { duration: tripDays } : {}),
+    ...(lead?.adults != null ? { adults: Number(lead.adults) || 1 } : {}),
+    ...(lead?.children != null ? { children: Number(lead.children) || 0 } : {}),
+    ...(lead?.infants != null ? { infants: Number(lead.infants) || 0 } : {}),
+    ...(leadNoHotel
+      ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
+      : mappedCategory
+        ? { hotelCategory: existing.hotelCategory || mappedCategory }
+        : {}),
+  };
+}
 
 function buildFallbackItinerary(detail) {
   const days = Math.max(1, Number(detail.duration) || 1);
@@ -96,7 +143,7 @@ function syncPaymentAmounts(plan, total) {
   }));
 }
 
-export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) {
+export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', initialQuoteId = '' }) {
   const config = BUILDER_CONFIG[mode] || BUILDER_CONFIG.executive;
   const { user } = useAuth();
 
@@ -341,19 +388,18 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         const leadNoHotel = isNoHotelLabel(lead.hotelCategory);
         const leadBudget = Number(lead.budget) || 0;
         setState((s) => {
+          // Editing an existing quote — keep quote fields; only attach lead id.
+          if (initialQuoteId && (s.packageInfo?.packageName || s.packageId || draftId)) {
+            return { ...s, leadId: id };
+          }
           const currentPrice = Number(s.pricing?.total) || Number(s.pricing?.grandTotal) || 0;
           const nextTotal = currentPrice > 0 ? currentPrice : leadBudget;
+          const nextInfo = packageInfoFromLead(lead, s.packageInfo);
           return {
             ...s,
             leadId: id,
             packageInfo: {
-              ...s.packageInfo,
-              destination: lead.destination || s.packageInfo.destination,
-              ...(leadNoHotel
-                ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
-                : lead.hotelCategory
-                  ? { hotelCategory: s.packageInfo.hotelCategory || lead.hotelCategory }
-                  : {}),
+              ...nextInfo,
               ...(nextTotal > 0 ? { totalCost: nextTotal } : {}),
             },
             ...(currentPrice <= 0 && leadBudget > 0
@@ -369,7 +415,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
               : {}),
           };
         });
-        if (leadNoHotel) {
+        if (leadNoHotel && !initialQuoteId) {
           setBuilderUi((ui) => ({ ...ui, skipHotel: true }));
         }
         return lead;
@@ -381,7 +427,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
         setLoadingLead(false);
       }
     },
-    [config]
+    [config, initialQuoteId, draftId]
   );
 
   const fetchLeads = useCallback(
@@ -411,6 +457,85 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
   useEffect(() => {
     if (initialLeadId) fetchLeadById(initialLeadId);
   }, [initialLeadId, fetchLeadById]);
+
+  const hydrateFromQuotation = useCallback((quote) => {
+    if (!quote?._id) return;
+    const snap = quote.packageSnapshot || quote.package || {};
+    const itinerary = snap.itinerary?.length
+      ? snap.itinerary.map((d, i) => ({
+          ...d,
+          id: d.id || d._id || `day-${i + 1}`,
+        }))
+      : [];
+    setDraftId(quote._id);
+    if (quote.quoteNumber) setSavedQuoteNumber(quote.quoteNumber);
+    setShareToken(quote.shareToken || '');
+    setVersions(quote.versions || []);
+    setCustomItinerary(itinerary);
+    setCustomInclusions(snap.inclusions?.length ? [...snap.inclusions] : ['']);
+    setCustomExclusions(snap.exclusions?.length ? [...snap.exclusions] : ['']);
+    setSelectedPkgDetail(snap.name || snap.destination ? { ...snap, itinerary } : null);
+    setBuilderUi(builderUiFromQuotation(quote));
+    const priced =
+      Number(quote.pricing?.grandTotal)
+      || Number(quote.pricing?.total)
+      || Number(quote.packageInfo?.totalCost)
+      || 0;
+    setState((s) => ({
+      ...s,
+      leadId: quote.lead?._id || quote.lead || s.leadId,
+      packageId: quote.package?._id || quote.package || '',
+      templateKey: quote.templateKey || '',
+      packageInfo: {
+        ...s.packageInfo,
+        ...(quote.packageInfo || {}),
+        travelDate: toDateInputValue(quote.packageInfo?.travelDate),
+        totalCost: priced || s.packageInfo?.totalCost,
+      },
+      pricing: {
+        ...s.pricing,
+        ...(quote.pricing || {}),
+        total: priced,
+        grandTotal: priced,
+        baseCost: priced || Number(quote.pricing?.baseCost) || 0,
+      },
+      paymentPlan: quote.paymentPlan?.length
+        ? quote.paymentPlan
+        : syncPaymentAmounts(s.paymentPlan, priced),
+      importantNotes: quote.importantNotes || s.importantNotes,
+      customizations: quote.customizations || s.customizations,
+    }));
+    setStep(1);
+  }, []);
+
+  const fetchQuoteById = useCallback(
+    async (id) => {
+      if (!id) return null;
+      const paths = [
+        config.quoteDetailPath?.(id),
+        `${config.savePath}/${id}`,
+        `/quotations/${id}`,
+      ].filter(Boolean);
+      for (const path of paths) {
+        try {
+          const { data } = await API.get(path, { skipErrorToast: true });
+          const quote = data?.quotation || data;
+          if (quote?._id) {
+            hydrateFromQuotation(quote);
+            return quote;
+          }
+        } catch {
+          /* try next path */
+        }
+      }
+      return null;
+    },
+    [config, hydrateFromQuotation]
+  );
+
+  useEffect(() => {
+    if (initialQuoteId) fetchQuoteById(initialQuoteId);
+  }, [initialQuoteId, fetchQuoteById]);
 
   useEffect(() => {
     if (debouncedLeadSearch.trim().length >= 2) fetchLeads(debouncedLeadSearch);
@@ -523,11 +648,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '' }) 
       ...defaultWizardState,
       leadId: lead._id,
       packageInfo: {
-        ...s.packageInfo,
-        destination: lead.destination || '',
-        ...(leadNoHotel
-          ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
-          : {}),
+        ...defaultWizardState.packageInfo,
+        ...packageInfoFromLead(lead, {}),
       },
       pricing: {
         ...defaultWizardState.pricing,

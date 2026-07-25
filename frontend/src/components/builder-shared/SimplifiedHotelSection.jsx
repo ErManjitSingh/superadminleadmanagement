@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BadgeCheck,
   Building2,
@@ -98,6 +98,7 @@ function HotelFields({
   hotel,
   onChange,
   defaultNights = 0,
+  defaultCheckIn = '',
   catalogHotels = [],
   onCatalogSaved,
   destinationHint = '',
@@ -108,6 +109,27 @@ function HotelFields({
   const checkOut = hotel.checkOut?.slice?.(0, 10) || hotel.checkOut || '';
   const nights = nightsBetween(checkIn, checkOut);
   const entryMode = inferEntryMode(hotel, catalogHotels);
+
+  // Auto-fill check-in/out from quotation travel date + duration (once).
+  useEffect(() => {
+    if (!defaultCheckIn || !defaultNights) return;
+    const hasIn = Boolean(hotel.checkIn?.slice?.(0, 10) || hotel.checkIn);
+    const hasOut = Boolean(hotel.checkOut?.slice?.(0, 10) || hotel.checkOut);
+    if (hasIn && hasOut) return;
+    const nextIn = hasIn ? (hotel.checkIn?.slice?.(0, 10) || hotel.checkIn) : defaultCheckIn;
+    const nextOut = hasOut
+      ? (hotel.checkOut?.slice?.(0, 10) || hotel.checkOut)
+      : addDays(nextIn, defaultNights);
+    if (!nextIn || !nextOut) return;
+    onChange({
+      ...hotel,
+      checkIn: nextIn,
+      checkOut: nextOut,
+      nights: nightsBetween(nextIn, nextOut),
+    });
+    // intentionally only when defaults change / hotel empty
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultCheckIn, defaultNights]);
 
   const setDates = (patch) => {
     let next = { ...hotel, ...patch };
@@ -344,12 +366,15 @@ export default function SimplifiedHotelSection({
   onChange,
   destinations = [],
   durationDays = 0,
+  travelDate = '',
   catalogHotels = [],
   onCatalogHotelsChange,
 }) {
   const update = (patch) => onChange({ ...builderUi, ...patch });
   const hotelMode = builderUi.hotelMode || 'same';
-  const defaultNights = Math.max(0, Number(durationDays) || 0);
+  // Duration is days (e.g. 4D/3N) → hotel nights = days - 1
+  const defaultNights = Math.max(1, (Number(durationDays) || 0) > 1 ? Number(durationDays) - 1 : Number(durationDays) || 0);
+  const defaultCheckIn = travelDate ? String(travelDate).slice(0, 10) : '';
 
   const handleCatalogSaved = (hotel) => {
     if (!hotel?._id) return;
@@ -419,6 +444,7 @@ export default function SimplifiedHotelSection({
               <HotelFields
                 hotel={builderUi.sameHotel || {}}
                 defaultNights={defaultNights}
+                defaultCheckIn={defaultCheckIn}
                 catalogHotels={catalogHotels}
                 destinationHint={destinations[0]?.name || ''}
                 onCatalogSaved={handleCatalogSaved}
@@ -456,6 +482,7 @@ export default function SimplifiedHotelSection({
                   <HotelFields
                     hotel={hotel}
                     defaultNights={defaultNights}
+                    defaultCheckIn={defaultCheckIn}
                     catalogHotels={catalogHotels}
                     destinationHint={hotel.destination || destinations[index]?.name || ''}
                     onCatalogSaved={handleCatalogSaved}

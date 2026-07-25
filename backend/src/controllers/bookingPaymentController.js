@@ -23,7 +23,11 @@ const getConvertPreview = asyncHandler(async (req, res) => {
 
   const quotation = await pickQuotationForLead(lead._id);
   const snap = quotation?.packageSnapshot || {};
-  const totalAmount = quotation?.pricing?.total || quotation?.costing?.grandTotal || lead.budget || 0;
+  const p = quotation?.pricing || {};
+  const c = quotation?.costing || {};
+  const totalAmount = [p.grandTotal, p.total, p.baseCost, quotation?.packageInfo?.totalCost, c.grandTotal, lead.budget]
+    .map(Number)
+    .find((n) => Number.isFinite(n) && n > 0) || 0;
 
   res.json({
     customerName: lead.name,

@@ -18,6 +18,37 @@ const { pickQuotationForLead, ensureQuotationApproved } = require('./leadConvers
 const SCREENSHOT_DIR = path.join(__dirname, '../../uploads/payment-screenshots');
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+/** Prefer grandTotal / total / packageInfo / costing / lead budget (never treat 0 as missing when a positive sibling exists). */
+function resolveQuotationPackageTotal(quotation, lead = {}) {
+  const p = quotation?.pricing || {};
+  const c = quotation?.costing || {};
+  const info = quotation?.packageInfo || {};
+  const candidates = [
+    p.grandTotal,
+    p.total,
+    p.baseCost,
+    info.totalCost,
+    c.grandTotal,
+    c.subtotal,
+    quotation?.totalPrice,
+    lead.budget,
+    lead.packageCost,
+  ];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
+function pickPositiveAmount(...values) {
+  for (const value of values) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
 function invalidateDashboards() {
   ['admin', 'sales_manager', 'team_leader', 'sales_executive', 'nav:'].forEach((k) => {
     invalidateDashboardCache(k);
@@ -129,12 +160,13 @@ async function pickOperationsManager(branchId) {
 
 async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
   const snap = quotation?.packageSnapshot || {};
-  const totalAmount = quotation?.pricing?.total || quotation?.costing?.grandTotal || lead.budget || 0;
-  const travelDate = lead.travelDate || null;
+  const totalAmount = resolveQuotationPackageTotal(quotation, lead);
+  const travelDate = lead.travelDate || quotation?.packageInfo?.travelDate || null;
   let returnDate = lead.returnDate || null;
-  if (travelDate && snap.duration && !returnDate) {
+  const duration = Number(quotation?.packageInfo?.duration || snap.duration || lead.tripDays) || 0;
+  if (travelDate && duration && !returnDate) {
     returnDate = new Date(travelDate);
-    returnDate.setDate(returnDate.getDate() + Number(snap.duration));
+    returnDate.setDate(returnDate.getDate() + Math.max(0, duration - 1));
   }
 
   let executive = null;
@@ -388,7 +420,7 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
   let quotation = await pickQuotationForLead(leadId);
   quotation = await ensureQuotationApproved(quotation, actor);
 
-  const totalAmount = quotation?.pricing?.total || quotation?.costing?.grandTotal || lead.budget || 0;
+  const totalAmount = resolveQuotationPackageTotal(quotation, lead);
   if (totalAmount > 0 && amount > totalAmount) throw new Error('Advance amount cannot exceed package cost');
 
   const opsManager = await pickOperationsManager(lead.branchId);

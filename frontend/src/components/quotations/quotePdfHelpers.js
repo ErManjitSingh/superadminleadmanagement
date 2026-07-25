@@ -164,13 +164,16 @@ export function collectRoomImages(hotel = {}) {
   return (hotel.room?.images || []).filter((url) => typeof url === 'string' && url.trim());
 }
 
-function mapSelectedHotelRecord(h, lead, pkg) {
+function mapSelectedHotelRecord(h, lead, pkg, travelStart) {
   const hotelImages = collectHotelOnlyImages(h);
   const roomImages = collectRoomImages(h);
+  const start = travelStart || pkg.travelDate || lead.travelDate;
   return {
     day: h.day,
-    date: h.day ? getDayDate(lead.travelDate, h.day) : null,
-    city: h.city || h.location?.split(',')[0]?.trim() || h.location || pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
+    date: h.day ? getDayDate(start, h.day) : (h.checkIn ? new Date(h.checkIn) : null),
+    checkIn: h.checkIn || (h.day ? getDayDate(start, h.day) : null),
+    checkOut: h.checkOut || (h.day ? getDayDate(start, (h.day || 1) + (Number(h.nights) || 1)) : null),
+    city: h.city || h.location?.split(',')[0]?.trim() || h.location || pkg.destination?.split(/[,|/]/)[0]?.trim() || '-',
     name: h.name || 'Hotel',
     roomType: h.room?.name || h.roomType || 'Deluxe',
     meals:
@@ -227,6 +230,8 @@ export function resolveQuoteHotels(quote) {
 
   const pkg = resolveQuotePackage(quote);
   const lead = resolveQuoteLead(quote);
+  const packageInfo = quote?.packageInfo || {};
+  const travelStart = packageInfo.travelDate || lead.travelDate || pkg.travelDate;
 
   // Prefer explicitly selected hotels; only then package hotels (when quote includes hotel)
   const selected = quote.selectedHotels || [];
@@ -235,7 +240,7 @@ export function resolveQuoteHotels(quote) {
     const dayKeyed = selected.filter((h) => h.day && h.name);
     if (dayKeyed.length) {
       return dayKeyed
-        .map((h) => mapSelectedHotelRecord(h, lead, pkg))
+        .map((h) => mapSelectedHotelRecord(h, lead, pkg, travelStart))
         .sort((a, b) => a.day - b.day);
     }
   }
@@ -243,7 +248,7 @@ export function resolveQuoteHotels(quote) {
   if (pkg.hotels?.length && selected.length === 0 && !Array.isArray(quote.selectedHotels)) {
     return pkg.hotels.map((h, index) => ({
       day: h.day || index + 1,
-      date: h.date || h.checkIn || getDayDate(lead.travelDate, h.day || index + 1),
+      date: h.date || h.checkIn || getDayDate(travelStart, h.day || index + 1),
       hotelImages: h.hotelImages || collectHotelOnlyImages(h),
       roomImages: h.roomImages || collectRoomImages(h),
       roomImage: h.roomImage || collectRoomImages(h)[0] || '',
@@ -256,11 +261,11 @@ export function resolveQuoteHotels(quote) {
   const dayKeyed = (quote.selectedHotels || []).filter((h) => h.day && h.name);
   if (dayKeyed.length) {
     return dayKeyed
-      .map((h) => mapSelectedHotelRecord(h, lead, pkg))
+      .map((h) => mapSelectedHotelRecord(h, lead, pkg, travelStart))
       .sort((a, b) => a.day - b.day);
   }
 
-  const selectedRecords = (quote.selectedHotels || []).map((h) => mapSelectedHotelRecord(h, lead, pkg));
+  const selectedRecords = (quote.selectedHotels || []).map((h) => mapSelectedHotelRecord(h, lead, pkg, travelStart));
   const defaultHotel = selectedRecords[0];
   const itinerary = pkg.itinerary || [];
   const totalDays = Math.max(itinerary.length, Number(pkg.duration) || 1);
@@ -286,7 +291,7 @@ export function resolveQuoteHotels(quote) {
       if (!hotelName) return;
 
       const enrich = hotelByName.get(hotelName.toLowerCase()) || defaultHotel;
-      const dayDate = getDayDate(lead.travelDate, dayNum);
+      const dayDate = getDayDate(travelStart, dayNum);
 
       rows.push({
         day: dayNum,
@@ -302,7 +307,7 @@ export function resolveQuoteHotels(quote) {
         roomImage: enrich?.roomImage || enrich?.roomImages?.[0] || '',
         images: enrich?.images || [],
         checkIn: dayDate,
-        checkOut: getDayDate(lead.travelDate, dayNum + 1),
+        checkOut: getDayDate(travelStart, dayNum + 1),
         nights: 1,
         price: enrich?.price,
       });
@@ -311,7 +316,7 @@ export function resolveQuoteHotels(quote) {
 
   if (!rows.length && defaultHotel) {
     for (let night = 1; night <= defaultNights; night += 1) {
-      const dayDate = getDayDate(lead.travelDate, night);
+      const dayDate = getDayDate(travelStart, night);
       rows.push({
         day: night,
         date: dayDate,
@@ -326,7 +331,7 @@ export function resolveQuoteHotels(quote) {
         roomImage: defaultHotel.roomImage || '',
         images: defaultHotel.images || [],
         checkIn: dayDate,
-        checkOut: getDayDate(lead.travelDate, night + 1),
+        checkOut: getDayDate(travelStart, night + 1),
         nights: 1,
         price: defaultHotel.price,
       });
@@ -342,7 +347,7 @@ export function resolveQuoteHotels(quote) {
     seen.add(day.hotel);
     fromItinerary.push({
       day: day.day,
-      date: getDayDate(lead.travelDate, day.day),
+      date: getDayDate(travelStart, day.day),
       city: pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
       name: day.hotel,
       roomType: 'Deluxe',
@@ -503,11 +508,13 @@ export function resolveTravelerCounts(quote) {
   const lead = resolveQuoteLead(quote);
   const pkg = resolveQuotePackage(quote);
   const info = quote?.packageInfo || {};
-  const total = Number(lead.travelers) || 2;
+  const adults = Number(info.adults ?? lead.adults ?? pkg.adults);
+  const kids = Number(info.children ?? lead.children ?? pkg.kids ?? 0);
+  const total = Number(lead.travelers) || (Number.isFinite(adults) ? adults + kids : 2);
   return {
-    adults: info.adults ?? pkg.adults ?? Math.max(1, total - (pkg.kids || info.children || 0)),
-    kids: info.children ?? pkg.kids ?? 0,
-    rooms: pkg.rooms ?? Math.ceil((Number(info.adults) || total) / 2),
+    adults: Number.isFinite(adults) && adults > 0 ? adults : Math.max(1, total - kids),
+    kids: Number.isFinite(kids) ? kids : 0,
+    rooms: pkg.rooms ?? Math.ceil((Number.isFinite(adults) && adults > 0 ? adults : total) / 2),
     extraBeds: pkg.extraBeds ?? 0,
   };
 }

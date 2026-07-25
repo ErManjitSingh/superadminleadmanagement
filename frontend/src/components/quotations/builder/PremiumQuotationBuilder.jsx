@@ -65,6 +65,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialLeadId = searchParams.get('leadId');
+  const initialQuoteId = searchParams.get('quoteId');
   const pdfRef = useRef(null);
   const exportPdfRef = useRef(null);
   const pdfBlobCacheRef = useRef(null);
@@ -72,7 +73,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const [sharingPdf, setSharingPdf] = useState(false);
 
-  const b = useQuotationBuilder({ mode, initialLeadId });
+  const b = useQuotationBuilder({ mode, initialLeadId, initialQuoteId });
   const { user } = useAuth();
   const noHotel = isNoHotelMealPlan(b.state.packageInfo?.mealPlan);
   const visibleSteps = BUILDER_STEPS.filter((s) => !(noHotel && s.id === HOTEL_STEP));
@@ -311,6 +312,7 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                   onChange={b.updateBuilderUi}
                   destinations={b.hotelDestination ? [{ name: b.hotelDestination }] : []}
                   durationDays={b.state.packageInfo?.duration}
+                  travelDate={b.state.packageInfo?.travelDate}
                   catalogHotels={b.catalogHotels}
                   onCatalogHotelsChange={b.setCatalogHotels}
                 />

@@ -8,6 +8,14 @@ function fmtINR(n) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 }
 
+function pickPositiveAmount(...values) {
+  for (const value of values) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
 function modeLabel(mode) {
   const labels = {
     cash: 'Cash', upi: 'UPI', bank_transfer: 'Bank Transfer',
@@ -205,14 +213,20 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
 
   const receiptNumber = payment.receiptNumber || 'RCP';
   const isAdvance = !!payment.isFirstAdvance || payment.paymentType === 'advance';
-  const totalAmount = Number(booking.totalAmount) || 0;
-  const thisPayment = Number(payment.amount) || 0;
-  const advanceReceived = Number(
-    booking.advanceReceived
-      ?? paymentHistory.find((p) => p.isFirstAdvance)?.amount
-      ?? (isAdvance ? thisPayment : 0)
-  ) || 0;
-  const totalPaid = Number(booking.totalPaid ?? booking.advanceReceived ?? thisPayment) || 0;
+  const thisPayment = pickPositiveAmount(payment.amount, payment.paidAmount) || Number(payment.amount) || 0;
+  const totalAmount = pickPositiveAmount(
+    booking.totalAmount,
+    booking.packageCost,
+    payment.packageCost
+  );
+  const historyAdvance = paymentHistory.find((p) => p.isFirstAdvance)?.amount;
+  const advanceReceived = pickPositiveAmount(
+    booking.advanceReceived,
+    historyAdvance,
+    isAdvance ? thisPayment : 0,
+    thisPayment
+  );
+  const totalPaid = pickPositiveAmount(booking.totalPaid, booking.advanceReceived, thisPayment) || thisPayment;
   const remaining = Math.max(
     0,
     Number(booking.remainingBalance ?? booking.pendingAmount ?? (totalAmount - totalPaid)) || 0

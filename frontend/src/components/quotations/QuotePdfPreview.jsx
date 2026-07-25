@@ -82,6 +82,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const destination =
     packageInfo.destination || pkg.routing || pkg.destination || lead.destination || '—';
   const travelDate = packageInfo.travelDate || lead.travelDate;
+  const tourEndDate = duration > 0 ? getDayDate(travelDate, Math.max(1, duration)) : null;
   const displayTotal = resolveQuoteTotal(quote);
   const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
@@ -138,7 +139,12 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               {duration > 0 && (
                 <span>{nights} Nights / {duration} Days</span>
               )}
-              {travelDate && <span>{formatQuoteDate(travelDate)}</span>}
+              {travelDate && (
+                <span>
+                  {formatQuoteDateShort(travelDate)}
+                  {tourEndDate ? ` → ${formatQuoteDateShort(tourEndDate)}` : ''}
+                </span>
+              )}
               {lead.name && <span>For {lead.name}</span>}
             </div>
           </div>
@@ -172,7 +178,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             ['Package', packageName],
             ['Quote No.', quoteNo],
             ['Destination', destination],
-            ['Travel Date', formatQuoteDate(travelDate)],
+            ['Tour Start Date', formatQuoteDate(travelDate)],
+            ['Tour End Date', formatQuoteDate(tourEndDate)],
             ['Duration', duration ? `${duration} Days / ${nights} Nights` : '—'],
             ['Travellers', `Adults: ${pax.adults}${pax.kids ? ` · Kids: ${pax.kids}` : ''}`],
             ...(includesHotel ? [['Meal Plan', packageInfo.mealPlan || '—']] : []),
@@ -262,6 +269,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                         <strong>{dayHotel.name}</strong>
                         {dayHotel.roomType ? ` · ${dayHotel.roomType}` : ''}
                         {dayHotel.meals ? ` · ${dayHotel.meals}` : ''}
+                        {dayHotel.nights ? ` · ${dayHotel.nights} Night${dayHotel.nights > 1 ? 's' : ''}` : ''}
                         {dayHotel.city && dayHotel.city !== '—' ? ` · ${dayHotel.city}` : ''}
                       </p>
                     </div>

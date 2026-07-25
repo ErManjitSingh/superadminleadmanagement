@@ -104,6 +104,7 @@ export default function ManagerLeadDetailPage() {
         backHref="/sales-manager/leads/all"
         backLabel="Back to Leads"
         contactEndpoint="/leads"
+        quoteEditPath="/sales-manager/quotations/new"
         onCreateQuote={() => navigate(`/sales-manager/quotations/new?leadId=${id}`)}
         onContactLogged={loadLead}
         onEmailSent={loadLead}

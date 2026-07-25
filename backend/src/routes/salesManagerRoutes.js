@@ -43,6 +43,7 @@ router.post('/assign', assignLeads);
 router.get('/executives', listExecutives);
 router.get('/followups', listFollowUps);
 const {
+  getQuotation,
   getQuotationTemplates,
   autosaveQuotation,
   saveQuotationVersion,
@@ -55,7 +56,14 @@ router.post('/quotations/:id/autosave', autosaveQuotation);
 router.post('/quotations/:id/versions', saveQuotationVersion);
 router.post('/quotations/:id/versions/:versionNumber/restore', restoreQuotationVersion);
 router.post('/quotations/:id/pdf', uploadQuotationPdf);
-router.get('/quotations/:segment?', listQuotations);
+router.get('/quotations/:segment?', (req, res, next) => {
+  const seg = req.params.segment;
+  if (seg && /^[a-f\d]{24}$/i.test(seg)) {
+    req.params.id = seg;
+    return getQuotation(req, res, next);
+  }
+  return listQuotations(req, res, next);
+});
 router.post('/quotations', createQuotation);
 router.put('/quotations/:id', updateQuotation);
 router.get('/notifications', listNotifications);

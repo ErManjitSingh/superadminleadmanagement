@@ -399,11 +399,38 @@ async function getVoucherPdfBuffer(voucherId) {
   return { voucher, buffer };
 }
 
-async function sendVoucherEmail(voucherId, actor, { to } = {}) {
-  const { voucher, buffer } = await getVoucherPdfBuffer(voucherId);
+async function sendVoucherEmail(voucherId, actor, { to, showGuestPhone = true } = {}) {
+  const showPhone = showGuestPhone !== false;
+  await Voucher.findByIdAndUpdate(voucherId, {
+    $set: { 'payload.showGuestPhone': showPhone },
+  });
+  pdfBufferCache.delete(String(voucherId));
+
+  let voucher = await Voucher.findById(voucherId).lean();
+  if (!voucher) throw new Error('Voucher not found');
+  const booking = await Booking.findById(voucher.booking).lean();
+  if (!booking) throw new Error('Booking not found');
+
+  const fileMeta = await generateVoucherPdfFile(
+    { ...voucher, payload: { ...(voucher.payload || {}), showGuestPhone: showPhone } },
+    booking,
+    { ...(voucher.payload || {}), showGuestPhone: showPhone },
+  );
+  voucher = await Voucher.findByIdAndUpdate(
+    voucherId,
+    {
+      filePath: fileMeta.filePath,
+      fileName: fileMeta.fileName,
+      fileSize: fileMeta.fileSize,
+      pdfUrl: fileMeta.pdfUrl,
+      'payload.showGuestPhone': showPhone,
+    },
+    { new: true }
+  ).lean();
+
+  const buffer = readPdfBuffer(voucher.filePath);
   if (!buffer) throw new Error('PDF file could not be generated');
 
-  const booking = await Booking.findById(voucher.booking).lean();
   const recipient = to || booking?.customerEmail;
   if (!recipient) throw new Error('Recipient email is required');
 
@@ -482,10 +509,36 @@ function normalizeWaPhone(phone) {
   return digits;
 }
 
-async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
-  const { voucher, buffer } = await getVoucherPdfBuffer(voucherId);
-  if (!buffer) throw new Error('PDF file could not be generated');
+async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = true } = {}) {
+  const showPhone = showGuestPhone !== false;
+  pdfBufferCache.delete(String(voucherId));
+
+  let voucher = await Voucher.findById(voucherId).lean();
+  if (!voucher) throw new Error('Voucher not found');
   const booking = await Booking.findById(voucher.booking).lean();
+  if (!booking) throw new Error('Booking not found');
+
+  const nextPayload = { ...(voucher.payload || {}), showGuestPhone: showPhone };
+  const fileMeta = await generateVoucherPdfFile(
+    { ...voucher, payload: nextPayload },
+    booking,
+    nextPayload,
+  );
+  voucher = await Voucher.findByIdAndUpdate(
+    voucherId,
+    {
+      filePath: fileMeta.filePath,
+      fileName: fileMeta.fileName,
+      fileSize: fileMeta.fileSize,
+      pdfUrl: fileMeta.pdfUrl,
+      'payload.showGuestPhone': showPhone,
+    },
+    { new: true }
+  ).lean();
+
+  const buffer = readPdfBuffer(voucher.filePath);
+  if (!buffer) throw new Error('PDF file could not be generated');
+
   const recipientPhone = normalizeWaPhone(phone || booking?.customerPhone);
   if (!recipientPhone) throw new Error('Recipient phone is required');
 
@@ -502,7 +555,7 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone } = {}) {
           : `${typeLabel} booking voucher for ${booking.bookingNumber}.`,
         '',
         `Guest: ${booking.customerName}`,
-        `Phone: ${booking.customerPhone || '-'}`,
+        showPhone ? `Phone: ${booking.customerPhone || '-'}` : '',
         `Destination: ${booking.destination}`,
         `Travel Date: ${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
         voucher.type === 'hotel' ? `Hotel: ${payload.hotelName || payload.name || ''}` : '',

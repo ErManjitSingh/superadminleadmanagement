@@ -114,6 +114,7 @@ export default function ExecutiveLeadDetailPage() {
         backHref="/sales-executive/leads/all"
         backLabel="Back to Leads"
         contactEndpoint="/sales-executive/leads"
+        quoteEditPath="/sales-executive/quotations/new"
         onCreateQuote={() => navigate(`/sales-executive/quotations/new?leadId=${id}`)}
         onScheduleFollowUp={() => setFollowUpModalOpen(true)}
         onContactLogged={loadLead}

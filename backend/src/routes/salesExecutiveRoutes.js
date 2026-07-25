@@ -40,18 +40,20 @@ router.get('/followups', listFollowUps);
 router.post('/followups', createFollowUp);
 router.put('/followups/:id', updateFollowUp);
 
-router.get('/quotations', listQuotations);
-router.post('/quotations', createQuotation);
-router.put('/quotations/:id', updateQuotation);
-
 const {
+  getQuotation,
   getQuotationTemplates,
   autosaveQuotation,
   saveQuotationVersion,
   restoreQuotationVersion,
   uploadQuotationPdf,
 } = require('../controllers/quotationController');
+
 router.get('/quotations/templates', getQuotationTemplates);
+router.get('/quotations', listQuotations);
+router.post('/quotations', createQuotation);
+router.get('/quotations/:id', getQuotation);
+router.put('/quotations/:id', updateQuotation);
 router.post('/quotations/autosave', autosaveQuotation);
 router.post('/quotations/:id/autosave', autosaveQuotation);
 router.post('/quotations/:id/versions', saveQuotationVersion);
