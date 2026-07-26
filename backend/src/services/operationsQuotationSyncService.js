@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Quotation = require('../models/Quotation');
 const Lead = require('../models/Lead');
 const Booking = require('../models/Booking');
@@ -6,6 +7,8 @@ const {
   quotationOmitsHotels,
   stripHotelsFromPackageSnapshot,
 } = require('../utils/noHotelUtils');
+
+const VEHICLE_TYPES = new Set(['sedan', 'suv', 'innova', 'tempo_traveller', 'bus', 'other']);
 
 function addDays(date, days) {
   if (!date) return null;
@@ -21,6 +24,35 @@ function asTextValue(value) {
     return value.label || value.name || value.value || value.title || '';
   }
   return String(value);
+}
+
+/** Keep catalog ids ("hotel-1") and real ObjectIds as strings; drop empty. */
+function asIdString(value) {
+  if (value == null || value === '') return undefined;
+  if (typeof value === 'object' && value._id) return String(value._id);
+  const s = String(value).trim();
+  return s || undefined;
+}
+
+/** Only pass Mongo ObjectIds into ObjectId schema fields. */
+function asObjectIdOrUndefined(value) {
+  const s = asIdString(value);
+  if (!s) return undefined;
+  if (mongoose.Types.ObjectId.isValid(s) && String(new mongoose.Types.ObjectId(s)) === s) {
+    return s;
+  }
+  return undefined;
+}
+
+function asVehicleType(value) {
+  const raw = String(value || 'suv').toLowerCase().replace(/\s+/g, '_');
+  if (VEHICLE_TYPES.has(raw)) return raw;
+  if (raw.includes('innova')) return 'innova';
+  if (raw.includes('tempo') || raw.includes('traveller')) return 'tempo_traveller';
+  if (raw.includes('sedan') || raw.includes('dzire') || raw.includes('etios')) return 'sedan';
+  if (raw.includes('bus') || raw.includes('coach')) return 'bus';
+  if (raw.includes('suv') || raw.includes('ertiga') || raw.includes('xuv') || raw.includes('crysta')) return 'suv';
+  return 'other';
 }
 
 function mapQuoteItinerary(quotation, travelDate) {
@@ -77,13 +109,14 @@ function mapQuoteHotels(quotation, travelDate) {
       const checkIn = travelDate && h.day ? addDays(travelDate, Number(h.day) - 1) : h.checkIn || null;
       const nights = Number(h.nights) || 1;
       const checkOut = checkIn ? addDays(checkIn, nights) : h.checkOut || null;
+      const roomType = asTextValue(h.room?.name || h.roomType) || (typeof h.room === 'string' ? h.room : '');
 
       return {
-        hotelId: h.hotelId || undefined,
+        hotelId: asIdString(h.hotelId) || '',
         hotelName: h.name || h.hotelName || '',
         destination: h.location || h.city || h.destination || '',
-        category: h.category || '',
-        roomType: h.room?.name || h.room || h.roomType || '',
+        category: asTextValue(h.category),
+        roomType,
         mealPlan: asTextValue(h.mealPlan),
         day: h.day,
         nights,
@@ -98,11 +131,11 @@ function mapQuoteHotels(quotation, travelDate) {
   // Legacy quotes without selectedHotels field: use package snapshot hotels
   const snap = quotation?.packageSnapshot || {};
   return (snap.hotels || []).map((h) => ({
-    hotelId: h.hotelId || undefined,
+    hotelId: asIdString(h.hotelId) || '',
     hotelName: h.name || h.hotelName || '',
     destination: h.location || h.destination || '',
-    category: h.category || '',
-    roomType: h.roomType || h.room?.name || '',
+    category: asTextValue(h.category),
+    roomType: asTextValue(h.roomType || h.room?.name),
     mealPlan: asTextValue(h.mealPlan),
     status: 'pending',
   }));
@@ -112,10 +145,10 @@ function mapQuoteTransport(quotation) {
   const selected = quotation?.selectedCabs || [];
   // Operations keeps a single cab voucher for the whole trip
   return selected.slice(0, 1).map((t) => ({
-    vendorId: t.vendorId || undefined,
+    vendorId: asObjectIdOrUndefined(t.vendorId),
     vendorName: t.vendorName || t.vendor || '',
     vendorPhone: t.vendorPhone || '',
-    vehicleType: (t.vehicleType || t.type || 'suv').toLowerCase().replace(/\s+/g, '_'),
+    vehicleType: asVehicleType(t.vehicleType || t.type),
     pickupLocation: t.pickup || t.pickupLocation || '',
     dropLocation: t.drop || t.dropLocation || '',
     driverName: t.driverName || '',

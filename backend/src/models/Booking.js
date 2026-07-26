@@ -21,7 +21,8 @@ const BOOKING_PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 
 const hotelAssignmentSchema = new mongoose.Schema(
   {
-    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel' },
+    // String: company Hotel ObjectIds AND external catalog ids (e.g. "hotel-1")
+    hotelId: { type: String, trim: true, default: '' },
     hotelName: String,
     destination: String,
     category: String,
@@ -88,7 +89,8 @@ const activityAssignmentSchema = new mongoose.Schema(
 
 const itineraryDayHotelSchema = new mongoose.Schema(
   {
-    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel' },
+    // String: company Hotel ObjectIds AND external catalog ids
+    hotelId: { type: String, trim: true, default: '' },
     hotelName: { type: String, trim: true, default: '' },
     destination: { type: String, trim: true, default: '' },
     location: { type: String, trim: true, default: '' },

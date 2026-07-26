@@ -163,21 +163,28 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   let payload = extractPayload(booking, normalizedType, assignmentIndex);
 
   if (normalizedType === 'hotel' && payload?.hotelId) {
-    const Hotel = require('../models/Hotel');
-    const catalog = await Hotel.findById(payload.hotelId)
-      .select('name image phone email address location category mealPlan')
-      .lean();
-    if (catalog) {
-      payload = {
-        ...payload,
-        hotelName: payload.hotelName || catalog.name,
-        image: payload.image || catalog.image,
-        hotelPhone: payload.hotelPhone || catalog.phone,
-        hotelEmail: payload.hotelEmail || catalog.email,
-        address: payload.address || catalog.address || catalog.location,
-        starRating: payload.starRating || catalog.category,
-        mealPlan: payload.mealPlan || catalog.mealPlan,
-      };
+    const mongoose = require('mongoose');
+    const hotelId = String(payload.hotelId);
+    const isObjectId =
+      mongoose.Types.ObjectId.isValid(hotelId) &&
+      String(new mongoose.Types.ObjectId(hotelId)) === hotelId;
+    if (isObjectId) {
+      const Hotel = require('../models/Hotel');
+      const catalog = await Hotel.findById(hotelId)
+        .select('name image phone email address location category mealPlan')
+        .lean();
+      if (catalog) {
+        payload = {
+          ...payload,
+          hotelName: payload.hotelName || catalog.name,
+          image: payload.image || catalog.image,
+          hotelPhone: payload.hotelPhone || catalog.phone,
+          hotelEmail: payload.hotelEmail || catalog.email,
+          address: payload.address || catalog.address || catalog.location,
+          starRating: payload.starRating || catalog.category,
+          mealPlan: payload.mealPlan || catalog.mealPlan,
+        };
+      }
     }
   }
 
