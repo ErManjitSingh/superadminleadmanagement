@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import {
-  Eye, Loader2, Mail, MessageCircle, RefreshCw, Sparkles, MapPin, Calendar,
+  Eye, Loader2, Mail, MessageCircle, RefreshCw, Sparkles, MapPin, Calendar, ChevronRight,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
 import { VOUCHER_STATUS_CONFIG, VENDOR_STATUS_CONFIG } from '../constants';
-import { getVoucherTypeImage } from '../bookings/bookingDetailUtils';
 import VoucherSendModal from './VoucherSendModal';
 import { previewVoucherPdf, regenerateVoucher, generateVoucher } from '../../../services/operationsVoucherApi';
 import { formatDate } from '../operationsUtils';
@@ -22,6 +21,7 @@ export default function VoucherCompactCard({
   generating,
   onRefresh,
   onVoucherPatched,
+  isLast = false,
 }) {
   const [sendChannel, setSendChannel] = useState(null);
   const [previewing, setPreviewing] = useState(false);
@@ -30,32 +30,37 @@ export default function VoucherCompactCard({
   const Icon = meta?.icon;
   const statusCfg = voucher
     ? (VOUCHER_STATUS_CONFIG[voucher.status] || VOUCHER_STATUS_CONFIG.issued)
-    : { label: 'Not Generated', className: 'bg-amber-500/15 text-amber-700' };
+    : { label: 'Pending', className: 'bg-amber-500/15 text-amber-700' };
 
   const hotelFromBooking = hotelAssignment || booking?.hotels?.[assignmentIndex];
+  const ready = !!voucher;
 
   const title = (() => {
     if (!voucher) {
-      if (type === 'hotel') return hotelFromBooking?.hotelName || hotelFromBooking?.name || 'Assign Hotel';
-      return booking?.transport?.[0]?.vehicleType?.replace(/_/g, ' ') || 'Assign Cab';
+      if (type === 'hotel') return hotelFromBooking?.hotelName || hotelFromBooking?.name || 'Hotel not assigned';
+      return booking?.transport?.[0]?.vehicleType?.replace(/_/g, ' ') || 'Cab not assigned';
     }
     if (type === 'hotel') return payload.hotelName || 'Hotel';
     return payload.vehicleDisplayName || payload.vehicleName || payload.vehicleType?.replace(/_/g, ' ') || 'Cab';
   })();
 
-  const subtitle = type === 'hotel'
-    ? (
-      [
+  const details = type === 'hotel'
+    ? [
         hotelFromBooking?.day ? `Day ${hotelFromBooking.day}` : null,
         payload.roomType || hotelFromBooking?.roomType,
         payload.mealPlan || hotelFromBooking?.mealPlan,
         payload.address || hotelFromBooking?.destination || booking?.destination,
-      ].filter(Boolean).join(' · ') || booking?.destination
-    )
-    : (payload.driverName ? `Driver: ${payload.driverName}` : payload.pickupLocation || booking?.destination);
+      ].filter(Boolean)
+    : [
+        payload.driverName ? `Driver: ${payload.driverName}` : null,
+        payload.pickupLocation || booking?.destination,
+        payload.vehicleNumber ? `Vehicle ${payload.vehicleNumber}` : null,
+      ].filter(Boolean);
 
-  const image = voucher?.coverImage || payload.image || getVoucherTypeImage(type);
   const canSend = voucher && ['hotel', 'transport'].includes(type);
+  const vendorCfg = voucher?.vendorStatus
+    ? (VENDOR_STATUS_CONFIG[voucher.vendorStatus] || VENDOR_STATUS_CONFIG.pending)
+    : null;
 
   const handleView = async () => {
     if (!voucher?._id) return;
@@ -78,7 +83,6 @@ export default function VoucherCompactCard({
         try {
           updated = await regenerateVoucher(voucher._id);
         } catch {
-          // Archived / stale id — create a fresh voucher for this slot
           updated = null;
         }
       }
@@ -93,7 +97,7 @@ export default function VoucherCompactCard({
         try {
           await previewVoucherPdf(updated._id);
         } catch {
-          /* preview optional after regen */
+          /* optional */
         }
         toast.success('Voucher regenerated');
       } else {
@@ -107,77 +111,82 @@ export default function VoucherCompactCard({
     }
   };
 
+  const busy = previewing || regenerating || generating;
+
   return (
     <>
-      <article className={cn(
-        'relative overflow-hidden rounded-2xl border border-subtle bg-surface shadow-lg',
-        meta?.ring && `ring-1 ${meta.ring}`,
-      )}
+      <article
+        className={cn(
+          'group flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 px-4 py-3.5 transition-colors',
+          'hover:bg-slate-50/80 dark:hover:bg-white/[0.03]',
+          !isLast && 'border-b border-subtle',
+          !ready && 'bg-amber-50/30 dark:bg-amber-950/10',
+        )}
       >
-        <div className={cn('relative h-32 bg-gradient-to-br text-white', meta?.gradient || 'from-violet-600 to-indigo-700')}>
-          <img src={image} alt={title} className="absolute inset-0 h-full w-full object-cover opacity-35 mix-blend-overlay" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-          <div className="relative flex h-full flex-col justify-between p-4">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2">
-                {Icon && (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                )}
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">{meta?.label}</p>
-                  {voucher?.voucherNumber && (
-                    <p className="font-mono text-[11px] font-bold opacity-95">{voucher.voucherNumber}</p>
-                  )}
-                </div>
-              </div>
-              <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-bold backdrop-blur-sm', statusCfg.className)}>
+        {/* Icon + identity */}
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div
+            className={cn(
+              'mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-sm',
+              'bg-gradient-to-br',
+              meta?.gradient || 'from-violet-600 to-indigo-700',
+            )}
+          >
+            {Icon ? <Icon className="h-5 w-5" strokeWidth={2} /> : null}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-content-muted">
+                {meta?.label}
+              </p>
+              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', statusCfg.className)}>
                 {statusCfg.label}
               </span>
+              {vendorCfg && (
+                <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-bold', vendorCfg.className)}>
+                  Vendor: {vendorCfg.label}
+                </span>
+              )}
             </div>
-            <div>
-              <h4 className="text-lg font-black leading-tight line-clamp-1">{title}</h4>
-              {subtitle && <p className="text-xs opacity-90 mt-0.5 line-clamp-1">{subtitle}</p>}
+
+            <h4 className="mt-0.5 text-sm font-bold text-content-primary truncate capitalize">
+              {title}
+            </h4>
+
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-content-muted">
+              {voucher?.voucherNumber && (
+                <span className="font-mono font-semibold text-content-secondary">
+                  {voucher.voucherNumber}
+                  {voucher.version > 1 ? ` · v${voucher.version}` : ''}
+                </span>
+              )}
+              {details.slice(0, 3).map((d) => (
+                <span key={d} className="truncate max-w-[180px]">{d}</span>
+              ))}
+              <span className="inline-flex items-center gap-1 truncate">
+                <MapPin className="w-3 h-3 shrink-0" />
+                {booking?.destination || '—'}
+              </span>
+              {booking?.travelDate && (
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="w-3 h-3 shrink-0" />
+                  {formatDate(booking.travelDate)}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-xl bg-surface-muted/60 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase text-content-muted flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> Destination
-              </p>
-              <p className="font-semibold text-content-primary mt-0.5 truncate">{booking?.destination || '—'}</p>
-            </div>
-            <div className="rounded-xl bg-surface-muted/60 px-3 py-2">
-              <p className="text-[10px] font-bold uppercase text-content-muted flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> Travel
-              </p>
-              <p className="font-semibold text-content-primary mt-0.5 truncate">
-                {booking?.travelDate ? formatDate(booking.travelDate) : '—'}
-              </p>
-            </div>
-          </div>
-
-          {voucher?.vendorStatus && canSend && (
-            <span className={cn(
-              'inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold',
-              (VENDOR_STATUS_CONFIG[voucher.vendorStatus] || VENDOR_STATUS_CONFIG.pending).className,
-            )}
-            >
-              Vendor: {(VENDOR_STATUS_CONFIG[voucher.vendorStatus] || VENDOR_STATUS_CONFIG.pending).label}
-            </span>
-          )}
-
-          {voucher ? (
-            <div className="flex flex-wrap gap-2">
+        {/* Actions */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:justify-end shrink-0 pl-14 sm:pl-0">
+          {ready ? (
+            <>
               <Button
                 size="sm"
                 variant="outline"
-                className="flex-1 min-w-[100px] h-9 rounded-xl text-xs gap-1.5 font-semibold"
-                disabled={previewing || regenerating}
+                className="h-8 rounded-lg text-xs gap-1.5 font-semibold px-3"
+                disabled={busy}
                 onClick={handleView}
               >
                 {previewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
@@ -186,19 +195,19 @@ export default function VoucherCompactCard({
               <Button
                 size="sm"
                 variant="outline"
-                className="h-9 rounded-xl text-xs gap-1 px-3"
-                disabled={regenerating || previewing}
+                className="h-8 rounded-lg text-xs gap-1 px-2.5"
+                disabled={busy}
                 onClick={handleRegenerate}
                 title="Regenerate PDF"
               >
                 {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                Regen
               </Button>
               {canSend && (
                 <>
                   <Button
                     size="sm"
-                    className="flex-1 min-w-[110px] h-9 rounded-xl text-xs gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="h-8 rounded-lg text-xs gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white px-3"
+                    disabled={busy}
                     onClick={() => setSendChannel('whatsapp')}
                   >
                     <MessageCircle className="w-3.5 h-3.5" />
@@ -207,7 +216,8 @@ export default function VoucherCompactCard({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 rounded-xl text-xs gap-1 px-3"
+                    className="h-8 rounded-lg text-xs gap-1 px-2.5"
+                    disabled={busy}
                     onClick={() => setSendChannel('email')}
                     title="Send Email"
                   >
@@ -215,16 +225,20 @@ export default function VoucherCompactCard({
                   </Button>
                 </>
               )}
-            </div>
+            </>
           ) : (
             <Button
               size="sm"
-              className={cn('w-full h-10 rounded-xl text-sm font-bold gap-2 text-white bg-gradient-to-r', meta?.gradient || 'from-violet-600 to-indigo-600')}
-              disabled={generating}
+              className={cn(
+                'h-8 rounded-lg text-xs font-bold gap-1.5 text-white bg-gradient-to-r px-3',
+                meta?.gradient || 'from-violet-600 to-indigo-600',
+              )}
+              disabled={busy}
               onClick={onGenerate}
             >
-              {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {type === 'transport' ? 'Generate Cab Itinerary Voucher' : 'Generate Voucher'}
+              {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {type === 'transport' ? 'Generate Cab Voucher' : 'Generate Voucher'}
+              <ChevronRight className="w-3.5 h-3.5 opacity-80" />
             </Button>
           )}
         </div>
