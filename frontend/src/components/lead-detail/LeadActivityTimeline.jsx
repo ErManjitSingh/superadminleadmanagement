@@ -55,6 +55,7 @@ export default function LeadActivityTimeline({
   const [autoPrintQuote, setAutoPrintQuote] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(null);
   const [fetchedQuotes, setFetchedQuotes] = useState([]);
+  const [quotesLookupDone, setQuotesLookupDone] = useState(false);
   const pdfRef = useRef(null);
   const timelineRef = useRef(null);
 
@@ -68,9 +69,10 @@ export default function LeadActivityTimeline({
     return [...withQuotes].sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [activities, quoteList]);
 
+  const hasSavedQuote = quoteList.length > 0;
   const hasQuoteActivity = sorted.some((a) => a.type?.startsWith('quotation_'));
-  const showTimelineEditBar = Boolean(quoteEditPath && leadId && (hasQuoteActivity || quoteList.length));
-  const editBarLabel = quoteList.length ? 'Edit Quotation' : 'Create Quotation';
+  const showTimelineEditBar = Boolean(quoteEditPath && leadId && (hasQuoteActivity || hasSavedQuote));
+  const editBarLabel = hasSavedQuote ? 'Edit Quotation' : 'Create Quotation';
 
   useEffect(() => {
     if (!leadId || window.location.hash !== '#activity-timeline') return undefined;
@@ -81,22 +83,67 @@ export default function LeadActivityTimeline({
   }, [leadId, loading]);
 
   useEffect(() => {
-    if (!leadId || quotations?.length) {
+    if (!leadId) {
       setFetchedQuotes([]);
+      setQuotesLookupDone(false);
+      return undefined;
+    }
+
+    if (quotations?.length) {
+      setFetchedQuotes([]);
+      setQuotesLookupDone(true);
       return undefined;
     }
 
     let cancelled = false;
+    setQuotesLookupDone(false);
+
     (async () => {
+      let items = [];
       try {
         const { data } = await API.get(`${relatedBasePath}/${leadId}/quotations`, {
           params: { page: 1, limit: 20 },
           skipSuccessToast: true,
           skipErrorToast: true,
         });
-        if (!cancelled) setFetchedQuotes(unwrapQuotations(data));
+        items = unwrapQuotations(data);
       } catch {
-        if (!cancelled) setFetchedQuotes([]);
+        items = [];
+      }
+
+      if (!items.length) {
+        try {
+          const bookingRes = await getLeadBooking(leadId);
+          const bookingQuoteId = idOf(bookingRes?.booking?.quotation);
+          if (bookingQuoteId) {
+            const { data } = await API.get(`/quotations/${bookingQuoteId}`, {
+              skipSuccessToast: true,
+              skipErrorToast: true,
+            });
+            const q = data?.quotation || data;
+            if (q?._id) items = [q];
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!items.length) {
+        try {
+          const { data } = await API.get('/quotations', {
+            params: { lead: leadId, leadId, page: 1, limit: 20 },
+            skipSuccessToast: true,
+            skipErrorToast: true,
+          });
+          items = unwrapQuotations(data);
+        } catch {
+          items = [];
+        }
+      }
+
+      if (!cancelled) {
+        setFetchedQuotes(items);
+        setQuotesLookupDone(true);
       }
     })();
 
@@ -324,10 +371,18 @@ export default function LeadActivityTimeline({
                     : null;
                   const quotationId =
                     idOf(quote?._id || quote?.id) || idOf(item.meta?.quotationId);
-                  // Always show quote actions on quotation_* rows when edit path exists —
-                  // id can be resolved lazily on click if meta/list was empty.
-                  const canEditQuote = Boolean(isQuoteActivity && quoteEditPath && leadId);
-                  const canOpenQuote = Boolean(isQuoteActivity && (quotationId || canEditQuote || quoteList.length));
+                  const hasThisQuote = Boolean(quotationId || (isQuoteActivity && hasSavedQuote));
+                  // View/Edit/PDF only when a real Quotation document exists.
+                  // Status-only "Quotation Sent" (no PDF quote) gets Create instead.
+                  const canOpenQuote = Boolean(isQuoteActivity && hasThisQuote);
+                  const canEditQuote = Boolean(canOpenQuote && quoteEditPath && leadId);
+                  const canCreateQuote = Boolean(
+                    isQuoteActivity
+                    && quoteEditPath
+                    && leadId
+                    && quotesLookupDone
+                    && !hasThisQuote
+                  );
                   const showReceiptActions = canOpenReceipt(item);
 
                   return (
@@ -374,7 +429,7 @@ export default function LeadActivityTimeline({
                                     onClick={() => editQuotation(item, quote)}
                                     className="rounded-lg h-7 gap-1 text-[11px] font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0 shadow-sm"
                                   >
-                                    <Pencil className="w-3 h-3" /> {quoteList.length || quotationId ? 'Edit' : 'Create'}
+                                    <Pencil className="w-3 h-3" /> Edit
                                   </Button>
                                 )}
                                 <Button
@@ -388,6 +443,17 @@ export default function LeadActivityTimeline({
                                   <Download className="w-3 h-3" /> PDF
                                 </Button>
                               </>
+                            )}
+                            {canCreateQuote && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={quoteLoading === item.id}
+                                onClick={() => editQuotation(item, quote)}
+                                className="rounded-lg h-7 gap-1 text-[11px] font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0 shadow-sm"
+                              >
+                                <Pencil className="w-3 h-3" /> Create Quotation
+                              </Button>
                             )}
                             {showReceiptActions && (
                               <>
