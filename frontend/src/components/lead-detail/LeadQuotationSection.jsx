@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, XCircle, Eye, Pencil, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Eye, Loader2 } from 'lucide-react';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import { formatINR } from '../quotations/quotationUtils';
 import { resolveQuotationAmount } from './leadDetailData';
@@ -8,7 +7,6 @@ import { DETAIL_CARD } from './leadDetailUtils';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import API from '../../api/axios';
-import { toast } from '../../context/ToastContext';
 
 const statusConfig = {
   sent: { label: 'Sent', icon: Clock, class: 'text-amber-700 bg-amber-50 border-amber-100' },
@@ -18,14 +16,7 @@ const statusConfig = {
   draft: { label: 'Draft', icon: Clock, class: 'text-slate-600 bg-slate-50 border-slate-100' },
 };
 
-export default function LeadQuotationSection({
-  quotations = [],
-  compact = false,
-  loading = false,
-  leadId = '',
-  quoteEditPath = '',
-}) {
-  const navigate = useNavigate();
+export default function LeadQuotationSection({ quotations = [], compact = false, loading = false }) {
   const [pdfQuote, setPdfQuote] = useState(null);
   const [loadingId, setLoadingId] = useState(null);
   const pdfRef = useRef(null);
@@ -48,18 +39,6 @@ export default function LeadQuotationSection({
     } finally {
       setLoadingId(null);
     }
-  };
-
-  const openEdit = (q) => {
-    const quotationId = q?._id || q?.id;
-    if (!quotationId || !quoteEditPath) {
-      toast.error('Edit path available nahi hai.');
-      return;
-    }
-    const params = new URLSearchParams();
-    if (leadId) params.set('leadId', leadId);
-    params.set('quoteId', quotationId);
-    navigate(`${quoteEditPath}?${params.toString()}`);
   };
 
   if (loading) {
@@ -93,7 +72,6 @@ export default function LeadQuotationSection({
       <div className={`${DETAIL_CARD} overflow-hidden`}>
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Quotations</h3>
-          <p className="text-xs text-content-muted mt-0.5">View PDF or edit with previous data prefilled</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -143,7 +121,7 @@ export default function LeadQuotationSection({
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      <div className="flex justify-end">
                         <Button
                           type="button"
                           variant="outline"
@@ -155,17 +133,6 @@ export default function LeadQuotationSection({
                           {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
                           View
                         </Button>
-                        {quoteEditPath && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openEdit(q)}
-                            className="rounded-lg h-7 gap-1 text-[11px] text-sky-700 border-sky-200 bg-sky-50 hover:bg-sky-100"
-                          >
-                            <Pencil className="w-3 h-3" /> Edit
-                          </Button>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -181,14 +148,6 @@ export default function LeadQuotationSection({
         open={!!pdfQuote}
         onClose={() => setPdfQuote(null)}
         pdfRef={pdfRef}
-        onEdit={
-          quoteEditPath && pdfQuote
-            ? () => {
-                openEdit(pdfQuote);
-                setPdfQuote(null);
-              }
-            : undefined
-        }
       />
     </>
   );

@@ -132,16 +132,16 @@ export default function LeadActivityTimeline({
   };
 
   const openQuotation = async (item, quote, autoPrint = false) => {
-    const quotationId = item?.meta?.quotationId;
+    const quotationId = quote?._id || item?.meta?.quotationId;
     setQuoteLoading(item.id);
     try {
-      let resolved = quote;
-      if (!resolved && quotationId) {
+      let resolved = quote?._id && quote?.packageSnapshot ? quote : null;
+      if (quotationId) {
         const { data } = await API.get(`/quotations/${quotationId}`, {
           skipSuccessToast: true,
           skipErrorToast: true,
         });
-        resolved = data;
+        resolved = data?.quotation || data || resolved || quote;
       }
       if (!resolved?._id) {
         toast.error('Quotation PDF available nahi hai.');
@@ -193,7 +193,9 @@ export default function LeadActivityTimeline({
                   const quote = item.type?.startsWith('quotation_')
                     ? findQuotationForActivity(item, quotations)
                     : null;
-                  const canOpenQuote = Boolean(quote?._id || item.meta?.quotationId);
+                  const quotationId = quote?._id || item.meta?.quotationId;
+                  const canOpenQuote = Boolean(quotationId);
+                  const canEditQuote = Boolean(quoteEditPath && leadId && quotationId);
                   const showReceiptActions = canOpenReceipt(item);
 
                   return (
@@ -232,13 +234,12 @@ export default function LeadActivityTimeline({
                                     : <Eye className="w-3 h-3" />}
                                   View
                                 </Button>
-                                {quoteEditPath && (
+                                {canEditQuote && (
                                   <Button
                                     type="button"
-                                    variant="outline"
                                     size="sm"
                                     onClick={() => editQuotation(item, quote)}
-                                    className="rounded-lg h-7 gap-1 text-[11px] text-sky-700 border-sky-200 bg-sky-50 hover:bg-sky-100"
+                                    className="rounded-lg h-7 gap-1 text-[11px] font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0 shadow-sm"
                                   >
                                     <Pencil className="w-3 h-3" /> Edit
                                   </Button>
@@ -311,15 +312,6 @@ export default function LeadActivityTimeline({
         pdfRef={pdfRef}
         autoPrint={autoPrintQuote}
         onAutoPrintDone={() => setAutoPrintQuote(false)}
-        onEdit={
-          quoteEditPath && pdfQuote
-            ? () => {
-                editQuotation({ meta: { quotationId: pdfQuote._id } }, pdfQuote);
-                setPdfQuote(null);
-                setAutoPrintQuote(false);
-              }
-            : undefined
-        }
       />
 
       <ReceiptPdfPreviewModal
