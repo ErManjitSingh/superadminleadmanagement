@@ -6,6 +6,7 @@ import {
   ACTIVITY_CONFIG,
   ensureQuotationTimelineActivities,
   findQuotationForActivity,
+  isStatusOnlyQuotationActivity,
 } from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import ReceiptPdfPreviewModal from '../payments/ReceiptPdfPreviewModal';
@@ -78,11 +79,22 @@ export default function LeadActivityTimeline({
 
   const sorted = useMemo(() => {
     const withQuotes = ensureQuotationTimelineActivities(activities, quoteList);
-    return [...withQuotes].sort((a, b) => new Date(b.date) - new Date(a.date));
+    const normalized = withQuotes.map((item) => {
+      // Old status-dropdown events were typed as quotation_sent — show as Status Changed.
+      if (!isStatusOnlyQuotationActivity(item)) return item;
+      return {
+        ...item,
+        type: 'status_changed',
+        title: 'Status Changed',
+      };
+    });
+    return [...normalized].sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [activities, quoteList]);
 
   const hasSavedQuote = quoteList.length > 0;
-  const hasQuoteActivity = sorted.some((a) => a.type?.startsWith('quotation_'));
+  const hasQuoteActivity = sorted.some(
+    (a) => a.type?.startsWith('quotation_') && !isStatusOnlyQuotationActivity(a)
+  );
   const showTimelineEditBar = Boolean(quoteEditPath && leadId && (hasQuoteActivity || hasSavedQuote));
   const editBarLabel = hasSavedQuote ? 'Edit Quotation' : 'Create Quotation';
 
@@ -354,15 +366,15 @@ export default function LeadActivityTimeline({
                   const cfg = ACTIVITY_CONFIG[item.type] || ACTIVITY_CONFIG.status_changed;
                   const Icon = cfg.icon;
                   const { date, time } = formatActivityDate(item.date);
-                  const isQuoteActivity = item.type?.startsWith('quotation_');
+                  const isQuoteActivity =
+                    item.type?.startsWith('quotation_') && !isStatusOnlyQuotationActivity(item);
                   const quote = isQuoteActivity
                     ? findQuotationForActivity(item, quoteList)
                     : null;
                   const quotationId =
                     idOf(quote?._id || quote?.id) || idOf(item.meta?.quotationId);
                   const hasThisQuote = Boolean(quotationId || (isQuoteActivity && hasSavedQuote));
-                  // View/Edit/PDF only when a real Quotation document exists.
-                  // Status-only "Quotation Sent" (no PDF quote) gets Create instead.
+                  // Real Quotation documents only — status "quotation_sent" is not a PDF quote.
                   const canOpenQuote = Boolean(isQuoteActivity && hasThisQuote);
                   const canEditQuote = Boolean(canOpenQuote && quoteEditPath && leadId);
                   const canCreateQuote = Boolean(

@@ -80,6 +80,15 @@ function formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status, sent =
   return `${quoteNumber} · ${pkgName} · ${price} · ${(status || 'draft').replace(/_/g, ' ')}`;
 }
 
+/** Status dropdown "quotation_sent" was logged as Quotation Sent — that is NOT a PDF quotation. */
+export function isStatusOnlyQuotationActivity(item) {
+  if (!item?.type?.startsWith('quotation_')) return false;
+  if (item.meta?.quotationId) return false;
+  if (item.meta?.from != null && item.meta?.to != null) return true;
+  const notes = String(item.notes || item.description || item.title || '');
+  return /^Status changed from /i.test(notes) || /^Status:\s*Quotation Sent/i.test(notes);
+}
+
 export function findQuotationForActivity(item, quotations = []) {
   const id = item?.meta?.quotationId;
   const num = item?.meta?.quoteNumber;
@@ -91,7 +100,7 @@ export function findQuotationForActivity(item, quotations = []) {
   );
   if (matched) return matched;
   // Status / legacy quote rows often lack meta — still bind to a real quotation.
-  if (!id && !num && item?.type?.startsWith('quotation_')) {
+  if (!id && !num && item?.type?.startsWith('quotation_') && !isStatusOnlyQuotationActivity(item)) {
     if (item.type === 'quotation_sent') {
       return (
         quotations.find((q) => q.sentAt || ['sent', 'approved'].includes(q.status)) ||
@@ -277,7 +286,7 @@ export function getLeadDetailData(lead) {
       contacted: 'status_changed',
       working_progress: 'status_changed',
       follow_up: 'status_changed',
-      quotation_sent: 'quotation_sent',
+      quotation_sent: 'status_changed',
       negotiation: 'status_changed',
       converted: 'lead_converted',
       lost: 'lead_lost',
@@ -291,6 +300,10 @@ export function getLeadDetailData(lead) {
       user: lead.assignedTo?.name || agent,
       date: lead.statusReasonUpdatedAt || lead.updatedAt || created,
       notes: lead.statusReason ? `${statusNotes} — ${lead.statusReason}` : statusNotes,
+      meta:
+        lead.status === 'quotation_sent'
+          ? { from: 'new', to: 'quotation_sent', statusOnly: true }
+          : undefined,
     });
   }
 

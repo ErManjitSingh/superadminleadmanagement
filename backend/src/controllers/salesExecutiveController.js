@@ -188,7 +188,6 @@ const updateLead = asyncHandler(async (req, res) => {
         lost: 'lead_lost',
         booked_from_another_company: 'lead_lost',
         converted: 'lead_converted',
-        quotation_sent: 'quotation_sent',
         reactivated: 'lead_reactivated',
       };
       const statusLabel = status.replace(/_/g, ' ');
@@ -270,7 +269,6 @@ const updateLead = asyncHandler(async (req, res) => {
       lost: 'lead_lost',
       booked_from_another_company: 'lead_lost',
       converted: 'lead_converted',
-      quotation_sent: 'quotation_sent',
       reactivated: 'lead_reactivated',
     };
     const statusLabel = data.status.replace(/_/g, ' ');
