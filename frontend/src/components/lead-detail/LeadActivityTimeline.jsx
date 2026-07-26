@@ -70,6 +70,7 @@ export default function LeadActivityTimeline({
 
   const hasQuoteActivity = sorted.some((a) => a.type?.startsWith('quotation_'));
   const showTimelineEditBar = Boolean(quoteEditPath && leadId && (hasQuoteActivity || quoteList.length));
+  const editBarLabel = quoteList.length ? 'Edit Quotation' : 'Create Quotation';
 
   useEffect(() => {
     if (!leadId || window.location.hash !== '#activity-timeline') return undefined;
@@ -201,10 +202,36 @@ export default function LeadActivityTimeline({
       });
       const items = unwrapQuotations(data);
       setFetchedQuotes(items);
-      return idOf(items[0]?._id || items[0]?.id);
+      const fromLeadApi = idOf(items[0]?._id || items[0]?.id);
+      if (fromLeadApi) return fromLeadApi;
     } catch {
-      return '';
+      // continue to booking / global list fallbacks
     }
+
+    try {
+      const bookingRes = await getLeadBooking(leadId);
+      const bookingQuoteId = idOf(bookingRes?.booking?.quotation);
+      if (bookingQuoteId) return bookingQuoteId;
+    } catch {
+      // ignore
+    }
+
+    try {
+      const { data } = await API.get('/quotations', {
+        params: { lead: leadId, leadId, page: 1, limit: 20 },
+        skipSuccessToast: true,
+        skipErrorToast: true,
+      });
+      const items = unwrapQuotations(data);
+      if (items.length) {
+        setFetchedQuotes(items);
+        return idOf(items[0]?._id || items[0]?.id);
+      }
+    } catch {
+      // ignore
+    }
+
+    return '';
   };
 
   const openQuotation = async (item, quote, autoPrint = false) => {
@@ -220,7 +247,7 @@ export default function LeadActivityTimeline({
         resolved = data?.quotation || data || resolved || quote;
       }
       if (!resolved?._id) {
-        toast.error('Quotation PDF available nahi hai.');
+        toast.error('Is lead pe quotation PDF nahi hai. Pehle quotation create karein.');
         return;
       }
       setAutoPrintQuote(autoPrint);
@@ -240,11 +267,13 @@ export default function LeadActivityTimeline({
     setQuoteLoading(item?.id || 'edit-bar');
     try {
       const quotationId = await resolveQuotationId(item, quote);
-      if (!quotationId) {
-        toast.error('Is lead pe quotation nahi mila.');
+      if (quotationId) {
+        navigate(`${quoteEditPath}?leadId=${leadId}&quoteId=${quotationId}`);
         return;
       }
-      navigate(`${quoteEditPath}?leadId=${leadId}&quoteId=${quotationId}`);
+      // Status was marked "quotation_sent" but no Quotation doc exists — open builder to create one.
+      toast.info('Is lead pe saved quotation nahi mila — naya quotation open kar rahe hain.');
+      navigate(`${quoteEditPath}?leadId=${leadId}`);
     } finally {
       setQuoteLoading(null);
     }
@@ -270,7 +299,7 @@ export default function LeadActivityTimeline({
               {quoteLoading === 'edit-bar'
                 ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 : <Pencil className="w-3.5 h-3.5" />}
-              Edit Quotation
+              {editBarLabel}
             </Button>
           )}
         </div>
@@ -345,7 +374,7 @@ export default function LeadActivityTimeline({
                                     onClick={() => editQuotation(item, quote)}
                                     className="rounded-lg h-7 gap-1 text-[11px] font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0 shadow-sm"
                                   >
-                                    <Pencil className="w-3 h-3" /> Edit
+                                    <Pencil className="w-3 h-3" /> {quoteList.length || quotationId ? 'Edit' : 'Create'}
                                   </Button>
                                 )}
                                 <Button

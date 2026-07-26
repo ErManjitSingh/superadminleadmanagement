@@ -219,7 +219,7 @@ const acknowledgeNewBooking = asyncHandler(async (req, res) => {
 const getLeadBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.findOne(tenantFilter({ lead: req.params.id }, req))
     .select(
-      '_id bookingNumber customerName customerPhone customerEmail destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress firstAdvancePaymentId createdAt'
+      '_id bookingNumber customerName customerPhone customerEmail destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress firstAdvancePaymentId quotation quotationReference createdAt'
     )
     .lean();
 
