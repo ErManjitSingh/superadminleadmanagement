@@ -42,32 +42,41 @@ async function nextReceiptNumber() {
   return `RCP-${year}-${String(count + 1).padStart(5, '0')}`;
 }
 
+function toPlain(doc) {
+  if (!doc) return {};
+  if (typeof doc.toObject === 'function') return doc.toObject({ depopulate: false });
+  if (typeof doc.toJSON === 'function') return doc.toJSON();
+  return { ...doc };
+}
+
 async function generateReceiptPdf(payment, booking) {
-  const receiptNumber = payment.receiptNumber || await nextReceiptNumber();
+  const plainPayment = toPlain(payment);
+  const plainBooking = toPlain(booking);
+  const receiptNumber = plainPayment.receiptNumber || await nextReceiptNumber();
   const safeNum = receiptNumber.replace(/[^a-zA-Z0-9-_]/g, '_');
   const fileName = `${safeNum}.pdf`;
 
   const BookingPayment = require('../models/BookingPayment');
   const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
-  const paymentHistory = await BookingPayment.find({ booking: booking._id })
+  const paymentHistory = await BookingPayment.find({ booking: plainBooking._id || payment.booking })
     .sort({ paymentDate: 1, createdAt: 1 })
     .lean();
 
   const companyBrand = await resolveCompanyDocumentBranding(
-    booking.companyId || payment.companyId
+    plainBooking.companyId || plainPayment.companyId
   );
 
   // Backfill customer phone from lead when booking phone is empty
-  let bookingForPdf = { ...booking };
-  if ((!booking.customerPhone || !String(booking.customerPhone).trim()) && booking.lead) {
+  let bookingForPdf = { ...plainBooking };
+  if ((!bookingForPdf.customerPhone || !String(bookingForPdf.customerPhone).trim()) && bookingForPdf.lead) {
     try {
       const Lead = require('../models/Lead');
-      const lead = await Lead.findById(booking.lead).select('phone whatsapp email assignedTo').lean();
+      const lead = await Lead.findById(bookingForPdf.lead).select('phone whatsapp email assignedTo').lean();
       if (lead) {
         bookingForPdf = {
           ...bookingForPdf,
           customerPhone: lead.whatsapp || lead.phone || '',
-          customerEmail: booking.customerEmail || lead.email || '',
+          customerEmail: bookingForPdf.customerEmail || lead.email || '',
           _leadAssignedTo: lead.assignedTo,
         };
       }
@@ -79,25 +88,25 @@ async function generateReceiptPdf(payment, booking) {
   // Sales executive phone for voucher PDFs
   try {
     const User = require('../models/User');
-    const execId = payment.createdBy || bookingForPdf._leadAssignedTo || booking.assignedTo;
+    const execId = plainPayment.createdBy || bookingForPdf._leadAssignedTo || bookingForPdf.assignedTo;
     if (execId) {
       const exec = await User.findById(execId).select('name phone email role').lean();
       if (exec) {
         bookingForPdf = {
           ...bookingForPdf,
-          executiveName: booking.executiveName || exec.name || payment.createdByName || '',
+          executiveName: bookingForPdf.executiveName || exec.name || plainPayment.createdByName || '',
           executivePhone: exec.phone || '',
         };
       }
     }
-    if (!bookingForPdf.executivePhone && payment.createdByName) {
-      bookingForPdf.executiveName = bookingForPdf.executiveName || payment.createdByName;
+    if (!bookingForPdf.executivePhone && plainPayment.createdByName) {
+      bookingForPdf.executiveName = bookingForPdf.executiveName || plainPayment.createdByName;
     }
   } catch {
     /* ignore */
   }
 
-  const enrichedPayment = { ...payment, receiptNumber };
+  const enrichedPayment = { ...plainPayment, receiptNumber };
   const html = await buildPaymentReceiptHtml(enrichedPayment, bookingForPdf, paymentHistory, companyBrand);
   const result = await renderVoucherHtmlToPdf(html, fileName, RECEIPT_DIR);
 

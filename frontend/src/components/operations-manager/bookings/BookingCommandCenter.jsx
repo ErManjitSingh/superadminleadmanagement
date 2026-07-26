@@ -489,10 +489,25 @@ export function BookingPaymentDonut({ summary, onCollect }) {
   );
 }
 
-export function BookingDocumentCenter({ booking, execution, onOpenQuote, onOpenVouchers, onOpenPdf }) {
+export function BookingDocumentCenter({
+  booking,
+  execution,
+  onOpenQuote,
+  onOpenVouchers,
+  onOpenPdf,
+  onOpenAdvanceVoucher,
+  advanceAmount,
+}) {
   const hasHotels = bookingHasHotels(booking);
   const vouchers = execution?.activeVouchers || [];
   const docs = [
+    (advanceAmount > 0 || onOpenAdvanceVoucher) && {
+      id: 'advance-v',
+      label: 'Advance Voucher',
+      meta: advanceAmount > 0 ? formatINR(advanceAmount) : 'View PDF',
+      onClick: onOpenAdvanceVoucher || onOpenVouchers,
+      tone: 'emerald',
+    },
     hasLinkedQuote(booking) && { id: 'quote', label: 'Quotation PDF', meta: booking.quotationReference || 'Ready', onClick: onOpenQuote },
     hasHotels && { id: 'hotel-v', label: 'Hotel Voucher', meta: vouchers.find((v) => v.type === 'hotel') ? 'Generated' : 'Pending', onClick: onOpenVouchers },
     { id: 'cab-v', label: 'Cab Voucher', meta: vouchers.find((v) => v.type === 'transport') ? 'Generated' : 'Pending', onClick: onOpenVouchers },
@@ -509,7 +524,11 @@ export function BookingDocumentCenter({ booking, execution, onOpenQuote, onOpenV
             onClick={d.onClick}
             className="w-full flex items-center gap-3 rounded-xl border border-subtle px-3 py-2.5 hover:bg-slate-50 text-left transition-colors"
           >
-            <span className="w-9 h-9 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+            <span className={cn(
+              'w-9 h-9 rounded-lg flex items-center justify-center shrink-0',
+              d.tone === 'emerald' ? 'bg-emerald-50 text-emerald-600' : 'bg-violet-50 text-violet-600',
+            )}
+            >
               <FileText className="w-4 h-4" />
             </span>
             <span className="flex-1 min-w-0">

@@ -219,8 +219,9 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
 }
 
 async function processPaymentSideEffects(paymentRecord, booking, actor, { sendReceipt = true } = {}) {
-  const receipt = await generateReceiptPdf(paymentRecord, booking);
-  await BookingPayment.findByIdAndUpdate(paymentRecord._id, {
+  const paymentPlain = paymentRecord?.toObject ? paymentRecord.toObject() : paymentRecord;
+  const receipt = await generateReceiptPdf(paymentPlain, booking);
+  await BookingPayment.findByIdAndUpdate(paymentPlain._id, {
     receiptNumber: receipt.receiptNumber,
     receiptPdfUrl: receipt.pdfUrl,
     receiptPdfPath: receipt.filePath,
@@ -231,37 +232,37 @@ async function processPaymentSideEffects(paymentRecord, booking, actor, { sendRe
     bookingId: booking._id,
     leadId: booking.lead,
     branchId: booking.branchId,
-    paymentId: paymentRecord._id,
+    paymentId: paymentPlain._id,
     type: 'receipt_generated',
     title: 'Receipt Generated',
     description: `Receipt ${receipt.receiptNumber} generated`,
     actor,
-    amount: paymentRecord.amount,
-    paymentMode: paymentRecord.mode,
+    amount: paymentPlain.amount,
+    paymentMode: paymentPlain.mode,
   });
 
   let emailResult = null;
   let waResult = null;
 
   if (sendReceipt) {
-    const updatedPayment = await BookingPayment.findById(paymentRecord._id).lean();
+    const updatedPayment = await BookingPayment.findById(paymentPlain._id).lean();
     emailResult = await sendPaymentReceiptEmail(updatedPayment, booking, actor).catch((err) => {
       console.error('[PaymentEmail]', err.message);
       return { sent: false };
     });
     if (emailResult?.sent) {
-      await BookingPayment.findByIdAndUpdate(paymentRecord._id, { emailSentAt: new Date() });
+      await BookingPayment.findByIdAndUpdate(paymentPlain._id, { emailSentAt: new Date() });
       await logPaymentEvent({
         bookingId: booking._id,
         leadId: booking.lead,
         branchId: booking.branchId,
-        paymentId: paymentRecord._id,
+        paymentId: paymentPlain._id,
         type: 'email_sent',
         title: 'Receipt Email Sent',
         description: `Receipt sent to ${booking.customerEmail}`,
         actor,
-        amount: paymentRecord.amount,
-        paymentMode: paymentRecord.mode,
+        amount: paymentPlain.amount,
+        paymentMode: paymentPlain.mode,
       });
     }
 
@@ -270,18 +271,18 @@ async function processPaymentSideEffects(paymentRecord, booking, actor, { sendRe
       return { sent: false };
     });
     if (waResult?.sent || waResult?.prepared) {
-      await BookingPayment.findByIdAndUpdate(paymentRecord._id, { whatsappSentAt: new Date() });
+      await BookingPayment.findByIdAndUpdate(paymentPlain._id, { whatsappSentAt: new Date() });
       await logPaymentEvent({
         bookingId: booking._id,
         leadId: booking.lead,
         branchId: booking.branchId,
-        paymentId: paymentRecord._id,
+        paymentId: paymentPlain._id,
         type: 'whatsapp_sent',
         title: 'Receipt WhatsApp Sent',
         description: `Receipt sent to ${booking.customerPhone}`,
         actor,
-        amount: paymentRecord.amount,
-        paymentMode: paymentRecord.mode,
+        amount: paymentPlain.amount,
+        paymentMode: paymentPlain.mode,
       });
 
       if (booking.lead) {
@@ -612,20 +613,28 @@ async function resendReceipt(paymentId, actor, { channel = 'both' } = {}) {
 }
 
 async function getReceiptPdfBuffer(payment, { forceRegenerate = false } = {}) {
-  if (!forceRegenerate && payment.receiptPdfPath) {
+  // Always regenerate advance vouchers so cached PDFs (built with broken mongoose spreads) heal.
+  const shouldRegen =
+    forceRegenerate ||
+    payment?.isFirstAdvance ||
+    payment?.paymentType === 'advance' ||
+    !payment?.receiptPdfPath;
+
+  if (!shouldRegen && payment.receiptPdfPath) {
     const existing = readReceiptPdfBuffer(payment.receiptPdfPath);
     if (existing?.length) return existing;
   }
 
-  const booking = await Booking.findById(payment.booking).lean();
+  const plainPayment = payment?.toObject ? payment.toObject() : payment;
+  const booking = await Booking.findById(plainPayment.booking).lean();
   if (!booking) {
-    return payment.receiptPdfPath ? readReceiptPdfBuffer(payment.receiptPdfPath) : null;
+    return plainPayment.receiptPdfPath ? readReceiptPdfBuffer(plainPayment.receiptPdfPath) : null;
   }
 
   try {
-    const receipt = await generateReceiptPdf(payment, booking);
-    await BookingPayment.findByIdAndUpdate(payment._id, {
-      receiptNumber: receipt.receiptNumber || payment.receiptNumber,
+    const receipt = await generateReceiptPdf(plainPayment, booking);
+    await BookingPayment.findByIdAndUpdate(plainPayment._id, {
+      receiptNumber: receipt.receiptNumber || plainPayment.receiptNumber,
       receiptPdfUrl: receipt.pdfUrl,
       receiptPdfPath: receipt.filePath,
       receiptFileName: receipt.fileName,
@@ -633,7 +642,7 @@ async function getReceiptPdfBuffer(payment, { forceRegenerate = false } = {}) {
     return readReceiptPdfBuffer(receipt.filePath);
   } catch (err) {
     console.error('[ReceiptPDF] regenerate failed', err.message);
-    return payment.receiptPdfPath ? readReceiptPdfBuffer(payment.receiptPdfPath) : null;
+    return plainPayment.receiptPdfPath ? readReceiptPdfBuffer(plainPayment.receiptPdfPath) : null;
   }
 }
 

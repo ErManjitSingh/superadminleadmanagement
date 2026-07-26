@@ -54,7 +54,7 @@ export default function LeadConvertedBanner({ status, leadId }) {
 
     let objectUrl = '';
     setLoadingPdf(true);
-    fetchReceiptPdfBlob(booking._id, advancePayment._id)
+    fetchReceiptPdfBlob(booking._id, advancePayment._id, { fresh: true })
       .then((blob) => {
         objectUrl = URL.createObjectURL(blob);
         setPdfUrl(objectUrl);
@@ -181,16 +181,15 @@ export default function LeadConvertedBanner({ status, leadId }) {
                 onClick={() => setShowPdf((v) => !v)}
               >
                 <Eye className="w-3.5 h-3.5 mr-1.5" />
-                {showPdf ? 'Hide PDF' : 'View PDF'}
+                {showPdf ? 'Hide Voucher' : 'View Advance Voucher'}
               </Button>
               <Button
                 type="button"
-                variant="outline"
                 size="sm"
-                className="h-8"
+                className="h-8 bg-emerald-600 hover:bg-emerald-700 text-white"
                 onClick={() => previewReceiptPdf(booking._id, advancePayment._id)}
               >
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Open
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Open Voucher
               </Button>
               <Button
                 type="button"

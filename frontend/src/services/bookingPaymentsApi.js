@@ -76,7 +76,7 @@ export async function fetchReceiptPdfBlob(bookingId, paymentId, { fresh = false 
 }
 
 export async function downloadReceiptPdf(bookingId, paymentId, fileName = 'receipt.pdf') {
-  const data = await fetchReceiptPdfBlob(bookingId, paymentId);
+  const data = await fetchReceiptPdfBlob(bookingId, paymentId, { fresh: true });
   const url = URL.createObjectURL(data);
   const a = document.createElement('a');
   a.href = url;
@@ -89,7 +89,7 @@ export async function previewReceiptPdf(bookingId, paymentId) {
   // Open tab synchronously so popup blockers don't block after the await.
   const tab = window.open('about:blank', '_blank');
   try {
-    const data = await fetchReceiptPdfBlob(bookingId, paymentId);
+    const data = await fetchReceiptPdfBlob(bookingId, paymentId, { fresh: true });
     const url = URL.createObjectURL(data);
     if (tab) {
       tab.location.href = url;

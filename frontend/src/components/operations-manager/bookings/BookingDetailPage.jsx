@@ -10,7 +10,9 @@ import {
 } from './BookingFulfillmentSections';
 import VoucherCenter from '../vouchers/VoucherCenter';
 import BookingPaymentsPanel from '../../payments/BookingPaymentsPanel';
-import { acknowledgeNewBooking, getBookingPayments } from '../../../services/bookingPaymentsApi';
+import AdvanceVoucherCard from '../../payments/AdvanceVoucherCard';
+import { acknowledgeNewBooking, getBookingPayments, previewReceiptPdf } from '../../../services/bookingPaymentsApi';
+import { toast } from '../../../context/ToastContext';
 import { fetchBookingExecution } from '../../../services/operationsVoucherApi';
 import { useAuth } from '../../../context/AuthContext';
 import {
@@ -287,6 +289,28 @@ export default function BookingDetailPage() {
   };
 
   const paymentSummary = paymentData?.summary;
+  const payments = paymentData?.payments || [];
+  const advancePayment =
+    payments.find((p) => p.isFirstAdvance) ||
+    payments.find((p) => p.paymentType === 'advance') ||
+    null;
+  const advanceAmount = Number(
+    advancePayment?.amount ?? paymentSummary?.advanceReceived ?? booking?.advanceReceived ?? 0,
+  ) || 0;
+
+  const openAdvanceVoucher = async () => {
+    if (!advancePayment?._id) {
+      toast.error('Advance voucher abhi available nahi hai.');
+      scrollToSection('voucher-center');
+      return;
+    }
+    try {
+      await previewReceiptPdf(id, advancePayment._id);
+    } catch {
+      toast.error('Advance voucher open nahi ho paya.');
+    }
+  };
+
   const hasHotels = bookingHasHotels(booking);
   const progressSteps = useMemo(
     () => buildCommandProgressSteps(booking, execution, paymentSummary),
@@ -382,7 +406,12 @@ export default function BookingDetailPage() {
             />
           </section>
 
-          <section id="voucher-center" className="scroll-mt-32">
+          <section id="voucher-center" className="scroll-mt-32 space-y-4">
+            <AdvanceVoucherCard
+              bookingId={id}
+              booking={booking}
+              payments={paymentData?.payments || []}
+            />
             <VoucherCenter
               bookingId={id}
               booking={booking}
@@ -414,6 +443,8 @@ export default function BookingDetailPage() {
             onOpenQuote={openQuotation}
             onOpenVouchers={scrollToVouchers}
             onOpenPdf={generateItineraryPdf}
+            onOpenAdvanceVoucher={openAdvanceVoucher}
+            advanceAmount={advanceAmount}
           />
           <BookingCommunicationPanel
             booking={booking}
