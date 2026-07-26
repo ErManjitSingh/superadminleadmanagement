@@ -200,22 +200,21 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
     const data = await b.handleSubmit(saveAs);
     if (!data) return;
     const leadId = b.state.leadId || b.selectedLead?._id;
-    if (data.status === 'sent' && leadId) {
-      navigate(`${b.config.leadDetailPath(leadId)}#activity-timeline`, {
-        state: { message: 'Quotation sent successfully.' },
-      });
+    const message =
+      data.status === 'sent'
+        ? 'Quotation sent successfully.'
+        : data.status === 'approved'
+          ? 'Quotation created and approved.'
+          : data.status === 'pending_approval'
+            ? 'Submitted to Team Leader for approval.'
+            : 'Quotation saved.';
+
+    // Always return to the lead full-detail page when a lead is linked.
+    if (leadId && typeof b.config.leadDetailPath === 'function') {
+      navigate(`${b.config.leadDetailPath(leadId)}#activity-timeline`, { state: { message } });
       return;
     }
-    navigate(b.config.successPath, {
-      state: {
-        message:
-          data.status === 'approved'
-            ? 'Quotation created and approved.'
-            : data.status === 'pending_approval'
-              ? 'Submitted to Team Leader for approval.'
-              : 'Quotation saved.',
-      },
-    });
+    navigate(b.config.successPath, { state: { message } });
   };
 
   const nextStepMeta = visibleSteps.find((s) => s.id === getNextStep(b.step, noHotel));
