@@ -29,6 +29,7 @@ export default function AppSidebar({
   accent = 'brand',
   profilePath,
   quickActions,
+  footer = null,
 }) {
   const location = useLocation();
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
@@ -102,6 +103,7 @@ export default function AppSidebar({
             </nav>
 
             <SidebarQuickActions actions={quickActions} />
+            {footer}
           </div>
         </motion.aside>
       </TooltipProvider>

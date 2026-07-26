@@ -7,6 +7,7 @@ import AppSidebar from '../sidebar/AppSidebar';
 import TopBar from '../TopBar';
 import MissedFollowUpAlert from '../notifications/MissedFollowUpAlert';
 import SalesExecutiveMobileNav from './SalesExecutiveMobileNav';
+import ExecutiveSidebarFooter from './ExecutiveSidebarFooter';
 import { salesExecutiveNavItems } from './sidebar-config';
 
 function SalesExecutiveShell() {
@@ -26,6 +27,7 @@ function SalesExecutiveShell() {
     accent: 'violet',
     profilePath: '/sales-executive/profile',
     quickActions: [],
+    footer: <ExecutiveSidebarFooter user={user} />,
   };
 
   return (
