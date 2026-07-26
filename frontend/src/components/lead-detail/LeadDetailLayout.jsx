@@ -110,7 +110,12 @@ export default function LeadDetailLayout({
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <LeadQuotationSection quotations={quotations} loading={quotationsLoading} />
+        <LeadQuotationSection
+          quotations={quotations}
+          loading={quotationsLoading}
+          leadId={leadId}
+          quoteEditPath={quoteEditPath}
+        />
         <LeadScoreBreakdown lead={lead} />
       </div>
 

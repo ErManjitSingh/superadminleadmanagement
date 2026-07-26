@@ -311,6 +311,15 @@ export default function LeadActivityTimeline({
         pdfRef={pdfRef}
         autoPrint={autoPrintQuote}
         onAutoPrintDone={() => setAutoPrintQuote(false)}
+        onEdit={
+          quoteEditPath && pdfQuote
+            ? () => {
+                editQuotation({ meta: { quotationId: pdfQuote._id } }, pdfQuote);
+                setPdfQuote(null);
+                setAutoPrintQuote(false);
+              }
+            : undefined
+        }
       />
 
       <ReceiptPdfPreviewModal

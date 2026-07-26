@@ -1,11 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Download, ExternalLink, X } from 'lucide-react';
+import { Download, ExternalLink, Pencil, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import QuotePdfPreview from './QuotePdfPreview';
 import { openQuotationPrintPreview, printQuotation } from './printQuotation';
 
-export default function QuotationPdfOverlay({ quote, open, onClose, pdfRef: externalPdfRef, autoPrint = false, onAutoPrintDone }) {
+export default function QuotationPdfOverlay({
+  quote,
+  open,
+  onClose,
+  pdfRef: externalPdfRef,
+  autoPrint = false,
+  onAutoPrintDone,
+  onEdit,
+}) {
   const internalRef = useRef(null);
   const pdfRef = externalPdfRef || internalRef;
 
@@ -37,9 +45,18 @@ export default function QuotationPdfOverlay({ quote, open, onClose, pdfRef: exte
           <X className="w-4 h-4" /> Close
         </Button>
         <p className="text-sm font-medium text-slate-300 hidden sm:block order-last sm:order-none w-full sm:w-auto text-center">
-          Premium travel brochure — matches print / PDF output
+          {quote.quoteNumber ? `${quote.quoteNumber} · ` : ''}Premium travel brochure
         </p>
         <div className="flex gap-2 ml-auto">
+          {onEdit && (
+            <Button
+              variant="outline"
+              onClick={onEdit}
+              className="rounded-xl gap-2 border-sky-500/50 bg-sky-600/20 text-sky-100 hover:bg-sky-600/30"
+            >
+              <Pencil className="w-4 h-4" /> Edit Quotation
+            </Button>
+          )}
           <Button variant="outline" onClick={handleOpenTab} className="rounded-xl gap-2 border-slate-500 bg-slate-800 text-white hover:bg-slate-700 hidden sm:inline-flex">
             <ExternalLink className="w-4 h-4" /> Open Tab
           </Button>

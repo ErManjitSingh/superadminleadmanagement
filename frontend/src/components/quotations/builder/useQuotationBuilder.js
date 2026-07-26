@@ -476,6 +476,15 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     setCustomExclusions(snap.exclusions?.length ? [...snap.exclusions] : ['']);
     setSelectedPkgDetail(snap.name || snap.destination ? { ...snap, itinerary } : null);
     setBuilderUi(builderUiFromQuotation(quote));
+
+    // Prefill lead when quotation carries populated lead
+    const leadDoc = quote.lead && typeof quote.lead === 'object' ? quote.lead : null;
+    if (leadDoc?._id) {
+      setSelectedLead(leadDoc);
+      setLeadLoadError('');
+      setLoadingLead(false);
+    }
+
     const priced =
       Number(quote.pricing?.grandTotal)
       || Number(quote.pricing?.total)
@@ -483,29 +492,41 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
       || 0;
     setState((s) => ({
       ...s,
-      leadId: quote.lead?._id || quote.lead || s.leadId,
-      packageId: quote.package?._id || quote.package || '',
-      templateKey: quote.templateKey || '',
+      leadId: leadDoc?._id || quote.lead?._id || quote.lead || s.leadId,
+      packageId: quote.package?._id || quote.package || s.packageId || '',
+      templateKey: quote.templateKey || s.templateKey || '',
       packageInfo: {
         ...s.packageInfo,
         ...(quote.packageInfo || {}),
-        travelDate: toDateInputValue(quote.packageInfo?.travelDate),
+        packageName: quote.packageInfo?.packageName || snap.name || s.packageInfo?.packageName,
+        destination: quote.packageInfo?.destination || snap.destination || s.packageInfo?.destination,
+        duration: quote.packageInfo?.duration || snap.duration || s.packageInfo?.duration,
+        travelDate: toDateInputValue(quote.packageInfo?.travelDate || leadDoc?.travelDate),
         totalCost: priced || s.packageInfo?.totalCost,
+        adults: Number(quote.packageInfo?.adults ?? leadDoc?.adults ?? s.packageInfo?.adults) || 1,
+        children: Number(quote.packageInfo?.children ?? leadDoc?.children ?? s.packageInfo?.children) || 0,
+        mealPlan: quote.packageInfo?.mealPlan || s.packageInfo?.mealPlan,
+        hotelCategory: quote.packageInfo?.hotelCategory || s.packageInfo?.hotelCategory,
       },
       pricing: {
         ...s.pricing,
         ...(quote.pricing || {}),
         total: priced,
         grandTotal: priced,
-        baseCost: priced || Number(quote.pricing?.baseCost) || 0,
+        baseCost: Number(quote.pricing?.baseCost) || priced || 0,
       },
       paymentPlan: quote.paymentPlan?.length
         ? quote.paymentPlan
         : syncPaymentAmounts(s.paymentPlan, priced),
       importantNotes: quote.importantNotes || s.importantNotes,
       customizations: quote.customizations || s.customizations,
+      selectedHotelIds: (quote.selectedHotels || []).map((h) => h.hotelId || h._id).filter(Boolean),
+      selectedCabIds: (quote.selectedCabs || []).map((c) => c._id || c.vendorId).filter(Boolean),
+      selectedFlightIds: (quote.selectedFlights || []).map((f) => f._id || f.id).filter(Boolean),
+      selectedActivityIds: (quote.selectedActivities || []).map((a) => a._id || a.id).filter(Boolean),
     }));
     setStep(1);
+    setMaxReached(4);
   }, []);
 
   const fetchQuoteById = useCallback(

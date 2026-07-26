@@ -1,10 +1,14 @@
 import { useRef, useState } from 'react';
-import { CheckCircle, Clock, XCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle, Clock, XCircle, Eye, Pencil, Loader2 } from 'lucide-react';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import { formatINR } from '../quotations/quotationUtils';
 import { resolveQuotationAmount } from './leadDetailData';
 import { DETAIL_CARD } from './leadDetailUtils';
 import { cn } from '../../lib/utils';
+import { Button } from '../ui/button';
+import API from '../../api/axios';
+import { toast } from '../../context/ToastContext';
 
 const statusConfig = {
   sent: { label: 'Sent', icon: Clock, class: 'text-amber-700 bg-amber-50 border-amber-100' },
@@ -14,9 +18,49 @@ const statusConfig = {
   draft: { label: 'Draft', icon: Clock, class: 'text-slate-600 bg-slate-50 border-slate-100' },
 };
 
-export default function LeadQuotationSection({ quotations = [], compact = false, loading = false }) {
+export default function LeadQuotationSection({
+  quotations = [],
+  compact = false,
+  loading = false,
+  leadId = '',
+  quoteEditPath = '',
+}) {
+  const navigate = useNavigate();
   const [pdfQuote, setPdfQuote] = useState(null);
+  const [loadingId, setLoadingId] = useState(null);
   const pdfRef = useRef(null);
+
+  const openView = async (q) => {
+    const id = q?._id || q?.id;
+    if (!id) {
+      setPdfQuote(q);
+      return;
+    }
+    setLoadingId(id);
+    try {
+      const { data } = await API.get(`/quotations/${id}`, {
+        skipSuccessToast: true,
+        skipErrorToast: true,
+      });
+      setPdfQuote(data?.quotation || data || q);
+    } catch {
+      setPdfQuote(q);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const openEdit = (q) => {
+    const quotationId = q?._id || q?.id;
+    if (!quotationId || !quoteEditPath) {
+      toast.error('Edit path available nahi hai.');
+      return;
+    }
+    const params = new URLSearchParams();
+    if (leadId) params.set('leadId', leadId);
+    params.set('quoteId', quotationId);
+    navigate(`${quoteEditPath}?${params.toString()}`);
+  };
 
   if (loading) {
     return (
@@ -40,18 +84,29 @@ export default function LeadQuotationSection({ quotations = [], compact = false,
     );
   }
 
+  const headers = compact
+    ? ['Quote #', 'Amount', 'Status', 'Actions']
+    : ['Quote #', 'Trip', 'Amount', 'Date', 'Status', 'Actions'];
+
   return (
     <>
       <div className={`${DETAIL_CARD} overflow-hidden`}>
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">Recent Quotations</h3>
+          <p className="text-xs text-content-muted mt-0.5">View PDF or edit with previous data prefilled</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-                {['Quote #', 'Trip', 'Amount', 'Date', 'Status'].map((h) => (
-                  <th key={h} className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                {headers.map((h) => (
+                  <th
+                    key={h}
+                    className={cn(
+                      'px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap',
+                      h === 'Actions' ? 'text-right' : 'text-left',
+                    )}
+                  >
                     {h}
                   </th>
                 ))}
@@ -64,23 +119,54 @@ export default function LeadQuotationSection({ quotations = [], compact = false,
                 const quoteNumber = q.quoteNumber || q.id || `Q-${index + 1}`;
                 const title = q.title || q.packageSnapshot?.name || q.package?.name || 'Package';
                 const date = q.sentAt || q.createdAt;
+                const rowId = q._id || q.id || index;
+                const busy = loadingId === (q._id || q.id);
 
                 return (
                   <tr
-                    key={q._id || q.id || index}
-                    className="hover:bg-violet-50/30 dark:hover:bg-violet-950/10 cursor-pointer transition-colors"
-                    onClick={() => setPdfQuote(q)}
+                    key={rowId}
+                    className="hover:bg-violet-50/30 dark:hover:bg-violet-950/10 transition-colors"
                   >
                     <td className="px-5 py-3.5 font-mono text-xs font-semibold text-violet-600">{quoteNumber}</td>
-                    <td className="px-5 py-3.5 font-medium text-slate-900 dark:text-white">{title}</td>
+                    {!compact && (
+                      <td className="px-5 py-3.5 font-medium text-slate-900 dark:text-white">{title}</td>
+                    )}
                     <td className="px-5 py-3.5 font-bold tabular-nums text-slate-900 dark:text-white">{formatINR(amount)}</td>
-                    <td className="px-5 py-3.5 text-slate-500">
-                      {date ? new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                    </td>
+                    {!compact && (
+                      <td className="px-5 py-3.5 text-slate-500">
+                        {date ? new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                    )}
                     <td className="px-5 py-3.5">
                       <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border', cfg.class)}>
                         {cfg.label}
                       </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={busy}
+                          onClick={() => openView(q)}
+                          className="rounded-lg h-7 gap-1 text-[11px] text-violet-700 border-violet-200 bg-violet-50 hover:bg-violet-100"
+                        >
+                          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+                          View
+                        </Button>
+                        {quoteEditPath && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openEdit(q)}
+                            className="rounded-lg h-7 gap-1 text-[11px] text-sky-700 border-sky-200 bg-sky-50 hover:bg-sky-100"
+                          >
+                            <Pencil className="w-3 h-3" /> Edit
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -95,6 +181,14 @@ export default function LeadQuotationSection({ quotations = [], compact = false,
         open={!!pdfQuote}
         onClose={() => setPdfQuote(null)}
         pdfRef={pdfRef}
+        onEdit={
+          quoteEditPath && pdfQuote
+            ? () => {
+                openEdit(pdfQuote);
+                setPdfQuote(null);
+              }
+            : undefined
+        }
       />
     </>
   );
