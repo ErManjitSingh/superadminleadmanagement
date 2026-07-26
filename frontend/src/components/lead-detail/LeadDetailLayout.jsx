@@ -55,9 +55,12 @@ export default function LeadDetailLayout({
   });
 
   const fetchedQuotations = quotationsData?.items || [];
-  const quotations = embeddedQuotations.length
-    ? embeddedQuotations
-    : fetchedQuotations;
+  const rawQuotations = embeddedQuotations.length ? embeddedQuotations : fetchedQuotations;
+  const quotations = rawQuotations.filter((q) => {
+    const qLead = q?.lead?._id || q?.lead || q?.leadId;
+    if (!qLead) return true;
+    return String(qLead) === String(leadId);
+  });
   const notes = embeddedNotes || notesData?.items || [];
 
   return (

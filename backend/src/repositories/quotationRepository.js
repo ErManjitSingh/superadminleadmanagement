@@ -16,10 +16,13 @@ function intersectLeadIds(existing, next) {
 }
 
 async function applyQuotationQueryFilters(filter, query = {}, branchId) {
-  const { status, executiveId, dateFrom, dateTo, destination, search } = query;
+  const { status, executiveId, dateFrom, dateTo, destination, search, lead, leadId } = query;
 
   if (status && filter.status === undefined) filter.status = status;
   if (executiveId) filter.createdByExecutive = executiveId;
+
+  const scopedLeadId = leadId || lead;
+  if (scopedLeadId) filter.lead = scopedLeadId;
 
   if (dateFrom || dateTo) {
     filter.createdAt = {};

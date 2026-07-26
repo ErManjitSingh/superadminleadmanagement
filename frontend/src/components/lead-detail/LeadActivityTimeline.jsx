@@ -39,6 +39,18 @@ function unwrapQuotations(data) {
   return data?.quotations || data?.items || data?.data || [];
 }
 
+/** Only keep quotations that belong to this lead (never mix other executives' quotes). */
+function filterQuotesForLead(quotes = [], leadId) {
+  if (!leadId) return [];
+  const lid = String(leadId);
+  return (quotes || []).filter((q) => {
+    const qLead = idOf(q?.lead?._id || q?.lead || q?.leadId);
+    // Lead-scoped APIs may omit nested lead; if present it must match this lead.
+    if (!qLead) return true;
+    return qLead === lid;
+  });
+}
+
 export default function LeadActivityTimeline({
   activities,
   loading = false,
@@ -60,9 +72,9 @@ export default function LeadActivityTimeline({
   const timelineRef = useRef(null);
 
   const quoteList = useMemo(() => {
-    if (quotations?.length) return quotations;
-    return fetchedQuotes;
-  }, [quotations, fetchedQuotes]);
+    const raw = quotations?.length ? quotations : fetchedQuotes;
+    return filterQuotesForLead(raw, leadId);
+  }, [quotations, fetchedQuotes, leadId]);
 
   const sorted = useMemo(() => {
     const withQuotes = ensureQuotationTimelineActivities(activities, quoteList);
@@ -106,38 +118,30 @@ export default function LeadActivityTimeline({
           skipSuccessToast: true,
           skipErrorToast: true,
         });
-        items = unwrapQuotations(data);
+        items = filterQuotesForLead(unwrapQuotations(data), leadId);
       } catch {
         items = [];
       }
 
+      // Only use booking's quotation if it belongs to this lead (never list-all /quotations).
       if (!items.length) {
         try {
           const bookingRes = await getLeadBooking(leadId);
           const bookingQuoteId = idOf(bookingRes?.booking?.quotation);
-          if (bookingQuoteId) {
+          const bookingLeadId = idOf(bookingRes?.booking?.lead);
+          if (bookingQuoteId && (!bookingLeadId || bookingLeadId === String(leadId))) {
             const { data } = await API.get(`/quotations/${bookingQuoteId}`, {
               skipSuccessToast: true,
               skipErrorToast: true,
             });
             const q = data?.quotation || data;
-            if (q?._id) items = [q];
+            if (q?._id) {
+              const qLead = idOf(q.lead?._id || q.lead);
+              if (!qLead || qLead === String(leadId)) items = [q];
+            }
           }
         } catch {
           // ignore
-        }
-      }
-
-      if (!items.length) {
-        try {
-          const { data } = await API.get('/quotations', {
-            params: { lead: leadId, leadId, page: 1, limit: 20 },
-            skipSuccessToast: true,
-            skipErrorToast: true,
-          });
-          items = unwrapQuotations(data);
-        } catch {
-          items = [];
         }
       }
 
@@ -247,33 +251,18 @@ export default function LeadActivityTimeline({
         skipSuccessToast: true,
         skipErrorToast: true,
       });
-      const items = unwrapQuotations(data);
+      const items = filterQuotesForLead(unwrapQuotations(data), leadId);
       setFetchedQuotes(items);
       const fromLeadApi = idOf(items[0]?._id || items[0]?.id);
       if (fromLeadApi) return fromLeadApi;
     } catch {
-      // continue to booking / global list fallbacks
+      // continue to booking fallback
     }
 
     try {
       const bookingRes = await getLeadBooking(leadId);
       const bookingQuoteId = idOf(bookingRes?.booking?.quotation);
       if (bookingQuoteId) return bookingQuoteId;
-    } catch {
-      // ignore
-    }
-
-    try {
-      const { data } = await API.get('/quotations', {
-        params: { lead: leadId, leadId, page: 1, limit: 20 },
-        skipSuccessToast: true,
-        skipErrorToast: true,
-      });
-      const items = unwrapQuotations(data);
-      if (items.length) {
-        setFetchedQuotes(items);
-        return idOf(items[0]?._id || items[0]?.id);
-      }
     } catch {
       // ignore
     }
