@@ -34,12 +34,18 @@ function isPaymentActivity(type) {
   return ['advance_payment_received', 'payment_received', 'receipt_sent'].includes(type);
 }
 
+function unwrapQuotations(data) {
+  if (Array.isArray(data)) return data;
+  return data?.quotations || data?.items || data?.data || [];
+}
+
 export default function LeadActivityTimeline({
   activities,
   loading = false,
   quotations = [],
   leadId,
   quoteEditPath = '',
+  relatedBasePath = '/leads',
 }) {
   const navigate = useNavigate();
   const [pdfQuote, setPdfQuote] = useState(null);
@@ -48,12 +54,22 @@ export default function LeadActivityTimeline({
   const [bookingFallback, setBookingFallback] = useState(null);
   const [autoPrintQuote, setAutoPrintQuote] = useState(false);
   const [quoteLoading, setQuoteLoading] = useState(null);
+  const [fetchedQuotes, setFetchedQuotes] = useState([]);
   const pdfRef = useRef(null);
   const timelineRef = useRef(null);
+
+  const quoteList = useMemo(() => {
+    if (quotations?.length) return quotations;
+    return fetchedQuotes;
+  }, [quotations, fetchedQuotes]);
+
   const sorted = useMemo(() => {
-    const withQuotes = ensureQuotationTimelineActivities(activities, quotations);
+    const withQuotes = ensureQuotationTimelineActivities(activities, quoteList);
     return [...withQuotes].sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [activities, quotations]);
+  }, [activities, quoteList]);
+
+  const hasQuoteActivity = sorted.some((a) => a.type?.startsWith('quotation_'));
+  const showTimelineEditBar = Boolean(quoteEditPath && leadId && (hasQuoteActivity || quoteList.length));
 
   useEffect(() => {
     if (!leadId || window.location.hash !== '#activity-timeline') return undefined;
@@ -62,6 +78,31 @@ export default function LeadActivityTimeline({
     }, 100);
     return () => window.clearTimeout(timer);
   }, [leadId, loading]);
+
+  useEffect(() => {
+    if (!leadId || quotations?.length) {
+      setFetchedQuotes([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await API.get(`${relatedBasePath}/${leadId}/quotations`, {
+          params: { page: 1, limit: 20 },
+          skipSuccessToast: true,
+          skipErrorToast: true,
+        });
+        if (!cancelled) setFetchedQuotes(unwrapQuotations(data));
+      } catch {
+        if (!cancelled) setFetchedQuotes([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [leadId, relatedBasePath, quotations?.length]);
 
   useEffect(() => {
     if (!leadId) {
@@ -135,10 +176,41 @@ export default function LeadActivityTimeline({
     }
   };
 
+  const resolveQuotationId = async (item, quote) => {
+    const direct = idOf(quote?._id || quote?.id) || idOf(item?.meta?.quotationId);
+    if (direct) return direct;
+
+    const matched = findQuotationForActivity(item, quoteList);
+    if (matched) return idOf(matched._id || matched.id);
+
+    if (quoteList.length === 1) return idOf(quoteList[0]._id || quoteList[0].id);
+    if (quoteList.length > 1) {
+      const latest = [...quoteList].sort(
+        (a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+      )[0];
+      return idOf(latest?._id || latest?.id);
+    }
+
+    if (!leadId) return '';
+
+    try {
+      const { data } = await API.get(`${relatedBasePath}/${leadId}/quotations`, {
+        params: { page: 1, limit: 20 },
+        skipSuccessToast: true,
+        skipErrorToast: true,
+      });
+      const items = unwrapQuotations(data);
+      setFetchedQuotes(items);
+      return idOf(items[0]?._id || items[0]?.id);
+    } catch {
+      return '';
+    }
+  };
+
   const openQuotation = async (item, quote, autoPrint = false) => {
-    const quotationId = idOf(quote?._id || quote?.id) || idOf(item?.meta?.quotationId);
     setQuoteLoading(item.id);
     try {
+      const quotationId = await resolveQuotationId(item, quote);
       let resolved = quote?._id && quote?.packageSnapshot ? quote : null;
       if (quotationId) {
         const { data } = await API.get(`/quotations/${quotationId}`, {
@@ -160,13 +232,22 @@ export default function LeadActivityTimeline({
     }
   };
 
-  const editQuotation = (item, quote) => {
-    const quotationId = idOf(quote?._id || quote?.id) || idOf(item?.meta?.quotationId);
-    if (!quotationId || !quoteEditPath || !leadId) {
+  const editQuotation = async (item, quote) => {
+    if (!quoteEditPath || !leadId) {
       toast.error('Quotation edit available nahi hai.');
       return;
     }
-    navigate(`${quoteEditPath}?leadId=${leadId}&quoteId=${quotationId}`);
+    setQuoteLoading(item?.id || 'edit-bar');
+    try {
+      const quotationId = await resolveQuotationId(item, quote);
+      if (!quotationId) {
+        toast.error('Is lead pe quotation nahi mila.');
+        return;
+      }
+      navigate(`${quoteEditPath}?leadId=${leadId}&quoteId=${quotationId}`);
+    } finally {
+      setQuoteLoading(null);
+    }
   };
 
   return (
@@ -176,8 +257,22 @@ export default function LeadActivityTimeline({
         id="activity-timeline"
         className={`${DETAIL_CARD} scroll-mt-24 overflow-hidden`}
       >
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">Activity Timeline</h3>
+          {showTimelineEditBar && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={quoteLoading === 'edit-bar'}
+              onClick={() => editQuotation({ id: 'edit-bar', type: 'quotation_sent', meta: {} }, quoteList[0])}
+              className="rounded-lg h-8 gap-1.5 text-xs font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0 shadow-sm"
+            >
+              {quoteLoading === 'edit-bar'
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Pencil className="w-3.5 h-3.5" />}
+              Edit Quotation
+            </Button>
+          )}
         </div>
         <div className="p-5">
           {loading && (
@@ -196,14 +291,14 @@ export default function LeadActivityTimeline({
                   const { date, time } = formatActivityDate(item.date);
                   const isQuoteActivity = item.type?.startsWith('quotation_');
                   const quote = isQuoteActivity
-                    ? findQuotationForActivity(item, quotations)
+                    ? findQuotationForActivity(item, quoteList)
                     : null;
                   const quotationId =
                     idOf(quote?._id || quote?.id) || idOf(item.meta?.quotationId);
-                  const canOpenQuote = Boolean(isQuoteActivity && quotationId);
-                  const canEditQuote = Boolean(
-                    isQuoteActivity && quoteEditPath && leadId && quotationId
-                  );
+                  // Always show quote actions on quotation_* rows when edit path exists —
+                  // id can be resolved lazily on click if meta/list was empty.
+                  const canEditQuote = Boolean(isQuoteActivity && quoteEditPath && leadId);
+                  const canOpenQuote = Boolean(isQuoteActivity && (quotationId || canEditQuote || quoteList.length));
                   const showReceiptActions = canOpenReceipt(item);
 
                   return (
@@ -246,6 +341,7 @@ export default function LeadActivityTimeline({
                                   <Button
                                     type="button"
                                     size="sm"
+                                    disabled={quoteLoading === item.id}
                                     onClick={() => editQuotation(item, quote)}
                                     className="rounded-lg h-7 gap-1 text-[11px] font-semibold bg-sky-600 hover:bg-sky-700 text-white border-0 shadow-sm"
                                   >

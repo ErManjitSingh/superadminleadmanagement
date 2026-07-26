@@ -47,14 +47,17 @@ export default function LeadDetailLayout({
 
   const { data: quotationsData, isLoading: quotationsLoading } = useLeadQuotationsQuery(leadId, {
     basePath: relatedBasePath,
-    enabled: !embeddedQuotations.length,
+    enabled: Boolean(leadId),
   });
   const { data: notesData, isLoading: notesLoading } = useLeadNotesQuery(leadId, {
     basePath: relatedBasePath,
     enabled: !embeddedNotes && !lead.notes,
   });
 
-  const quotations = embeddedQuotations.length ? embeddedQuotations : (quotationsData?.items || []);
+  const fetchedQuotations = quotationsData?.items || [];
+  const quotations = embeddedQuotations.length
+    ? embeddedQuotations
+    : fetchedQuotations;
   const notes = embeddedNotes || notesData?.items || [];
 
   return (
@@ -87,6 +90,7 @@ export default function LeadDetailLayout({
             quotations={quotations}
             leadId={leadId}
             quoteEditPath={quoteEditPath}
+            relatedBasePath={relatedBasePath}
           />
         </main>
 
