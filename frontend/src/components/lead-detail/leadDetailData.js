@@ -84,13 +84,86 @@ export function findQuotationForActivity(item, quotations = []) {
   const id = item?.meta?.quotationId;
   const num = item?.meta?.quoteNumber;
   const matched = quotations.find(
-    (q) => (id && String(q._id) === String(id)) || (num && q.quoteNumber === num)
+    (q) =>
+      (id && String(q._id) === String(id)) ||
+      (id && String(q.id) === String(id)) ||
+      (num && q.quoteNumber === num)
   );
   if (matched) return matched;
-  if (!id && !num && item?.type === 'quotation_sent') {
-    return quotations.find((q) => q.sentAt || q.status === 'sent') || null;
+  // Status / legacy quote rows often lack meta — still bind to a real quotation.
+  if (!id && !num && item?.type?.startsWith('quotation_')) {
+    if (item.type === 'quotation_sent') {
+      return (
+        quotations.find((q) => q.sentAt || ['sent', 'approved'].includes(q.status)) ||
+        quotations[0] ||
+        null
+      );
+    }
+    return quotations[0] || null;
   }
   return null;
+}
+
+/** Build timeline rows from a quotations list (used when lead.quotations is not embedded). */
+export function buildActivitiesFromQuotations(quotations = [], fallbackUser = 'User') {
+  return quotations.flatMap((q) => {
+    const qid = q._id || q.id;
+    if (!qid) return [];
+
+    const amount = resolveQuotationAmount(q);
+    const pkgName = q.packageSnapshot?.name || q.package?.name || q.title || 'Package';
+    const quoteUser = q.createdByExecutive?.name || q.createdBy?.name || fallbackUser;
+    const quoteNumber = q.quoteNumber || 'Quote';
+    const rows = [
+      {
+        id: `qc-${qid}`,
+        type: 'quotation_created',
+        user: quoteUser,
+        date: q.createdAt || new Date().toISOString(),
+        notes: formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status: q.status }),
+        meta: { quotationId: qid, quoteNumber, amount },
+      },
+    ];
+
+    if (q.sentAt || ['sent', 'approved'].includes(q.status)) {
+      rows.push({
+        id: `qs-${qid}`,
+        type: 'quotation_sent',
+        user: quoteUser,
+        date: q.sentAt || q.updatedAt || q.createdAt || new Date().toISOString(),
+        notes: formatQuoteActivityNotes({ quoteNumber, pkgName, amount, status: q.status, sent: true }),
+        meta: { quotationId: qid, quoteNumber, amount },
+      });
+    }
+    return rows;
+  });
+}
+
+/**
+ * Ensure every quotation appears on the timeline with quotationId so View/Edit can render.
+ * Lead detail often loads quotations separately; DB timeline alone may omit quote rows/meta.
+ */
+export function ensureQuotationTimelineActivities(activities = [], quotations = []) {
+  const enriched = enrichQuotationActivities(activities, quotations);
+  if (!quotations.length) return enriched;
+
+  const quoteIdsInTimeline = new Set();
+  enriched.forEach((a) => {
+    if (!a.type?.startsWith('quotation_')) return;
+    const matched = findQuotationForActivity(a, quotations);
+    const id = a.meta?.quotationId || matched?._id || matched?.id;
+    if (id) quoteIdsInTimeline.add(String(id));
+  });
+
+  const missingQuotes = quotations.filter((q) => {
+    const id = String(q._id || q.id || '');
+    return id && !quoteIdsInTimeline.has(id);
+  });
+  if (!missingQuotes.length) return enriched;
+
+  return [...enriched, ...buildActivitiesFromQuotations(missingQuotes)].sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
 }
 
 /** Add price and download meta to quotation timeline rows from lead quotations. */
@@ -150,11 +223,23 @@ export function followUpToActivity(f, fallbackUser = 'User') {
 export function mergeLeadActivities(synthetic = [], timeline = []) {
   if (!timeline.length) return synthetic;
 
-  const timelineHasQuotations = timeline.some((a) => a.type?.startsWith('quotation_'));
+  const timelineQuoteIds = new Set(
+    timeline
+      .filter((a) => a.type?.startsWith('quotation_'))
+      .map((a) => String(a.meta?.quotationId || ''))
+      .filter(Boolean)
+  );
+  const timelineHasAnyQuote = timeline.some((a) => a.type?.startsWith('quotation_'));
 
   const extras = synthetic.filter((a) => {
     if (a.type === 'followup_added' || a.type === 'followup_completed') return true;
-    if (a.type?.startsWith('quotation_') && !timelineHasQuotations) return true;
+    if (a.type?.startsWith('quotation_')) {
+      const qid = String(a.meta?.quotationId || '');
+      // Keep quote rows that have an id and are not already on the DB timeline.
+      if (qid) return !timelineQuoteIds.has(qid);
+      // Drop status-only quotation_sent without id when timeline already has quote events.
+      return !timelineHasAnyQuote;
+    }
     if (['lead_reactivated', 'lead_reassigned', 'reactivation_progress'].includes(a.type)) {
       return !timeline.some((t) => t.type === a.type);
     }

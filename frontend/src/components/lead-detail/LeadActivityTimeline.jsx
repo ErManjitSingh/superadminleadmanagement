@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Download, Eye, Loader2, Pencil } from 'lucide-react';
-import { ACTIVITY_CONFIG, findQuotationForActivity } from './leadDetailData';
+import {
+  ACTIVITY_CONFIG,
+  ensureQuotationTimelineActivities,
+  findQuotationForActivity,
+} from './leadDetailData';
 import QuotationPdfOverlay from '../quotations/QuotationPdfOverlay';
 import ReceiptPdfPreviewModal from '../payments/ReceiptPdfPreviewModal';
 import { Button } from '../ui/button';
@@ -46,10 +50,10 @@ export default function LeadActivityTimeline({
   const [quoteLoading, setQuoteLoading] = useState(null);
   const pdfRef = useRef(null);
   const timelineRef = useRef(null);
-  const sorted = useMemo(
-    () => [...activities].sort((a, b) => new Date(b.date) - new Date(a.date)),
-    [activities],
-  );
+  const sorted = useMemo(() => {
+    const withQuotes = ensureQuotationTimelineActivities(activities, quotations);
+    return [...withQuotes].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [activities, quotations]);
 
   useEffect(() => {
     if (!leadId || window.location.hash !== '#activity-timeline') return undefined;
@@ -132,7 +136,7 @@ export default function LeadActivityTimeline({
   };
 
   const openQuotation = async (item, quote, autoPrint = false) => {
-    const quotationId = quote?._id || item?.meta?.quotationId;
+    const quotationId = idOf(quote?._id || quote?.id) || idOf(item?.meta?.quotationId);
     setQuoteLoading(item.id);
     try {
       let resolved = quote?._id && quote?.packageSnapshot ? quote : null;
@@ -157,7 +161,7 @@ export default function LeadActivityTimeline({
   };
 
   const editQuotation = (item, quote) => {
-    const quotationId = quote?._id || item?.meta?.quotationId;
+    const quotationId = idOf(quote?._id || quote?.id) || idOf(item?.meta?.quotationId);
     if (!quotationId || !quoteEditPath || !leadId) {
       toast.error('Quotation edit available nahi hai.');
       return;
@@ -190,12 +194,16 @@ export default function LeadActivityTimeline({
                   const cfg = ACTIVITY_CONFIG[item.type] || ACTIVITY_CONFIG.status_changed;
                   const Icon = cfg.icon;
                   const { date, time } = formatActivityDate(item.date);
-                  const quote = item.type?.startsWith('quotation_')
+                  const isQuoteActivity = item.type?.startsWith('quotation_');
+                  const quote = isQuoteActivity
                     ? findQuotationForActivity(item, quotations)
                     : null;
-                  const quotationId = quote?._id || item.meta?.quotationId;
-                  const canOpenQuote = Boolean(quotationId);
-                  const canEditQuote = Boolean(quoteEditPath && leadId && quotationId);
+                  const quotationId =
+                    idOf(quote?._id || quote?.id) || idOf(item.meta?.quotationId);
+                  const canOpenQuote = Boolean(isQuoteActivity && quotationId);
+                  const canEditQuote = Boolean(
+                    isQuoteActivity && quoteEditPath && leadId && quotationId
+                  );
                   const showReceiptActions = canOpenReceipt(item);
 
                   return (
