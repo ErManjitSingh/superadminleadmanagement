@@ -59,6 +59,24 @@ function prepareForCapture(root, widthPx) {
     'padding:0',
   ].join(';');
 
+  // Force continuous layout during capture (ignore screen print keep-together rules)
+  const style = document.createElement('style');
+  style.textContent = `
+    .quote-ht-pdf-v2, .quote-ht-pdf-v2 * {
+      page-break-inside: auto !important;
+      break-inside: auto !important;
+      page-break-before: auto !important;
+      page-break-after: auto !important;
+      break-before: auto !important;
+      break-after: auto !important;
+    }
+    .qp-section-block, .qp-day, .qp-policies, .qp-bank-wrap,
+    .qp-inc-exc-premium, .qp-vehicle-list, .qp-overview-grid {
+      margin-bottom: 4px !important;
+    }
+  `;
+  root.prepend(style);
+
   root.querySelectorAll('*').forEach((node) => {
     if (node.style?.visibility === 'hidden') node.style.visibility = 'visible';
     if (node.classList?.contains('qp-watermark') || node.classList?.contains('qp-watermark-text')) {
@@ -178,14 +196,14 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression)
   });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const pageHeightPx = Math.max(1, Math.round((canvas.width * pageHeight) / pageWidth));
+  // Exact pixel height of one A4 page at this canvas width — no leftover blank band
+  const pageHeightPx = Math.max(1, Math.floor((canvas.width * pageHeight) / pageWidth));
 
-  const pageOverlapPx = 6;
   let y = 0;
   let page = 0;
   while (y < canvas.height) {
-    if (page > 0) y = Math.max(0, y - pageOverlapPx);
-    const sliceH = Math.min(pageHeightPx, canvas.height - y);
+    const remaining = canvas.height - y;
+    const sliceH = Math.min(pageHeightPx, remaining);
     const pageCanvas = document.createElement('canvas');
     pageCanvas.width = canvas.width;
     pageCanvas.height = sliceH;
@@ -197,12 +215,12 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression)
 
     const encoded = downscaleCanvas(pageCanvas, pageMaxWidth);
     const imgData = canvasToJpeg(encoded, quality);
-    const imgHeightMm = (sliceH * pageWidth) / canvas.width;
+    const imgHeightMm = Math.min(pageHeight, (sliceH * pageWidth) / canvas.width);
 
     if (page > 0) pdf.addPage();
     pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, pdfCompression);
 
-    y += pageHeightPx;
+    y += sliceH;
     page += 1;
   }
 

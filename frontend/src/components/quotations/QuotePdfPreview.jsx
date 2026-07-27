@@ -171,7 +171,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       </section>
 
       {/* Package Overview */}
-      <section className="qp-section-block qp-section-block-keep">
+      <section className="qp-section-block">
         <h2 className="qp-section">Package Overview</h2>
         <div className="qp-overview-grid">
           {[
@@ -286,7 +286,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       )}
 
       {/* Payment schedule */}
-      <section className="qp-section-block qp-section-block-keep">
+      <section className="qp-section-block">
         <h2 className="qp-section">Payment Schedule</h2>
         <div className="qp-pay-grid">
           {paymentPlan.map((row) => (
@@ -302,7 +302,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       </section>
 
       {/* Inclusions & Exclusions — premium side-by-side */}
-      <section className="qp-section-block qp-section-block-keep">
+      <section className="qp-section-block">
         <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
         <div className="qp-inc-exc-premium">
         <div className="qp-inc-panel">
@@ -358,7 +358,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       </section>
 
       {/* Bank details — card layout, one account + QR */}
-      <section className="qp-section-block qp-section-block-keep">
+      <section className="qp-section-block">
         <h2 className="qp-section">Bank Details</h2>
         <div className="qp-bank-wrap">
         {bank ? (
