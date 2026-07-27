@@ -164,17 +164,56 @@ export function collectRoomImages(hotel = {}) {
   return (hotel.room?.images || []).filter((url) => typeof url === 'string' && url.trim());
 }
 
+/** Parse YYYY-MM-DD (or Date) as local midnight — avoids UTC off-by-one. */
+function parseLocalDate(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  const raw = String(value).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function nightsBetweenDates(checkIn, checkOut) {
+  const startDate = parseLocalDate(checkIn);
+  const endDate = parseLocalDate(checkOut);
+  if (!startDate || !endDate) return 0;
+  return Math.max(0, Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+/** Trip day number (1-based) for a date relative to travel start. */
+function dayNumberFromTravel(travelStart, dateValue) {
+  const startDate = parseLocalDate(travelStart);
+  const d = parseLocalDate(dateValue);
+  if (!startDate || !d) return null;
+  return Math.round((d.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function hotelStayNights(h = {}) {
+  const fromDates = nightsBetweenDates(h.checkIn, h.checkOut);
+  if (fromDates > 0) return fromDates;
+  const n = Number(h.nights);
+  if (Number.isFinite(n) && n > 0) return n;
+  return 1;
+}
+
 function mapSelectedHotelRecord(h, lead, pkg, travelStart) {
   const hotelImages = collectHotelOnlyImages(h);
   const roomImages = collectRoomImages(h);
   const start = travelStart || pkg.travelDate || lead.travelDate;
+  const nights = hotelStayNights(h);
+  const startDay = Number(h.day) > 0 ? Number(h.day) : (dayNumberFromTravel(start, h.checkIn) || 1);
   return {
-    day: h.day,
-    date: h.day ? getDayDate(start, h.day) : (h.checkIn ? new Date(h.checkIn) : null),
-    checkIn: h.checkIn || (h.day ? getDayDate(start, h.day) : null),
-    checkOut: h.checkOut || (h.day ? getDayDate(start, (h.day || 1) + (Number(h.nights) || 1)) : null),
+    day: startDay,
+    date: h.checkIn ? parseLocalDate(h.checkIn) : (startDay ? getDayDate(start, startDay) : null),
+    checkIn: h.checkIn || (startDay ? getDayDate(start, startDay) : null),
+    checkOut: h.checkOut || (startDay ? getDayDate(start, startDay + nights) : null),
     city: h.city || h.location?.split(',')[0]?.trim() || h.location || pkg.destination?.split(/[,|/]/)[0]?.trim() || '-',
-    name: h.name || 'Hotel',
+    name: h.name || h.hotelName || 'Hotel',
     roomType: h.room?.name || h.roomType || 'Deluxe',
     meals:
       h.mealPlan?.label
@@ -187,44 +226,114 @@ function mapSelectedHotelRecord(h, lead, pkg, travelStart) {
     roomImages,
     roomImage: roomImages[0] || '',
     images: collectHotelImageUrls(h),
-    nights: h.nights || 1,
+    nights,
+    stayStartDay: startDay,
     price: h.price ?? h.total,
   };
 }
 
+/**
+ * Expand stay blocks onto every overnight itinerary day.
+ * - Same hotel entire trip (1 block) → that hotel on all overnight days
+ * - Per-destination / manual (multiple blocks) → each hotel covers checkIn…checkOut
+ *   (or day + nights), so a 2–3 night stay repeats on consecutive days
+ */
 export function resolveDayHotelMap(quote) {
   const lead = resolveQuoteLead(quote);
   const pkg = resolveQuotePackage(quote);
+  const packageInfo = quote?.packageInfo || {};
+  const travelStart = packageInfo.travelDate || lead.travelDate || pkg.travelDate;
+  const duration = Math.max(
+    1,
+    Number(pkg.duration || packageInfo.duration || (pkg.itinerary || []).length || 1),
+  );
+  const maxOvernightDay = Math.max(0, duration - 1);
   const map = new Map();
-  resolveQuoteHotels(quote).forEach((row) => {
-    if (row.day) map.set(row.day, row);
+
+  if (quotationOmitsHotels(quote) || !quoteHasHotels(quote)) {
+    return { map, lead, pkg, duration, travelStart };
+  }
+
+  const selected = (quote.selectedHotels || []).filter((h) =>
+    String(h?.name || h?.hotelName || '').trim(),
+  );
+  const source = selected.length
+    ? selected
+    : (!Array.isArray(quote.selectedHotels) ? (pkg.hotels || []) : []).filter((h) =>
+      String(h?.name || h?.hotelName || '').trim(),
+    );
+
+  if (!source.length) return { map, lead, pkg, duration, travelStart };
+
+  const stays = source.map((h, index) => {
+    const nights = hotelStayNights(h);
+    let startDay = dayNumberFromTravel(travelStart, h.checkIn);
+    if (!startDay || startDay < 1) {
+      // Trust day index for single stay or true per-night rows; otherwise sequence by nights
+      if (source.length === 1 || nights === 1) {
+        startDay = Number(h.day) > 0 ? Number(h.day) : null;
+      } else {
+        startDay = null;
+      }
+    }
+    return { h, nights, startDay, index };
   });
-  if (map.size === 0) {
-    resolveQuoteHotels(quote).forEach((row, index) => {
-      map.set(row.day || index + 1, row);
+
+  // Fill missing start days sequentially (multi-night destination blocks)
+  let cursor = 1;
+  stays.forEach((stay) => {
+    if (!stay.startDay || stay.startDay < 1) {
+      stay.startDay = cursor;
+    }
+    cursor = stay.startDay + stay.nights;
+  });
+
+  const assignStay = (stay, endDay) => {
+    const record = mapSelectedHotelRecord(stay.h, lead, pkg, travelStart);
+    const start = Math.max(1, stay.startDay);
+    const end = Math.max(start, Math.min(maxOvernightDay, endDay));
+    for (let d = start; d <= end; d += 1) {
+      map.set(d, {
+        ...record,
+        day: d,
+        date: getDayDate(travelStart, d),
+        nights: stay.nights,
+        stayStartDay: start,
+        stayNights: stay.nights,
+      });
+    }
+  };
+
+  if (stays.length === 1) {
+    // One hotel for the trip: cover every overnight day (extend if nights under-reported)
+    const stay = stays[0];
+    let endDay = stay.startDay + stay.nights - 1;
+    if (stay.startDay <= 1 && endDay < maxOvernightDay) {
+      endDay = maxOvernightDay;
+    }
+    assignStay(stay, endDay);
+  } else {
+    stays.forEach((stay) => {
+      assignStay(stay, stay.startDay + stay.nights - 1);
     });
   }
-  return { map, lead, pkg };
+
+  return { map, lead, pkg, duration, travelStart };
 }
 
 export function resolveDayHotelForItinerary(quote, dayNum) {
-  const { map, pkg } = resolveDayHotelMap(quote);
-  if (map.has(dayNum)) return map.get(dayNum);
-
-  const hotels = resolveQuoteHotels(quote);
-  if (!hotels.length) return null;
-
-  const duration = Math.max(
+  const { map, pkg, duration } = resolveDayHotelMap(quote);
+  const dur = Math.max(
     1,
-    Number(pkg.duration || quote?.packageInfo?.duration || hotels.length + 1),
+    Number(duration || pkg.duration || quote?.packageInfo?.duration || 1),
   );
   // Last day is usually departure — no overnight hotel.
-  if (dayNum >= duration) return null;
-
-  // Same hotel for entire trip: reuse first hotel on every overnight day.
-  return hotels[0] || null;
+  if (dayNum >= dur) return null;
+  if (map.has(dayNum)) return map.get(dayNum);
+  return null;
 }
 
+/** Unique stay blocks (not expanded per night) — for summaries / legacy callers. */
 export function resolveQuoteHotels(quote) {
   if (quotationOmitsHotels(quote) || !quoteHasHotels(quote)) return [];
 
@@ -233,131 +342,28 @@ export function resolveQuoteHotels(quote) {
   const packageInfo = quote?.packageInfo || {};
   const travelStart = packageInfo.travelDate || lead.travelDate || pkg.travelDate;
 
-  // Prefer explicitly selected hotels; only then package hotels (when quote includes hotel)
-  const selected = quote.selectedHotels || [];
+  const selected = (quote.selectedHotels || []).filter((h) =>
+    String(h?.name || h?.hotelName || '').trim(),
+  );
 
   if (selected.length) {
-    const dayKeyed = selected.filter((h) => h.day && h.name);
-    if (dayKeyed.length) {
-      return dayKeyed
-        .map((h) => mapSelectedHotelRecord(h, lead, pkg, travelStart))
-        .sort((a, b) => a.day - b.day);
-    }
-  }
-
-  if (pkg.hotels?.length && selected.length === 0 && !Array.isArray(quote.selectedHotels)) {
-    return pkg.hotels.map((h, index) => ({
-      day: h.day || index + 1,
-      date: h.date || h.checkIn || getDayDate(travelStart, h.day || index + 1),
-      hotelImages: h.hotelImages || collectHotelOnlyImages(h),
-      roomImages: h.roomImages || collectRoomImages(h),
-      roomImage: h.roomImage || collectRoomImages(h)[0] || '',
-      ...h,
-    }));
-  }
-
-  if (!selected.length) return [];
-
-  const dayKeyed = (quote.selectedHotels || []).filter((h) => h.day && h.name);
-  if (dayKeyed.length) {
-    return dayKeyed
+    return selected
       .map((h) => mapSelectedHotelRecord(h, lead, pkg, travelStart))
-      .sort((a, b) => a.day - b.day);
+      .sort((a, b) => (a.stayStartDay || a.day || 0) - (b.stayStartDay || b.day || 0));
   }
 
-  const selectedRecords = (quote.selectedHotels || []).map((h) => mapSelectedHotelRecord(h, lead, pkg, travelStart));
-  const defaultHotel = selectedRecords[0];
-  const itinerary = pkg.itinerary || [];
-  const totalDays = Math.max(itinerary.length, Number(pkg.duration) || 1);
-  const defaultNights = defaultHotel?.nights || Math.max(1, totalDays - 1);
-
-  const hotelByName = new Map();
-  selectedRecords.forEach((record) => {
-    if (record.name) hotelByName.set(record.name.toLowerCase(), record);
-  });
-
-  const rows = [];
-
-  if (itinerary.length) {
-    itinerary.forEach((day, index) => {
-      const dayNum = day.day || index + 1;
-      const isLastDay = dayNum >= totalDays;
-      let hotelName = String(day.hotel || day.accommodation || '').trim();
-      const isOvernightDay = dayNum <= defaultNights || (dayNum < totalDays && !isLastDay);
-
-      if (!hotelName && defaultHotel && isOvernightDay) {
-        hotelName = defaultHotel.name;
-      }
-      if (!hotelName) return;
-
-      const enrich = hotelByName.get(hotelName.toLowerCase()) || defaultHotel;
-      const dayDate = getDayDate(travelStart, dayNum);
-
-      rows.push({
-        day: dayNum,
-        date: dayDate,
-        city: enrich?.city || pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
-        name: hotelName,
-        roomType: enrich?.roomType || 'Deluxe',
-        meals: day.meals || enrich?.meals || 'Breakfast & Dinner',
-        similarHotel: enrich?.similarHotel || '',
-        thumbnailUrl: enrich?.thumbnailUrl || enrich?.hotelImages?.[0] || '',
-        hotelImages: enrich?.hotelImages || [],
-        roomImages: enrich?.roomImages || [],
-        roomImage: enrich?.roomImage || enrich?.roomImages?.[0] || '',
-        images: enrich?.images || [],
-        checkIn: dayDate,
-        checkOut: getDayDate(travelStart, dayNum + 1),
-        nights: 1,
-        price: enrich?.price,
-      });
-    });
+  if (pkg.hotels?.length && !Array.isArray(quote.selectedHotels)) {
+    return pkg.hotels
+      .filter((h) => String(h?.name || h?.hotelName || '').trim())
+      .map((h, index) => ({
+        ...mapSelectedHotelRecord({ ...h, day: h.day || index + 1 }, lead, pkg, travelStart),
+        hotelImages: h.hotelImages || collectHotelOnlyImages(h),
+        roomImages: h.roomImages || collectRoomImages(h),
+        roomImage: h.roomImage || collectRoomImages(h)[0] || '',
+      }));
   }
 
-  if (!rows.length && defaultHotel) {
-    for (let night = 1; night <= defaultNights; night += 1) {
-      const dayDate = getDayDate(travelStart, night);
-      rows.push({
-        day: night,
-        date: dayDate,
-        city: defaultHotel.city,
-        name: defaultHotel.name,
-        roomType: defaultHotel.roomType,
-        meals: defaultHotel.meals,
-        similarHotel: defaultHotel.similarHotel,
-        thumbnailUrl: defaultHotel.thumbnailUrl,
-        hotelImages: defaultHotel.hotelImages || [],
-        roomImages: defaultHotel.roomImages || [],
-        roomImage: defaultHotel.roomImage || '',
-        images: defaultHotel.images || [],
-        checkIn: dayDate,
-        checkOut: getDayDate(travelStart, night + 1),
-        nights: 1,
-        price: defaultHotel.price,
-      });
-    }
-  }
-
-  if (rows.length) return rows;
-
-  const seen = new Set();
-  const fromItinerary = [];
-  for (const day of itinerary) {
-    if (!day.hotel || seen.has(day.hotel)) continue;
-    seen.add(day.hotel);
-    fromItinerary.push({
-      day: day.day,
-      date: getDayDate(travelStart, day.day),
-      city: pkg.destination?.split(/[,·]/)[0]?.trim() || '—',
-      name: day.hotel,
-      roomType: 'Deluxe',
-      meals: day.meals || 'Breakfast & Dinner',
-      similarHotel: '',
-      thumbnailUrl: '',
-      images: [],
-    });
-  }
-  return fromItinerary;
+  return [];
 }
 
 export function resolveQuoteVehicles(quote) {

@@ -49,32 +49,67 @@ export function emptyDestinationHotel(destination = '') {
   };
 }
 
+/** Parse YYYY-MM-DD as local date. */
+function parseDateOnly(value) {
+  if (!value) return null;
+  const s = String(value).slice(0, 10);
+  const parts = s.split('-').map(Number);
+  if (parts.length !== 3 || parts.some((n) => !n)) return null;
+  const [y, m, d] = parts;
+  return new Date(y, m - 1, d);
+}
+
+function nightsFromHotelDates(h = {}) {
+  const n = Number(h.nights);
+  if (Number.isFinite(n) && n > 0) return n;
+  const start = parseDateOnly(h.checkIn);
+  const end = parseDateOnly(h.checkOut);
+  if (!start || !end) return 1;
+  return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+/** Trip day (1-based) from check-in relative to travel date. */
+function dayFromCheckIn(travelDate, checkIn) {
+  const start = parseDateOnly(travelDate);
+  const inDate = parseDateOnly(checkIn);
+  if (!start || !inDate) return null;
+  return Math.round((inDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+}
+
 /** Map simplified UI state → backend hotels[] */
-export function builderUiToHotels(builderUi = {}, destinations = []) {
+export function builderUiToHotels(builderUi = {}, destinations = [], travelDate = '') {
   if (builderUi.skipHotel) return [];
 
   if (builderUi.hotelMode === 'per_destination') {
+    let nextDay = 1;
     return (builderUi.destinationHotels || [])
       .filter((h) => h.name?.trim())
-      .map((h, index) => ({
-        day: index + 1,
-        hotelId: h.hotelId || undefined,
-        name: h.name,
-        location: h.destination || h.location || '',
-        category: h.category || '4 Star',
-        roomType: h.roomType || 'Deluxe',
-        mealPlan: h.mealPlan || '',
-        checkIn: h.checkIn || '',
-        checkOut: h.checkOut || '',
-        nights: h.nights || 0,
-        image: '',
-        alternatives: [],
-      }));
+      .map((h) => {
+        const nights = nightsFromHotelDates(h);
+        const fromCheckIn = dayFromCheckIn(travelDate, h.checkIn);
+        const day = fromCheckIn && fromCheckIn > 0 ? fromCheckIn : nextDay;
+        nextDay = day + nights;
+        return {
+          day,
+          hotelId: h.hotelId || undefined,
+          name: h.name,
+          location: h.destination || h.location || '',
+          category: h.category || '4 Star',
+          roomType: h.roomType || 'Deluxe',
+          mealPlan: h.mealPlan || '',
+          checkIn: h.checkIn || '',
+          checkOut: h.checkOut || '',
+          nights,
+          image: '',
+          alternatives: [],
+        };
+      });
   }
 
   const same = builderUi.sameHotel || {};
   if (!same.name?.trim()) return [];
 
+  const nights = nightsFromHotelDates(same);
   return [
     {
       day: 1,
@@ -86,7 +121,7 @@ export function builderUiToHotels(builderUi = {}, destinations = []) {
       mealPlan: same.mealPlan || '',
       checkIn: same.checkIn || '',
       checkOut: same.checkOut || '',
-      nights: same.nights || 0,
+      nights,
       image: '',
       alternatives: [],
     },
@@ -267,14 +302,10 @@ export function builderUiFromQuotation(quote = {}) {
 }
 
 /** Quotation PDF snapshot — hotels */
-export function builderUiToSelectedHotelsSnapshot(builderUi = {}, destinations = []) {
+export function builderUiToSelectedHotelsSnapshot(builderUi = {}, destinations = [], travelDate = '') {
   if (builderUi.skipHotel) return [];
-  return builderUiToHotels(builderUi, destinations).map((h) => {
-    const nights = Number(h.nights) > 0
-      ? Number(h.nights)
-      : (h.checkIn && h.checkOut
-        ? Math.max(1, Math.round((new Date(h.checkOut) - new Date(h.checkIn)) / (1000 * 60 * 60 * 24)))
-        : 1);
+  return builderUiToHotels(builderUi, destinations, travelDate).map((h) => {
+    const nights = nightsFromHotelDates(h);
     return {
       day: h.day,
       _id: h.hotelId || `hotel-${h.day}`,

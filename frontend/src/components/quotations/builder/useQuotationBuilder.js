@@ -266,7 +266,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
           travelGuidelines: builderUi.internalNotes || state.importantNotes.travelGuidelines,
         },
         templateKey: state.templateKey,
-        selectedHotels: builderUiToSelectedHotelsSnapshot(builderUi, destList),
+        selectedHotels: builderUiToSelectedHotelsSnapshot(
+          builderUi,
+          destList,
+          state.packageInfo?.travelDate || selectedLead?.travelDate,
+        ),
         selectedCabs: builderUiToSelectedCabs(builderUi),
         selectedFlights: [],
         selectedActivities: [],
@@ -331,7 +335,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
         total,
       ),
       importantNotes: state.importantNotes,
-      selectedHotels: builderUiToSelectedHotelsSnapshot(builderUi, destList),
+      selectedHotels: builderUiToSelectedHotelsSnapshot(
+        builderUi,
+        destList,
+        state.packageInfo?.travelDate || selectedLead?.travelDate,
+      ),
       selectedCabs: builderUiToSelectedCabs(builderUi),
       selectedActivities: [],
     };

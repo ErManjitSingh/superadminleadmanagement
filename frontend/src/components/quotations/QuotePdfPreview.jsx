@@ -269,8 +269,12 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                         <strong>{dayHotel.name}</strong>
                         {dayHotel.roomType ? ` · ${dayHotel.roomType}` : ''}
                         {dayHotel.meals ? ` · ${dayHotel.meals}` : ''}
-                        {dayHotel.nights ? ` · ${dayHotel.nights} Night${dayHotel.nights > 1 ? 's' : ''}` : ''}
-                        {dayHotel.city && dayHotel.city !== '—' ? ` · ${dayHotel.city}` : ''}
+                        {dayHotel.nights && dayNum === (dayHotel.stayStartDay || dayHotel.day)
+                          ? ` · ${dayHotel.nights} Night${dayHotel.nights > 1 ? 's' : ''}`
+                          : ''}
+                        {dayHotel.city && dayHotel.city !== '—' && dayHotel.city !== '-'
+                          ? ` · ${dayHotel.city}`
+                          : ''}
                       </p>
                     </div>
                   </div>

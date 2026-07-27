@@ -634,7 +634,9 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
   const info = b.state.packageInfo || {};
   const noHotel = isNoHotelMealPlan(info.mealPlan);
   const destList = b.hotelDestination ? [{ name: b.hotelDestination }] : [];
-  const hotels = noHotel || b.builderUi.skipHotel ? [] : builderUiToHotels(b.builderUi, destList);
+  const hotels = noHotel || b.builderUi.skipHotel
+    ? []
+    : builderUiToHotels(b.builderUi, destList, info.travelDate);
   const transport = builderUiToTransport(b.builderUi);
   const itinerary = b.customItinerary || [];
   const customerPhone = b.selectedLead?.whatsapp || b.selectedLead?.phone;

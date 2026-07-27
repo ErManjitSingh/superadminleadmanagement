@@ -154,7 +154,7 @@ export function packageFromApi(pkg = {}) {
 
 export function packageToPayload(state) {
   const builderUi = state.builderUi || defaultBuilderUi();
-  const hotels = builderUiToHotels(builderUi, state.destinations);
+  const hotels = builderUiToHotels(builderUi, state.destinations, state.travelDate || state.startDate);
   const transport = builderUiToTransport(builderUi);
   const cabCost = transport.reduce((s, t) => s + (Number(t.cost) || 0), 0);
   const finalPrice = Math.max(0, Number(state.pricing?.finalPrice) || 0);

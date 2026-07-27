@@ -55,25 +55,104 @@ function asVehicleType(value) {
   return 'other';
 }
 
+function parseLocalDate(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
+  const raw = String(value).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function hotelStayNights(h = {}) {
+  const n = Number(h.nights);
+  if (Number.isFinite(n) && n > 0) return n;
+  const start = parseLocalDate(h.checkIn);
+  const end = parseLocalDate(h.checkOut);
+  if (!start || !end) return 1;
+  return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function dayNumberFromTravel(travelStart, dateValue) {
+  const start = parseLocalDate(travelStart);
+  const d = parseLocalDate(dateValue);
+  if (!start || !d) return null;
+  return Math.round((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+/** Resolve which selected hotel covers an itinerary day (multi-night aware). */
+function resolveHotelForDay(selectedHotels, dayNum, travelDate, duration) {
+  if (!selectedHotels.length) return null;
+  const maxOvernight = Math.max(0, (Number(duration) || 0) - 1);
+  if (maxOvernight > 0 && dayNum > maxOvernight) return null;
+
+  const stays = selectedHotels.map((h) => {
+    const nights = hotelStayNights(h);
+    let startDay = dayNumberFromTravel(travelDate, h.checkIn);
+    if (!startDay || startDay < 1) {
+      if (selectedHotels.length === 1 || nights === 1) {
+        startDay = Number(h.day) > 0 ? Number(h.day) : null;
+      } else {
+        startDay = null;
+      }
+    }
+    return { h, nights, startDay };
+  });
+
+  let cursor = 1;
+  stays.forEach((stay) => {
+    if (!stay.startDay || stay.startDay < 1) stay.startDay = cursor;
+    cursor = stay.startDay + stay.nights;
+  });
+
+  if (stays.length === 1) {
+    const stay = stays[0];
+    let endDay = stay.startDay + stay.nights - 1;
+    if (stay.startDay <= 1 && maxOvernight > 0 && endDay < maxOvernight) {
+      endDay = maxOvernight;
+    }
+    if (dayNum >= stay.startDay && dayNum <= endDay) return stay.h;
+    return null;
+  }
+
+  for (const stay of stays) {
+    const endDay = stay.startDay + stay.nights - 1;
+    if (dayNum >= stay.startDay && dayNum <= endDay) return stay.h;
+  }
+  return null;
+}
+
 function mapQuoteItinerary(quotation, travelDate) {
   const omitHotels = quotationOmitsHotels(quotation);
   const snap = quotation?.packageSnapshot || {};
   const days = snap.itinerary || [];
-  const selectedHotels = omitHotels ? [] : (quotation?.selectedHotels || []);
+  const selectedHotels = omitHotels ? [] : (quotation?.selectedHotels || []).filter((h) =>
+    String(h?.name || h?.hotelName || '').trim(),
+  );
+  const duration = Number(
+    quotation?.packageInfo?.duration || snap.duration || days.length || 0,
+  );
 
   if (!days.length) return [];
 
   return days.map((d, i) => {
     const dayNum = d.day || i + 1;
-    const hotelForDay = selectedHotels.find((h) => Number(h.day) === dayNum);
+    const hotelForDay = omitHotels
+      ? null
+      : resolveHotelForDay(selectedHotels, dayNum, travelDate, duration);
     const dayDate = travelDate ? addDays(travelDate, dayNum - 1) : null;
 
+    // Prefer SE-selected hotel name over generic itinerary accommodation text
     const hotelName = omitHotels
       ? ''
-      : (d.accommodation || d.hotel || hotelForDay?.name || '');
+      : (hotelForDay?.name || hotelForDay?.hotelName || d.accommodation || d.hotel || '');
     const dayHotel = !omitHotels && (hotelForDay || hotelName)
       ? {
-          hotelName: hotelForDay?.name || hotelName,
+          hotelName: hotelForDay?.name || hotelForDay?.hotelName || hotelName,
           destination: hotelForDay?.location || hotelForDay?.city || hotelForDay?.destination || '',
           location: hotelForDay?.location || hotelForDay?.city || '',
           roomType: hotelForDay?.room?.name || hotelForDay?.room || hotelForDay?.roomType || '',
