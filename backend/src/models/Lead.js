@@ -104,6 +104,8 @@ const leadSchema = new mongoose.Schema(
     leadSource: { type: String },
     sourceLabel: { type: String },
     hotelCategory: { type: String },
+    /** Fleet cab category selected on lead (Sedan, SUV, …) — prefills quotation transport */
+    cabType: { type: String, trim: true, default: '' },
     mealPreference: { type: String },
     transportRequirement: { type: String },
     specialRequirements: { type: String },

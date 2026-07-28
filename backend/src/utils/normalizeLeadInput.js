@@ -100,6 +100,11 @@ function normalizeLeadInput(body = {}, { isUpdate = false } = {}) {
 
   if (body.pickup !== undefined) normalized.pickup = String(body.pickup || '').trim();
   if (body.drop !== undefined) normalized.drop = String(body.drop || '').trim();
+  if (body.cabType !== undefined) {
+    const cab = String(body.cabType || '').trim();
+    normalized.cabType = cab;
+    if (!normalized.transportRequirement) normalized.transportRequirement = cab;
+  }
 
   if (!isUpdate && body.status) normalized.status = body.status;
   if (isUpdate && body.status) normalized.status = body.status;

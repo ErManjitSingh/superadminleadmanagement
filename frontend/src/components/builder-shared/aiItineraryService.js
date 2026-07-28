@@ -1061,8 +1061,12 @@ export async function generateItineraryFromAI({
   days,
   nights,
   variationSeed = 0,
+  pickup: pickupOverride = "",
+  drop: dropOverride = "",
 }) {
   const logistics = extractTravelLogistics(prompt);
+  if (pickupOverride) logistics.pickup = String(pickupOverride).trim();
+  if (dropOverride) logistics.drop = String(dropOverride).trim();
   const inferred = inferDurationFromPrompt(prompt, logistics);
   const parsed = parseDurationFromPrompt(prompt);
   const stops = extractDestinations(prompt, destination);

@@ -303,6 +303,8 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
                   days={b.state.packageInfo?.duration}
                   nights={Math.max(0, (Number(b.state.packageInfo?.duration) || 4) - 1)}
                   onDurationChange={({ days }) => b.updatePackageInfo({ duration: days })}
+                  pickup={b.builderUi.pickupLocation || b.selectedLead?.pickup || ''}
+                  drop={b.builderUi.dropLocation || b.selectedLead?.drop || ''}
                 />
               )}
               {b.step === 3 && !noHotel && (

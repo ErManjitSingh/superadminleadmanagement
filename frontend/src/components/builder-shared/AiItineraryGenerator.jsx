@@ -42,6 +42,8 @@ export default function AiItineraryGenerator({
   days,
   nights,
   onDurationChange,
+  pickup = '',
+  drop = '',
 }) {
   const [generating, setGenerating] = useState(false);
   const [manualEdit, setManualEdit] = useState(false);
@@ -76,6 +78,8 @@ export default function AiItineraryGenerator({
         days,
         nights,
         variationSeed: nextSeed,
+        pickup,
+        drop,
       });
       onItineraryChange(applyFixedBoundaryMeals(result.days));
       if (result.logistics) setLastLogistics(result.logistics);

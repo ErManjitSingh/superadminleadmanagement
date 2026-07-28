@@ -40,7 +40,18 @@ export const DESTINATIONS = [
   'Himachal Pradesh', 'Uttarakhand', 'Ladakh', 'Spiti Valley', 'Rishikesh',
 ];
 
-export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v10';
+export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v11';
+
+/** Cab categories shown on lead form — aligned with quotation transport fleet */
+export const LEAD_CAB_TYPES = [
+  'Sedan',
+  'SUV',
+  'Tempo Traveller',
+  'Urbania',
+  'Luxury',
+  'Mini Bus',
+  'Bus',
+];
 
 export const defaultWizardValues = {
   name: '',
@@ -56,6 +67,7 @@ export const defaultWizardValues = {
   children: 0,
   infants: 0,
   hotelCategory: '3_star',
+  cabType: 'Sedan',
   requirements: '',
   budgetRange: '',
   customBudget: '',

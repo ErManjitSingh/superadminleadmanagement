@@ -5,7 +5,7 @@ import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { buildListParams, unwrapList, unwrapPagination } from '../../../utils/apiHelpers';
 import { parsePackageNights } from '../UnoHotelSelector';
 import { cleanInclusionExclusionLines } from '../InclusionExclusionEditor';
-import { isNoHotelMealPlan, isNoHotelLabel, NO_HOTEL_MEAL_PLAN, mapLeadHotelCategory } from '../constants';
+import { isNoHotelMealPlan, isNoHotelLabel, NO_HOTEL_MEAL_PLAN, mapLeadHotelCategory, mapLeadCabFleetCategory, mapLeadCabTransportation } from '../constants';
 import {
   defaultItineraryDay,
   defaultWizardState,
@@ -20,6 +20,7 @@ import {
   builderUiToSelectedHotelsSnapshot,
   builderUiToSelectedCabs,
 } from '../../builder-shared/builderUiUtils';
+import { FLEET_CATALOG } from '../../builder-shared/fleetConstants';
 
 export const BUILDER_CONFIG = {
   executive: {
@@ -112,6 +113,7 @@ function packageInfoFromLead(lead, existing = {}) {
   const leadNoHotel = isNoHotelLabel(lead?.hotelCategory);
   const tripDays = deriveLeadTripDays(lead);
   const mappedCategory = mapLeadHotelCategory(lead?.hotelCategory);
+  const mappedCab = mapLeadCabTransportation(lead?.cabType || lead?.transportRequirement);
   const travelDate = toDateInputValue(lead?.travelDate);
   return {
     ...existing,
@@ -121,11 +123,35 @@ function packageInfoFromLead(lead, existing = {}) {
     ...(lead?.adults != null ? { adults: Number(lead.adults) || 1 } : {}),
     ...(lead?.children != null ? { children: Number(lead.children) || 0 } : {}),
     ...(lead?.infants != null ? { infants: Number(lead.infants) || 0 } : {}),
+    ...(mappedCab ? { transportation: mappedCab } : {}),
     ...(leadNoHotel
       ? { mealPlan: NO_HOTEL_MEAL_PLAN, hotelCategory: '' }
-      : mappedCategory
-        ? { hotelCategory: existing.hotelCategory || mappedCategory }
-        : {}),
+      : {
+          // Prefer lead hotel category over builder defaults (e.g. "4 Star")
+          ...(mappedCategory ? { hotelCategory: mappedCategory } : {}),
+          ...(isNoHotelMealPlan(existing.mealPlan)
+            ? { mealPlan: 'MAP (Breakfast + Dinner)' }
+            : {}),
+        }),
+  };
+}
+
+/** Prefill transport fleet + pickup/drop from lead cab selection. */
+function builderUiPatchFromLead(lead, existing = {}) {
+  const leadNoHotel = isNoHotelLabel(lead?.hotelCategory);
+  const fleetCategory =
+    mapLeadCabFleetCategory(lead?.cabType || lead?.transportRequirement) || existing.fleetCategory || 'Sedan';
+  const fleetList = FLEET_CATALOG[fleetCategory] || [];
+  const fleetVehicle =
+    (existing.fleetCategory === fleetCategory && existing.fleetVehicle)
+      ? existing.fleetVehicle
+      : (fleetList[0] || existing.fleetVehicle || '');
+  return {
+    skipHotel: leadNoHotel,
+    fleetCategory,
+    fleetVehicle,
+    pickupLocation: lead?.pickup || existing.pickupLocation || '',
+    dropLocation: lead?.drop || existing.dropLocation || '',
   };
 }
 
@@ -393,7 +419,6 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
           throw new Error('Invalid lead response');
         }
         setSelectedLead(lead);
-        const leadNoHotel = isNoHotelLabel(lead.hotelCategory);
         const leadBudget = Number(lead.budget) || 0;
         setState((s) => {
           // Editing an existing quote — keep quote fields; only attach lead id.
@@ -423,8 +448,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
               : {}),
           };
         });
-        if (leadNoHotel && !initialQuoteId) {
-          setBuilderUi((ui) => ({ ...ui, skipHotel: true }));
+        if (!initialQuoteId) {
+          setBuilderUi((ui) => ({
+            ...ui,
+            ...builderUiPatchFromLead(lead, ui),
+          }));
         }
         return lead;
       } catch {
@@ -693,7 +721,11 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     setCustomInclusions(['']);
     setCustomExclusions(['']);
     setDayWiseHotels([]);
-    setBuilderUi({ ...defaultBuilderUi(), skipHotel: leadNoHotel });
+    setBuilderUi({
+      ...defaultBuilderUi(),
+      ...builderUiPatchFromLead(lead, defaultBuilderUi()),
+      skipHotel: leadNoHotel,
+    });
   };
 
   const applyPackageDetail = (detail) => {

@@ -99,6 +99,50 @@ export function mapLeadHotelCategory(value) {
   return raw;
 }
 
+/** Map lead cab type → quotation fleet category (Sedan, SUV, …). */
+export function mapLeadCabFleetCategory(value) {
+  if (value == null || value === '') return '';
+  const raw = String(typeof value === 'object' ? (value.label || value.name || value.value || '') : value).trim();
+  if (!raw) return '';
+  const key = raw.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const map = {
+    sedan: 'Sedan',
+    'sedan (dzire/etios)': 'Sedan',
+    'swift dzire': 'Sedan',
+    cab: 'Sedan',
+    suv: 'SUV',
+    innova: 'SUV',
+    ertiga: 'SUV',
+    'tempo traveller': 'Tempo Traveller',
+    'tempo traveller (12 seater)': 'Tempo Traveller',
+    'tempo traveller (17 seater)': 'Tempo Traveller',
+    urbania: 'Urbania',
+    luxury: 'Luxury',
+    'luxury car': 'Luxury',
+    'mini bus': 'Mini Bus',
+    bus: 'Bus',
+  };
+  if (map[key]) return map[key];
+  const known = ['Sedan', 'SUV', 'Tempo Traveller', 'Urbania', 'Luxury', 'Mini Bus', 'Bus'];
+  const hit = known.find((c) => c.toLowerCase() === key);
+  return hit || '';
+}
+
+/** Map lead cab type → package-info transportation select options. */
+export function mapLeadCabTransportation(value) {
+  const fleet = mapLeadCabFleetCategory(value);
+  const map = {
+    Sedan: 'Sedan (Dzire/Etios)',
+    SUV: 'SUV',
+    'Tempo Traveller': 'Tempo Traveller (12 Seater)',
+    Urbania: 'Urbania',
+    Luxury: 'Luxury Car',
+    'Mini Bus': 'Tempo Traveller (17 Seater)',
+    Bus: 'Tempo Traveller (17 Seater)',
+  };
+  return map[fleet] || '';
+}
+
 export function isNoHotelMealPlan(mealPlan) {
   return isNoHotelLabel(mealPlan);
 }

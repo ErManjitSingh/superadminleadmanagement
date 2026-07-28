@@ -33,6 +33,7 @@ export default function LeadCustomerPanel({ lead }) {
         <InfoRow label="Email" value={lead.email} />
         <InfoRow label="Pickup" value={lead.pickup || '—'} />
         <InfoRow label="Drop" value={lead.drop || '—'} />
+        <InfoRow label="Cab Type" value={lead.cabType || lead.transportRequirement || '—'} />
         <InfoRow label="Lead Age" value={computeLeadAge(lead.createdAt)} />
         <InfoRow label="Last Contacted" value={lastContacted} />
         <InfoRow label="Lead Owner" value={lead.assignedTo?.name || 'Unassigned'} />

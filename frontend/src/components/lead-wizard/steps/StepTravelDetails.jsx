@@ -3,7 +3,7 @@ import { useWizardForm } from '../WizardFormContext';
 import { motion } from 'framer-motion';
 import { Search, Calendar, IndianRupee } from 'lucide-react';
 import WizardField, { WizardInput } from '../WizardField';
-import { DESTINATIONS, LEAD_TYPES } from '../constants';
+import { DESTINATIONS, LEAD_TYPES, LEAD_CAB_TYPES } from '../constants';
 import API from '../../../api/axios';
 import { cn } from '../../../lib/utils';
 
@@ -188,6 +188,13 @@ export default function StepTravelDetails() {
             <option value="5_star">5 Star</option>
             <option value="luxury">Luxury</option>
             <option value="no_hotel">No Hotel (Cab only / without hotel)</option>
+          </select>
+        </WizardField>
+        <WizardField label="Cab Type">
+          <select {...register('cabType')} className="input-premium h-10">
+            {LEAD_CAB_TYPES.map((cab) => (
+              <option key={cab} value={cab}>{cab}</option>
+            ))}
           </select>
         </WizardField>
         <WizardField label="Budget Range">
