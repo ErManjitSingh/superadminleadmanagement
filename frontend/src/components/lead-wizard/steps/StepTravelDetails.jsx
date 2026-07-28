@@ -118,6 +118,23 @@ export default function StepTravelDetails() {
       </WizardField>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <WizardField label="Pickup" error={errors.pickup?.message}>
+          <WizardInput
+            {...register('pickup')}
+            placeholder="e.g. Delhi Airport, Chandigarh"
+            error={errors.pickup}
+          />
+        </WizardField>
+        <WizardField label="Drop" error={errors.drop?.message}>
+          <WizardInput
+            {...register('drop')}
+            placeholder="e.g. Shimla, Manali"
+            error={errors.drop}
+          />
+        </WizardField>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <WizardField label="Travel Date" error={errors.travelDate?.message}>
           <div className="relative">
             <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-muted pointer-events-none" />

@@ -75,11 +75,12 @@ export default function WhatsAppLeadInfoPanel({
         <Section title="Customer Details">
           <InfoRow icon={User} label="Phone" value={lead.phone} />
           <InfoRow icon={Mail} label="Email" value={lead.email} />
-          <InfoRow icon={MapPin} label="City" value={lead.city} />
         </Section>
 
         <Section title="Travel Details">
           <InfoRow icon={Globe} label="Destination" value={lead.destination} />
+          <InfoRow icon={MapPin} label="Pickup" value={lead.pickup} />
+          <InfoRow icon={MapPin} label="Drop" value={lead.drop} />
           <InfoRow icon={Calendar} label="Travel Date" value={formatTravelDate(lead.travelDate)} />
           <InfoRow icon={Wallet} label="Budget" value={formatBudget(lead.budget)} />
         </Section>

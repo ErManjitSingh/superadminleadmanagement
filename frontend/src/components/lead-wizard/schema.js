@@ -27,14 +27,14 @@ export const customerSchema = z.object({
   phone: phoneSchema,
   whatsapp: z.string().optional().or(z.literal('')),
   email: optionalEmail,
-  city: z.string().min(2, 'City is required'),
-  state: z.string().min(2, 'State is required'),
 });
 
 export const travelFieldsSchema = z.object({
   leadType: z.enum(['fit', 'group', 'corporate']).optional(),
   companyName: z.string().optional(),
   destination: z.string().min(2, 'Destination is required'),
+  pickup: z.string().optional().or(z.literal('')),
+  drop: z.string().optional().or(z.literal('')),
   travelDate: z.string().min(1, 'Travel date is required'),
   returnDate: z.string().optional().or(z.literal('')),
   adults: numberField(1, 'At least 1 adult required'),
@@ -94,15 +94,15 @@ export const stepSchemas = [
 ];
 
 export const stepFields = [
-  ['name', 'phone', 'whatsapp', 'email', 'city', 'state'],
-  ['destination', 'travelDate', 'returnDate', 'adults', 'children', 'infants'],
+  ['name', 'phone', 'whatsapp', 'email'],
+  ['destination', 'pickup', 'drop', 'travelDate', 'returnDate', 'adults', 'children', 'infants'],
   ['budget', 'hotelCategory', 'mealPreference', 'transportRequirement', 'specialRequirements'],
   ['leadSource', 'priority'],
   ['assignedExecutive', 'assignedManager'],
   ['followUpDate', 'followUpTime', 'followUpRemarks'],
   [
-    'name', 'phone', 'whatsapp', 'email', 'city', 'state',
-    'destination', 'travelDate', 'returnDate', 'adults', 'children', 'infants',
+    'name', 'phone', 'whatsapp', 'email',
+    'destination', 'pickup', 'drop', 'travelDate', 'returnDate', 'adults', 'children', 'infants',
     'budget', 'hotelCategory', 'mealPreference', 'transportRequirement', 'specialRequirements',
     'leadSource', 'priority', 'branchId', 'assignedExecutive', 'assignedManager',
     'followUpDate', 'followUpTime', 'followUpRemarks',

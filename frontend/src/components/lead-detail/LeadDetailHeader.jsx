@@ -75,7 +75,11 @@ export default function LeadDetailHeader({ lead, backHref = '/leads', backLabel 
                 )}
                 <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                   <MapPin className="w-4 h-4 text-violet-500 shrink-0" />
-                  <span className="truncate">{[lead.city, lead.state].filter(Boolean).join(', ') || 'India'}</span>
+                  <span className="truncate">
+                    {[lead.pickup, lead.drop].filter(Boolean).join(' → ')
+                      || lead.destination
+                      || '—'}
+                  </span>
                 </div>
               </div>
             </div>

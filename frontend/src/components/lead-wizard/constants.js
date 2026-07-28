@@ -3,8 +3,8 @@ import { User, Plane, Megaphone, ClipboardCheck } from 'lucide-react';
 export const WIZARD_STEP_COUNT = 4;
 
 export const WIZARD_STEPS = [
-  { id: 1, key: 'customer', title: 'Customer Details', subtitle: 'Contact & location', icon: User },
-  { id: 2, key: 'travel', title: 'Travel Details', subtitle: 'Destination & dates', icon: Plane },
+  { id: 1, key: 'customer', title: 'Customer Details', subtitle: 'Contact info', icon: User },
+  { id: 2, key: 'travel', title: 'Travel Details', subtitle: 'Destination, pickup & dates', icon: Plane },
   { id: 3, key: 'lead', title: 'Lead Information', subtitle: 'Source & priority', icon: Megaphone },
   { id: 4, key: 'review', title: 'Review', subtitle: 'Confirm & save', icon: ClipboardCheck },
 ];
@@ -27,14 +27,6 @@ export const PRIORITIES = [
   { value: 'urgent', label: 'Urgent', color: 'text-red-600 bg-red-500/10 border-red-500/30' },
 ];
 
-export const INDIAN_STATES = [
-  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
-  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh',
-  'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
-  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh',
-  'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu & Kashmir', 'Ladakh',
-];
-
 export const LEAD_TYPES = [
   { value: 'fit', label: 'FIT', description: 'Individual / family travel' },
   { value: 'group', label: 'Group', description: '10+ travelers or group tour' },
@@ -48,15 +40,15 @@ export const DESTINATIONS = [
   'Himachal Pradesh', 'Uttarakhand', 'Ladakh', 'Spiti Valley', 'Rishikesh',
 ];
 
-export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v9';
+export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v10';
 
 export const defaultWizardValues = {
   name: '',
   phone: '',
   whatsapp: '',
   email: '',
-  city: '',
-  state: '',
+  pickup: '',
+  drop: '',
   destination: '',
   travelDate: '',
   tripDays: '',

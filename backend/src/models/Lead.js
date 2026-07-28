@@ -47,6 +47,8 @@ const leadSchema = new mongoose.Schema(
     whatsapp: { type: String, trim: true },
     city: { type: String, trim: true },
     state: { type: String, trim: true },
+    pickup: { type: String, trim: true, default: '' },
+    drop: { type: String, trim: true, default: '' },
     destination: { type: String, required: true, trim: true, index: true },
     leadType: { type: String, enum: LEAD_TYPES, default: 'fit', index: true },
     leadTypeSource: { type: String, enum: ['manual', 'auto'], default: 'auto' },

@@ -31,7 +31,8 @@ export default function LeadCustomerPanel({ lead }) {
         <InfoRow label="Full Name" value={lead.name} />
         <InfoRow label="Phone" value={lead.phone} />
         <InfoRow label="Email" value={lead.email} />
-        <InfoRow label="Location" value={[lead.city, lead.state].filter(Boolean).join(', ') || '—'} />
+        <InfoRow label="Pickup" value={lead.pickup || '—'} />
+        <InfoRow label="Drop" value={lead.drop || '—'} />
         <InfoRow label="Lead Age" value={computeLeadAge(lead.createdAt)} />
         <InfoRow label="Last Contacted" value={lastContacted} />
         <InfoRow label="Lead Owner" value={lead.assignedTo?.name || 'Unassigned'} />

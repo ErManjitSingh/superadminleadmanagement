@@ -6,8 +6,7 @@ import { Search, User, Phone, MapPin } from 'lucide-react';
 import { checkLeadDuplicate } from '../../../services/leadEnterpriseApi';
 import DuplicateLeadWarning from '../../leads/DuplicateLeadWarning';
 import { useAuth } from '../../../context/AuthContext';
-import WizardField, { WizardInput, WizardSelect } from '../WizardField';
-import { INDIAN_STATES } from '../constants';
+import WizardField, { WizardInput } from '../WizardField';
 
 function normalizePhone(p) {
   return p?.replace(/\D/g, '').slice(-10) || '';
@@ -56,8 +55,9 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
     setValue('name', lead.name);
     setValue('phone', lead.phone);
     setValue('email', lead.email || '');
-    setValue('city', lead.city || 'Mumbai');
     setValue('whatsapp', lead.phone?.replace(/\D/g, '').slice(-10) || '');
+    if (lead.pickup) setValue('pickup', lead.pickup);
+    if (lead.drop) setValue('drop', lead.drop);
   };
 
   return (
@@ -98,15 +98,6 @@ export default function StepCustomerDetails({ isEdit, leadId }) {
         </WizardField>
         <WizardField label="Email Address" error={errors.email?.message}>
           <WizardInput {...register('email')} type="email" placeholder="customer@email.com" error={errors.email} />
-        </WizardField>
-        <WizardField label="City" error={errors.city?.message}>
-          <WizardInput {...register('city')} placeholder="Mumbai" error={errors.city} />
-        </WizardField>
-        <WizardField label="State" error={errors.state?.message}>
-          <WizardSelect {...register('state')} error={errors.state}>
-            <option value="">Select state</option>
-            {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </WizardSelect>
         </WizardField>
       </div>
 

@@ -54,14 +54,14 @@ export default function StepReview({ data }) {
         <Row label="Phone" value={v.phone} />
         <Row label="WhatsApp" value={v.whatsapp || v.phone} />
         <Row label="Email" value={v.email} />
-        <Row label="City" value={v.city} />
-        <Row label="State" value={v.state} />
       </ReviewSection>
 
       <ReviewSection icon={Plane} title="Travel Details" color="violet">
         <Row label="Lead Type" value={LEAD_TYPES.find((t) => t.value === v.leadType)?.label || v.leadType} />
         {v.leadType === 'corporate' && <Row label="Company" value={v.companyName} />}
         <Row label="Destination" value={v.destination} />
+        <Row label="Pickup" value={v.pickup} />
+        <Row label="Drop" value={v.drop} />
         <Row label="Travel Date" value={v.travelDate} />
         <Row label="Adults" value={v.adults} />
         <Row label="Children" value={v.children} />

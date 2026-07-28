@@ -98,6 +98,9 @@ function normalizeLeadInput(body = {}, { isUpdate = false } = {}) {
   if (assignedManager) normalized.assignedManager = assignedManager;
   if (assignedTeamLeader) normalized.assignedTeamLeader = assignedTeamLeader;
 
+  if (body.pickup !== undefined) normalized.pickup = String(body.pickup || '').trim();
+  if (body.drop !== undefined) normalized.drop = String(body.drop || '').trim();
+
   if (!isUpdate && body.status) normalized.status = body.status;
   if (isUpdate && body.status) normalized.status = body.status;
 
