@@ -20,8 +20,8 @@ import {
   resolveQuoteTotal,
   resolveQuoteDisplayNumber,
   sanitizeTransportLabel,
+  sanitizeItineraryDayTitle,
 } from './quotePdfHelpers';
-import DestinationGallery from './DestinationGallery';
 
 const DEMO_QR_URL =
   'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3Ddemo%40travelcrm%26pn%3DTravel%2520CRM%26cu%3DINR';
@@ -156,11 +156,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </div>
       </section>
 
-      {/* Destination images */}
-      <div className="qp-gallery-wrap">
-        <DestinationGallery quote={quote} destination={destination} compact />
-      </div>
-
       {/* Welcome */}
       <section className="qp-welcome">
         <p><strong>Hello {lead.name || 'Guest'},</strong></p>
@@ -234,18 +229,21 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             const dayNum = day.day || index + 1;
             const dayDate = getDayDate(travelDate, dayNum);
             const dayHotel = includesHotel ? resolveDayHotelForItinerary(quote, dayNum) : null;
-            const mealLabel = includesHotel ? (day.meals || dayHotel?.meals) : '';
+            const dayTitle = sanitizeItineraryDayTitle(
+              day.title || `Day ${dayNum}`,
+              destination,
+            );
+            const stayDestination = dayHotel?.city && dayHotel.city !== '—' && dayHotel.city !== '-'
+              ? dayHotel.city
+              : '';
             return (
               <article key={day.id || `day-${dayNum}`} className="qp-day">
                 <div className="qp-day-head">
                   <span className="qp-day-num">Day {dayNum}</span>
                   <div className="qp-day-title-wrap">
-                    <h3>{day.title || `Day ${dayNum}`}</h3>
+                    <h3>{dayTitle}</h3>
                     <div className="qp-day-pills">
                       {dayDate && <span>{formatQuoteDate(dayDate)}</span>}
-                      {mealLabel && (
-                        <span>{mealLabel}</span>
-                      )}
                       {(day.transport || vehicles[0]?.name) && (
                         <span>{sanitizeTransportLabel(day.transport || vehicles[0]?.name)}</span>
                       )}
@@ -267,14 +265,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                       )}
                       <p>
                         <strong>{dayHotel.name}</strong>
-                        {dayHotel.roomType ? ` · ${dayHotel.roomType}` : ''}
-                        {dayHotel.meals ? ` · ${dayHotel.meals}` : ''}
-                        {dayHotel.nights && dayNum === (dayHotel.stayStartDay || dayHotel.day)
-                          ? ` · ${dayHotel.nights} Night${dayHotel.nights > 1 ? 's' : ''}`
-                          : ''}
-                        {dayHotel.city && dayHotel.city !== '—' && dayHotel.city !== '-'
-                          ? ` · ${dayHotel.city}`
-                          : ''}
+                        {stayDestination ? ` · ${stayDestination}` : ''}
                       </p>
                     </div>
                   </div>

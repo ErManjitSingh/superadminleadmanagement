@@ -21,6 +21,35 @@ export function sanitizeTransportLabel(text = '') {
     .trim();
 }
 
+/** Drop full multi-destination strings from day titles (e.g. "Day 2 in Shimla, Manali"). */
+export function sanitizeItineraryDayTitle(title = '', destination = '') {
+  const raw = String(title || '').trim();
+  if (!raw) return '';
+  const dest = String(destination || '').trim();
+  if (!dest) return raw;
+
+  const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const places = dest
+    .split(/[,|/·]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const primary = places[0] || '';
+  let cleaned = raw;
+
+  // "Day 3 in Shimla, Manali" / "Day 3 in Shimla" → "Day 3"
+  cleaned = cleaned.replace(/^Day\s+(\d+)\s+in\s+.+$/i, 'Day $1');
+
+  if (places.length > 1) {
+    const full = escapeRegExp(dest);
+    cleaned = cleaned
+      .replace(new RegExp(`\\s+in\\s+${full}\\b`, 'gi'), primary ? ` in ${primary}` : '')
+      .replace(new RegExp(full, 'gi'), primary);
+  }
+
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').replace(/\s+([,.;:])/g, '$1').trim();
+  return cleaned || raw;
+}
+
 /** When no hotel is selected, drop breakfast/meal phrasing from day copy. */
 export function stripBreakfastFromText(text = '') {
   if (!text) return '';

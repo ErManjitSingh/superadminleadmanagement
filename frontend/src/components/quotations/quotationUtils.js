@@ -24,15 +24,23 @@ export function getPackageTypeConfig(type) {
   return types[type] || { label: type, color: 'brand' };
 }
 
+/** First place from "Shimla, Manali" / "Shimla / Manali" style routing. */
+export function primaryDestinationLabel(destination = '') {
+  return String(destination || '')
+    .split(/[,|/·]/)[0]
+    ?.trim() || '';
+}
+
 export function defaultItineraryDay(day, destination) {
+  const place = primaryDestinationLabel(destination);
   return {
     id: `day-${Date.now()}-${day}`,
     day,
-    title: day === 1 ? `Arrival in ${destination}` : `Day ${day} in ${destination}`,
+    title: day === 1 ? (place ? `Arrival in ${place}` : 'Arrival') : `Day ${day}`,
     description: '',
     hotel: '',
     activities: '',
-    meals: 'Breakfast',
+    meals: '',
     transport: 'Private Cab',
   };
 }
