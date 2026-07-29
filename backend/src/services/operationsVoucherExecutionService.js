@@ -46,8 +46,41 @@ async function logEvent({ bookingId, voucherId, type, title, description, actor,
 
 async function nextVoucherNumber(type = 'hotel') {
   const prefix = { hotel: 'H', transport: 'C', activity: 'A', flight: 'F', travel_kit: 'K', master: 'M', client: 'CL' }[type] || 'V';
-  const count = await Voucher.countDocuments();
-  return `VCH-${prefix}-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+  const year = new Date().getFullYear();
+  const re = new RegExp(`^VCH-${prefix}-${year}-(\\d+)$`);
+  const latest = await Voucher.find({ voucherNumber: { $regex: `^VCH-${prefix}-${year}-` } })
+    .select('voucherNumber')
+    .sort({ voucherNumber: -1 })
+    .limit(20)
+    .lean();
+  let maxSeq = 0;
+  for (const row of latest) {
+    const m = String(row.voucherNumber || '').match(re);
+    if (m) maxSeq = Math.max(maxSeq, Number(m[1]) || 0);
+  }
+  // Also scan archived-renamed originals that may have freed lower numbers — still take max+1
+  return `VCH-${prefix}-${year}-${String(maxSeq + 1).padStart(5, '0')}`;
+}
+
+/**
+ * Archive previous version. Rename voucherNumber so unique index (voucherNumber_1)
+ * does not block regenerate that reuses the same public number.
+ */
+async function archiveVoucher(voucher, replacedById) {
+  const original = String(voucher.voucherNumber || '').trim();
+  const suffix = `__arch_v${voucher.version || 1}_${String(voucher._id).slice(-8)}`;
+  const archivedNumber = original
+    ? `${original}${suffix}`.slice(0, 120)
+    : `ARCHIVED_${String(voucher._id)}`;
+
+  await Voucher.findByIdAndUpdate(voucher._id, {
+    isActive: false,
+    status: 'archived',
+    archivedAt: new Date(),
+    replacedBy: replacedById || undefined,
+    voucherNumber: archivedNumber,
+    'payload._originalVoucherNumber': original || undefined,
+  });
 }
 
 function assignmentKey(type, index) {
@@ -173,15 +206,6 @@ function extractPayload(booking, type, index = 0) {
   return {};
 }
 
-async function archiveVoucher(voucher, replacedById) {
-  await Voucher.findByIdAndUpdate(voucher._id, {
-    isActive: false,
-    status: 'archived',
-    archivedAt: new Date(),
-    replacedBy: replacedById,
-  });
-}
-
 async function generateVoucherForAssignment(bookingId, { type, assignmentIndex = 0, actor, force = false, payloadOverrides = null } = {}) {
   const booking = await Booking.findById(bookingId).lean();
   if (!booking) throw new Error('Booking not found');
@@ -244,7 +268,11 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   }
 
   const version = (existing?.version || 0) + 1;
-  const voucherNumber = existing?.voucherNumber || (await nextVoucherNumber(normalizedType));
+  let voucherNumber = existing?.voucherNumber || (await nextVoucherNumber(normalizedType));
+  // Never reuse an already-archived renamed number
+  if (String(voucherNumber).includes('__arch_')) {
+    voucherNumber = String(voucherNumber).split('__arch_')[0] || (await nextVoucherNumber(normalizedType));
+  }
   const token = crypto.randomBytes(24).toString('hex');
   const vendorUrl = ['hotel', 'transport', 'activity'].includes(normalizedType)
     ? buildVendorConfirmationUrl(token)
@@ -283,7 +311,7 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
     fileMeta = await generateVoucherPdfFile(voucherDoc, booking, payload || {});
   }
 
-  const voucher = await Voucher.create({
+  const createPayload = {
     ...voucherDoc,
     filePath: fileMeta.filePath,
     fileName: fileMeta.fileName,
@@ -291,7 +319,22 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
     pdfUrl: fileMeta.pdfUrl,
     htmlUrl: '',
     mimeType: 'application/pdf',
-  });
+  };
+
+  let voucher;
+  try {
+    voucher = await Voucher.create(createPayload);
+  } catch (err) {
+    // Live DB may still have a full unique index on voucherNumber — retry with a fresh number
+    if (err?.code === 11000 || /duplicate key/i.test(err?.message || '')) {
+      createPayload.voucherNumber = await nextVoucherNumber(normalizedType);
+      voucherDoc.voucherNumber = createPayload.voucherNumber;
+      voucherNumber = createPayload.voucherNumber;
+      voucher = await Voucher.create(createPayload);
+    } else {
+      throw err;
+    }
+  }
 
   if (normalizedType !== 'travel_kit') {
     generateVoucherDocument({ ...voucherDoc, _id: voucher._id }, booking)
