@@ -324,6 +324,7 @@ export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCall
           <Row label="Check-out" value={formatDate(hotel.checkOut || booking.returnDate)} />
           <Row label="Room" value={hotel.roomType || '—'} />
           <Row label="Meal Plan" value={hotel.mealPlan || '—'} />
+          <Row label="Hotel Price" value={Number(hotel.amount) > 0 ? formatINR(hotel.amount) : '—'} />
           <Row label="Vendor" value={hotel.vendorName || hotel.destination || '—'} />
         </DetailCard>
       )}
@@ -351,6 +352,7 @@ export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCall
         <Row label="Vehicle No." value={cab.vehicleNumber || '—'} />
         <Row label="Pickup" value={cab.pickupLocation || '—'} />
         <Row label="Drop" value={cab.dropLocation || '—'} />
+        <Row label="Cab Price" value={Number(cab.amount) > 0 ? formatINR(cab.amount) : '—'} />
       </DetailCard>
 
       <DetailCard icon={User} title="Customer Details" accent="emerald" badge={booking.priority === 'high' ? <StatusPill tone="violet">VIP</StatusPill> : null}>

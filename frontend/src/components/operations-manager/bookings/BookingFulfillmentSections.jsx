@@ -384,6 +384,9 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
     if (!hotelId) return;
     const hotel = catalogHotels.find((h) => String(h._id) === String(hotelId));
     if (!hotel) return;
+    const catalogPrice = Number(
+      hotel.displayPrice ?? hotel.price ?? hotel.roomTypes?.[0]?.baseRate ?? 0,
+    ) || 0;
     onChange(hotels.map((h, idx) => (idx === i ? {
       ...h,
       hotelId: hotel._id,
@@ -393,12 +396,13 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
       roomType: hotel.roomTypes?.[0]?.name || hotel.roomType || '',
       mealPlan: hotel.mealPlan || '',
       phone: hotel.phone || h.phone || '',
+      amount: catalogPrice > 0 ? catalogPrice : (Number(h.amount) || 0),
     } : h)));
     setRowModes((m) => ({ ...m, [i]: 'existing' }));
   };
 
   const addHotel = () => {
-    onChange([...hotels, { hotelName: '', destination: '', roomType: '', mealPlan: '', status: 'pending' }]);
+    onChange([...hotels, { hotelName: '', destination: '', roomType: '', mealPlan: '', amount: 0, status: 'pending' }]);
   };
 
   const remove = (i) => onChange(hotels.filter((_, idx) => idx !== i));
@@ -447,7 +451,7 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
       gradient="from-teal-500 to-emerald-600"
       icon={Hotel}
       title="Hotel Assignments"
-      subtitle="Existing company hotels or add new — saved hotels appear on all leads"
+      subtitle="Hotel details + vendor price — Save Hotels to update"
       actions={(
         <>
           <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={addHotel}>
@@ -527,6 +531,18 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
               <input value={h.destination || ''} onChange={(e) => update(i, 'destination', e.target.value)} placeholder="Destination / city" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.roomType || ''} onChange={(e) => update(i, 'roomType', e.target.value)} placeholder="Room type" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.mealPlan || ''} onChange={(e) => update(i, 'mealPlan', e.target.value)} placeholder="Meal plan (MAP/CP)" className="input-premium h-10 rounded-xl text-sm" />
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Hotel Price (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={h.amount === 0 || h.amount ? h.amount : ''}
+                  onChange={(e) => update(i, 'amount', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                  placeholder="Vendor / hotel cost for this booking"
+                  className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
+                />
+              </label>
               <input type="date" value={h.checkIn ? String(h.checkIn).slice(0, 10) : ''} onChange={(e) => update(i, 'checkIn', e.target.value)} className="input-premium h-10 rounded-xl text-sm" />
               <input type="date" value={h.checkOut ? String(h.checkOut).slice(0, 10) : ''} onChange={(e) => update(i, 'checkOut', e.target.value)} className="input-premium h-10 rounded-xl text-sm" />
               <select value={h.status || 'pending'} onChange={(e) => update(i, 'status', e.target.value)} className="input-premium h-10 rounded-xl text-sm sm:col-span-2">
@@ -564,11 +580,13 @@ export function BookingTransportEditor({
     if (!cabId) return;
     const cab = catalogCabs.find((c) => String(c._id) === String(cabId));
     if (!cab) return;
+    const catalogCost = Number(cab.displayCost ?? cab.cost ?? 0) || 0;
     onChange(transport.map((t, idx) => (idx === i ? {
       ...t,
       vehicleType: (cab.vehicleType || 'suv').toLowerCase().replace(/\s+/g, '_'),
       pickupLocation: cab.pickupLocation || '',
       dropLocation: cab.dropLocation || '',
+      amount: catalogCost > 0 ? catalogCost : (Number(t.amount) || 0),
     } : t)));
   };
 
@@ -587,7 +605,7 @@ export function BookingTransportEditor({
   };
 
   const addRow = () => {
-    onChange([...transport, { vehicleType: 'suv', pickupLocation: '', dropLocation: '', status: 'pending' }]);
+    onChange([...transport, { vehicleType: 'suv', pickupLocation: '', dropLocation: '', amount: 0, status: 'pending' }]);
   };
 
   const remove = (i) => onChange(transport.filter((_, idx) => idx !== i));
@@ -635,7 +653,7 @@ export function BookingTransportEditor({
       gradient="from-violet-500 to-purple-600"
       icon={Car}
       title="Transport & Cabs"
-      subtitle="Existing vendor or add new — saved vendors appear on all leads"
+      subtitle="Driver / vendor details + cab price — Save Transport to update"
       actions={(
         <>
           {!cabConfirmed && onConfirmCab && (
@@ -745,6 +763,18 @@ export function BookingTransportEditor({
               <input value={t.vehicleNumber || ''} onChange={(e) => update(i, 'vehicleNumber', e.target.value)} placeholder="Vehicle number" className="input-premium h-10 rounded-xl text-sm" />
               <input value={t.pickupLocation || ''} onChange={(e) => update(i, 'pickupLocation', e.target.value)} placeholder="Pickup location" className="input-premium h-10 rounded-xl text-sm" />
               <input value={t.dropLocation || ''} onChange={(e) => update(i, 'dropLocation', e.target.value)} placeholder="Drop location" className="input-premium h-10 rounded-xl text-sm" />
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Cab Price (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={t.amount === 0 || t.amount ? t.amount : ''}
+                  onChange={(e) => update(i, 'amount', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                  placeholder="Vendor / cab cost for this booking"
+                  className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
+                />
+              </label>
               <select value={t.status || 'pending'} onChange={(e) => update(i, 'status', e.target.value)} className="input-premium h-10 rounded-xl text-sm sm:col-span-2">
                 {TRANSPORT_STATUS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>

@@ -39,6 +39,8 @@ const hotelAssignmentSchema = new mongoose.Schema(
     },
     confirmationUrl: String,
     voucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
+    /** Ops-entered vendor / hotel cost for this booking (not shown on client voucher) */
+    amount: { type: Number, default: 0, min: 0 },
     notes: String,
   },
   { _id: true }
@@ -65,6 +67,8 @@ const transportAssignmentSchema = new mongoose.Schema(
       default: 'pending',
     },
     voucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
+    /** Ops-entered cab / vendor cost for this booking (not shown on client voucher) */
+    amount: { type: Number, default: 0, min: 0 },
     notes: String,
   },
   { _id: true }

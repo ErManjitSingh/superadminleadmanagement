@@ -13,6 +13,7 @@ const FIELD_SETS = {
     { key: 'mealPlan', label: 'Meal Plan' },
     { key: 'address', label: 'Address' },
     { key: 'hotelPhone', label: 'Hotel Phone' },
+    { key: 'amount', label: 'Hotel Price (₹)' },
   ],
   transport: [
     { key: 'vehicleDisplayName', label: 'Vehicle' },
@@ -21,6 +22,7 @@ const FIELD_SETS = {
     { key: 'pickupLocation', label: 'Pickup' },
     { key: 'dropLocation', label: 'Drop' },
     { key: 'vehicleNumber', label: 'Vehicle Number' },
+    { key: 'amount', label: 'Cab Price (₹)' },
   ],
   client: [
     { key: 'packageName', label: 'Package Name' },
@@ -48,9 +50,17 @@ export default function VoucherEditModal({
     fields.forEach(({ key }) => {
       next[key] = p[key] || booking?.[key] || '';
     });
+    if (type === 'hotel') {
+      const idx = Number(voucher?.assignmentIndex ?? 0);
+      const fromBooking = booking?.hotels?.[idx]?.amount;
+      next.amount = p.amount ?? fromBooking ?? '';
+    }
     if (type === 'transport') {
       next.pickupLocation = p.pickupLocation || booking?.pickup || '';
       next.dropLocation = p.dropLocation || booking?.drop || '';
+      const idx = Number(voucher?.assignmentIndex ?? 0);
+      const fromBooking = booking?.transport?.[idx]?.amount;
+      next.amount = p.amount ?? fromBooking ?? '';
     }
     if (type === 'client') {
       next.pickup = p.pickup || booking?.pickup || '';
@@ -64,9 +74,24 @@ export default function VoucherEditModal({
     if (!voucher?._id) return;
     setSaving(true);
     try {
+      const amountNum = form.amount === '' || form.amount == null ? undefined : Number(form.amount);
       await API.put(`/operations-manager/vouchers/${voucher._id}`, {
-        payload: { ...(voucher.payload || {}), ...form },
+        payload: { ...(voucher.payload || {}), ...form, ...(amountNum != null ? { amount: amountNum } : {}) },
       }, { skipSuccessToast: true });
+
+      // Keep booking assignment price in sync when ops edits from voucher
+      if (booking?._id && amountNum != null && Number.isFinite(amountNum)) {
+        const idx = Number(voucher.assignmentIndex ?? 0);
+        if (type === 'hotel' && Array.isArray(booking.hotels)) {
+          const hotels = booking.hotels.map((h, i) => (i === idx ? { ...h, amount: amountNum } : h));
+          await API.put(`/operations-manager/bookings/${booking._id}`, { hotels }, { skipSuccessToast: true }).catch(() => null);
+        }
+        if (type === 'transport' && Array.isArray(booking.transport)) {
+          const transport = booking.transport.map((t, i) => (i === idx ? { ...t, amount: amountNum } : t));
+          await API.put(`/operations-manager/bookings/${booking._id}`, { transport }, { skipSuccessToast: true }).catch(() => null);
+        }
+      }
+
       const updated = await regenerateVoucher(voucher._id);
       toast.success('Voucher updated');
       onSaved?.(updated);

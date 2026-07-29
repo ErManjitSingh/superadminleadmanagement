@@ -77,6 +77,7 @@ function extractPayload(booking, type, index = 0) {
       roomCount: h.roomCount || 1,
       starRating: h.starRating || h.category,
       category: h.category,
+      amount: h.amount || 0,
       image: h.image,
       status: h.status,
     };
@@ -113,6 +114,7 @@ function extractPayload(booking, type, index = 0) {
       reportingTime: t.reportingTime || '09:00 AM',
       tripType: t.tripType || 'Sightseeing with private cab',
       vehicleCount: t.vehicleCount || 1,
+      amount: t.amount || 0,
       status: t.status || 'pending',
       itinerary,
     };
