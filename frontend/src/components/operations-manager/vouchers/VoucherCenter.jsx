@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Ticket, Sparkles, Loader2, Hotel, Car } from 'lucide-react';
+import { Ticket, Sparkles, Loader2, Hotel, Car, FileText } from 'lucide-react';
 import { Button } from '../../ui/button';
 import VoucherCompactCard from './VoucherCompactCard';
 import {
@@ -24,6 +24,13 @@ const SLOT_META = {
     gradient: 'from-sky-600 via-blue-600 to-indigo-700',
     accent: 'text-sky-600',
     ring: 'ring-sky-500/20',
+  },
+  client: {
+    label: 'Client Full Voucher',
+    icon: FileText,
+    gradient: 'from-emerald-600 via-teal-600 to-cyan-700',
+    accent: 'text-emerald-600',
+    ring: 'ring-emerald-500/20',
   },
 };
 
@@ -155,6 +162,15 @@ export default function VoucherCenter({
       voucher: pickActiveVoucher(activeVouchers, 'transport', 0),
     });
 
+    // Client-facing full voucher (hotel + cab summary, total price only)
+    result.push({
+      type: 'client',
+      assignmentIndex: 0,
+      hotel: null,
+      meta: SLOT_META.client,
+      voucher: pickActiveVoucher(activeVouchers, 'client', 0),
+    });
+
     return result;
   }, [activeVouchers, booking, hasHotels]);
 
@@ -198,8 +214,8 @@ export default function VoucherCenter({
           </h3>
           <p className="text-sm text-content-muted mt-0.5">
             {hasHotels
-              ? 'Day-wise hotel vouchers + cab itinerary — view, regenerate & WhatsApp'
-              : 'Cab itinerary voucher — view, regenerate & WhatsApp'}
+              ? 'Hotel + cab + client vouchers — view, edit, regenerate & WhatsApp'
+              : 'Cab + client vouchers — view, edit, regenerate & WhatsApp'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

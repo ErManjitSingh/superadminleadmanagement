@@ -3,14 +3,12 @@ import { Loader2, Mail, MessageCircle } from 'lucide-react';
 import AppModal from '../../ui/AppModal';
 import { Button } from '../../ui/button';
 import { sendVoucherEmail, sendVoucherWhatsApp } from '../../../services/operationsVoucherApi';
-import { normalizeWaPhone } from '../../../lib/phoneUtils';
 import { cn } from '../../../lib/utils';
 
 function defaultRecipient(type, voucher, booking) {
   const p = voucher?.payload || {};
   if (type === 'hotel') {
     return {
-      phone: p.hotelPhone || p.phone || p.frontOfficePhone || '',
       email: p.hotelEmail || p.email || '',
       label: p.hotelName || 'Hotel',
     };
@@ -18,21 +16,18 @@ function defaultRecipient(type, voucher, booking) {
   if (type === 'transport') {
     const t = booking?.transport?.[0] || {};
     return {
-      phone: p.vendorPhone || p.driverPhone || t.vendorPhone || t.driverPhone || '',
       email: p.vendorEmail || p.driverEmail || '',
       label: p.vendorName || p.driverName || t.vendorName || t.driverName || 'Cab Vendor / Driver',
     };
   }
   return {
-    phone: booking?.customerPhone || '',
     email: booking?.customerEmail || '',
-    label: booking?.customerName || 'Recipient',
+    label: booking?.customerName || 'Client',
   };
 }
 
 export default function VoucherSendModal({ open, onClose, channel, type, voucher, booking, onSent }) {
   const defaults = defaultRecipient(type, voucher, booking);
-  const [phone, setPhone] = useState(defaults.phone);
   const [email, setEmail] = useState(defaults.email);
   const [showGuestPhone, setShowGuestPhone] = useState(true);
   const [sending, setSending] = useState(false);
@@ -40,7 +35,6 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
   useEffect(() => {
     if (open) {
       const d = defaultRecipient(type, voucher, booking);
-      setPhone(d.phone);
       setEmail(d.email);
       setShowGuestPhone(voucher?.payload?.showGuestPhone !== false);
     }
@@ -51,9 +45,8 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
     setSending(true);
     try {
       if (channel === 'whatsapp') {
-        const normalized = normalizeWaPhone(phone);
-        if (!normalized) return;
-        await sendVoucherWhatsApp(voucher._id, normalized, { showGuestPhone });
+        // No phone field — WhatsApp opens so ops can choose the contact themselves
+        await sendVoucherWhatsApp(voucher._id, '', { showGuestPhone });
       } else {
         await sendVoucherEmail(voucher._id, email, { showGuestPhone });
       }
@@ -74,23 +67,11 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
           {isWa ? 'Send via WhatsApp' : 'Send via Email'}
         </h3>
         <p className="text-sm text-content-muted mt-1 mb-4">
-          {type === 'hotel'
-            ? 'Send hotel voucher to the property'
-            : 'Send cab itinerary voucher (pickup, drop & places) to driver / vendor on WhatsApp'}
-          {' — '}
-          <strong>{defaults.label}</strong>
+          {isWa
+            ? `PDF ready for ${defaults.label}. WhatsApp khulega — aap khud number choose kar sakte ho.`
+            : `Send voucher to ${defaults.label}`}
         </p>
-        {isWa ? (
-          <label className="block">
-            <span className="text-xs font-semibold text-content-muted">WhatsApp Number</span>
-            <input
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 98765 43210"
-              className="input-premium mt-1 w-full"
-            />
-          </label>
-        ) : (
+        {!isWa && (
           <label className="block">
             <span className="text-xs font-semibold text-content-muted">Email Address</span>
             <input
@@ -133,10 +114,10 @@ export default function VoucherSendModal({ open, onClose, channel, type, voucher
           <Button variant="secondary" onClick={onClose} disabled={sending}>Cancel</Button>
           <Button
             onClick={handleSend}
-            disabled={sending || (isWa ? !normalizeWaPhone(phone) : !email.trim())}
+            disabled={sending || (!isWa && !email.trim())}
             className={isWa ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-violet-600 hover:bg-violet-700 text-white'}
           >
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send'}
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : (isWa ? 'Open WhatsApp' : 'Send')}
           </Button>
         </div>
       </div>

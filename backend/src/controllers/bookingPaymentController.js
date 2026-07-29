@@ -219,7 +219,7 @@ const acknowledgeNewBooking = asyncHandler(async (req, res) => {
 const getLeadBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.findOne(tenantFilter({ lead: req.params.id }, req))
     .select(
-      '_id bookingNumber customerName customerPhone customerEmail destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress firstAdvancePaymentId quotation quotationReference createdAt'
+      '_id bookingNumber customerName customerPhone customerEmail destination travelDate returnDate status paymentStatus totalAmount advanceReceived totalPaid remainingBalance pendingAmount paymentProgress firstAdvancePaymentId quotation quotationReference createdAt pickup drop lead'
     )
     .lean();
 
@@ -237,7 +237,35 @@ const getLeadBooking = asyncHandler(async (req, res) => {
     )
     .lean();
 
-  res.json({ booking, advancePayment: advancePayment || null });
+  res.json({ booking, advancePayment });
+});
+
+/** Sales / ops can update phone shown on advance payment voucher */
+const updateBookingContact = asyncHandler(async (req, res) => {
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.bookingId, req));
+  assertTenantDocument(booking, req, 'Booking');
+
+  const phone = String(req.body.customerPhone || req.body.phone || '').trim();
+  if (!phone) throw new ApiError(400, 'Phone number is required');
+
+  booking.customerPhone = phone;
+  await booking.save();
+
+  if (booking.lead) {
+    await Lead.findByIdAndUpdate(booking.lead, {
+      $set: { phone, whatsapp: phone },
+    }).catch(() => null);
+  }
+
+  res.json({
+    booking: {
+      _id: booking._id,
+      customerPhone: booking.customerPhone,
+      customerName: booking.customerName,
+      pickup: booking.pickup,
+      drop: booking.drop,
+    },
+  });
 });
 
 const sendPaymentReminderHandler = asyncHandler(async (req, res) => {
@@ -268,5 +296,6 @@ module.exports = {
   getCustomerPayments,
   acknowledgeNewBooking,
   getLeadBooking,
+  updateBookingContact,
   sendPaymentReminderHandler,
 };

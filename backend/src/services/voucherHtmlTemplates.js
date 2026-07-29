@@ -273,6 +273,12 @@ function headerHtml({ title, voucher, booking, qrSrc, heroSrc, brand }) {
   const logoHtml = brand?.logoSrc
     ? `<div class="logo"><img src="${esc(brand.logoSrc)}" alt="${esc(name)}"/></div>`
     : `<div class="logo">${esc(brand?.initials || (name || 'C').slice(0, 1).toUpperCase())}</div>`;
+  const qrBlock = qrSrc
+    ? `<div class="qr-box">
+          <img src="${qrSrc}" alt="QR"/>
+          <div class="qr-label">Scan for Booking Details &amp; Support</div>
+        </div>`
+    : '';
   return `
   <div class="header">
     <div class="header-top">
@@ -285,10 +291,7 @@ function headerHtml({ title, voucher, booking, qrSrc, heroSrc, brand }) {
       </div>
       <div class="hero-wrap">
         <img class="hero-img" src="${esc(heroSrc)}" alt=""/>
-        <div class="qr-box">
-          ${qrSrc ? `<img src="${qrSrc}" alt="QR"/>` : ''}
-          <div class="qr-label">Scan for Booking Details &amp; Support</div>
-        </div>
+        ${qrBlock}
       </div>
     </div>
     <div class="title">${esc(title)}</div>
@@ -427,9 +430,9 @@ async function buildCabVoucherHtml(voucher, booking) {
     ['Driver Name', p.driverName],
     ['Driver Phone', p.driverPhone],
     ['Vendor', p.vendorName],
-    ['Pickup Location', p.pickupLocation || booking.destination],
+    ['Pickup Location', p.pickupLocation || booking.pickup || booking.destination],
     ['Pickup Date & Time', fmtDateTime(p.pickupDate || booking.travelDate, p.pickupTime || p.reportingTime || '09:00 AM')],
-    ['Drop Location', p.dropLocation || booking.destination],
+    ['Drop Location', p.dropLocation || booking.drop || booking.destination],
     ['Drop Date & Time', fmtDateTime(p.dropDate || booking.returnDate || booking.travelDate, p.dropTime)],
     ['Reporting Time', p.reportingTime || '09:00 AM'],
     ['Trip Type', tripTypeLabel(p)],
@@ -587,16 +590,90 @@ async function buildHotelVoucherHtml(voucher, booking) {
 </body></html>`;
 }
 
+async function buildClientVoucherHtml(voucher, booking) {
+  const brand = await resolveBrand(booking);
+  const p = voucher.payload || {};
+  const hotels = Array.isArray(p.hotels) ? p.hotels : (booking.hotels || []);
+  const transport = Array.isArray(p.transport) ? p.transport : (booking.transport || []);
+  const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  const total = Number(booking.totalAmount || p.totalAmount || 0);
+  const fmtMoney = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(n) || 0);
+  const hotelRows = hotels.length
+    ? hotels.map((h, i) => `
+        <div class="cell"><div class="icon">H</div><div>
+          <label>Hotel ${hotels.length > 1 ? i + 1 : ''}</label>
+          <p>${esc(h.hotelName || h.name || 'Confirmed')} · ${esc(h.roomType || 'Room as booked')}${h.destination ? ` · ${esc(h.destination)}` : ''}</p>
+        </div></div>`).join('')
+    : '<div class="note">Hotel booking details will be shared once confirmed.</div>';
+  const cabRows = transport.length
+    ? transport.map((t) => `
+        <div class="cell"><div class="icon">C</div><div>
+          <label>Cab / Transport</label>
+          <p>${esc((t.vehicleDisplayName || t.vehicleType || 'Private Cab').toString().replace(/_/g, ' '))}
+          ${t.driverName ? ` · Driver: ${esc(t.driverName)}` : ' · Confirmed'}</p>
+        </div></div>`).join('')
+    : '<div class="note">Cab booking details will be shared once confirmed.</div>';
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>${esc(voucher.voucherNumber)}</title><style>${PRINT_CSS}</style></head><body>
+<div class="page">
+  ${headerHtml({ title: 'CLIENT TRAVEL VOUCHER', voucher, booking, qrSrc: '', heroSrc: HERO_IMG, brand })}
+  <div class="strip cols-5">
+    <div><label>Guest Name</label><p>${esc(booking.customerName)}</p></div>
+    <div><label>Phone</label><p>${esc(booking.customerPhone || '-')}</p></div>
+    <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
+    <div><label>Pickup</label><p>${esc(booking.pickup || transport[0]?.pickupLocation || '-')}</p></div>
+    <div><label>Drop</label><p>${esc(booking.drop || transport[0]?.dropLocation || '-')}</p></div>
+  </div>
+  <div class="main">
+    <div class="card">
+      <div class="card-title">Your Confirmed Bookings</div>
+      <div class="grid-2">
+        ${hotelRows}
+        ${cabRows}
+        <div class="cell"><div class="icon">D</div><div>
+          <label>Travel Dates</label>
+          <p>${esc(fmtDate(booking.travelDate))} – ${esc(fmtDate(booking.returnDate))}</p>
+        </div></div>
+        <div class="cell"><div class="icon">G</div><div>
+          <label>Guests</label>
+          <p>${esc(guests)}</p>
+        </div></div>
+      </div>
+      <div class="note" style="margin-top:10px">Your hotel and cab are booked with us. Detailed day-wise itinerary is available with your travel executive / operations team.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Package Amount</div>
+      <div class="cell"><div class="icon">₹</div><div>
+        <label>Total Package Cost</label>
+        <p style="font-size:16px;color:#5b21b6">${esc(fmtMoney(total))}</p>
+      </div></div>
+      <div class="note">Individual hotel / cab vendor rates are not shown. Only your total package price is listed.</div>
+      <div class="emerg" style="margin-top:10px">
+        <div class="emerg-title">Need Help?</div>
+        <div class="emerg-row"><span>Sales Executive</span><span>${esc(booking.executiveName || brand.phone || '-')}</span></div>
+        <div class="emerg-row"><span>Support</span><span>${esc(brand.phone || '-')}</span></div>
+      </div>
+    </div>
+  </div>
+  ${authBlockHtml(brand)}
+  ${footerHtml(brand)}
+</div>
+</body></html>`;
+}
+
 async function buildVoucherHtml(voucher, booking) {
   const type = voucher.type || 'hotel';
   if (type === 'transport') return buildCabVoucherHtml(voucher, booking);
   if (type === 'hotel') return buildHotelVoucherHtml(voucher, booking);
+  if (type === 'client' || type === 'master') return buildClientVoucherHtml(voucher, booking);
   return null;
 }
 
 module.exports = {
   buildCabVoucherHtml,
   buildHotelVoucherHtml,
+  buildClientVoucherHtml,
   buildVoucherHtml,
   PRINT_CSS,
 };

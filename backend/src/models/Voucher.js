@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { tenantPlugin } = require('../config/tenantPlugin');
 
-const VOUCHER_TYPES = ['hotel', 'transport', 'activity', 'flight', 'travel_kit', 'master'];
+const VOUCHER_TYPES = ['hotel', 'transport', 'activity', 'flight', 'travel_kit', 'master', 'client'];
 const VOUCHER_STATUSES = [
   'draft',
   'issued',

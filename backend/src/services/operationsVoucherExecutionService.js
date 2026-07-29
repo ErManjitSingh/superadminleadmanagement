@@ -45,7 +45,7 @@ async function logEvent({ bookingId, voucherId, type, title, description, actor,
 }
 
 async function nextVoucherNumber(type = 'hotel') {
-  const prefix = { hotel: 'H', transport: 'C', activity: 'A', flight: 'F', travel_kit: 'K', master: 'M' }[type] || 'V';
+  const prefix = { hotel: 'H', transport: 'C', activity: 'A', flight: 'F', travel_kit: 'K', master: 'M', client: 'CL' }[type] || 'V';
   const count = await Voucher.countDocuments();
   return `VCH-${prefix}-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
 }
@@ -104,8 +104,8 @@ function extractPayload(booking, type, index = 0) {
       driverLicense: t.driverLicense,
       vendorName: t.vendorName,
       vendorPhone: t.vendorPhone || t.driverPhone,
-      pickupLocation: t.pickupLocation || booking.destination || '',
-      dropLocation: t.dropLocation || booking.destination || '',
+      pickupLocation: t.pickupLocation || booking.pickup || booking.destination || '',
+      dropLocation: t.dropLocation || booking.drop || booking.destination || '',
       pickupDate: t.pickupDate || booking.travelDate || null,
       pickupTime: t.pickupTime,
       dropDate: t.dropDate || booking.returnDate || null,
@@ -142,6 +142,32 @@ function extractPayload(booking, type, index = 0) {
   if (type === 'travel_kit' || type === 'master') {
     return { packageName: booking.packageName, destination: booking.destination };
   }
+  if (type === 'client') {
+    return {
+      packageName: booking.packageName,
+      destination: booking.destination,
+      pickup: booking.pickup || '',
+      drop: booking.drop || '',
+      totalAmount: booking.totalAmount || 0,
+      hotels: (booking.hotels || []).map((h) => ({
+        hotelName: h.hotelName || h.name,
+        roomType: h.roomType,
+        destination: h.destination,
+        checkIn: h.checkIn,
+        checkOut: h.checkOut,
+        nights: h.nights,
+        status: h.status,
+      })),
+      transport: (booking.transport || []).map((t) => ({
+        vehicleType: t.vehicleType,
+        vehicleDisplayName: t.vehicleDisplayName,
+        driverName: t.driverName,
+        pickupLocation: t.pickupLocation || booking.pickup,
+        dropLocation: t.dropLocation || booking.drop,
+        status: t.status,
+      })),
+    };
+  }
   return {};
 }
 
@@ -154,7 +180,7 @@ async function archiveVoucher(voucher, replacedById) {
   });
 }
 
-async function generateVoucherForAssignment(bookingId, { type, assignmentIndex = 0, actor, force = false } = {}) {
+async function generateVoucherForAssignment(bookingId, { type, assignmentIndex = 0, actor, force = false, payloadOverrides = null } = {}) {
   const booking = await Booking.findById(bookingId).lean();
   if (!booking) throw new Error('Booking not found');
 
@@ -188,7 +214,7 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
     }
   }
 
-  if (!payload && normalizedType !== 'travel_kit' && normalizedType !== 'master') {
+  if (!payload && normalizedType !== 'travel_kit' && normalizedType !== 'master' && normalizedType !== 'client') {
     throw new Error(`No ${normalizedType} assignment found at index ${assignmentIndex}`);
   }
 
@@ -198,6 +224,13 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
     assignmentIndex,
     isActive: true,
   });
+
+  // Keep manual edits (pickup/drop/driver/etc.) when regenerating after Edit
+  if (payloadOverrides && typeof payloadOverrides === 'object') {
+    payload = { ...(payload || {}), ...payloadOverrides };
+  } else if (existing?.payload && force) {
+    payload = { ...(payload || {}), ...existing.payload };
+  }
 
   if (existing && !force) {
     const samePayload = JSON.stringify(existing.payload || {}) === JSON.stringify(payload || {});
@@ -319,6 +352,7 @@ async function regenerateVoucher(voucherId, actor) {
     assignmentIndex: Number(source.assignmentIndex ?? 0),
     actor,
     force: true,
+    payloadOverrides: source.payload || {},
   });
 }
 
@@ -546,12 +580,19 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
   const buffer = readPdfBuffer(voucher.filePath);
   if (!buffer) throw new Error('PDF file could not be generated');
 
-  const recipientPhone = normalizeWaPhone(phone || booking?.customerPhone);
-  if (!recipientPhone) throw new Error('Recipient phone is required');
+  // Ops can open WhatsApp without a fixed number (choose contact in WA app).
+  const recipientPhone = phone ? normalizeWaPhone(phone) : '';
 
   const payload = voucher.payload || {};
-  const isVendor = phone && normalizeWaPhone(phone) !== normalizeWaPhone(booking?.customerPhone);
-  const typeLabel = voucher.type === 'hotel' ? 'Hotel' : voucher.type === 'transport' ? 'Cab' : 'Travel';
+  const isVendor = Boolean(recipientPhone)
+    && recipientPhone !== normalizeWaPhone(booking?.customerPhone);
+  const typeLabel = voucher.type === 'hotel'
+    ? 'Hotel'
+    : voucher.type === 'transport'
+      ? 'Cab'
+      : voucher.type === 'client'
+        ? 'Client'
+        : 'Travel';
 
   const message = isVendor
     ? [
@@ -566,8 +607,8 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
         `Destination: ${booking.destination}`,
         `Travel Date: ${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
         voucher.type === 'hotel' ? `Hotel: ${payload.hotelName || payload.name || ''}` : '',
-        voucher.type === 'transport' ? `Pickup: ${payload.pickupLocation || booking.destination || '-'}` : '',
-        voucher.type === 'transport' ? `Drop: ${payload.dropLocation || booking.destination || '-'}` : '',
+        voucher.type === 'transport' ? `Pickup: ${payload.pickupLocation || booking.pickup || booking.destination || '-'}` : '',
+        voucher.type === 'transport' ? `Drop: ${payload.dropLocation || booking.drop || booking.destination || '-'}` : '',
         voucher.type === 'transport' && Array.isArray(payload.itinerary) && payload.itinerary.length
           ? `Days: ${payload.itinerary.length} (places listed in PDF)`
           : '',
@@ -577,16 +618,18 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
         `Team ${branding.brandName}`,
       ].filter(Boolean).join('\n')
     : [
-        `Hello ${booking.customerName}`,
+        `Hello ${booking.customerName || ''}`,
         '',
         'Your travel voucher is attached.',
         '',
         `Destination:\n${booking.destination}`,
         '',
         `Travel Date:\n${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
+        booking.pickup ? `Pickup: ${booking.pickup}` : '',
+        booking.drop ? `Drop: ${booking.drop}` : '',
         '',
         `Team ${branding.brandName}`,
-      ].join('\n');
+      ].filter(Boolean).join('\n');
 
   const now = new Date();
   const resolvedVoucherId = voucher._id;
@@ -604,7 +647,7 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
     voucherId: resolvedVoucherId,
     type: 'whatsapp_sent',
     title: 'Voucher prepared for WhatsApp',
-    description: `To ${recipientPhone}`,
+    description: recipientPhone ? `To ${recipientPhone}` : 'WhatsApp opened — choose contact',
     actor,
   });
   await logEvent({
@@ -617,12 +660,14 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
   });
 
   const text = encodeURIComponent(message);
-  const waMeUrl = `https://wa.me/${recipientPhone}?text=${text}`;
+  const waMeUrl = recipientPhone
+    ? `https://wa.me/${recipientPhone}?text=${text}`
+    : `https://wa.me/?text=${text}`;
 
   return {
     success: true,
     waMeUrl,
-    phone: recipientPhone,
+    phone: recipientPhone || null,
     message,
     fileName: voucher.fileName,
     pdfUrl: voucher.pdfUrl,
@@ -881,6 +926,8 @@ async function generateAllVouchersForBooking(bookingId, actor) {
   }
   // One cab itinerary voucher for the whole trip (even before driver assigned)
   created.push(generateVoucherForAssignment(bookingId, { type: 'transport', assignmentIndex: 0, actor }));
+  // Client full voucher — hotel + cab summary with total package price only
+  created.push(generateVoucherForAssignment(bookingId, { type: 'client', assignmentIndex: 0, actor }));
   (booking.activities || []).forEach((_, i) => {
     created.push(generateVoucherForAssignment(bookingId, { type: 'activity', assignmentIndex: i, actor }));
   });

@@ -66,17 +66,19 @@ async function generateReceiptPdf(payment, booking) {
     plainBooking.companyId || plainPayment.companyId
   );
 
-  // Backfill customer phone from lead when booking phone is empty
+  // Backfill customer phone + pickup/drop from lead when booking fields are empty
   let bookingForPdf = { ...plainBooking };
-  if ((!bookingForPdf.customerPhone || !String(bookingForPdf.customerPhone).trim()) && bookingForPdf.lead) {
+  if (bookingForPdf.lead) {
     try {
       const Lead = require('../models/Lead');
-      const lead = await Lead.findById(bookingForPdf.lead).select('phone whatsapp email assignedTo').lean();
+      const lead = await Lead.findById(bookingForPdf.lead).select('phone whatsapp email assignedTo pickup drop').lean();
       if (lead) {
         bookingForPdf = {
           ...bookingForPdf,
-          customerPhone: lead.whatsapp || lead.phone || '',
+          customerPhone: bookingForPdf.customerPhone || lead.whatsapp || lead.phone || '',
           customerEmail: bookingForPdf.customerEmail || lead.email || '',
+          pickup: bookingForPdf.pickup || lead.pickup || '',
+          drop: bookingForPdf.drop || lead.drop || '',
           _leadAssignedTo: lead.assignedTo,
         };
       }

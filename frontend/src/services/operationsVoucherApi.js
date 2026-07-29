@@ -80,9 +80,9 @@ export async function sendVoucherEmail(voucherId, to, options = {}) {
   return data;
 }
 
-export async function sendVoucherWhatsApp(voucherId, phone, options = {}) {
+export async function sendVoucherWhatsApp(voucherId, phone = '', options = {}) {
   const { data } = await API.post(`/operations-manager/vouchers/${voucherId}/send-whatsapp`, {
-    phone,
+    ...(phone ? { phone } : {}),
     showGuestPhone: options.showGuestPhone !== false,
   });
 

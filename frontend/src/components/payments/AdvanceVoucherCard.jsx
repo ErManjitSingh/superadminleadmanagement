@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Eye, Download, ExternalLink, FileText, Loader2, MessageCircle, Mail, Wallet,
+  Eye, Download, ExternalLink, FileText, Loader2, MessageCircle, Mail, Wallet, Pencil,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatINR, formatDate } from '../operations-manager/operationsUtils';
@@ -9,6 +9,7 @@ import {
   downloadReceiptPdf,
   resendPaymentReceipt,
 } from '../../services/bookingPaymentsApi';
+import AdvanceVoucherEditModal from './AdvanceVoucherEditModal';
 import { toast } from '../../context/ToastContext';
 import { cn } from '../../lib/utils';
 
@@ -21,8 +22,10 @@ export default function AdvanceVoucherCard({
   payments = [],
   className,
   compact = false,
+  canEdit = true,
 }) {
   const [busy, setBusy] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const advancePayment = useMemo(() => {
     if (!payments?.length) return null;
@@ -111,6 +114,19 @@ export default function AdvanceVoucherCard({
             {busy === 'view' ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Eye className="w-3.5 h-3.5 mr-1.5" />}
             View Advance Voucher
           </Button>
+          {canEdit && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9"
+              disabled={!!busy || !advancePayment?._id}
+              onClick={() => setEditOpen(true)}
+            >
+              <Pencil className="w-3.5 h-3.5 mr-1.5" />
+              Edit
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
@@ -162,6 +178,13 @@ export default function AdvanceVoucherCard({
           )}
         </div>
       </div>
+      <AdvanceVoucherEditModal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        bookingId={bookingId}
+        payment={advancePayment}
+        booking={booking}
+      />
     </div>
   );
 }

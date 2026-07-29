@@ -14,6 +14,7 @@ const {
   getPaymentsDashboard,
   acknowledgeNewBooking,
   getLeadBooking,
+  updateBookingContact,
   sendPaymentReminderHandler,
   getCustomerPayments,
 } = require('../controllers/bookingPaymentController');
@@ -33,6 +34,11 @@ router.post(
 );
 
 router.get('/bookings/:bookingId/payments', requirePermission('payments', 'view'), listPaymentsForBooking);
+router.patch(
+  '/bookings/:bookingId/contact',
+  authorize('sales_executive', 'sales_manager', 'team_leader', 'admin', 'operations_manager'),
+  updateBookingContact
+);
 router.post(
   '/bookings/:bookingId/payments',
   authorize('operations_manager', 'admin', 'accountant'),

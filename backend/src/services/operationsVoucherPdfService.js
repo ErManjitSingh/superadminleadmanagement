@@ -4,6 +4,7 @@ const PDFDocument = require('pdfkit');
 const branding = require('../config/branding');
 const { generateCabVoucherPdf } = require('./cabVoucherPdfService');
 const { generateHotelVoucherPdf } = require('./hotelVoucherPdfService');
+const { generateClientVoucherPdf } = require('./clientVoucherPdfService');
 
 const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
 const VOUCHER_DIR = path.join(UPLOADS_ROOT, 'vouchers');
@@ -82,6 +83,10 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
     return generateHotelVoucherPdf(voucher, booking, payload);
   }
 
+  if (type === 'client' || type === 'master') {
+    return generateClientVoucherPdf(voucher, booking, payload);
+  }
+
   const typeLabels = {
     hotel: 'Hotel Voucher',
     transport: 'Cab / Transport Voucher',
@@ -89,6 +94,7 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
     flight: 'Flight Voucher',
     travel_kit: 'Customer Travel Kit',
     master: 'Master Travel Voucher',
+    client: 'Client Travel Voucher',
   };
   const safeNum = (voucher.voucherNumber || 'voucher').replace(/[^a-zA-Z0-9-_]/g, '_');
   const fileName = `${safeNum}-v${voucher.version || 1}.pdf`;

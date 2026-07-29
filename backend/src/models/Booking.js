@@ -141,6 +141,8 @@ const bookingSchema = new mongoose.Schema(
     customerPhone: { type: String, trim: true, default: '' },
     customerEmail: { type: String, trim: true, default: '' },
     destination: { type: String, required: true },
+    pickup: { type: String, trim: true, default: '' },
+    drop: { type: String, trim: true, default: '' },
     packageName: { type: String, trim: true, default: '' },
     travelDate: { type: Date, index: true },
     returnDate: { type: Date, index: true },

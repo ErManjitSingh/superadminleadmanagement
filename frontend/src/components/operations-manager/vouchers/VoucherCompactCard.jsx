@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import {
-  Eye, Loader2, Mail, MessageCircle, RefreshCw, Sparkles, MapPin, Calendar, ChevronRight,
+  Eye, Loader2, Mail, MessageCircle, RefreshCw, Sparkles, MapPin, Calendar, ChevronRight, Pencil,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
 import { VOUCHER_STATUS_CONFIG, VENDOR_STATUS_CONFIG } from '../constants';
 import VoucherSendModal from './VoucherSendModal';
+import VoucherEditModal from './VoucherEditModal';
 import { previewVoucherPdf, regenerateVoucher, generateVoucher } from '../../../services/operationsVoucherApi';
 import { formatDate } from '../operationsUtils';
 import { toast } from '../../../context/ToastContext';
@@ -22,8 +23,10 @@ export default function VoucherCompactCard({
   onRefresh,
   onVoucherPatched,
   isLast = false,
+  canEdit = true,
 }) {
   const [sendChannel, setSendChannel] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const payload = voucher?.payload || {};
@@ -53,11 +56,12 @@ export default function VoucherCompactCard({
       ].filter(Boolean)
     : [
         payload.driverName ? `Driver: ${payload.driverName}` : null,
-        payload.pickupLocation || booking?.destination,
+        payload.pickupLocation || booking?.pickup || booking?.destination,
+        payload.dropLocation || booking?.drop || null,
         payload.vehicleNumber ? `Vehicle ${payload.vehicleNumber}` : null,
       ].filter(Boolean);
 
-  const canSend = voucher && ['hotel', 'transport'].includes(type);
+  const canSend = voucher && ['hotel', 'transport', 'client'].includes(type);
   const vendorCfg = voucher?.vendorStatus
     ? (VENDOR_STATUS_CONFIG[voucher.vendorStatus] || VENDOR_STATUS_CONFIG.pending)
     : null;
@@ -192,6 +196,18 @@ export default function VoucherCompactCard({
                 {previewing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
                 View
               </Button>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 rounded-lg text-xs gap-1.5 font-semibold px-3"
+                  disabled={busy}
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="outline"
@@ -237,7 +253,7 @@ export default function VoucherCompactCard({
               onClick={onGenerate}
             >
               {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              {type === 'transport' ? 'Generate Cab Voucher' : 'Generate Voucher'}
+              {type === 'transport' ? 'Generate Cab Voucher' : type === 'client' ? 'Generate Client Voucher' : 'Generate Voucher'}
               <ChevronRight className="w-3.5 h-3.5 opacity-80" />
             </Button>
           )}
@@ -252,6 +268,17 @@ export default function VoucherCompactCard({
         booking={booking}
         onClose={() => setSendChannel(null)}
         onSent={onRefresh}
+      />
+      <VoucherEditModal
+        open={editOpen}
+        type={type}
+        voucher={voucher}
+        booking={booking}
+        onClose={() => setEditOpen(false)}
+        onSaved={(updated) => {
+          onVoucherPatched?.(updated);
+          onRefresh?.();
+        }}
       />
     </>
   );

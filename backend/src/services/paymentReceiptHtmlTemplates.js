@@ -1,4 +1,3 @@
-const QRCode = require('qrcode');
 const branding = require('../config/branding');
 
 const HERO_IMG = 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&q=80';
@@ -59,7 +58,7 @@ html, body {
 .pill.outline { background: transparent; border: 1px solid #c4b5fd; color: #fff; }
 .issued { text-align: center; font-size: 8px; opacity: 0.9; margin-top: 4px; }
 .strip {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
   background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 10px 14px;
 }
 .strip label { display: block; font-size: 7px; color: #64748b; font-weight: 700; text-transform: uppercase; }
@@ -124,15 +123,12 @@ html, body {
 .history tr.current td { background: #f5f3ff; color: #5b21b6; }
 .history .amt { text-align: right; font-variant-numeric: tabular-nums; }
 .verify {
-  margin: 0 14px 10px; display: grid; grid-template-columns: 1fr auto; gap: 10px;
-  border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; align-items: center;
+  margin: 0 14px 10px; display: block;
+  border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px;
 }
 .note-title { font-size: 9px; font-weight: 800; color: #5b21b6; margin-bottom: 6px; text-transform: uppercase; }
 .note-text { font-size: 8px; line-height: 1.4; color: #334155; }
 .note-sign { font-size: 9px; font-style: italic; color: #5b21b6; margin-top: 8px; }
-.qr-box { text-align: center; }
-.qr-box img { width: 72px; height: 72px; border: 2px solid #5b21b6; border-radius: 8px; padding: 4px; background: #fff; }
-.qr-box p { font-size: 6px; color: #64748b; margin-top: 4px; font-weight: 700; }
 .auth-row {
   display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px;
   padding: 0 14px 10px; align-items: end; background: #f5f3ff; margin: 0 14px 10px; border-radius: 10px;
@@ -234,25 +230,21 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
   const progress = totalAmount > 0 ? Math.min(100, Math.round((totalPaid / totalAmount) * 100)) : 0;
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const customerPhone = booking.customerPhone || booking.phone || payment.customerPhone || '-';
+  const pickup = booking.pickup || booking.pickupLocation || '-';
+  const drop = booking.drop || booking.dropLocation || '-';
   const receivedBy = payment.createdByName
     || (payment.createdBy?.name ? `${payment.createdBy.name}` : '')
     || booking.executiveName
     || 'Accounts Team';
-  const executivePhone = booking.executivePhone || '';
+  const executivePhone = booking.executivePhone || brand.phone || '';
   const executiveName = booking.executiveName || payment.createdByName || receivedBy;
   const roleLabel = payment.createdByRole === 'sales_executive' ? 'Sales Executive'
     : payment.createdByRole === 'operations_manager' ? 'Operations'
     : payment.department === 'sales' ? 'Sales Executive' : 'Accounts';
   const docTitle = isAdvance ? 'ADVANCE PAYMENT VOUCHER' : 'PAYMENT RECEIPT';
   const amountLabel = isAdvance ? 'Advance Received' : 'Amount Received';
-  const verifyBase = (brand.websiteUrl || branding.websiteUrl || '').replace(/\/$/, '');
-  const verifyUrl = `${verifyBase}/receipt/${receiptNumber}`;
-  let qrSrc = '';
-  try {
-    qrSrc = await QRCode.toDataURL(verifyUrl || receiptNumber, { width: 140, margin: 1 });
-  } catch { /* optional */ }
 
-  const footPhone = brand.phone || '-';
+  const footPhone = brand.phone || executivePhone || '-';
   const footEmail = brand.email || '-';
   const footSite = brand.website || '-';
   const footPlace = brand.address || brand.name;
@@ -290,9 +282,10 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
   </div>
   <div class="strip">
     <div><label>Customer</label><p>${esc(booking.customerName)}</p></div>
-    <div><label>Customer Phone</label><p>${esc(customerPhone)}</p></div>
+    <div><label>Phone</label><p>${esc(customerPhone)}</p></div>
     <div><label>Destination</label><p>${esc(booking.destination)}</p></div>
-    <div><label>Travel Dates</label><p>${fmtDate(booking.travelDate)} – ${fmtDate(booking.returnDate)}</p></div>
+    <div><label>Pickup</label><p>${esc(pickup)}</p></div>
+    <div><label>Drop</label><p>${esc(drop)}</p></div>
     <div><label>Guests</label><p>${guests}</p></div>
   </div>
   <div class="amount-banner">
@@ -320,9 +313,11 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
         ${cell('▤', 'Received By', `${receivedBy} (${roleLabel})`)}
         ${cell('◎', 'Receipt No', receiptNumber)}
         ${cell('☎', 'Customer Phone', customerPhone)}
+        ${cell('☎', 'Company / Exec Phone', executivePhone || footPhone || '-')}
         ${cell('@', 'Customer Email', booking.customerEmail || '-')}
         ${cell('✎', 'Sales Executive', executiveName)}
-        ${cell('☎', 'Executive Phone', executivePhone || '-')}
+        ${cell('⬆', 'Pickup', pickup)}
+        ${cell('⬇', 'Drop', drop)}
       </div>
     </div>
     <div class="card">
@@ -339,16 +334,9 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
   </div>
   ${buildPaymentHistoryRows(paymentHistory, receiptNumber)}
   <div class="verify">
-    <div>
-      <div class="note-title">Payment Note</div>
-      <div class="note-text">Package cost ${fmtINR(totalAmount)}. Advance received ${fmtINR(advanceReceived || thisPayment)}. Remaining balance ${fmtINR(remaining)} — please clear before travel.</div>
-      <div class="note-sign">Thank you for choosing ${esc(brand.name)}.</div>
-    </div>
-    <div class="qr-box">
-      <div class="note-title">Scan to Verify</div>
-      ${qrSrc ? `<img src="${qrSrc}" alt="QR"/>` : ''}
-      <p>Verify receipt online</p>
-    </div>
+    <div class="note-title">Payment Note</div>
+    <div class="note-text">Package cost ${fmtINR(totalAmount)}. Advance received ${fmtINR(advanceReceived || thisPayment)}. Remaining balance ${fmtINR(remaining)} — please clear before travel. Travel dates: ${fmtDate(booking.travelDate)} – ${fmtDate(booking.returnDate)}.</div>
+    <div class="note-sign">Thank you for choosing ${esc(brand.name)}. Contact: ${esc(customerPhone !== '-' ? customerPhone : footPhone)}</div>
   </div>
   <div class="auth-row">
     <div>
@@ -362,7 +350,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     </div>
   </div>
   <div class="foot">
-    <span>Exec: ${esc(executivePhone || footPhone)}</span>
+    <span>Phone: ${esc(executivePhone || footPhone)}</span>
     <span>Email: ${esc(footEmail)}</span>
     <span>Web: ${esc(footSite)}</span>
     <span>${esc(footPlace)}</span>

@@ -180,7 +180,11 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
   const { resolveHotelConfirmationStatus } = require('../utils/noHotelUtils');
 
   const hotels = quotation ? mapQuoteHotels(quotation, travelDate) : [];
-  const transport = quotation ? mapQuoteTransport(quotation) : [];
+  const transport = (quotation ? mapQuoteTransport(quotation) : []).map((t) => ({
+    ...t,
+    pickupLocation: t.pickupLocation || lead.pickup || '',
+    dropLocation: t.dropLocation || lead.drop || '',
+  }));
   const activities = quotation ? mapQuoteActivities(quotation) : [];
   const itinerary = quotation ? mapQuoteItinerary(quotation, travelDate) : [];
 
@@ -192,6 +196,8 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
     customerPhone: lead.whatsapp || lead.phone || '',
     customerEmail: lead.email || '',
     destination: lead.destination || snap.destination || 'TBD',
+    pickup: lead.pickup || '',
+    drop: lead.drop || '',
     packageName: snap.name || snap.title || lead.packageName || '',
     travelDate,
     returnDate,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Trophy, ExternalLink, Loader2, Calendar, Wallet, FileText, Eye, Download, MessageCircle, Mail,
+  Trophy, ExternalLink, Loader2, Calendar, Wallet, FileText, Eye, Download, MessageCircle, Mail, Pencil,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -11,11 +11,13 @@ import {
   resendPaymentReceipt,
   fetchReceiptPdfBlob,
 } from '../../services/bookingPaymentsApi';
+import AdvanceVoucherEditModal from '../payments/AdvanceVoucherEditModal';
 import { formatINR, formatDate } from '../operations-manager/operationsUtils';
 import { Button } from '../ui/button';
 import { toast } from '../../context/ToastContext';
 
 const OPS_ROLES = ['operations_manager', 'admin'];
+const EXEC_ROLES = ['sales_executive', 'team_leader', 'sales_manager', 'admin', 'operations_manager'];
 
 export default function LeadConvertedBanner({ status, leadId }) {
   const { user } = useAuth();
@@ -26,6 +28,7 @@ export default function LeadConvertedBanner({ status, leadId }) {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [showPdf, setShowPdf] = useState(false);
   const [resending, setResending] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     if (status !== 'converted' || !leadId) {
@@ -73,6 +76,7 @@ export default function LeadConvertedBanner({ status, leadId }) {
   if (status !== 'converted') return null;
 
   const canOpenBooking = OPS_ROLES.includes(user?.role);
+  const canEditAdvance = EXEC_ROLES.includes(user?.role);
   const remaining = booking?.remainingBalance ?? booking?.pendingAmount ?? 0;
   const voucherSent = !!(advancePayment?.whatsappSentAt || advancePayment?.emailSentAt);
 
@@ -191,6 +195,17 @@ export default function LeadConvertedBanner({ status, leadId }) {
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Open Voucher
               </Button>
+              {canEditAdvance && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setEditOpen(true)}
+                >
+                  <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="outline"
@@ -248,6 +263,23 @@ export default function LeadConvertedBanner({ status, leadId }) {
             </div>
           )}
         </div>
+      )}
+
+      {editOpen && booking && advancePayment && (
+        <AdvanceVoucherEditModal
+          open={editOpen}
+          bookingId={booking._id}
+          booking={booking}
+          payment={advancePayment}
+          onClose={() => setEditOpen(false)}
+          onSaved={({ customerPhone }) => {
+            if (customerPhone) {
+              setBooking((b) => (b ? { ...b, customerPhone } : b));
+            }
+            setShowPdf(false);
+            setPdfUrl('');
+          }}
+        />
       )}
     </div>
   );
