@@ -293,10 +293,20 @@ export function BookingActionCenter({ items = [], onResolveAll }) {
 
 /* ─── Detail Grid ──────────────────────────────────────────── */
 
-export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCallHotel, onConfirmCab, confirmingCab }) {
+export function BookingDetailGrid({
+  booking,
+  onHotelVoucher,
+  onCabManage,
+  onCallHotel,
+  onConfirmHotel,
+  confirmingHotel,
+  onConfirmCab,
+  confirmingCab,
+}) {
   const hasHotels = bookingHasHotels(booking);
   const hotel = booking.hotels?.[0] || {};
   const cab = booking.transport?.[0] || {};
+  const hotelConfirmed = booking.hotelConfirmation === 'confirmed';
   const cabConfirmed = booking.cabConfirmation === 'confirmed';
   const cols = hasHotels
     ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
@@ -308,13 +318,19 @@ export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCall
         <DetailCard
           icon={Hotel}
           title="Hotel Details"
-          badge={<StatusPill tone={booking.hotelConfirmation === 'confirmed' ? 'emerald' : 'amber'}>{booking.hotelConfirmation === 'confirmed' ? 'Confirmed' : 'Pending'}</StatusPill>}
+          badge={<StatusPill tone={hotelConfirmed ? 'emerald' : 'amber'}>{hotelConfirmed ? 'Confirmed' : 'Pending'}</StatusPill>}
           accent="violet"
           actions={(
             <>
+              {hotelConfirmed ? (
+                <GhostBtn tone="success" disabled>Booking Done ✓</GhostBtn>
+              ) : (
+                <GhostBtn tone="success" onClick={onConfirmHotel} disabled={confirmingHotel || !onConfirmHotel}>
+                  {confirmingHotel ? 'Saving…' : 'Confirm Hotel'}
+                </GhostBtn>
+              )}
               <GhostBtn onClick={onCallHotel}>Call Hotel</GhostBtn>
               <GhostBtn onClick={onHotelVoucher}>Voucher</GhostBtn>
-              <GhostBtn onClick={onHotelVoucher}>View</GhostBtn>
             </>
           )}
         >
@@ -336,9 +352,11 @@ export function BookingDetailGrid({ booking, onHotelVoucher, onCabManage, onCall
         accent="sky"
         actions={(
           <>
-            {!cabConfirmed && (
-              <GhostBtn onClick={onConfirmCab} disabled={confirmingCab}>
-                {confirmingCab ? 'Saving…' : 'Mark Confirmed'}
+            {cabConfirmed ? (
+              <GhostBtn tone="success" disabled>Booking Done ✓</GhostBtn>
+            ) : (
+              <GhostBtn tone="success" onClick={onConfirmCab} disabled={confirmingCab || !onConfirmCab}>
+                {confirmingCab ? 'Saving…' : 'Confirm Cab'}
               </GhostBtn>
             )}
             <GhostBtn onClick={onCabManage}>Manage Cab</GhostBtn>
@@ -437,13 +455,18 @@ function VendorRow({ label, name, phone }) {
   );
 }
 
-function GhostBtn({ children, onClick, disabled }) {
+function GhostBtn({ children, onClick, disabled, tone }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-subtle bg-white hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+      className={cn(
+        'text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border transition-colors disabled:opacity-50 disabled:pointer-events-none',
+        tone === 'success'
+          ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 font-bold'
+          : 'border-subtle bg-white hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700',
+      )}
     >
       {children}
     </button>

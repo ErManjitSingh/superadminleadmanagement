@@ -372,7 +372,17 @@ export function QuotationSyncBanner({ meta, onSync, syncing, autoSynced }) {
   );
 }
 
-export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogHotels = [], onCatalogHotelsChange }) {
+export function BookingHotelsEditor({
+  hotels,
+  onChange,
+  onSave,
+  saving,
+  catalogHotels = [],
+  onCatalogHotelsChange,
+  onConfirmHotel,
+  confirmingHotel,
+  hotelConfirmed,
+}) {
   const [rowModes, setRowModes] = useState({});
   const [savingRow, setSavingRow] = useState(null);
 
@@ -454,6 +464,23 @@ export function BookingHotelsEditor({ hotels, onChange, onSave, saving, catalogH
       subtitle="Hotel details + vendor price — Save Hotels to update"
       actions={(
         <>
+          {hotelConfirmed ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Hotel Booking Done
+            </span>
+          ) : onConfirmHotel ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl gap-1 border-emerald-400 text-emerald-700 hover:bg-emerald-50 font-bold"
+              disabled={confirmingHotel || saving}
+              onClick={onConfirmHotel}
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {confirmingHotel ? 'Saving…' : 'Confirm Hotel Booking'}
+            </Button>
+          ) : null}
           <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={addHotel}>
             <Plus className="w-3.5 h-3.5" /> Add
           </Button>
@@ -656,18 +683,23 @@ export function BookingTransportEditor({
       subtitle="Driver / vendor details + cab price — Save Transport to update"
       actions={(
         <>
-          {!cabConfirmed && onConfirmCab && (
+          {cabConfirmed ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Cab Booking Done
+            </span>
+          ) : onConfirmCab ? (
             <Button
               variant="outline"
               size="sm"
-              className="rounded-xl gap-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              className="rounded-xl gap-1 border-emerald-400 text-emerald-700 hover:bg-emerald-50 font-bold"
               disabled={confirmingCab || saving}
               onClick={onConfirmCab}
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              {confirmingCab ? 'Saving…' : 'Mark Cab Confirmed'}
+              {confirmingCab ? 'Saving…' : 'Confirm Cab Booking'}
             </Button>
-          )}
+          ) : null}
           <Button variant="outline" size="sm" className="rounded-xl gap-1" onClick={addRow}>
             <Plus className="w-3.5 h-3.5" /> Add
           </Button>

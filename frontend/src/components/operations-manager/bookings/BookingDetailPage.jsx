@@ -86,6 +86,7 @@ export default function BookingDetailPage() {
   const [quotationLoading, setQuotationLoading] = useState(false);
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [confirmingCab, setConfirmingCab] = useState(false);
+  const [confirmingHotel, setConfirmingHotel] = useState(false);
   const [activeSection, setActiveSection] = useState(SECTION_TABS[0].id);
   const pdfRef = useRef(null);
 
@@ -192,7 +193,12 @@ export default function BookingDetailPage() {
   const saveHotels = async () => {
     setSavingHotels(true);
     try {
-      await API.put(`/operations-manager/bookings/${id}`, { hotels });
+      const allConfirmed = (hotels || []).length > 0
+        && (hotels || []).every((h) => h.status === 'confirmed');
+      await API.put(`/operations-manager/bookings/${id}`, {
+        hotels,
+        ...(allConfirmed ? { hotelConfirmation: 'confirmed' } : {}),
+      });
       await refreshBookingData(true);
     } finally {
       setSavingHotels(false);
@@ -214,8 +220,24 @@ export default function BookingDetailPage() {
     }
   };
 
+  const confirmHotel = async () => {
+    if (!window.confirm('Hotel booking confirm / done mark karein? Hotel se final confirmation ke baad use karein.')) return;
+    setConfirmingHotel(true);
+    try {
+      const { data } = await API.post(`/operations-manager/bookings/${id}/confirm-hotel`);
+      if (data) {
+        setBooking((b) => ({ ...b, ...data }));
+        setHotels(data.hotels?.length ? data.hotels : []);
+      }
+      toast.success('Hotel booking confirmed');
+      await refreshBookingData(true);
+    } finally {
+      setConfirmingHotel(false);
+    }
+  };
+
   const confirmCab = async () => {
-    if (!window.confirm('Mark cab as confirmed? Use this after you finalize driver/vendor by call or WhatsApp.')) return;
+    if (!window.confirm('Cab booking confirm / done mark karein? Driver/vendor finalize ke baad use karein.')) return;
     setConfirmingCab(true);
     try {
       const { data } = await API.post(`/operations-manager/bookings/${id}/confirm-cab`);
@@ -223,6 +245,7 @@ export default function BookingDetailPage() {
         setBooking((b) => ({ ...b, ...data }));
         setTransport(data.transport?.length ? data.transport : []);
       }
+      toast.success('Cab booking confirmed');
       await refreshBookingData(true);
     } finally {
       setConfirmingCab(false);
@@ -390,6 +413,8 @@ export default function BookingDetailPage() {
               booking={booking}
               onHotelVoucher={scrollToVouchers}
               onCabManage={openManage}
+              onConfirmHotel={confirmHotel}
+              confirmingHotel={confirmingHotel}
               onConfirmCab={confirmCab}
               confirmingCab={confirmingCab}
               onCallHotel={() => {
@@ -518,6 +543,9 @@ export default function BookingDetailPage() {
                 saving={savingHotels}
                 catalogHotels={catalogHotels}
                 onCatalogHotelsChange={setCatalogHotels}
+                onConfirmHotel={confirmHotel}
+                confirmingHotel={confirmingHotel}
+                hotelConfirmed={booking.hotelConfirmation === 'confirmed'}
               />
             )}
             <BookingTransportEditor
