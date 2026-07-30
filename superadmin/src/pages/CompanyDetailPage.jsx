@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, Building2, Calendar, HardDrive, LogIn, Mail, MapPin, Shield, Users,
+  ArrowLeft, Building2, Calendar, HardDrive, LogIn, Mail, MapPin, Pause, Play, Shield, Users,
 } from 'lucide-react';
 import { superAdminApi } from '../api/superadmin';
 import { PLATFORM_DOMAIN } from '../lib/branding';
@@ -39,8 +39,14 @@ export default function CompanyDetailPage() {
     onSuccess: () => navigate('/admin/companies'),
   });
 
+  const statusMutation = useMutation({
+    mutationFn: (action) => superAdminApi.bulkCompanies({ ids: [id], action }),
+    onSuccess: () => refetch(),
+  });
+
   const company = data?.company;
   const plan = company?.subscriptionPlan;
+  const isPaused = company?.status === 'suspended';
 
   async function handleImpersonate() {
     setImpersonating(true);
@@ -93,6 +99,29 @@ export default function CompanyDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {isPaused ? (
+            <Button
+              variant="outline"
+              disabled={statusMutation.isPending}
+              onClick={() => statusMutation.mutate('activate')}
+            >
+              <Play className="h-4 w-4" />
+              {statusMutation.isPending ? 'Resuming…' : 'Resume Company'}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              disabled={statusMutation.isPending}
+              onClick={() => {
+                if (confirm(`Pause "${company.name}"? Users will not be able to access this workspace until resumed.`)) {
+                  statusMutation.mutate('suspend');
+                }
+              }}
+            >
+              <Pause className="h-4 w-4" />
+              {statusMutation.isPending ? 'Pausing…' : 'Pause Company'}
+            </Button>
+          )}
           <Button onClick={handleImpersonate} disabled={impersonating}><LogIn className="h-4 w-4" />Login As Company Admin</Button>
           {!company.isLegacy && <Button variant="outline" onClick={() => deleteMutation.mutate()}>Delete</Button>}
         </div>

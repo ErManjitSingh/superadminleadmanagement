@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pause, Play } from 'lucide-react';
 import { superAdminApi } from '../../api/superadmin';
 import { Card, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -9,6 +10,7 @@ import { formatDate, formatCurrency, STATUS_COLORS } from '../../lib/utils';
 export default function SubscriptionManager({ company, onUpdated }) {
   const queryClient = useQueryClient();
   const currentPlan = company?.subscriptionPlan;
+  const isPaused = company?.status === 'suspended';
 
   const [planId, setPlanId] = useState(currentPlan?._id || currentPlan?.id || '');
   const [billingCycle, setBillingCycle] = useState(company?.billingCycle || 'monthly');
@@ -46,6 +48,12 @@ export default function SubscriptionManager({ company, onUpdated }) {
     onSuccess: () => afterChange(`Subscription renewed for ${periods} ${billingCycle === 'yearly' ? 'year(s)' : 'month(s)'}.`),
   });
 
+  const pauseMutation = useMutation({
+    mutationFn: (action) => superAdminApi.bulkCompanies({ ids: [company.id], action }),
+    onSuccess: (_data, action) =>
+      afterChange(action === 'suspend' ? 'Company paused. Users cannot access this workspace.' : 'Company resumed successfully.'),
+  });
+
   const selectedPlan = plans.find((p) => (p._id || p.id) === planId);
   const price = selectedPlan
     ? billingCycle === 'yearly'
@@ -72,6 +80,38 @@ export default function SubscriptionManager({ company, onUpdated }) {
           {message}
         </div>
       )}
+
+      <Card className="p-5 space-y-3">
+        <CardTitle>Pause / Resume Access</CardTitle>
+        <p className="text-sm text-[var(--text-muted)]">
+          {isPaused
+            ? 'This company is paused. Users cannot log in or use the workspace until you resume it.'
+            : 'Pause temporarily blocks all company users from accessing the workspace. Subscription dates are not changed.'}
+        </p>
+        {isPaused ? (
+          <Button
+            variant="outline"
+            disabled={pauseMutation.isPending}
+            onClick={() => pauseMutation.mutate('activate')}
+          >
+            <Play className="h-4 w-4" />
+            {pauseMutation.isPending ? 'Resuming…' : 'Resume Company'}
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            disabled={pauseMutation.isPending}
+            onClick={() => {
+              if (confirm(`Pause "${company.name}"? Users will not be able to access this workspace until resumed.`)) {
+                pauseMutation.mutate('suspend');
+              }
+            }}
+          >
+            <Pause className="h-4 w-4" />
+            {pauseMutation.isPending ? 'Pausing…' : 'Pause Company'}
+          </Button>
+        )}
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-5 space-y-4">

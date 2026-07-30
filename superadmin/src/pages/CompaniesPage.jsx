@@ -68,8 +68,8 @@ function ActionsMenu({ company, onAction }) {
   const [open, setOpen] = useState(false);
   const items = [
     { label: 'View', icon: Eye, action: 'view' },
-    { label: 'Suspend', icon: Pause, action: 'suspend', hide: company.status === 'suspended' },
-    { label: 'Activate', icon: Play, action: 'activate', hide: company.status === 'active' },
+    { label: 'Pause Company', icon: Pause, action: 'suspend', hide: company.status === 'suspended' },
+    { label: 'Resume Company', icon: Play, action: 'activate', hide: company.status === 'active' },
     { label: 'Login As Admin', icon: LogIn, action: 'impersonate' },
     { label: 'Reset Password', icon: KeyRound, action: 'reset' },
     { label: 'Delete', icon: Trash2, action: 'delete', danger: true, hide: company.isLegacy },
@@ -366,8 +366,8 @@ export default function CompaniesPage() {
             </button>
             {selected.length > 0 && (
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Activate</Button>
-                <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'suspend' })}>Suspend</Button>
+                <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'activate' })}>Resume</Button>
+                <Button size="sm" variant="outline" onClick={() => bulkMutation.mutate({ ids: selected, action: 'suspend' })}>Pause</Button>
               </div>
             )}
           </div>
