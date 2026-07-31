@@ -111,6 +111,10 @@ function extractPayload(booking, type, index = 0) {
       starRating: h.starRating || h.category,
       category: h.category,
       amount: h.amount || 0,
+      advancePaid: h.advancePaid || 0,
+      remainingBalance: h.remainingBalance != null
+        ? h.remainingBalance
+        : Math.max(0, Number(h.amount || 0) - Number(h.advancePaid || 0)),
       image: h.image,
       status: h.status,
     };

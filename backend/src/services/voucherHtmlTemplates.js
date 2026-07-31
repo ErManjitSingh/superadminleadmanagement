@@ -536,6 +536,15 @@ async function buildHotelVoucherHtml(voucher, booking) {
   const destCity = (booking.destination || '').split(',')[0] || 'Branch';
   const showGuestPhone = voucher?.payload?.showGuestPhone !== false && booking?.showGuestPhone !== false;
   const customerPhone = showGuestPhone ? (booking.customerPhone || booking.phone || '-') : '';
+  const fmtMoney = (n) => new Intl.NumberFormat('en-IN', {
+    style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  }).format(Number(n) || 0);
+  const hotelAmount = Number(p.amount || 0);
+  const advancePaid = Number(p.advancePaid || 0);
+  const remainingBalance = p.remainingBalance != null && p.remainingBalance !== ''
+    ? Number(p.remainingBalance)
+    : Math.max(0, hotelAmount - advancePaid);
+  const showPayment = hotelAmount > 0 || advancePaid > 0 || remainingBalance > 0;
 
   const fields = [
     ...(p.day ? [['calendar', 'Stay Day', `Day ${p.day}${p.nights ? ` · ${p.nights} Night${p.nights > 1 ? 's' : ''}` : ''}`]] : []),
@@ -582,7 +591,15 @@ async function buildHotelVoucherHtml(voucher, booking) {
     { icon: 'users', label: 'Guests', value: guests },
   ];
 
+  const paymentBanner = showPayment ? `
+  <div class="cv-amount-banner">
+    <div class="cv-amount-card package"><label>Hotel Price</label><p>${escHtml(fmtMoney(hotelAmount))}</p></div>
+    <div class="cv-amount-card advance"><label>Advance Paid</label><p>${escHtml(fmtMoney(advancePaid))}</p></div>
+    <div class="cv-amount-card remaining"><label>Remaining Balance</label><p>${escHtml(fmtMoney(remainingBalance))}</p></div>
+  </div>` : '';
+
   const bodyHtml = `
+  ${paymentBanner}
   <div class="cv-body">
     <div class="cv-panel">
       <div class="cv-panel-title">${svgIcon('hotel')} Hotel Details</div>

@@ -412,7 +412,10 @@ export function BookingHotelsEditor({
   };
 
   const addHotel = () => {
-    onChange([...hotels, { hotelName: '', destination: '', roomType: '', mealPlan: '', amount: 0, status: 'pending' }]);
+    onChange([...hotels, {
+      hotelName: '', destination: '', roomType: '', mealPlan: '',
+      amount: 0, advancePaid: 0, remainingBalance: 0, status: 'pending',
+    }]);
   };
 
   const remove = (i) => onChange(hotels.filter((_, idx) => idx !== i));
@@ -558,15 +561,55 @@ export function BookingHotelsEditor({
               <input value={h.destination || ''} onChange={(e) => update(i, 'destination', e.target.value)} placeholder="Destination / city" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.roomType || ''} onChange={(e) => update(i, 'roomType', e.target.value)} placeholder="Room type" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.mealPlan || ''} onChange={(e) => update(i, 'mealPlan', e.target.value)} placeholder="Meal plan (MAP/CP)" className="input-premium h-10 rounded-xl text-sm" />
-              <label className="block sm:col-span-2">
+              <label className="block">
                 <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Hotel Price (₹)</span>
                 <input
                   type="number"
                   min="0"
                   step="1"
                   value={h.amount === 0 || h.amount ? h.amount : ''}
-                  onChange={(e) => update(i, 'amount', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const amount = e.target.value === '' ? 0 : Number(e.target.value) || 0;
+                    const advance = Number(h.advancePaid) || 0;
+                    onChange(hotels.map((row, idx) => (
+                      idx === i
+                        ? { ...row, amount, remainingBalance: Math.max(0, amount - advance) }
+                        : row
+                    )));
+                  }}
                   placeholder="Vendor / hotel cost for this booking"
+                  className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Advance Paid (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={h.advancePaid === 0 || h.advancePaid ? h.advancePaid : ''}
+                  onChange={(e) => {
+                    const advancePaid = e.target.value === '' ? 0 : Number(e.target.value) || 0;
+                    const amount = Number(h.amount) || 0;
+                    onChange(hotels.map((row, idx) => (
+                      idx === i
+                        ? { ...row, advancePaid, remainingBalance: Math.max(0, amount - advancePaid) }
+                        : row
+                    )));
+                  }}
+                  placeholder="Advance de raha hai"
+                  className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Remaining Balance (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={h.remainingBalance === 0 || h.remainingBalance ? h.remainingBalance : ''}
+                  onChange={(e) => update(i, 'remainingBalance', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                  placeholder="Bacha hua amount"
                   className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
                 />
               </label>

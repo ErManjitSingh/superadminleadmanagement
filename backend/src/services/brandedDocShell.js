@@ -314,6 +314,96 @@ html, body {
   display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
 }
 .cv-contact svg { width: 10px; height: 10px; opacity: 0.95; flex-shrink: 0; }
+
+/* Mobile / narrow screen — WhatsApp & phone browser preview */
+@media screen and (max-width: 720px) {
+  html, body {
+    width: 100% !important;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .cv-page {
+    width: 100% !important;
+    min-height: auto;
+    max-width: 100%;
+  }
+  .cv-header { padding: 18px 14px 16px; }
+  .cv-header-top { flex-direction: column; align-items: stretch; }
+  .cv-hero { width: 100%; height: 120px; }
+  .cv-title { font-size: 18px; margin: 12px 0 10px; }
+  .cv-brand-name { font-size: 16px; }
+  .cv-brand-tag { font-size: 10px; }
+  .cv-pill { font-size: 10px; padding: 6px 12px; }
+  .cv-strip,
+  .cv-strip.cols-4,
+  .cv-strip.cols-5,
+  .cv-strip.cols-6 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .cv-strip-item {
+    border-right: none;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px;
+  }
+  .cv-strip label { font-size: 9px; }
+  .cv-strip p { font-size: 12px; }
+  .cv-body {
+    grid-template-columns: 1fr !important;
+    padding: 14px 12px;
+    gap: 12px;
+  }
+  .cv-grid,
+  .cv-grid-3 { grid-template-columns: 1fr !important; }
+  .cv-tile { padding: 10px; }
+  .cv-tile label { font-size: 9px; }
+  .cv-tile p { font-size: 12px; }
+  .cv-hotel-card { flex-direction: column; }
+  .cv-hotel-card img { width: 100%; height: 140px; }
+  .cv-hotel-name { font-size: 16px; }
+  .cv-hotel-addr { font-size: 11px; }
+  .cv-amount-banner {
+    grid-template-columns: 1fr !important;
+    padding: 12px 12px 0;
+    gap: 8px;
+  }
+  .cv-amount-card p { font-size: 18px; }
+  .cv-amount-card label { font-size: 10px; }
+  .cv-amount-value { font-size: 28px; }
+  .cv-panel-title { font-size: 12px; }
+  .cv-note-item { font-size: 11px; line-height: 1.45; }
+  .cv-help-row { font-size: 11px; }
+  .cv-vendor {
+    margin: 0 12px 12px;
+    grid-template-columns: 1fr !important;
+  }
+  .cv-vendor-link { max-width: none; }
+  .cv-btn { font-size: 11px; padding: 8px 12px; }
+  .cv-thanks-row {
+    grid-template-columns: 1fr !important;
+    text-align: left;
+  }
+  .cv-sign-wrap { text-align: left; }
+  .cv-stamp { margin-left: 0; }
+  .cv-thanks-title { font-size: 16px; }
+  .cv-thanks-text { font-size: 11px; max-width: none; }
+  .cv-contact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px 14px;
+    font-size: 11px;
+  }
+  .cv-contact span { white-space: normal; }
+  .cv-history { margin: 0 12px 12px; }
+  .cv-history table { font-size: 11px; }
+  .cv-history th { font-size: 9px; }
+  .cv-itinerary-title { font-size: 12px; }
+  .cv-itinerary-places { font-size: 11px; }
+}
+
+@media print {
+  html, body, .cv-page { width: 210mm; }
+}
 `;
 
 function esc(value) {
@@ -461,6 +551,7 @@ function wrapBrandedDocument({ title, bodyHtml, brand, heroSrc, pills, stripItem
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 <title>${esc(title)}</title>
 <style>${BRANDED_DOC_CSS}</style>
 </head><body>

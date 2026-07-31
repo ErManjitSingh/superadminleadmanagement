@@ -41,6 +41,10 @@ const hotelAssignmentSchema = new mongoose.Schema(
     voucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
     /** Ops-entered vendor / hotel cost for this booking (not shown on client voucher) */
     amount: { type: Number, default: 0, min: 0 },
+    /** Advance paid toward this hotel stay (shown on hotel voucher) */
+    advancePaid: { type: Number, default: 0, min: 0 },
+    /** Remaining balance payable for this hotel stay (shown on hotel voucher) */
+    remainingBalance: { type: Number, default: 0, min: 0 },
     notes: String,
   },
   { _id: true }
