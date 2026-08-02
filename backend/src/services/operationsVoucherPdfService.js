@@ -157,12 +157,6 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
     doc.y = rowY + 44;
   }
 
-  if (voucher.vendorConfirmationUrl) {
-    doc.moveDown(1);
-    doc.fontSize(9).fillColor(TEXT_MUTED).font('Helvetica')
-      .text('Vendor confirmation link is included in the digital copy sent to partners.', 48, doc.y, { width: doc.page.width - 96 });
-  }
-
   doc.moveDown(2);
   doc.roundedRect(48, doc.y, doc.page.width - 96, 48, 8).fill('#f5f3ff');
   doc.fillColor(BRAND_PURPLE).fontSize(10).font('Helvetica-Bold')

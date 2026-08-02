@@ -686,7 +686,7 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
           ? `Days: ${payload.itinerary.length} (places listed in PDF)`
           : '',
         '',
-        'Please open the attached PDF for full day-wise itinerary and confirm via the link inside.',
+        'Please open the attached PDF for full day-wise itinerary and confirm with Accept / Reject buttons if needed.',
         '',
         `Team ${branding.brandName}`,
       ].filter(Boolean).join('\n')

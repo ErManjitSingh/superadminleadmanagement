@@ -253,7 +253,7 @@ html, body {
 .cv-history .amt { text-align: right; font-variant-numeric: tabular-nums; }
 .cv-vendor {
   margin: 0 16px 12px; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 10px;
+  padding: 10px 12px;
 }
 .cv-vendor h4 { font-size: 9px; color: #059669; font-weight: 800; margin-bottom: 4px; }
 .cv-vendor p { font-size: 7px; color: #64748b; line-height: 1.3; margin-bottom: 8px; }

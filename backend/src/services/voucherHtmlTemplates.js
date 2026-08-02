@@ -151,7 +151,7 @@ html, body {
 .emerg-row span:last-child { font-weight: 700; text-align: right; }
 .vendor {
   margin: 0 14px 10px; border: 1px solid #e2e8f0; border-radius: 10px;
-  padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: start;
+  padding: 10px 12px;
 }
 .vendor-left h4 { font-size: 9px; color: #059669; font-weight: 800; margin-bottom: 4px; }
 .vendor-left p { font-size: 7px; color: #64748b; line-height: 1.3; margin-bottom: 8px; }
@@ -317,10 +317,6 @@ function vendorBlockHtml(url) {
         <a class="btn o" href="${esc(url)}&amp;action=changes">Request Changes</a>
         <a class="btn r" href="${esc(url)}&amp;action=reject">Reject Booking</a>
       </div>
-    </div>
-    <div class="vendor-link">
-      <strong>Confirmation Link</strong>
-      <span>${esc(url)}</span>
     </div>
   </div>`;
 }
@@ -597,8 +593,7 @@ html, body {
 .emb-empty { font-size: 8px; color: #94a3b8; font-weight: 600; padding: 4px 2px; }
 .emb-vendor {
   margin: 0 16px 10px; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 10px;
-  position: relative; z-index: 1;
+  padding: 10px 12px; position: relative; z-index: 1;
 }
 .emb-vendor h4 { font-size: 9px; color: #059669; font-weight: 800; margin-bottom: 3px; }
 .emb-vendor p { font-size: 7px; color: #64748b; margin-bottom: 6px; }
@@ -740,7 +735,6 @@ async function buildCabVoucherHtml(voucher, booking) {
         <a class="emb-btn r" href="${escHtml(url)}&amp;action=reject">Reject Booking</a>
       </div>
     </div>
-    <div class="emb-vendor-link"><strong>Confirmation Link</strong><span>${escHtml(url)}</span></div>
   </div>` : '';
 
   const inclusions = [
@@ -967,7 +961,6 @@ async function buildHotelVoucherHtml(voucher, booking) {
           <a class="cv-btn r" href="${escHtml(url)}&amp;action=reject">Reject Booking</a>
         </div>
       </div>
-      <div class="cv-vendor-link"><strong>Confirmation Link</strong><span>${escHtml(url)}</span></div>
     </div>` : '';
 
   const stripItems = [
