@@ -74,6 +74,9 @@ export default function VoucherCard({ voucher, booking, onUpdated }) {
         ['Pickup', payload.pickupLocation],
         ['Drop', payload.dropLocation],
         ['Reporting', formatDate(payload.pickupDate)],
+        ['Cab Price', payload.amount != null ? `₹${payload.amount}` : null],
+        ['Advance Paid', payload.advancePaid != null ? `₹${payload.advancePaid}` : null],
+        ['Remaining', payload.remainingBalance != null ? `₹${payload.remainingBalance}` : null],
       ];
     }
     if (voucher.type === 'activity') {

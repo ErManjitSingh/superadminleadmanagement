@@ -675,7 +675,15 @@ export function BookingTransportEditor({
   };
 
   const addRow = () => {
-    onChange([...transport, { vehicleType: 'suv', pickupLocation: '', dropLocation: '', amount: 0, status: 'pending' }]);
+    onChange([...transport, {
+      vehicleType: 'suv',
+      pickupLocation: '',
+      dropLocation: '',
+      amount: 0,
+      advancePaid: 0,
+      remainingBalance: 0,
+      status: 'pending',
+    }]);
   };
 
   const remove = (i) => onChange(transport.filter((_, idx) => idx !== i));
@@ -838,15 +846,55 @@ export function BookingTransportEditor({
               <input value={t.vehicleNumber || ''} onChange={(e) => update(i, 'vehicleNumber', e.target.value)} placeholder="Vehicle number" className="input-premium h-10 rounded-xl text-sm" />
               <input value={t.pickupLocation || ''} onChange={(e) => update(i, 'pickupLocation', e.target.value)} placeholder="Pickup location" className="input-premium h-10 rounded-xl text-sm" />
               <input value={t.dropLocation || ''} onChange={(e) => update(i, 'dropLocation', e.target.value)} placeholder="Drop location" className="input-premium h-10 rounded-xl text-sm" />
-              <label className="block sm:col-span-2">
+              <label className="block">
                 <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Cab Price (₹)</span>
                 <input
                   type="number"
                   min="0"
                   step="1"
                   value={t.amount === 0 || t.amount ? t.amount : ''}
-                  onChange={(e) => update(i, 'amount', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const amount = e.target.value === '' ? 0 : Number(e.target.value) || 0;
+                    const advance = Number(t.advancePaid) || 0;
+                    onChange(transport.map((row, idx) => (
+                      idx === i
+                        ? { ...row, amount, remainingBalance: Math.max(0, amount - advance) }
+                        : row
+                    )));
+                  }}
                   placeholder="Vendor / cab cost for this booking"
+                  className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Advance Paid (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={t.advancePaid === 0 || t.advancePaid ? t.advancePaid : ''}
+                  onChange={(e) => {
+                    const advancePaid = e.target.value === '' ? 0 : Number(e.target.value) || 0;
+                    const amount = Number(t.amount) || 0;
+                    onChange(transport.map((row, idx) => (
+                      idx === i
+                        ? { ...row, advancePaid, remainingBalance: Math.max(0, amount - advancePaid) }
+                        : row
+                    )));
+                  }}
+                  placeholder="Advance de raha hai"
+                  className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-[11px] font-semibold text-content-muted uppercase tracking-wide">Remaining Balance (₹)</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={t.remainingBalance === 0 || t.remainingBalance ? t.remainingBalance : ''}
+                  onChange={(e) => update(i, 'remainingBalance', e.target.value === '' ? 0 : Number(e.target.value) || 0)}
+                  placeholder="Bacha hua amount"
                   className="input-premium h-10 rounded-xl text-sm mt-1 w-full"
                 />
               </label>

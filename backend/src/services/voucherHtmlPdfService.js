@@ -67,6 +67,11 @@ async function renderHtmlToPdfPage(page, html) {
 
   await Promise.race([
     page.evaluate(async () => {
+      try {
+        if (document.fonts?.ready) await document.fonts.ready;
+      } catch {
+        /* ignore */
+      }
       const imgs = Array.from(document.images);
       await Promise.all(imgs.map((img) => {
         if (img.complete) return Promise.resolve();

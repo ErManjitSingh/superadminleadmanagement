@@ -1,6 +1,6 @@
 const QRCode = require('qrcode');
 const branding = require('../config/branding');
-const { SCENIC_HERO, HOTEL_HERO, CAB_HERO, esc: shellEsc, svgIcon, brandedTile, brandedHelpBox, wrapBrandedDocument } = require('./brandedDocShell');
+const { SCENIC_HERO, HOTEL_HERO, esc: shellEsc, svgIcon, brandedTile, brandedHelpBox, wrapBrandedDocument } = require('./brandedDocShell');
 
 
 const DEFAULT_HOTEL_IMG = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80';
@@ -416,112 +416,499 @@ function cell(label, value) {
 
 const escHtml = (...args) => (typeof esc === 'function' ? esc(...args) : shellEsc(...args));
 
+const CAB_VOUCHER_CAR_IMG = 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=900&q=80';
+
+const CAB_BOOKING_VOUCHER_CSS = `
+@page { size: A4 portrait; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 210mm; margin: 0; padding: 0;
+  font-family: 'Poppins', 'Segoe UI', system-ui, Arial, sans-serif;
+  color: #1a2744; background: #fff;
+  -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+}
+.emb-page {
+  width: 210mm; min-height: 297mm; background: #fff; overflow: hidden;
+  display: flex; flex-direction: column; position: relative;
+}
+.emb-page::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.04;
+  background: radial-gradient(ellipse at 50% 28%, #94a3b8 0%, transparent 55%);
+}
+.emb-top {
+  display: grid; grid-template-columns: 1.15fr 1.2fr 1fr; gap: 10px;
+  padding: 14px 16px 8px; align-items: start; position: relative; z-index: 1;
+}
+.emb-logo-wrap { display: flex; align-items: center; gap: 10px; }
+.emb-logo {
+  width: 48px; height: 48px; border-radius: 50%; background: #0b1c36; color: #fff;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  font-weight: 800; font-size: 14px; flex-shrink: 0;
+}
+.emb-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.emb-brand-name {
+  font-size: 16px; font-weight: 800; color: #0b1c36; line-height: 1.15;
+  letter-spacing: 0.01em;
+}
+.emb-brand-tag { font-size: 8px; color: #64748b; margin-top: 2px; font-weight: 500; }
+.emb-title-wrap { text-align: center; padding-top: 4px; }
+.emb-title {
+  font-size: 20px; font-weight: 900; color: #0b1c36; letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+.emb-stars { color: #e8a017; font-size: 11px; letter-spacing: 3px; margin-top: 4px; }
+.emb-id-box {
+  background: #0b1c36; color: #fff; border-radius: 0 0 0 18px;
+  padding: 12px 14px; margin: -14px -16px 0 0; text-align: right;
+}
+.emb-id-box .lbl {
+  display: block; font-size: 7px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; opacity: 0.75; margin-bottom: 2px;
+}
+.emb-id-box .id {
+  font-size: 13px; font-weight: 800; color: #f0a020; line-height: 1.2;
+}
+.emb-id-box .date {
+  margin-top: 8px; font-size: 8px; font-weight: 600; opacity: 0.95;
+  display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+}
+.emb-hero-row {
+  display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 12px;
+  padding: 4px 16px 10px; align-items: center; position: relative; z-index: 1;
+}
+.emb-pill {
+  display: inline-block; background: #0b1c36; color: #fff;
+  font-size: 7px; font-weight: 800; letter-spacing: 0.08em;
+  padding: 3px 10px; border-radius: 999px; margin-bottom: 6px;
+}
+.emb-booked-by { font-size: 8px; line-height: 1.45; color: #334155; }
+.emb-booked-by strong { display: block; font-size: 11px; color: #0b1c36; margin-bottom: 3px; }
+.emb-car-wrap { text-align: center; }
+.emb-car {
+  width: 100%; max-width: 250px; height: 110px; object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.18));
+}
+.emb-thanks { text-align: right; }
+.emb-thanks-script {
+  font-family: 'Great Vibes', 'Segoe Script', 'Brush Script MT', cursive;
+  font-size: 28px; color: #1e3a8a; line-height: 1; margin-bottom: 4px;
+}
+.emb-thanks-text { font-size: 7.5px; color: #64748b; line-height: 1.4; margin-bottom: 8px; }
+.emb-safe-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px;
+  font-size: 7px; font-weight: 700; color: #0b1c36; background: #fff;
+}
+.emb-safe-badge span { color: #16a34a; font-size: 10px; }
+.emb-grid-3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  padding: 0 16px 10px; position: relative; z-index: 1;
+}
+.emb-card {
+  border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;
+  min-width: 0;
+}
+.emb-card-h {
+  background: #0b1c36; color: #fff; font-size: 9px; font-weight: 800;
+  letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 10px;
+}
+.emb-card-b { padding: 8px 10px; }
+.emb-row {
+  display: flex; gap: 8px; align-items: flex-start; padding: 5px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+.emb-row:last-child { border-bottom: none; }
+.emb-ico {
+  width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; background: #eff6ff; color: #1d4ed8;
+}
+.emb-ico.g { background: #ecfdf5; color: #059669; }
+.emb-ico.o { background: #fff7ed; color: #ea580c; }
+.emb-ico.p { background: #faf5ff; color: #7c3aed; }
+.emb-ico.r { background: #fef2f2; color: #dc2626; }
+.emb-row label {
+  display: block; font-size: 6.5px; color: #94a3b8; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
+.emb-row p {
+  font-size: 8.5px; font-weight: 700; color: #0b1c36; line-height: 1.25;
+  word-break: break-word;
+}
+.emb-vnum {
+  display: inline-block; background: #0b1c36; color: #fff;
+  font-size: 8px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.emb-fare-line {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 8px; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;
+}
+.emb-fare-line span:first-child { color: #64748b; font-weight: 600; }
+.emb-fare-line span:last-child { font-weight: 700; color: #0b1c36; }
+.emb-fare-total {
+  margin-top: 6px; background: #0b1c36; color: #fff; border-radius: 8px;
+  padding: 7px 9px; display: flex; justify-content: space-between; align-items: center;
+}
+.emb-fare-total label { font-size: 7px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.85; }
+.emb-fare-total p { font-size: 13px; font-weight: 900; }
+.emb-fare-adv, .emb-fare-bal {
+  margin-top: 5px; border-radius: 8px; padding: 6px 8px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.emb-fare-adv { background: #ecfdf5; }
+.emb-fare-adv label { font-size: 7px; font-weight: 700; color: #047857; }
+.emb-fare-adv p { font-size: 11px; font-weight: 900; color: #047857; }
+.emb-fare-bal { background: #fff7ed; }
+.emb-fare-bal label { font-size: 7px; font-weight: 700; color: #c2410c; }
+.emb-fare-bal p { font-size: 11px; font-weight: 900; color: #c2410c; }
+.emb-check {
+  display: flex; align-items: center; gap: 6px; font-size: 7.5px;
+  font-weight: 600; color: #334155; padding: 3px 0;
+}
+.emb-check i {
+  width: 12px; height: 12px; border-radius: 50%; background: #16a34a; color: #fff;
+  font-style: normal; font-size: 7px; font-weight: 900;
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.emb-terms { font-size: 7px; color: #475569; line-height: 1.4; padding-left: 10px; }
+.emb-terms li { margin: 3px 0; }
+.emb-itinerary {
+  margin: 0 16px 10px; border: 1px solid #e2e8f0; border-radius: 12px;
+  overflow: hidden; position: relative; z-index: 1;
+}
+.emb-itinerary-h {
+  background: #0b1c36; color: #fff; font-size: 9px; font-weight: 800;
+  letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 12px;
+}
+.emb-itinerary-b { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.emb-day {
+  display: grid; grid-template-columns: 52px 1fr; gap: 8px;
+  border: 1px solid #f1f5f9; border-radius: 8px; padding: 6px 8px; background: #fafafa;
+}
+.emb-day-num {
+  background: #fff7ed; color: #c2410c; border-radius: 6px;
+  font-size: 8px; font-weight: 900; text-align: center; padding: 6px 4px;
+  line-height: 1.25; align-self: start;
+}
+.emb-day-title { font-size: 9px; font-weight: 800; color: #0b1c36; }
+.emb-day-date { font-size: 7px; color: #94a3b8; font-weight: 600; margin-top: 1px; }
+.emb-day-places { font-size: 7.5px; color: #475569; margin-top: 3px; line-height: 1.35; }
+.emb-empty { font-size: 8px; color: #94a3b8; font-weight: 600; padding: 4px 2px; }
+.emb-vendor {
+  margin: 0 16px 10px; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 10px;
+  position: relative; z-index: 1;
+}
+.emb-vendor h4 { font-size: 9px; color: #059669; font-weight: 800; margin-bottom: 3px; }
+.emb-vendor p { font-size: 7px; color: #64748b; margin-bottom: 6px; }
+.emb-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+.emb-btn {
+  padding: 5px 10px; border-radius: 6px; color: #fff; font-size: 7px;
+  font-weight: 800; text-decoration: none; display: inline-block;
+}
+.emb-btn.g { background: #059669; }
+.emb-btn.o { background: #d97706; }
+.emb-btn.r { background: #dc2626; }
+.emb-vendor-link {
+  background: #f8fafc; border-radius: 8px; padding: 8px; max-width: 150px;
+}
+.emb-vendor-link strong { display: block; font-size: 7px; color: #0b1c36; margin-bottom: 3px; }
+.emb-vendor-link span { font-size: 5.5px; color: #475569; word-break: break-all; line-height: 1.3; }
+.emb-foot-row {
+  display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 10px;
+  padding: 4px 16px 10px; align-items: center; margin-top: auto;
+  position: relative; z-index: 1;
+}
+.emb-support {
+  background: #0b1c36; color: #fff; border-radius: 10px; padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.emb-support-ico {
+  width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+}
+.emb-support .lbl { font-size: 7px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.8; }
+.emb-support .num { font-size: 12px; font-weight: 900; margin-top: 2px; }
+.emb-wish {
+  text-align: center;
+  font-family: 'Great Vibes', 'Segoe Script', 'Brush Script MT', cursive;
+  font-size: 26px; color: #e08a10; line-height: 1.1;
+}
+.emb-sign-wrap { text-align: right; display: flex; gap: 10px; justify-content: flex-end; align-items: end; }
+.emb-sign { min-width: 110px; }
+.emb-sign-script {
+  font-family: 'Great Vibes', 'Segoe Script', cursive;
+  font-size: 18px; color: #1d4ed8; line-height: 1;
+}
+.emb-sign-line { border-top: 1px solid #94a3b8; margin-top: 2px; padding-top: 3px; }
+.emb-sign-line .n { font-size: 8px; font-weight: 800; color: #0b1c36; }
+.emb-sign-line .l { font-size: 6.5px; color: #64748b; }
+.emb-qr {
+  width: 58px; text-align: center;
+}
+.emb-qr img { width: 52px; height: 52px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #fff; }
+.emb-qr span { display: block; font-size: 5.5px; color: #64748b; margin-top: 2px; font-weight: 600; }
+.emb-bottom-bar {
+  background: #0b1c36; color: #fff; padding: 8px 16px;
+  display: flex; justify-content: space-between; gap: 10px; align-items: center;
+  font-size: 7px; font-weight: 600; position: relative; z-index: 1;
+}
+.emb-bottom-bar span { opacity: 0.95; }
+`;
+
+function embRow(icoClass, icon, label, value, valueHtml = null) {
+  return `<div class="emb-row">
+    <div class="emb-ico ${icoClass || ''}">${icon}</div>
+    <div>
+      <label>${escHtml(label)}</label>
+      ${valueHtml != null ? valueHtml : `<p>${escHtml(value || '-')}</p>`}
+    </div>
+  </div>`;
+}
+
 async function buildCabVoucherHtml(voucher, booking) {
   const brand = await resolveBrand(booking);
-  const p = voucher.payload || booking.transport?.[0] || {};
+  const transportIndex = Number(voucher.assignmentIndex ?? 0);
+  const p = voucher.payload || booking.transport?.[transportIndex] || booking.transport?.[0] || {};
   const url = vendorUrl(voucher);
-  const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Child`;
+  const adults = Number(booking.adults || 0);
+  const children = Number(booking.children || 0);
+  const guests = [
+    adults ? `${adults} Adult${adults > 1 ? 's' : ''}` : '',
+    children ? `${children} Child${children > 1 ? 'ren' : ''}` : '',
+  ].filter(Boolean).join(', ') || '—';
   const showGuestPhone = voucher?.payload?.showGuestPhone !== false && booking?.showGuestPhone !== false;
-  const customerPhone = showGuestPhone ? (booking.customerPhone || booking.phone || '-') : '';
+  const customerPhone = showGuestPhone ? (booking.customerPhone || booking.phone || '-') : 'Hidden';
   const itineraryRows = resolveCabItinerary(booking, p);
+  const fmtMoney = (n) => new Intl.NumberFormat('en-IN', {
+    style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+  }).format(Number(n) || 0);
+  const cabAmount = Number(p.amount || 0);
+  const advancePaid = Number(p.advancePaid || 0);
+  const remainingBalance = p.remainingBalance != null && p.remainingBalance !== ''
+    ? Number(p.remainingBalance)
+    : Math.max(0, cabAmount - advancePaid);
 
-  const detailTiles = [
-    brandedTile('car', 'Vehicle Type', vehicleLabel(p.vehicleType)),
-    brandedTile('car', 'Vehicle', vehicleDisplayName(p)),
-    brandedTile('ticket', 'Vehicle Reg. No.', p.vehicleNumber || p.vehicleName || '-'),
-    brandedTile('user', 'Driver Name', p.driverName || '-'),
-    brandedTile('phone', 'Driver Phone', p.driverPhone || '-'),
-    brandedTile('users', 'Vendor', p.vendorName || '-'),
-    brandedTile('map', 'Pickup Location', p.pickupLocation || booking.pickup || booking.destination || '-'),
-    brandedTile('calendar', 'Pickup Date & Time', fmtDateTime(p.pickupDate || booking.travelDate, p.pickupTime || p.reportingTime || '09:00 AM')),
-    brandedTile('map', 'Drop Location', p.dropLocation || booking.drop || booking.destination || '-'),
-    brandedTile('calendar', 'Drop Date & Time', fmtDateTime(p.dropDate || booking.returnDate || booking.travelDate, p.dropTime)),
-    brandedTile('clock', 'Reporting Time', p.reportingTime || '09:00 AM'),
-    brandedTile('info', 'Trip Type', tripTypeLabel(p)),
-  ].join('');
+  const brandName = brand?.name || branding.brandName || 'Explore My Bharat';
+  const tagline = brand?.tagline || 'Discover Incredible India';
+  const phone = brand?.phone || branding.supportPhone || '-';
+  const email = brand?.email || branding.salesEmail || '-';
+  const site = (brand?.website || branding.websiteUrl || '')
+    .replace(/^https?:\/\//, '')
+    .replace(/\/$/, '') || '-';
+  const address = brand?.address || [brand?.city, brand?.state].filter(Boolean).join(', ') || 'India';
+  const logoHtml = brand?.logoSrc
+    ? `<div class="emb-logo"><img src="${escHtml(brand.logoSrc)}" alt="${escHtml(brandName)}"/></div>`
+    : `<div class="emb-logo">${escHtml((brand?.initials || brandName).toString().slice(0, 3).toUpperCase())}</div>`;
 
-  const notes = [
-    'This voucher is for the cab driver / vendor — follow pickup, drop and day-wise sightseeing only.',
-    'Report at pickup point on time with name placard for the guest.',
-    'Cover sightseeing places as listed in the itinerary below (unless operations advise otherwise).',
-    'Vehicle is for the mentioned guest & travel dates only.',
-    'Inform operations immediately for any delay, breakdown or route change.',
-    'Toll, parking & night charges as per actual unless included in package.',
-  ];
+  const bookingId = voucher.voucherNumber || booking.bookingNumber || '-';
+  const bookingDate = fmtIssued(voucher.createdAt || voucher.issuedAt || booking.createdAt);
+  const pickupLoc = p.pickupLocation || booking.pickup || booking.destination || '-';
+  const dropLoc = p.dropLocation || booking.drop || booking.destination || '-';
+  const pickupWhen = fmtDateTime(p.pickupDate || booking.travelDate, p.pickupTime || p.reportingTime || '09:00 AM');
+  const vehicleName = vehicleDisplayName(p);
+  const vehicleType = vehicleLabel(p.vehicleType);
+  const vehicleNo = p.vehicleNumber || p.vehicleName || '-';
+  const distance = p.totalDistance || p.distance || booking.distance || '';
+  const duration = p.estimatedDuration || p.duration || '';
+  const specialNotes = p.notes || p.specialNotes || booking.specialRequests || 'Follow itinerary as shared by operations.';
+  const qrTarget = url || brand?.website || branding.websiteUrl || '';
+  const qrSrc = await qrDataUrl(qrTarget);
 
   const itineraryHtml = itineraryRows.length
-    ? `<div class="cv-itinerary-list">${itineraryRows.map((d) => `
-        <div class="cv-itinerary-day">
-          <div class="cv-itinerary-head">
-            <span class="cv-itinerary-num">Day ${escHtml(d.day)}</span>
-            ${d.date ? `<span class="cv-itinerary-date">${fmtDate(d.date)}</span>` : ''}
-          </div>
-          <div class="cv-itinerary-title">${escHtml(d.title)}</div>
-          ${d.places ? `<div class="cv-itinerary-places"><strong>Places:</strong> ${escHtml(d.places)}</div>` : ''}
-        </div>`).join('')}</div>`
-    : `<div class="cv-footnote">${svgIcon('info')}<span>Itinerary will be shared by operations if not listed here.</span></div>`;
+    ? itineraryRows.map((d) => `
+      <div class="emb-day">
+        <div class="emb-day-num">Day ${escHtml(d.day)}</div>
+        <div>
+          <div class="emb-day-title">${escHtml(d.title)}</div>
+          ${d.date ? `<div class="emb-day-date">${fmtDate(d.date)}</div>` : ''}
+          ${d.places ? `<div class="emb-day-places"><strong>Places:</strong> ${escHtml(d.places)}</div>` : ''}
+          ${d.transport ? `<div class="emb-day-places"><strong>Route:</strong> ${escHtml(d.transport)}</div>` : ''}
+        </div>
+      </div>`).join('')
+    : `<div class="emb-empty">Day-wise itinerary will be shared by operations if not listed here. Follow pickup &amp; drop as mentioned above.</div>`;
 
   const vendorBlock = url ? `
-    <div class="cv-vendor">
-      <div>
-        <h4>VENDOR CONFIRMATION</h4>
-        <p>Please confirm your acceptance by clicking below.</p>
-        <div class="cv-btns">
-          <a class="cv-btn g" href="${escHtml(url)}&amp;action=accept">Accept Booking</a>
-          <a class="cv-btn o" href="${escHtml(url)}&amp;action=changes">Request Changes</a>
-          <a class="cv-btn r" href="${escHtml(url)}&amp;action=reject">Reject Booking</a>
-        </div>
+  <div class="emb-vendor">
+    <div>
+      <h4>VENDOR CONFIRMATION</h4>
+      <p>Please confirm your acceptance by clicking below.</p>
+      <div class="emb-btns">
+        <a class="emb-btn g" href="${escHtml(url)}&amp;action=accept">Accept Booking</a>
+        <a class="emb-btn o" href="${escHtml(url)}&amp;action=changes">Request Changes</a>
+        <a class="emb-btn r" href="${escHtml(url)}&amp;action=reject">Reject Booking</a>
       </div>
-      <div class="cv-vendor-link"><strong>Confirmation Link</strong><span>${escHtml(url)}</span></div>
-    </div>` : '';
+    </div>
+    <div class="emb-vendor-link"><strong>Confirmation Link</strong><span>${escHtml(url)}</span></div>
+  </div>` : '';
 
-  const stripItems = [
-    { icon: 'user', label: 'Guest Name', value: booking.customerName },
-    ...(showGuestPhone ? [{ icon: 'phone', label: 'Guest Phone', value: customerPhone }] : []),
-    { icon: 'map', label: 'Destination', value: booking.destination },
-    { icon: 'calendar', label: 'Travel Date', value: fmtDate(booking.travelDate) },
-    { icon: 'users', label: 'Travelers', value: guests },
+  const inclusions = [
+    'Fuel Charges',
+    'Driver Allowance',
+    'Toll Tax & Parking (as per package)',
+    'State Permit (if included)',
+    'All Applicable Taxes (as per package)',
   ];
 
-  const bodyHtml = `
-  <div class="cv-body stack-gap">
-    <div class="cv-panel">
-      <div class="cv-panel-title">${svgIcon('car')} Pickup · Drop · Vehicle</div>
-      <div class="cv-grid">${detailTiles}</div>
-    </div>
-    <div class="cv-panel">
-      <div class="cv-panel-title">${svgIcon('calendar')} Day-wise Itinerary</div>
-      ${itineraryHtml}
-    </div>
-    <div class="cv-body" style="padding:0;gap:12px">
-      <div class="cv-panel">
-        <div class="cv-panel-title">${svgIcon('info')} Important Notes for Driver</div>
-        <div class="cv-note-list">${notes.map((n) => `<div class="cv-note-item">${escHtml(n)}</div>`).join('')}</div>
+  const terms = [
+    'Vehicle is for the mentioned guest & travel dates only.',
+    'Waiting charges apply after free waiting time.',
+    'Night charges may apply as per company policy.',
+    'This is a computer-generated voucher and does not require a physical signature.',
+  ];
+
+  return `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Cab Booking Voucher — ${escHtml(brandName)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>${CAB_BOOKING_VOUCHER_CSS}</style>
+</head><body>
+<div class="emb-page">
+  <div class="emb-top">
+    <div class="emb-logo-wrap">
+      ${logoHtml}
+      <div>
+        <div class="emb-brand-name">${escHtml(brandName)}</div>
+        <div class="emb-brand-tag">${escHtml(tagline)}</div>
       </div>
-      ${brandedHelpBox([
-        [`Sales Executive${booking.executiveName ? ` (${booking.executiveName})` : ''}`, booking.executivePhone || brand.phone || '-'],
-        [`${brand.name || 'Company'} Support`, brand.phone || '-'],
-        ['Operations Manager', p.opsPhone || '-'],
-        [`Driver (${p.driverName || 'Assigned'})`, p.driverPhone || '-'],
-      ])}
+    </div>
+    <div class="emb-title-wrap">
+      <div class="emb-title">CAB BOOKING VOUCHER</div>
+      <div class="emb-stars">★★★★★</div>
+    </div>
+    <div class="emb-id-box">
+      <span class="lbl">Booking ID</span>
+      <div class="id">${escHtml(bookingId)}</div>
+      <div class="date">📅 ${escHtml(bookingDate)}</div>
     </div>
   </div>
-  ${vendorBlock}`;
 
-  return wrapBrandedDocument({
-    title: 'CAB DRIVER VOUCHER / ITINERARY',
-    brand,
-    heroSrc: CAB_HERO,
-    pills: [
-      { icon: 'ticket', text: `Voucher ID: ${voucher.voucherNumber}` },
-      { icon: 'calendar', text: `Booking ID: ${booking.bookingNumber}` },
-      { icon: 'clock', text: `Issued On: ${fmtIssued(voucher.createdAt || voucher.issuedAt)}` },
-    ],
-    stripItems,
-    stripCols: stripItems.length >= 5 ? 5 : 4,
-    bodyHtml,
-    thanksText: 'Present this cab voucher at pickup. Follow the itinerary and contact operations for any route changes.',
-  });
+  <div class="emb-hero-row">
+    <div>
+      <span class="emb-pill">BOOKED BY</span>
+      <div class="emb-booked-by">
+        <strong>${escHtml(brandName)}</strong>
+        ${escHtml(address)}<br/>
+        📞 ${escHtml(phone)} · ✉️ ${escHtml(email)}<br/>
+        🌐 ${escHtml(site)}
+      </div>
+    </div>
+    <div class="emb-car-wrap">
+      <img class="emb-car" src="${CAB_VOUCHER_CAR_IMG}" alt="Cab"/>
+    </div>
+    <div class="emb-thanks">
+      <div class="emb-thanks-script">Thank You!</div>
+      <div class="emb-thanks-text">Thank you for choosing ${escHtml(brandName)}. We are delighted to serve you and wish you a comfortable journey.</div>
+      <div class="emb-safe-badge"><span>🛡</span> Safe Journey, Happy Journey</div>
+    </div>
+  </div>
+
+  <div class="emb-grid-3">
+    <div class="emb-card">
+      <div class="emb-card-h">Journey Details</div>
+      <div class="emb-card-b">
+        ${embRow('o', '📅', 'Pickup Date & Time', pickupWhen)}
+        ${embRow('', '📍', 'Pickup Location', pickupLoc)}
+        ${embRow('r', '🏁', 'Drop Location', dropLoc)}
+        ${embRow('g', '🛣', 'Total Distance', distance ? String(distance) : 'As per itinerary')}
+        ${embRow('p', '⏱', 'Estimated Duration', duration ? String(duration) : 'As per route')}
+      </div>
+    </div>
+    <div class="emb-card">
+      <div class="emb-card-h">Vehicle Details</div>
+      <div class="emb-card-b">
+        ${embRow('', '🚗', 'Vehicle Details', vehicleName)}
+        ${embRow('o', '🚙', 'Vehicle Type', vehicleType)}
+        ${embRow('p', '🔢', 'Vehicle Number', null, `<p><span class="emb-vnum">${escHtml(vehicleNo)}</span></p>`)}
+        ${embRow('g', '👤', 'Driver Name', p.driverName || 'To be assigned')}
+        ${embRow('', '📞', 'Driver Contact', p.driverPhone || p.vendorPhone || '-')}
+      </div>
+    </div>
+    <div class="emb-card">
+      <div class="emb-card-h">Passenger Details</div>
+      <div class="emb-card-b">
+        ${embRow('p', '👥', 'Total Passengers', guests)}
+        ${embRow('', '👤', 'Lead Passenger Name', booking.customerName || '-')}
+        ${embRow('g', '📞', 'Contact Number', customerPhone)}
+        ${embRow('o', '⭐', 'Special Notes', specialNotes)}
+      </div>
+    </div>
+  </div>
+
+  <div class="emb-grid-3">
+    <div class="emb-card">
+      <div class="emb-card-h">Fare Details</div>
+      <div class="emb-card-b">
+        <div class="emb-fare-line"><span>Base Fare / Cab Price</span><span>${escHtml(fmtMoney(cabAmount))}</span></div>
+        <div class="emb-fare-line"><span>Toll / Parking</span><span>As actual</span></div>
+        <div class="emb-fare-line"><span>Driver Allowance</span><span>As per package</span></div>
+        <div class="emb-fare-total">
+          <label>TOTAL AMOUNT</label>
+          <p>${escHtml(fmtMoney(cabAmount))}</p>
+        </div>
+        <div class="emb-fare-adv">
+          <label>ADVANCE PAID</label>
+          <p>${escHtml(fmtMoney(advancePaid))}</p>
+        </div>
+        <div class="emb-fare-bal">
+          <label>BALANCE / PENDING</label>
+          <p>${escHtml(fmtMoney(remainingBalance))}</p>
+        </div>
+      </div>
+    </div>
+    <div class="emb-card">
+      <div class="emb-card-h">Inclusions</div>
+      <div class="emb-card-b">
+        ${inclusions.map((item) => `<div class="emb-check"><i>✓</i>${escHtml(item)}</div>`).join('')}
+      </div>
+    </div>
+    <div class="emb-card">
+      <div class="emb-card-h">Terms &amp; Conditions</div>
+      <div class="emb-card-b">
+        <ul class="emb-terms">${terms.map((t) => `<li>${escHtml(t)}</li>`).join('')}</ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="emb-itinerary">
+    <div class="emb-itinerary-h">Day-wise Itinerary</div>
+    <div class="emb-itinerary-b">${itineraryHtml}</div>
+  </div>
+
+  ${vendorBlock}
+
+  <div class="emb-foot-row">
+    <div class="emb-support">
+      <div class="emb-support-ico">🎧</div>
+      <div>
+        <div class="lbl">24/7 SUPPORT</div>
+        <div class="num">${escHtml(phone)}</div>
+      </div>
+    </div>
+    <div class="emb-wish">Have a Wonderful Trip!</div>
+    <div class="emb-sign-wrap">
+      <div class="emb-sign">
+        <div class="emb-sign-script">${escHtml(brandName.split(' ').slice(0, 2).join(' '))}</div>
+        <div class="emb-sign-line">
+          <div class="n">${escHtml(brandName)}</div>
+          <div class="l">Authorised Signatory</div>
+        </div>
+      </div>
+      ${qrSrc ? `<div class="emb-qr"><img src="${qrSrc}" alt="QR"/><span>Scan for Support</span></div>` : ''}
+    </div>
+  </div>
+
+  <div class="emb-bottom-bar">
+    <span>🌐 ${escHtml(site)} &nbsp;|&nbsp; ✉️ ${escHtml(email)} &nbsp;|&nbsp; 📞 ${escHtml(phone)}</span>
+    <span>Thank you for travelling with ${escHtml(brandName)}!</span>
+  </div>
+</div>
+</body></html>`;
 }
 
 async function buildHotelVoucherHtml(voucher, booking) {

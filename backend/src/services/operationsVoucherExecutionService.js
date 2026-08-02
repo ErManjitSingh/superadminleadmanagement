@@ -152,6 +152,10 @@ function extractPayload(booking, type, index = 0) {
       tripType: t.tripType || 'Sightseeing with private cab',
       vehicleCount: t.vehicleCount || 1,
       amount: t.amount || 0,
+      advancePaid: t.advancePaid || 0,
+      remainingBalance: t.remainingBalance != null
+        ? t.remainingBalance
+        : Math.max(0, Number(t.amount || 0) - Number(t.advancePaid || 0)),
       status: t.status || 'pending',
       itinerary,
     };

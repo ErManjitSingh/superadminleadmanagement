@@ -25,6 +25,8 @@ const FIELD_SETS = {
     { key: 'dropLocation', label: 'Drop' },
     { key: 'vehicleNumber', label: 'Vehicle Number' },
     { key: 'amount', label: 'Cab Price (₹)', type: 'number' },
+    { key: 'advancePaid', label: 'Advance Paid (₹)', type: 'number' },
+    { key: 'remainingBalance', label: 'Remaining Balance (₹)', type: 'number' },
   ],
   client: [
     { key: 'packageName', label: 'Package Name' },
@@ -39,6 +41,24 @@ function toMoneyInput(value) {
   return Number.isFinite(n) ? String(n) : '';
 }
 
+function resolveMoneyFields(payload = {}, assignment = {}) {
+  const amount = payload.amount ?? assignment.amount ?? '';
+  const advancePaid = payload.advancePaid ?? assignment.advancePaid ?? '';
+  let remainingBalance = payload.remainingBalance ?? assignment.remainingBalance ?? '';
+  if (
+    (remainingBalance === '' || remainingBalance == null)
+    && amount !== '' && amount != null
+    && advancePaid !== '' && advancePaid != null
+  ) {
+    remainingBalance = Math.max(0, Number(amount) - Number(advancePaid));
+  }
+  return {
+    amount: toMoneyInput(amount),
+    advancePaid: toMoneyInput(advancePaid),
+    remainingBalance: toMoneyInput(remainingBalance),
+  };
+}
+
 export default function VoucherEditModal({
   open,
   onClose,
@@ -50,6 +70,7 @@ export default function VoucherEditModal({
   const fields = FIELD_SETS[type] || FIELD_SETS.transport;
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  const supportsPayment = type === 'hotel' || type === 'transport';
 
   useEffect(() => {
     if (!open) return;
@@ -60,27 +81,13 @@ export default function VoucherEditModal({
     });
     if (type === 'hotel') {
       const idx = Number(voucher?.assignmentIndex ?? 0);
-      const hotel = booking?.hotels?.[idx] || {};
-      const amount = p.amount ?? hotel.amount ?? '';
-      const advancePaid = p.advancePaid ?? hotel.advancePaid ?? '';
-      let remainingBalance = p.remainingBalance ?? hotel.remainingBalance ?? '';
-      if (
-        (remainingBalance === '' || remainingBalance == null)
-        && amount !== '' && amount != null
-        && advancePaid !== '' && advancePaid != null
-      ) {
-        remainingBalance = Math.max(0, Number(amount) - Number(advancePaid));
-      }
-      next.amount = toMoneyInput(amount);
-      next.advancePaid = toMoneyInput(advancePaid);
-      next.remainingBalance = toMoneyInput(remainingBalance);
+      Object.assign(next, resolveMoneyFields(p, booking?.hotels?.[idx] || {}));
     }
     if (type === 'transport') {
       next.pickupLocation = p.pickupLocation || booking?.pickup || '';
       next.dropLocation = p.dropLocation || booking?.drop || '';
       const idx = Number(voucher?.assignmentIndex ?? 0);
-      const fromBooking = booking?.transport?.[idx]?.amount;
-      next.amount = toMoneyInput(p.amount ?? fromBooking ?? '');
+      Object.assign(next, resolveMoneyFields(p, booking?.transport?.[idx] || {}));
     }
     if (type === 'client') {
       next.pickup = p.pickup || booking?.pickup || '';
@@ -93,7 +100,7 @@ export default function VoucherEditModal({
   const updateField = (key, value) => {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      if (type === 'hotel' && (key === 'amount' || key === 'advancePaid')) {
+      if (supportsPayment && (key === 'amount' || key === 'advancePaid')) {
         const amount = Number(key === 'amount' ? value : next.amount);
         const advance = Number(key === 'advancePaid' ? value : next.advancePaid);
         if (Number.isFinite(amount) && Number.isFinite(advance) && value !== '') {
@@ -114,8 +121,8 @@ export default function VoucherEditModal({
       const remainingNum = parseMoney(form.remainingBalance);
       const moneyPayload = {
         ...(amountNum != null && Number.isFinite(amountNum) ? { amount: amountNum } : {}),
-        ...(type === 'hotel' && advanceNum != null && Number.isFinite(advanceNum) ? { advancePaid: advanceNum } : {}),
-        ...(type === 'hotel' && remainingNum != null && Number.isFinite(remainingNum) ? { remainingBalance: remainingNum } : {}),
+        ...(supportsPayment && advanceNum != null && Number.isFinite(advanceNum) ? { advancePaid: advanceNum } : {}),
+        ...(supportsPayment && remainingNum != null && Number.isFinite(remainingNum) ? { remainingBalance: remainingNum } : {}),
       };
       await API.put(`/operations-manager/vouchers/${voucher._id}`, {
         payload: { ...(voucher.payload || {}), ...form, ...moneyPayload },
@@ -124,21 +131,21 @@ export default function VoucherEditModal({
       // Keep booking assignment money fields in sync when ops edits from voucher
       if (booking?._id) {
         const idx = Number(voucher.assignmentIndex ?? 0);
+        const moneyPatch = {
+          ...(amountNum != null && Number.isFinite(amountNum) ? { amount: amountNum } : {}),
+          ...(advanceNum != null && Number.isFinite(advanceNum) ? { advancePaid: advanceNum } : {}),
+          ...(remainingNum != null && Number.isFinite(remainingNum) ? { remainingBalance: remainingNum } : {}),
+        };
         if (type === 'hotel' && Array.isArray(booking.hotels)) {
           const hotels = booking.hotels.map((h, i) => (
-            i === idx
-              ? {
-                ...h,
-                ...(amountNum != null && Number.isFinite(amountNum) ? { amount: amountNum } : {}),
-                ...(advanceNum != null && Number.isFinite(advanceNum) ? { advancePaid: advanceNum } : {}),
-                ...(remainingNum != null && Number.isFinite(remainingNum) ? { remainingBalance: remainingNum } : {}),
-              }
-              : h
+            i === idx ? { ...h, ...moneyPatch } : h
           ));
           await API.put(`/operations-manager/bookings/${booking._id}`, { hotels }, { skipSuccessToast: true }).catch(() => null);
         }
-        if (type === 'transport' && amountNum != null && Number.isFinite(amountNum) && Array.isArray(booking.transport)) {
-          const transport = booking.transport.map((t, i) => (i === idx ? { ...t, amount: amountNum } : t));
+        if (type === 'transport' && Object.keys(moneyPatch).length && Array.isArray(booking.transport)) {
+          const transport = booking.transport.map((t, i) => (
+            i === idx ? { ...t, ...moneyPatch } : t
+          ));
           await API.put(`/operations-manager/bookings/${booking._id}`, { transport }, { skipSuccessToast: true }).catch(() => null);
         }
       }
@@ -183,7 +190,7 @@ export default function VoucherEditModal({
               />
             </label>
           ))}
-          {type === 'hotel' && (
+          {supportsPayment && (
             <p className="text-[11px] text-content-muted">
               Advance aur remaining balance voucher PDF pe dikhenge. Remaining amount/advance se auto calculate hota hai — zarurat ho to manually bhi edit kar sakte ho.
             </p>

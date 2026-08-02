@@ -73,6 +73,10 @@ const transportAssignmentSchema = new mongoose.Schema(
     voucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Voucher' },
     /** Ops-entered cab / vendor cost for this booking (not shown on client voucher) */
     amount: { type: Number, default: 0, min: 0 },
+    /** Advance paid toward this cab booking (shown on cab voucher) */
+    advancePaid: { type: Number, default: 0, min: 0 },
+    /** Remaining balance payable for this cab booking (shown on cab voucher) */
+    remainingBalance: { type: Number, default: 0, min: 0 },
     notes: String,
   },
   { _id: true }
