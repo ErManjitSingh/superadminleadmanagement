@@ -561,7 +561,7 @@ async function sendVoucherEmail(voucherId, actor, { to, showGuestPhone = true } 
        <p><strong>Guest:</strong> ${booking.customerName}<br/>
        <strong>Destination:</strong> ${booking.destination}<br/>
        <strong>Travel Date:</strong> ${new Date(booking.travelDate).toLocaleDateString('en-IN')}</p>
-       <p>Kindly confirm via the vendor link in the voucher.</p>
+       <p>Kindly confirm using the Accept / Reject buttons in the voucher PDF.</p>
        <p>Team ${branding.brandName}</p>`
     : `<p>Hello ${booking.customerName},</p>
        <p>Your travel voucher is attached.</p>
