@@ -1038,14 +1038,24 @@ async function buildClientVoucherHtml(voucher, booking) {
   const hotels = Array.isArray(p.hotels) ? p.hotels : (booking.hotels || []);
   const transport = Array.isArray(p.transport) ? p.transport : (booking.transport || []);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
-  const total = Number(booking.totalAmount || p.totalAmount || 0);
+  const total = Number(p.amount ?? p.totalAmount ?? booking.totalAmount ?? 0);
+  const advancePaid = Number(p.advancePaid ?? booking.advanceReceived ?? booking.totalPaid ?? 0);
+  const remainingBalance = p.remainingBalance != null && p.remainingBalance !== ''
+    ? Number(p.remainingBalance)
+    : (booking.remainingBalance != null && booking.remainingBalance !== ''
+      ? Number(booking.remainingBalance)
+      : (booking.pendingAmount != null && booking.pendingAmount !== ''
+        ? Number(booking.pendingAmount)
+        : Math.max(0, total - advancePaid)));
+  const showPayment = total > 0 || advancePaid > 0 || remainingBalance > 0;
   const fmtMoney = (n) => new Intl.NumberFormat('en-IN', {
     style: 'currency', currency: 'INR', maximumFractionDigits: 0,
   }).format(Number(n) || 0);
-  const pickup = booking.pickup || transport[0]?.pickupLocation || '-';
-  const drop = booking.drop || transport[0]?.dropLocation || '-';
+  const pickup = p.pickup || booking.pickup || transport[0]?.pickupLocation || '-';
+  const drop = p.drop || booking.drop || transport[0]?.dropLocation || '-';
   const execPhone = booking.executivePhone || brand.phone || '-';
   const supportPhone = brand.phone || branding.supportPhone || execPhone || '-';
+  const itineraryRows = resolveCabItinerary(booking, p);
 
   const bookingTiles = [];
   if (hotels.length) {
@@ -1069,14 +1079,35 @@ async function buildClientVoucherHtml(voucher, booking) {
   bookingTiles.push(brandedTile('calendar', 'Travel Dates', `${fmtDate(booking.travelDate)} – ${fmtDate(booking.returnDate)}`));
   bookingTiles.push(brandedTile('users', 'Adults', guests));
 
+  const paymentBanner = showPayment ? `
+  <div class="cv-amount-banner">
+    <div class="cv-amount-card package"><label>Total Package Cost</label><p>${escHtml(fmtMoney(total))}</p></div>
+    <div class="cv-amount-card advance"><label>Advance Paid</label><p>${escHtml(fmtMoney(advancePaid))}</p></div>
+    <div class="cv-amount-card remaining"><label>Remaining / Pending</label><p>${escHtml(fmtMoney(remainingBalance))}</p></div>
+  </div>` : '';
+
+  const itineraryHtml = itineraryRows.length
+    ? `<div class="cv-itinerary-list">${itineraryRows.map((d) => `
+        <div class="cv-itinerary-day">
+          <div class="cv-itinerary-head">
+            <span class="cv-itinerary-num">Day ${escHtml(d.day)}</span>
+            ${d.date ? `<span class="cv-itinerary-date">${fmtDate(d.date)}</span>` : ''}
+          </div>
+          <div class="cv-itinerary-title">${escHtml(d.title)}</div>
+          ${d.places ? `<div class="cv-itinerary-places"><strong>Places:</strong> ${escHtml(d.places)}</div>` : ''}
+          ${d.transport ? `<div class="cv-itinerary-places"><strong>Cab / Route:</strong> ${escHtml(d.transport)}</div>` : ''}
+        </div>`).join('')}</div>`
+    : `<div class="cv-footnote">${svgIcon('info')}<span>Day-wise itinerary will be shared by your travel executive if not listed here.</span></div>`;
+
   const bodyHtml = `
+  ${paymentBanner}
   <div class="cv-body">
     <div class="cv-panel">
       <div class="cv-panel-title">${svgIcon('check')} Your Confirmed Bookings</div>
       <div class="cv-grid">${bookingTiles.join('')}</div>
       <div class="cv-footnote">
         ${svgIcon('info')}
-        <span>Your hotel and cab are booked with us. Detailed day-wise itinerary is available with your travel executive / operations team.</span>
+        <span>Your hotel and cab are booked with us. Follow the day-wise itinerary below for cab / sightseeing plan.</span>
       </div>
     </div>
     <div>
@@ -1086,15 +1117,25 @@ async function buildClientVoucherHtml(voucher, booking) {
           <label>Total Package Cost</label>
           <div class="cv-amount-value">${escHtml(fmtMoney(total))}</div>
         </div>
-        <div class="cv-disclaimer">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div class="cv-amount-card advance" style="padding:8px"><label>Advance Paid</label><p style="font-size:12px">${escHtml(fmtMoney(advancePaid))}</p></div>
+          <div class="cv-amount-card remaining" style="padding:8px"><label>Remaining / Pending</label><p style="font-size:12px">${escHtml(fmtMoney(remainingBalance))}</p></div>
+        </div>
+        <div class="cv-disclaimer" style="margin-top:8px">
           ${svgIcon('info')}
-          <span>Individual hotel / cab vendor rates are not shown. Only your total package price is listed.</span>
+          <span>Individual hotel / cab vendor rates are not shown. Only your package total, advance and pending balance are listed.</span>
         </div>
       </div>
       ${brandedHelpBox([
         ['Sales Executive', execPhone],
         ['Support', supportPhone],
       ])}
+    </div>
+  </div>
+  <div class="cv-body stack" style="padding-top:0">
+    <div class="cv-panel">
+      <div class="cv-panel-title">${svgIcon('calendar')} Day-wise Itinerary (Cab / Sightseeing)</div>
+      ${itineraryHtml}
     </div>
   </div>`;
 

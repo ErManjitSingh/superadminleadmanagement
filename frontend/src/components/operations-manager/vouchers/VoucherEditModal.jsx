@@ -13,9 +13,9 @@ const FIELD_SETS = {
     { key: 'mealPlan', label: 'Meal Plan' },
     { key: 'address', label: 'Address' },
     { key: 'hotelPhone', label: 'Hotel Phone' },
-    { key: 'amount', label: 'Hotel Price (₹)', type: 'number' },
+    { key: 'amount', label: 'Hotel Price / Total Cost (₹)', type: 'number' },
     { key: 'advancePaid', label: 'Advance Paid (₹)', type: 'number' },
-    { key: 'remainingBalance', label: 'Remaining Balance (₹)', type: 'number' },
+    { key: 'remainingBalance', label: 'Remaining / Pending (₹)', type: 'number' },
   ],
   transport: [
     { key: 'vehicleDisplayName', label: 'Vehicle' },
@@ -24,14 +24,17 @@ const FIELD_SETS = {
     { key: 'pickupLocation', label: 'Pickup' },
     { key: 'dropLocation', label: 'Drop' },
     { key: 'vehicleNumber', label: 'Vehicle Number' },
-    { key: 'amount', label: 'Cab Price (₹)', type: 'number' },
+    { key: 'amount', label: 'Cab Price / Total Cost (₹)', type: 'number' },
     { key: 'advancePaid', label: 'Advance Paid (₹)', type: 'number' },
-    { key: 'remainingBalance', label: 'Remaining Balance (₹)', type: 'number' },
+    { key: 'remainingBalance', label: 'Remaining / Pending (₹)', type: 'number' },
   ],
   client: [
     { key: 'packageName', label: 'Package Name' },
     { key: 'pickup', label: 'Pickup' },
     { key: 'drop', label: 'Drop' },
+    { key: 'amount', label: 'Total Package Cost (₹)', type: 'number' },
+    { key: 'advancePaid', label: 'Advance Paid (₹)', type: 'number' },
+    { key: 'remainingBalance', label: 'Remaining / Pending (₹)', type: 'number' },
   ],
 };
 
@@ -42,9 +45,9 @@ function toMoneyInput(value) {
 }
 
 function resolveMoneyFields(payload = {}, assignment = {}) {
-  const amount = payload.amount ?? assignment.amount ?? '';
-  const advancePaid = payload.advancePaid ?? assignment.advancePaid ?? '';
-  let remainingBalance = payload.remainingBalance ?? assignment.remainingBalance ?? '';
+  const amount = payload.amount ?? payload.totalAmount ?? assignment.amount ?? assignment.totalAmount ?? '';
+  const advancePaid = payload.advancePaid ?? payload.advanceReceived ?? assignment.advancePaid ?? assignment.advanceReceived ?? '';
+  let remainingBalance = payload.remainingBalance ?? payload.pendingAmount ?? assignment.remainingBalance ?? assignment.pendingAmount ?? '';
   if (
     (remainingBalance === '' || remainingBalance == null)
     && amount !== '' && amount != null
@@ -59,6 +62,15 @@ function resolveMoneyFields(payload = {}, assignment = {}) {
   };
 }
 
+function formatItineraryDay(day, index) {
+  const num = day?.day || index + 1;
+  const title = day?.title || `Day ${num}`;
+  const places = String(day?.activities || day?.sightseeing || day?.activityNotes || day?.places || day?.description || '').trim();
+  const transport = String(day?.transport || '').trim();
+  const date = day?.date ? String(day.date).slice(0, 10) : '';
+  return { num, title, places, transport, date };
+}
+
 export default function VoucherEditModal({
   open,
   onClose,
@@ -70,7 +82,17 @@ export default function VoucherEditModal({
   const fields = FIELD_SETS[type] || FIELD_SETS.transport;
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
-  const supportsPayment = type === 'hotel' || type === 'transport';
+  const supportsPayment = type === 'hotel' || type === 'transport' || type === 'client';
+  const showCabItinerary = type === 'transport' || type === 'client';
+
+  const itineraryDays = (() => {
+    const fromPayload = voucher?.payload?.itinerary;
+    if (Array.isArray(fromPayload) && fromPayload.length) return fromPayload.map(formatItineraryDay);
+    if (Array.isArray(booking?.itinerary) && booking.itinerary.length) {
+      return booking.itinerary.map(formatItineraryDay);
+    }
+    return [];
+  })();
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +115,11 @@ export default function VoucherEditModal({
       next.pickup = p.pickup || booking?.pickup || '';
       next.drop = p.drop || booking?.drop || '';
       next.packageName = p.packageName || booking?.packageName || '';
+      Object.assign(next, resolveMoneyFields(p, {
+        totalAmount: booking?.totalAmount,
+        advanceReceived: booking?.advanceReceived ?? booking?.totalPaid,
+        remainingBalance: booking?.remainingBalance ?? booking?.pendingAmount,
+      }));
     }
     setForm(next);
   }, [open, voucher, booking, type]);
@@ -120,7 +147,7 @@ export default function VoucherEditModal({
       const advanceNum = parseMoney(form.advancePaid);
       const remainingNum = parseMoney(form.remainingBalance);
       const moneyPayload = {
-        ...(amountNum != null && Number.isFinite(amountNum) ? { amount: amountNum } : {}),
+        ...(amountNum != null && Number.isFinite(amountNum) ? { amount: amountNum, totalAmount: amountNum } : {}),
         ...(supportsPayment && advanceNum != null && Number.isFinite(advanceNum) ? { advancePaid: advanceNum } : {}),
         ...(supportsPayment && remainingNum != null && Number.isFinite(remainingNum) ? { remainingBalance: remainingNum } : {}),
       };
@@ -128,7 +155,7 @@ export default function VoucherEditModal({
         payload: { ...(voucher.payload || {}), ...form, ...moneyPayload },
       }, { skipSuccessToast: true });
 
-      // Keep booking assignment money fields in sync when ops edits from voucher
+      // Keep booking assignment / payment money fields in sync
       if (booking?._id) {
         const idx = Number(voucher.assignmentIndex ?? 0);
         const moneyPatch = {
@@ -147,6 +174,21 @@ export default function VoucherEditModal({
             i === idx ? { ...t, ...moneyPatch } : t
           ));
           await API.put(`/operations-manager/bookings/${booking._id}`, { transport }, { skipSuccessToast: true }).catch(() => null);
+        }
+        if (type === 'client') {
+          const bookingMoney = {
+            ...(amountNum != null && Number.isFinite(amountNum) ? { totalAmount: amountNum } : {}),
+            ...(advanceNum != null && Number.isFinite(advanceNum) ? { advanceReceived: advanceNum } : {}),
+            ...(remainingNum != null && Number.isFinite(remainingNum)
+              ? { remainingBalance: remainingNum, pendingAmount: remainingNum }
+              : {}),
+            ...(form.pickup != null ? { pickup: form.pickup } : {}),
+            ...(form.drop != null ? { drop: form.drop } : {}),
+            ...(form.packageName != null ? { packageName: form.packageName } : {}),
+          };
+          if (Object.keys(bookingMoney).length) {
+            await API.put(`/operations-manager/bookings/${booking._id}`, bookingMoney, { skipSuccessToast: true }).catch(() => null);
+          }
         }
       }
 
@@ -192,8 +234,40 @@ export default function VoucherEditModal({
           ))}
           {supportsPayment && (
             <p className="text-[11px] text-content-muted">
-              Advance aur remaining balance voucher PDF pe dikhenge. Remaining amount/advance se auto calculate hota hai — zarurat ho to manually bhi edit kar sakte ho.
+              Total cost, advance aur remaining balance voucher PDF pe dikhenge. Remaining auto calculate hota hai (total − advance) — zarurat ho to manually bhi edit kar sakte ho.
             </p>
+          )}
+          {showCabItinerary && (
+            <div className="rounded-xl border border-subtle/80 bg-surface-muted/40 p-3 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wide text-content-muted">
+                {type === 'transport' ? 'Cab Day-wise Itinerary' : 'Trip Itinerary (Cab / Days)'}
+              </p>
+              {itineraryDays.length ? (
+                itineraryDays.map((d) => (
+                  <div key={d.num} className="rounded-lg border border-subtle/60 bg-white/70 px-3 py-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-xs font-bold text-violet-700">Day {d.num}</span>
+                      {d.date ? <span className="text-[10px] text-content-muted">{d.date}</span> : null}
+                    </div>
+                    <p className="text-sm font-semibold text-content-primary mt-0.5">{d.title}</p>
+                    {d.places ? (
+                      <p className="text-[11px] text-content-muted mt-1">
+                        <span className="font-semibold text-content-secondary">Places:</span> {d.places}
+                      </p>
+                    ) : null}
+                    {d.transport ? (
+                      <p className="text-[11px] text-content-muted mt-0.5">
+                        <span className="font-semibold text-content-secondary">Route / Cab:</span> {d.transport}
+                      </p>
+                    ) : null}
+                  </div>
+                ))
+              ) : (
+                <p className="text-[11px] text-content-muted">
+                  Booking pe day-wise itinerary abhi nahi hai. Booking fulfillment / itinerary section me days add karo, phir voucher regenerate karo — PDF pe dikhega.
+                </p>
+              )}
+            </div>
           )}
         </div>
         <div className="flex justify-end gap-2 mt-6">

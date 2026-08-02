@@ -186,12 +186,32 @@ function extractPayload(booking, type, index = 0) {
     return { packageName: booking.packageName, destination: booking.destination };
   }
   if (type === 'client') {
+    const totalAmount = Number(booking.totalAmount || 0);
+    const advancePaid = Number(booking.advanceReceived ?? booking.totalPaid ?? 0);
+    const remainingBalance = booking.remainingBalance != null && booking.remainingBalance !== ''
+      ? Number(booking.remainingBalance)
+      : (booking.pendingAmount != null && booking.pendingAmount !== ''
+        ? Number(booking.pendingAmount)
+        : Math.max(0, totalAmount - advancePaid));
+    const itinerary = (booking.itinerary || []).map((d, i) => ({
+      day: d.day || i + 1,
+      date: d.date || null,
+      title: d.title || `Day ${d.day || i + 1}`,
+      activities: d.activities || d.sightseeing || d.activityNotes || '',
+      sightseeing: d.sightseeing || '',
+      transport: d.transport || '',
+      description: d.description || '',
+    }));
     return {
       packageName: booking.packageName,
       destination: booking.destination,
       pickup: booking.pickup || '',
       drop: booking.drop || '',
-      totalAmount: booking.totalAmount || 0,
+      amount: totalAmount,
+      totalAmount,
+      advancePaid,
+      remainingBalance,
+      itinerary,
       hotels: (booking.hotels || []).map((h) => ({
         hotelName: h.hotelName || h.name,
         roomType: h.roomType,
