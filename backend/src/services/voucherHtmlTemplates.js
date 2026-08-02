@@ -425,229 +425,223 @@ html, body {
 }
 .emb-page {
   width: 210mm; min-height: 297mm; background: #fff; overflow: hidden;
-  display: flex; flex-direction: column; position: relative;
+  position: relative;
 }
 .emb-page::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.04;
-  background: radial-gradient(ellipse at 50% 28%, #94a3b8 0%, transparent 55%);
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
+  background: radial-gradient(ellipse at 50% 22%, #94a3b8 0%, transparent 50%);
 }
 .emb-top {
-  display: grid; grid-template-columns: 1.15fr 1.2fr 1fr; gap: 10px;
-  padding: 14px 16px 8px; align-items: start; position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1.15fr 1.2fr 1fr; gap: 6px;
+  padding: 8px 12px 4px; align-items: start; position: relative; z-index: 1;
 }
-.emb-logo-wrap { display: flex; align-items: center; gap: 10px; }
+.emb-logo-wrap { display: flex; align-items: center; gap: 7px; }
 .emb-logo {
-  width: 48px; height: 48px; border-radius: 50%; background: #0b1c36; color: #fff;
+  width: 36px; height: 36px; border-radius: 50%; background: #0b1c36; color: #fff;
   display: flex; align-items: center; justify-content: center; overflow: hidden;
-  font-weight: 800; font-size: 14px; flex-shrink: 0;
+  font-weight: 800; font-size: 11px; flex-shrink: 0;
 }
 .emb-logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
 .emb-brand-name {
-  font-size: 16px; font-weight: 800; color: #0b1c36; line-height: 1.15;
+  font-size: 13px; font-weight: 800; color: #0b1c36; line-height: 1.1;
   letter-spacing: 0.01em;
 }
-.emb-brand-tag { font-size: 8px; color: #64748b; margin-top: 2px; font-weight: 500; }
-.emb-title-wrap { text-align: center; padding-top: 4px; }
+.emb-brand-tag { font-size: 7px; color: #64748b; margin-top: 1px; font-weight: 500; }
+.emb-title-wrap { text-align: center; padding-top: 2px; }
 .emb-title {
-  font-size: 20px; font-weight: 900; color: #0b1c36; letter-spacing: 0.06em;
+  font-size: 15px; font-weight: 900; color: #0b1c36; letter-spacing: 0.05em;
   line-height: 1.1;
 }
-.emb-stars { color: #e8a017; font-size: 11px; letter-spacing: 3px; margin-top: 4px; }
+.emb-stars { color: #e8a017; font-size: 8px; letter-spacing: 2px; margin-top: 2px; }
 .emb-id-box {
-  background: #0b1c36; color: #fff; border-radius: 0 0 0 18px;
-  padding: 12px 14px; margin: -14px -16px 0 0; text-align: right;
+  background: #0b1c36; color: #fff; border-radius: 0 0 0 14px;
+  padding: 8px 10px; margin: -8px -12px 0 0; text-align: right;
 }
 .emb-id-box .lbl {
-  display: block; font-size: 7px; font-weight: 700; letter-spacing: 0.08em;
-  text-transform: uppercase; opacity: 0.75; margin-bottom: 2px;
+  display: block; font-size: 6px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; opacity: 0.75; margin-bottom: 1px;
 }
 .emb-id-box .id {
-  font-size: 13px; font-weight: 800; color: #f0a020; line-height: 1.2;
+  font-size: 11px; font-weight: 800; color: #f0a020; line-height: 1.15;
 }
 .emb-id-box .date {
-  margin-top: 8px; font-size: 8px; font-weight: 600; opacity: 0.95;
-  display: flex; align-items: center; justify-content: flex-end; gap: 5px;
+  margin-top: 4px; font-size: 7px; font-weight: 600; opacity: 0.95;
+  display: flex; align-items: center; justify-content: flex-end; gap: 4px;
 }
 .emb-hero-row {
-  display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 12px;
-  padding: 4px 16px 10px; align-items: center; position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1.1fr 1fr 1.1fr; gap: 8px;
+  padding: 2px 12px 6px; align-items: center; position: relative; z-index: 1;
 }
 .emb-pill {
   display: inline-block; background: #0b1c36; color: #fff;
-  font-size: 7px; font-weight: 800; letter-spacing: 0.08em;
-  padding: 3px 10px; border-radius: 999px; margin-bottom: 6px;
+  font-size: 6px; font-weight: 800; letter-spacing: 0.06em;
+  padding: 2px 7px; border-radius: 999px; margin-bottom: 3px;
 }
-.emb-booked-by { font-size: 8px; line-height: 1.45; color: #334155; }
-.emb-booked-by strong { display: block; font-size: 11px; color: #0b1c36; margin-bottom: 3px; }
+.emb-booked-by { font-size: 7px; line-height: 1.35; color: #334155; }
+.emb-booked-by strong { display: block; font-size: 9px; color: #0b1c36; margin-bottom: 2px; }
 .emb-car-wrap { text-align: center; }
 .emb-car {
-  width: 100%; max-width: 250px; height: 110px; object-fit: contain;
-  filter: drop-shadow(0 8px 16px rgba(15, 23, 42, 0.18));
+  width: 100%; max-width: 170px; height: 68px; object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(15, 23, 42, 0.15));
 }
 .emb-thanks { text-align: right; }
 .emb-thanks-script {
   font-family: 'Great Vibes', 'Segoe Script', 'Brush Script MT', cursive;
-  font-size: 28px; color: #1e3a8a; line-height: 1; margin-bottom: 4px;
+  font-size: 20px; color: #1e3a8a; line-height: 1; margin-bottom: 2px;
 }
-.emb-thanks-text { font-size: 7.5px; color: #64748b; line-height: 1.4; margin-bottom: 8px; }
+.emb-thanks-text { font-size: 6.5px; color: #64748b; line-height: 1.3; margin-bottom: 4px; }
 .emb-safe-badge {
-  display: inline-flex; align-items: center; gap: 5px;
-  border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px;
-  font-size: 7px; font-weight: 700; color: #0b1c36; background: #fff;
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid #cbd5e1; border-radius: 5px; padding: 2px 6px;
+  font-size: 6px; font-weight: 700; color: #0b1c36; background: #fff;
 }
-.emb-safe-badge span { color: #16a34a; font-size: 10px; }
+.emb-safe-badge span { color: #16a34a; font-size: 8px; }
 .emb-grid-3 {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
-  padding: 0 16px 10px; position: relative; z-index: 1;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+  padding: 0 12px 6px; position: relative; z-index: 1;
 }
 .emb-card {
-  border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;
+  border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;
   min-width: 0;
 }
 .emb-card-h {
-  background: #0b1c36; color: #fff; font-size: 9px; font-weight: 800;
-  letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 10px;
+  background: #0b1c36; color: #fff; font-size: 7.5px; font-weight: 800;
+  letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 7px;
 }
-.emb-card-b { padding: 8px 10px; }
+.emb-card-b { padding: 4px 7px; }
 .emb-row {
-  display: flex; gap: 8px; align-items: flex-start; padding: 5px 0;
+  display: flex; gap: 5px; align-items: flex-start; padding: 3px 0;
   border-bottom: 1px solid #f1f5f9;
 }
 .emb-row:last-child { border-bottom: none; }
 .emb-ico {
-  width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+  width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  font-size: 9px; background: #eff6ff; color: #1d4ed8;
+  font-size: 7px; background: #eff6ff; color: #1d4ed8; margin-top: 1px;
 }
 .emb-ico.g { background: #ecfdf5; color: #059669; }
 .emb-ico.o { background: #fff7ed; color: #ea580c; }
 .emb-ico.p { background: #faf5ff; color: #7c3aed; }
 .emb-ico.r { background: #fef2f2; color: #dc2626; }
 .emb-row label {
-  display: block; font-size: 6.5px; color: #94a3b8; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.03em;
+  display: block; font-size: 5.5px; color: #94a3b8; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.02em;
 }
 .emb-row p {
-  font-size: 8.5px; font-weight: 700; color: #0b1c36; line-height: 1.25;
+  font-size: 7.5px; font-weight: 700; color: #0b1c36; line-height: 1.2;
   word-break: break-word;
 }
 .emb-vnum {
   display: inline-block; background: #0b1c36; color: #fff;
-  font-size: 8px; font-weight: 800; padding: 2px 8px; border-radius: 999px;
-  letter-spacing: 0.04em;
+  font-size: 7px; font-weight: 800; padding: 1px 6px; border-radius: 999px;
+  letter-spacing: 0.03em;
 }
 .emb-fare-line {
-  display: flex; justify-content: space-between; gap: 8px;
-  font-size: 8px; padding: 4px 0; border-bottom: 1px dashed #e2e8f0;
+  display: flex; justify-content: space-between; gap: 6px;
+  font-size: 7px; padding: 2px 0; border-bottom: 1px dashed #e2e8f0;
 }
 .emb-fare-line span:first-child { color: #64748b; font-weight: 600; }
 .emb-fare-line span:last-child { font-weight: 700; color: #0b1c36; }
 .emb-fare-total {
-  margin-top: 6px; background: #0b1c36; color: #fff; border-radius: 8px;
-  padding: 7px 9px; display: flex; justify-content: space-between; align-items: center;
+  margin-top: 3px; background: #0b1c36; color: #fff; border-radius: 6px;
+  padding: 4px 7px; display: flex; justify-content: space-between; align-items: center;
 }
-.emb-fare-total label { font-size: 7px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.85; }
-.emb-fare-total p { font-size: 13px; font-weight: 900; }
+.emb-fare-total label { font-size: 6px; font-weight: 700; letter-spacing: 0.04em; opacity: 0.85; }
+.emb-fare-total p { font-size: 11px; font-weight: 900; }
 .emb-fare-adv, .emb-fare-bal {
-  margin-top: 5px; border-radius: 8px; padding: 6px 8px;
+  margin-top: 3px; border-radius: 6px; padding: 3px 6px;
   display: flex; justify-content: space-between; align-items: center;
 }
 .emb-fare-adv { background: #ecfdf5; }
-.emb-fare-adv label { font-size: 7px; font-weight: 700; color: #047857; }
-.emb-fare-adv p { font-size: 11px; font-weight: 900; color: #047857; }
+.emb-fare-adv label { font-size: 6px; font-weight: 700; color: #047857; }
+.emb-fare-adv p { font-size: 9px; font-weight: 900; color: #047857; }
 .emb-fare-bal { background: #fff7ed; }
-.emb-fare-bal label { font-size: 7px; font-weight: 700; color: #c2410c; }
-.emb-fare-bal p { font-size: 11px; font-weight: 900; color: #c2410c; }
+.emb-fare-bal label { font-size: 6px; font-weight: 700; color: #c2410c; }
+.emb-fare-bal p { font-size: 9px; font-weight: 900; color: #c2410c; }
 .emb-check {
-  display: flex; align-items: center; gap: 6px; font-size: 7.5px;
-  font-weight: 600; color: #334155; padding: 3px 0;
+  display: flex; align-items: center; gap: 4px; font-size: 6.5px;
+  font-weight: 600; color: #334155; padding: 1.5px 0;
 }
 .emb-check i {
-  width: 12px; height: 12px; border-radius: 50%; background: #16a34a; color: #fff;
-  font-style: normal; font-size: 7px; font-weight: 900;
+  width: 10px; height: 10px; border-radius: 50%; background: #16a34a; color: #fff;
+  font-style: normal; font-size: 6px; font-weight: 900;
   display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.emb-terms { font-size: 7px; color: #475569; line-height: 1.4; padding-left: 10px; }
-.emb-terms li { margin: 3px 0; }
+.emb-terms { font-size: 6px; color: #475569; line-height: 1.3; padding-left: 8px; }
+.emb-terms li { margin: 1.5px 0; }
 .emb-itinerary {
-  margin: 0 16px 10px; border: 1px solid #e2e8f0; border-radius: 12px;
+  margin: 0 12px 6px; border: 1px solid #e2e8f0; border-radius: 8px;
   overflow: hidden; position: relative; z-index: 1;
 }
 .emb-itinerary-h {
-  background: #0b1c36; color: #fff; font-size: 9px; font-weight: 800;
-  letter-spacing: 0.05em; text-transform: uppercase; padding: 7px 12px;
+  background: #0b1c36; color: #fff; font-size: 7.5px; font-weight: 800;
+  letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 8px;
 }
-.emb-itinerary-b { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.emb-itinerary-b { padding: 5px 7px; display: flex; flex-direction: column; gap: 3px; }
 .emb-day {
-  display: grid; grid-template-columns: 52px 1fr; gap: 8px;
-  border: 1px solid #f1f5f9; border-radius: 8px; padding: 6px 8px; background: #fafafa;
+  display: grid; grid-template-columns: 42px 1fr; gap: 5px;
+  border: 1px solid #f1f5f9; border-radius: 6px; padding: 3px 6px; background: #fafafa;
 }
 .emb-day-num {
-  background: #fff7ed; color: #c2410c; border-radius: 6px;
-  font-size: 8px; font-weight: 900; text-align: center; padding: 6px 4px;
-  line-height: 1.25; align-self: start;
+  background: #fff7ed; color: #c2410c; border-radius: 4px;
+  font-size: 7px; font-weight: 900; text-align: center; padding: 3px 2px;
+  line-height: 1.2; align-self: start;
 }
-.emb-day-title { font-size: 9px; font-weight: 800; color: #0b1c36; }
-.emb-day-date { font-size: 7px; color: #94a3b8; font-weight: 600; margin-top: 1px; }
-.emb-day-places { font-size: 7.5px; color: #475569; margin-top: 3px; line-height: 1.35; }
-.emb-empty { font-size: 8px; color: #94a3b8; font-weight: 600; padding: 4px 2px; }
+.emb-day-title { font-size: 8px; font-weight: 800; color: #0b1c36; }
+.emb-day-date { font-size: 6px; color: #94a3b8; font-weight: 600; margin-top: 0; }
+.emb-day-places { font-size: 6.5px; color: #475569; margin-top: 1px; line-height: 1.25; }
+.emb-empty { font-size: 7px; color: #94a3b8; font-weight: 600; padding: 2px; }
 .emb-vendor {
-  margin: 0 16px 10px; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 10px 12px; position: relative; z-index: 1;
+  margin: 0 12px 6px; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 6px 8px; position: relative; z-index: 1;
 }
-.emb-vendor h4 { font-size: 9px; color: #059669; font-weight: 800; margin-bottom: 3px; }
-.emb-vendor p { font-size: 7px; color: #64748b; margin-bottom: 6px; }
-.emb-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+.emb-vendor h4 { font-size: 7.5px; color: #059669; font-weight: 800; margin-bottom: 2px; }
+.emb-vendor p { font-size: 6px; color: #64748b; margin-bottom: 4px; }
+.emb-btns { display: flex; gap: 4px; flex-wrap: wrap; }
 .emb-btn {
-  padding: 5px 10px; border-radius: 6px; color: #fff; font-size: 7px;
+  padding: 3px 8px; border-radius: 5px; color: #fff; font-size: 6.5px;
   font-weight: 800; text-decoration: none; display: inline-block;
 }
 .emb-btn.g { background: #059669; }
 .emb-btn.o { background: #d97706; }
 .emb-btn.r { background: #dc2626; }
-.emb-vendor-link {
-  background: #f8fafc; border-radius: 8px; padding: 8px; max-width: 150px;
-}
-.emb-vendor-link strong { display: block; font-size: 7px; color: #0b1c36; margin-bottom: 3px; }
-.emb-vendor-link span { font-size: 5.5px; color: #475569; word-break: break-all; line-height: 1.3; }
+.emb-vendor-link { display: none; }
 .emb-foot-row {
-  display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 10px;
-  padding: 4px 16px 10px; align-items: center; margin-top: auto;
+  display: grid; grid-template-columns: 1.1fr 1.2fr 1fr; gap: 6px;
+  padding: 2px 12px 6px; align-items: center;
   position: relative; z-index: 1;
 }
 .emb-support {
-  background: #0b1c36; color: #fff; border-radius: 10px; padding: 10px 12px;
-  display: flex; align-items: center; gap: 10px;
+  background: #0b1c36; color: #fff; border-radius: 8px; padding: 6px 8px;
+  display: flex; align-items: center; gap: 7px;
 }
 .emb-support-ico {
-  width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.12);
-  display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0;
 }
-.emb-support .lbl { font-size: 7px; font-weight: 700; letter-spacing: 0.06em; opacity: 0.8; }
-.emb-support .num { font-size: 12px; font-weight: 900; margin-top: 2px; }
+.emb-support .lbl { font-size: 6px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.8; }
+.emb-support .num { font-size: 10px; font-weight: 900; margin-top: 1px; }
 .emb-wish {
   text-align: center;
   font-family: 'Great Vibes', 'Segoe Script', 'Brush Script MT', cursive;
-  font-size: 26px; color: #e08a10; line-height: 1.1;
+  font-size: 18px; color: #e08a10; line-height: 1.05;
 }
-.emb-sign-wrap { text-align: right; display: flex; gap: 10px; justify-content: flex-end; align-items: end; }
-.emb-sign { min-width: 110px; }
+.emb-sign-wrap { text-align: right; display: flex; gap: 6px; justify-content: flex-end; align-items: end; }
+.emb-sign { min-width: 90px; }
 .emb-sign-script {
   font-family: 'Great Vibes', 'Segoe Script', cursive;
-  font-size: 18px; color: #1d4ed8; line-height: 1;
+  font-size: 14px; color: #1d4ed8; line-height: 1;
 }
-.emb-sign-line { border-top: 1px solid #94a3b8; margin-top: 2px; padding-top: 3px; }
-.emb-sign-line .n { font-size: 8px; font-weight: 800; color: #0b1c36; }
-.emb-sign-line .l { font-size: 6.5px; color: #64748b; }
-.emb-qr {
-  width: 58px; text-align: center;
-}
-.emb-qr img { width: 52px; height: 52px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px; background: #fff; }
-.emb-qr span { display: block; font-size: 5.5px; color: #64748b; margin-top: 2px; font-weight: 600; }
+.emb-sign-line { border-top: 1px solid #94a3b8; margin-top: 1px; padding-top: 2px; }
+.emb-sign-line .n { font-size: 7px; font-weight: 800; color: #0b1c36; }
+.emb-sign-line .l { font-size: 5.5px; color: #64748b; }
+.emb-qr { width: 46px; text-align: center; }
+.emb-qr img { width: 42px; height: 42px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px; background: #fff; }
+.emb-qr span { display: block; font-size: 5px; color: #64748b; margin-top: 1px; font-weight: 600; }
 .emb-bottom-bar {
-  background: #0b1c36; color: #fff; padding: 8px 16px;
-  display: flex; justify-content: space-between; gap: 10px; align-items: center;
-  font-size: 7px; font-weight: 600; position: relative; z-index: 1;
+  background: #0b1c36; color: #fff; padding: 5px 12px;
+  display: flex; justify-content: space-between; gap: 8px; align-items: center;
+  font-size: 6.5px; font-weight: 600; position: relative; z-index: 1;
 }
 .emb-bottom-bar span { opacity: 0.95; }
 `;
@@ -1098,27 +1092,12 @@ async function buildClientVoucherHtml(voucher, booking) {
     <div class="cv-panel">
       <div class="cv-panel-title">${svgIcon('check')} Your Confirmed Bookings</div>
       <div class="cv-grid">${bookingTiles.join('')}</div>
-      <div class="cv-footnote">
+      <div class="cv-footnote" style="margin-top:6px">
         ${svgIcon('info')}
-        <span>Your hotel and cab are booked with us. Follow the day-wise itinerary below for cab / sightseeing plan.</span>
+        <span>Hotel &amp; cab are confirmed. Day-wise itinerary is listed below.</span>
       </div>
     </div>
     <div>
-      <div class="cv-panel" style="margin-bottom:12px">
-        <div class="cv-panel-title">${svgIcon('rupee')} Package Amount</div>
-        <div class="cv-amount-box">
-          <label>Total Package Cost</label>
-          <div class="cv-amount-value">${escHtml(fmtMoney(total))}</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div class="cv-amount-card advance" style="padding:8px"><label>Advance Paid</label><p style="font-size:12px">${escHtml(fmtMoney(advancePaid))}</p></div>
-          <div class="cv-amount-card remaining" style="padding:8px"><label>Remaining / Pending</label><p style="font-size:12px">${escHtml(fmtMoney(remainingBalance))}</p></div>
-        </div>
-        <div class="cv-disclaimer" style="margin-top:8px">
-          ${svgIcon('info')}
-          <span>Individual hotel / cab vendor rates are not shown. Only your package total, advance and pending balance are listed.</span>
-        </div>
-      </div>
       ${brandedHelpBox([
         ['Sales Executive', execPhone],
         ['Support', supportPhone],

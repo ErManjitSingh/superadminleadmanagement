@@ -18,11 +18,10 @@ html, body {
 }
 .cv-page {
   width: 210mm; min-height: 297mm; background: #fff; overflow: hidden;
-  display: flex; flex-direction: column;
 }
 .cv-header {
   background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 55%, #6d28d9 100%);
-  color: #fff; padding: 16px 18px 14px; position: relative; overflow: hidden;
+  color: #fff; padding: 10px 14px 10px; position: relative; overflow: hidden;
 }
 .cv-header::before {
   content: ''; position: absolute; left: 18%; top: 28%; width: 42%; height: 1px;
@@ -48,13 +47,13 @@ html, body {
 .cv-brand-name { font-size: 14px; font-weight: 800; line-height: 1.15; }
 .cv-brand-tag { font-size: 8px; opacity: 0.9; margin-top: 2px; font-weight: 500; }
 .cv-hero {
-  width: 118px; height: 78px; border-radius: 12px; object-fit: cover; flex-shrink: 0;
-  border: 2.5px solid rgba(255,255,255,0.55); box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+  width: 96px; height: 64px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.55); box-shadow: 0 3px 10px rgba(0,0,0,0.18);
 }
 .cv-title {
-  text-align: center; margin: 14px 0 10px; position: relative; z-index: 1;
+  text-align: center; margin: 8px 0 6px; position: relative; z-index: 1;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 20px; font-weight: 700; letter-spacing: 0.06em;
+  font-size: 17px; font-weight: 700; letter-spacing: 0.05em;
   text-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 .cv-pills {
@@ -75,7 +74,7 @@ html, body {
 .cv-strip.cols-5 { grid-template-columns: repeat(5, 1fr); }
 .cv-strip.cols-6 { grid-template-columns: repeat(6, 1fr); }
 .cv-strip-item {
-  padding: 11px 10px; display: flex; align-items: flex-start; gap: 7px;
+  padding: 7px 8px; display: flex; align-items: flex-start; gap: 6px;
   border-right: 1px solid #e2e8f0; min-width: 0;
 }
 .cv-strip-item:last-child { border-right: none; }
@@ -94,28 +93,28 @@ html, body {
   color: #1e1b4b; word-break: break-word;
 }
 .cv-body {
-  display: grid; grid-template-columns: 1.55fr 1fr; gap: 12px;
-  padding: 14px 16px; flex: 1;
+  display: grid; grid-template-columns: 1.55fr 1fr; gap: 8px;
+  padding: 8px 12px; flex: 0 0 auto;
 }
 .cv-body.stack { grid-template-columns: 1fr; }
-.cv-body.stack-gap { display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; flex: 1; }
+.cv-body.stack-gap { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px; flex: 0 0 auto; }
 .cv-panel {
-  border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;
+  border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px;
   background: #fff; min-width: 0;
 }
 .cv-panel-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 10px; font-weight: 800; color: #4c1d95;
-  text-transform: uppercase; letter-spacing: 0.04em;
-  margin-bottom: 10px; padding-bottom: 8px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 9px; font-weight: 800; color: #4c1d95;
+  text-transform: uppercase; letter-spacing: 0.03em;
+  margin-bottom: 6px; padding-bottom: 5px;
   border-bottom: 2px solid #f5f3ff;
 }
 .cv-panel-title svg { width: 14px; height: 14px; }
-.cv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.cv-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.cv-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .cv-tile {
-  border: 1px solid #e8e4f5; border-radius: 10px; padding: 8px 9px;
-  background: #fafafa; display: flex; gap: 8px; align-items: flex-start; min-width: 0;
+  border: 1px solid #e8e4f5; border-radius: 8px; padding: 5px 7px;
+  background: #fafafa; display: flex; gap: 6px; align-items: flex-start; min-width: 0;
 }
 .cv-tile-ico {
   width: 26px; height: 26px; border-radius: 8px; background: #f5f3ff;
@@ -153,9 +152,9 @@ html, body {
   content: '\\2713'; position: absolute; left: 1.5px; top: 1px;
   color: #fff; font-size: 6px; font-weight: 800;
 }
-.cv-itinerary-list { display: flex; flex-direction: column; gap: 6px; }
+.cv-itinerary-list { display: flex; flex-direction: column; gap: 3px; }
 .cv-itinerary-day {
-  border: 1px solid #e8e4f5; border-radius: 8px; padding: 7px 8px; background: #fafafa;
+  border: 1px solid #e8e4f5; border-radius: 6px; padding: 4px 6px; background: #fafafa;
 }
 .cv-itinerary-head {
   display: flex; justify-content: space-between; gap: 8px; margin-bottom: 3px;
@@ -180,15 +179,15 @@ html, body {
   text-transform: uppercase; letter-spacing: 0.05em;
 }
 .cv-amount-value {
-  font-size: 26px; font-weight: 900; color: #5b21b6; margin-top: 6px;
+  font-size: 20px; font-weight: 900; color: #5b21b6; margin-top: 3px;
   font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .cv-amount-banner {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
-  padding: 12px 16px 0;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+  padding: 8px 12px 0;
 }
 .cv-amount-card {
-  border: 1px solid #e8e4f5; border-radius: 10px; padding: 10px; text-align: center; background: #fff;
+  border: 1px solid #e8e4f5; border-radius: 8px; padding: 6px; text-align: center; background: #fff;
 }
 .cv-amount-card.package { background: #f5f3ff; }
 .cv-amount-card.advance { background: #ecfdf5; border-color: #a7f3d0; }
@@ -204,9 +203,9 @@ html, body {
 .cv-amount-card.remaining p { color: #c2410c; }
 .cv-disclaimer {
   display: flex; gap: 6px; align-items: flex-start;
-  background: #f5f3ff; border-radius: 8px; padding: 8px 9px;
-  font-size: 7px; color: #5b21b6; line-height: 1.4; font-weight: 600;
-  margin-bottom: 12px;
+  background: #f5f3ff; border-radius: 8px; padding: 6px 8px;
+  font-size: 7px; color: #5b21b6; line-height: 1.35; font-weight: 600;
+  margin-bottom: 8px;
 }
 .cv-disclaimer svg { width: 11px; height: 11px; flex-shrink: 0; margin-top: 1px; }
 .cv-help { background: #f5f3ff; border-radius: 10px; padding: 10px; }
@@ -252,8 +251,8 @@ html, body {
 .cv-history tr.current td { background: #f5f3ff; color: #5b21b6; }
 .cv-history .amt { text-align: right; font-variant-numeric: tabular-nums; }
 .cv-vendor {
-  margin: 0 16px 12px; border: 1px solid #e2e8f0; border-radius: 12px;
-  padding: 10px 12px;
+  margin: 0 12px 8px; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 7px 9px;
 }
 .cv-vendor h4 { font-size: 9px; color: #059669; font-weight: 800; margin-bottom: 4px; }
 .cv-vendor p { font-size: 7px; color: #64748b; line-height: 1.3; margin-bottom: 8px; }
@@ -271,44 +270,44 @@ html, body {
 .cv-vendor-link strong { display: block; font-size: 7px; color: #5b21b6; margin-bottom: 4px; }
 .cv-vendor-link span { font-size: 5.5px; color: #334155; word-break: break-all; line-height: 1.3; }
 .cv-bottom {
-  margin-top: auto; position: relative; padding: 14px 16px 0;
+  margin-top: 4px; position: relative; padding: 6px 12px 0;
   background: linear-gradient(180deg, #fff 0%, #faf8ff 100%);
 }
 .cv-landmarks {
-  position: absolute; left: 0; right: 0; bottom: 42px; height: 70px;
-  opacity: 0.12; pointer-events: none; overflow: hidden;
+  position: absolute; left: 0; right: 0; bottom: 34px; height: 42px;
+  opacity: 0.08; pointer-events: none; overflow: hidden;
 }
 .cv-landmarks svg { width: 100%; height: 100%; }
 .cv-thanks-row {
-  display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px;
+  display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;
   align-items: end; position: relative; z-index: 1;
-  padding-bottom: 14px;
+  padding-bottom: 8px;
 }
 .cv-thanks-title {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 14px; font-weight: 800; color: #4c1d95; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; font-weight: 800; color: #4c1d95; margin-bottom: 2px;
 }
-.cv-thanks-title svg { width: 16px; height: 16px; }
-.cv-thanks-text { font-size: 8px; color: #64748b; line-height: 1.4; max-width: 240px; }
+.cv-thanks-title svg { width: 14px; height: 14px; }
+.cv-thanks-text { font-size: 7px; color: #64748b; line-height: 1.3; max-width: 240px; }
 .cv-sign-wrap { text-align: right; }
-.cv-sign-label { font-size: 7px; color: #64748b; font-weight: 600; }
+.cv-sign-label { font-size: 6.5px; color: #64748b; font-weight: 600; }
 .cv-sign-name {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 15px; font-style: italic; font-weight: 700;
-  color: #4c1d95; margin: 4px 0 8px;
+  font-size: 13px; font-style: italic; font-weight: 700;
+  color: #4c1d95; margin: 2px 0 4px;
 }
 .cv-stamp {
   display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
-  width: 64px; height: 64px; border-radius: 50%;
-  border: 2.5px solid #5b21b6; color: #5b21b6;
-  font-size: 5.5px; font-weight: 800; text-align: center; line-height: 1.2;
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 2px solid #5b21b6; color: #5b21b6;
+  font-size: 5px; font-weight: 800; text-align: center; line-height: 1.15;
   margin-left: auto; transform: rotate(-8deg);
   background: rgba(245,243,255,0.6);
 }
 .cv-contact {
-  background: #4c1d95; color: #fff; padding: 9px 16px;
-  display: flex; justify-content: space-between; gap: 8px; align-items: center;
-  font-size: 7.5px; font-weight: 600; position: relative; z-index: 1;
+  background: #4c1d95; color: #fff; padding: 6px 12px;
+  display: flex; justify-content: space-between; gap: 6px; align-items: center;
+  font-size: 7px; font-weight: 600; position: relative; z-index: 1;
 }
 .cv-contact span {
   display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
