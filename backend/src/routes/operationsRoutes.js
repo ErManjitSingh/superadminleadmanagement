@@ -55,6 +55,7 @@ const {
   generateTravelKit,
   getVoucher,
   downloadVoucherPdf,
+  previewVoucherHtml,
   regenerateVoucherHandler,
   sendVoucherEmailHandler,
   sendVoucherWhatsAppHandler,
@@ -99,6 +100,7 @@ router.delete('/vendors/:id', requirePermission('operations', 'delete'), deleteV
 router.get('/vouchers/analytics', requirePermission('operations', 'view'), getExecutionAnalytics);
 router.get('/vouchers', requirePermission('operations', 'view'), listVouchersEnhanced);
 router.get('/vouchers/:id/download', requirePermission('operations', 'view'), downloadVoucherPdf);
+router.get('/vouchers/:id/preview-html', requirePermission('operations', 'view'), previewVoucherHtml);
 router.get('/vouchers/:id', requirePermission('operations', 'view'), getVoucher);
 router.post('/vouchers/:id/regenerate', requirePermission('operations', 'edit'), regenerateVoucherHandler);
 router.post('/vouchers/:id/send-email', requirePermission('operations', 'edit'), sendVoucherEmailHandler);

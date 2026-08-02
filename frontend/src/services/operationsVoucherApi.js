@@ -37,6 +37,29 @@ export async function regenerateVoucher(voucherId) {
 }
 
 export async function previewVoucherPdf(voucherId) {
+  const isMobile = typeof navigator !== 'undefined'
+    && /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|Opera Mini/i.test(navigator.userAgent || '');
+
+  // Mobile: open responsive HTML voucher (readable). Desktop: open PDF blob.
+  if (isMobile) {
+    try {
+      const { data: html } = await API.get(`/operations-manager/vouchers/${voucherId}/preview-html`, {
+        responseType: 'text',
+        skipSuccessToast: true,
+        skipErrorToast: true,
+        headers: { Accept: 'text/html' },
+        transformResponse: [(d) => d],
+      });
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+      return;
+    } catch {
+      /* fall through to PDF */
+    }
+  }
+
   try {
     const { data } = await API.get(`/operations-manager/vouchers/${voucherId}/download`, {
       responseType: 'blob',

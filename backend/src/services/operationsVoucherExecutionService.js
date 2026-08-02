@@ -513,6 +513,34 @@ async function getVoucherPdfBuffer(voucherId) {
   return { voucher, buffer };
 }
 
+async function getVoucherHtml(voucherId) {
+  let voucher = await Voucher.findById(voucherId).lean();
+  if (!voucher) throw new Error('Voucher not found');
+
+  if (voucher.isActive === false) {
+    const active = await Voucher.findOne({
+      booking: voucher.booking,
+      type: voucher.type,
+      assignmentIndex: voucher.assignmentIndex ?? 0,
+      isActive: { $ne: false },
+    }).sort({ version: -1 }).lean();
+    if (active) voucher = active;
+  }
+
+  const booking = await Booking.findById(voucher.booking).lean();
+  if (!booking) throw new Error('Booking not found');
+
+  let payload = voucher.payload;
+  if (!payload || !Object.keys(payload).length) {
+    payload = extractPayload(booking, voucher.type === 'cab' ? 'transport' : voucher.type, voucher.assignmentIndex || 0) || {};
+  }
+
+  const { buildVoucherHtml } = require('./voucherHtmlTemplates');
+  const html = await buildVoucherHtml({ ...voucher, payload }, booking);
+  if (!html) throw new Error('HTML preview not available for this voucher type');
+  return { voucher, booking, html };
+}
+
 async function sendVoucherEmail(voucherId, actor, { to, showGuestPhone = true } = {}) {
   const showPhone = showGuestPhone !== false;
   await Voucher.findByIdAndUpdate(voucherId, {
@@ -1022,6 +1050,7 @@ module.exports = {
   listVouchersFiltered,
   generateAllVouchersForBooking,
   getVoucherPdfBuffer,
+  getVoucherHtml,
   logEvent,
   computeProgress,
 };

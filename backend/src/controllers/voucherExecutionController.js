@@ -12,6 +12,7 @@ const {
   listVouchersFiltered,
   generateAllVouchersForBooking,
   getVoucherPdfBuffer,
+  getVoucherHtml,
 } = require('../services/operationsVoucherExecutionService');
 
 const getExecutionAnalytics = asyncHandler(async (req, res) => {
@@ -66,6 +67,13 @@ const downloadVoucherPdf = asyncHandler(async (req, res) => {
   res.send(buffer);
 });
 
+const previewVoucherHtml = asyncHandler(async (req, res) => {
+  const { html } = await getVoucherHtml(req.params.id);
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(html);
+});
+
 const regenerateVoucherHandler = asyncHandler(async (req, res) => {
   const voucher = await regenerateVoucher(req.params.id, req.user);
   await cacheService.invalidate('ops:');
@@ -103,6 +111,7 @@ module.exports = {
   generateTravelKit,
   getVoucher,
   downloadVoucherPdf,
+  previewVoucherHtml,
   regenerateVoucherHandler,
   sendVoucherEmailHandler,
   sendVoucherWhatsAppHandler,
