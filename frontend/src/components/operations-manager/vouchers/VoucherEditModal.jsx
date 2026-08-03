@@ -83,7 +83,8 @@ export default function VoucherEditModal({
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
   const supportsPayment = type === 'hotel' || type === 'transport' || type === 'client';
-  const showCabItinerary = type === 'transport' || type === 'client';
+  // Day-wise itinerary only on cab/driver voucher — not on client voucher
+  const showCabItinerary = type === 'transport';
 
   const itineraryDays = (() => {
     const fromPayload = voucher?.payload?.itinerary;
@@ -112,8 +113,8 @@ export default function VoucherEditModal({
       Object.assign(next, resolveMoneyFields(p, booking?.transport?.[idx] || {}));
     }
     if (type === 'client') {
-      next.pickup = p.pickup || booking?.pickup || '';
-      next.drop = p.drop || booking?.drop || '';
+      next.pickup = p.pickup || booking?.pickup || booking?.transport?.[0]?.pickupLocation || '';
+      next.drop = p.drop || booking?.drop || booking?.transport?.[0]?.dropLocation || '';
       next.packageName = p.packageName || booking?.packageName || '';
       Object.assign(next, resolveMoneyFields(p, {
         totalAmount: booking?.totalAmount,
@@ -151,8 +152,14 @@ export default function VoucherEditModal({
         ...(supportsPayment && advanceNum != null && Number.isFinite(advanceNum) ? { advancePaid: advanceNum } : {}),
         ...(supportsPayment && remainingNum != null && Number.isFinite(remainingNum) ? { remainingBalance: remainingNum } : {}),
       };
+      const clientPayload = type === 'client'
+        ? (() => {
+          const { itinerary: _omit, ...rest } = { ...(voucher.payload || {}), ...form, ...moneyPayload };
+          return rest;
+        })()
+        : { ...(voucher.payload || {}), ...form, ...moneyPayload };
       await API.put(`/operations-manager/vouchers/${voucher._id}`, {
-        payload: { ...(voucher.payload || {}), ...form, ...moneyPayload },
+        payload: clientPayload,
       }, { skipSuccessToast: true });
 
       // Keep booking assignment / payment money fields in sync

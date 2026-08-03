@@ -193,25 +193,20 @@ function extractPayload(booking, type, index = 0) {
       : (booking.pendingAmount != null && booking.pendingAmount !== ''
         ? Number(booking.pendingAmount)
         : Math.max(0, totalAmount - advancePaid));
-    const itinerary = (booking.itinerary || []).map((d, i) => ({
-      day: d.day || i + 1,
-      date: d.date || null,
-      title: d.title || `Day ${d.day || i + 1}`,
-      activities: d.activities || d.sightseeing || d.activityNotes || '',
-      sightseeing: d.sightseeing || '',
-      transport: d.transport || '',
-      description: d.description || '',
-    }));
+    const leadPickup = booking.leadPickup || booking.lead?.pickup || '';
+    const leadDrop = booking.leadDrop || booking.lead?.drop || '';
+    const pickup = booking.pickup || leadPickup || booking.transport?.[0]?.pickupLocation || '';
+    const drop = booking.drop || leadDrop || booking.transport?.[0]?.dropLocation || '';
+    // Client voucher: pick/drop from lead only — no day-wise itinerary
     return {
       packageName: booking.packageName,
       destination: booking.destination,
-      pickup: booking.pickup || '',
-      drop: booking.drop || '',
+      pickup,
+      drop,
       amount: totalAmount,
       totalAmount,
       advancePaid,
       remainingBalance,
-      itinerary,
       hotels: (booking.hotels || []).map((h) => ({
         hotelName: h.hotelName || h.name,
         roomType: h.roomType,
@@ -225,8 +220,8 @@ function extractPayload(booking, type, index = 0) {
         vehicleType: t.vehicleType,
         vehicleDisplayName: t.vehicleDisplayName,
         driverName: t.driverName,
-        pickupLocation: t.pickupLocation || booking.pickup,
-        dropLocation: t.dropLocation || booking.drop,
+        pickupLocation: t.pickupLocation || pickup,
+        dropLocation: t.dropLocation || drop,
         status: t.status,
       })),
     };
@@ -240,6 +235,33 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
 
   const normalizedType = type === 'cab' ? 'transport' : type;
   const key = assignmentKey(normalizedType, assignmentIndex);
+
+  // Prefill pick/drop from lead when booking fields are empty
+  if (booking.lead && (!booking.pickup || !booking.drop)) {
+    try {
+      const Lead = require('../models/Lead');
+      const lead = await Lead.findById(booking.lead).select('pickup drop').lean();
+      if (lead) {
+        booking.leadPickup = lead.pickup || '';
+        booking.leadDrop = lead.drop || '';
+        const patch = {};
+        if (!booking.pickup && lead.pickup) {
+          booking.pickup = lead.pickup;
+          patch.pickup = lead.pickup;
+        }
+        if (!booking.drop && lead.drop) {
+          booking.drop = lead.drop;
+          patch.drop = lead.drop;
+        }
+        if (Object.keys(patch).length) {
+          await Booking.findByIdAndUpdate(bookingId, patch);
+        }
+      }
+    } catch (_) {
+      /* non-fatal */
+    }
+  }
+
   let payload = extractPayload(booking, normalizedType, assignmentIndex);
 
   if (normalizedType === 'hotel' && payload?.hotelId) {
@@ -281,9 +303,51 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
 
   // Keep manual edits (pickup/drop/driver/etc.) when regenerating after Edit
   if (payloadOverrides && typeof payloadOverrides === 'object') {
-    payload = { ...(payload || {}), ...payloadOverrides };
+    const merged = { ...(payload || {}), ...payloadOverrides };
+    if (normalizedType === 'client') {
+      merged.pickup = String(payloadOverrides.pickup || '').trim()
+        || String(payload?.pickup || '').trim()
+        || '';
+      merged.drop = String(payloadOverrides.drop || '').trim()
+        || String(payload?.drop || '').trim()
+        || '';
+      delete merged.itinerary;
+    }
+    if (normalizedType === 'transport') {
+      merged.pickupLocation = String(payloadOverrides.pickupLocation || '').trim()
+        || String(payload?.pickupLocation || '').trim()
+        || '';
+      merged.dropLocation = String(payloadOverrides.dropLocation || '').trim()
+        || String(payload?.dropLocation || '').trim()
+        || '';
+    }
+    payload = merged;
   } else if (existing?.payload && force) {
-    payload = { ...(payload || {}), ...existing.payload };
+    const merged = { ...(payload || {}), ...existing.payload };
+    // Prefer non-empty pick/drop from fresh booking/lead over blank saved payload
+    if (normalizedType === 'client') {
+      merged.pickup = String(existing.payload.pickup || '').trim()
+        || String(payload?.pickup || '').trim()
+        || '';
+      merged.drop = String(existing.payload.drop || '').trim()
+        || String(payload?.drop || '').trim()
+        || '';
+      delete merged.itinerary;
+    }
+    if (normalizedType === 'transport') {
+      merged.pickupLocation = String(existing.payload.pickupLocation || '').trim()
+        || String(payload?.pickupLocation || '').trim()
+        || '';
+      merged.dropLocation = String(existing.payload.dropLocation || '').trim()
+        || String(payload?.dropLocation || '').trim()
+        || '';
+    }
+    payload = merged;
+  }
+
+  // Client voucher never includes day-wise itinerary
+  if (normalizedType === 'client' && payload) {
+    delete payload.itinerary;
   }
 
   if (existing && !force) {
@@ -726,8 +790,8 @@ async function sendVoucherWhatsApp(voucherId, actor, { phone, showGuestPhone = t
         `Destination:\n${booking.destination}`,
         '',
         `Travel Date:\n${new Date(booking.travelDate).toLocaleDateString('en-IN')}`,
-        booking.pickup ? `Pickup: ${booking.pickup}` : '',
-        booking.drop ? `Drop: ${booking.drop}` : '',
+        (payload.pickup || booking.pickup) ? `Pickup: ${payload.pickup || booking.pickup}` : '',
+        (payload.drop || booking.drop) ? `Drop: ${payload.drop || booking.drop}` : '',
         '',
         `Team ${branding.brandName}`,
       ].filter(Boolean).join('\n');
