@@ -96,7 +96,9 @@ async function provisionCompany({ payload, superAdminId }) {
   let attempt = 0;
 
   while (
-    await Company.findOne({ $or: [{ slug }, { subdomain }], deletedAt: null })
+    // Note: `subdomain` has a unique index in MongoDB, which also blocks soft-deleted
+    // documents. So we must check uniqueness across ALL docs, not only `deletedAt:null`.
+    await Company.findOne({ $or: [{ slug }, { subdomain }] })
   ) {
     attempt += 1;
     slug = `${baseSlug}-${attempt}`;
