@@ -190,7 +190,7 @@ export default function DnsSetupPage() {
 
           <p className="mt-4 text-center text-xs text-slate-500">
             You can complete this later from{' '}
-            <Link to="/admin/settings" className="font-medium text-violet-600 hover:underline">Settings → Domain</Link>
+            <Link to="/settings/workspace" className="font-medium text-violet-600 hover:underline">Settings → Custom Domain</Link>
           </p>
         </div>
 

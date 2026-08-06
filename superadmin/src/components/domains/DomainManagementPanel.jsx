@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   CheckCircle2, Globe, Loader2, RefreshCw, Shield, Unlink, XCircle,
@@ -12,30 +12,69 @@ import { DnsStatusBadge, DomainConnectedBadge, SslStatusBadge } from './DomainSt
 import DnsRecordsTable from './DnsRecordsTable';
 import { formatDate } from '../../lib/utils';
 
+function mutationErrorMessage(err) {
+  return err?.response?.data?.message || err?.message || 'Something went wrong';
+}
+
 export default function DomainManagementPanel({ company, onUpdated }) {
+  const companyId = company?.id || company?._id;
   const [customDomain, setCustomDomain] = useState(company?.customDomain || company?.primaryDomain || '');
+  const [feedback, setFeedback] = useState(null);
+
+  useEffect(() => {
+    setCustomDomain(company?.customDomain || company?.primaryDomain || '');
+  }, [company?.id, company?.customDomain, company?.primaryDomain]);
+
+  const showFeedback = (type, text) => {
+    setFeedback({ type, text });
+    window.setTimeout(() => setFeedback(null), 5000);
+  };
 
   const connectMutation = useMutation({
-    mutationFn: (domain) => superAdminApi.connectDomain(company.id, { customDomain: domain }),
-    onSuccess: () => onUpdated?.(),
+    mutationFn: (domain) => superAdminApi.connectDomain(companyId, { customDomain: domain }),
+    onSuccess: () => {
+      showFeedback('success', 'Custom domain connected. Share the DNS records below with the customer.');
+      onUpdated?.();
+    },
+    onError: (err) => showFeedback('error', mutationErrorMessage(err)),
   });
 
   const verifyMutation = useMutation({
-    mutationFn: () => superAdminApi.verifyDomain(company.id),
-    onSuccess: () => onUpdated?.(),
+    mutationFn: () => superAdminApi.verifyDomain(companyId),
+    onSuccess: (res) => {
+      const verified = res?.data?.verified;
+      showFeedback(
+        verified ? 'success' : 'error',
+        verified
+          ? 'DNS verified successfully. SSL provisioning has started.'
+          : 'DNS not detected yet. Confirm the CNAME/A record and try again.',
+      );
+      onUpdated?.();
+    },
+    onError: (err) => showFeedback('error', mutationErrorMessage(err)),
   });
 
   const refreshMutation = useMutation({
-    mutationFn: () => superAdminApi.refreshDomain(company.id),
-    onSuccess: () => onUpdated?.(),
+    mutationFn: () => superAdminApi.refreshDomain(companyId),
+    onSuccess: (res) => {
+      const verified = res?.data?.verified;
+      showFeedback(
+        verified ? 'success' : 'error',
+        verified ? 'Domain status refreshed — still verified.' : 'Domain is no longer pointing to the platform.',
+      );
+      onUpdated?.();
+    },
+    onError: (err) => showFeedback('error', mutationErrorMessage(err)),
   });
 
   const disconnectMutation = useMutation({
-    mutationFn: () => superAdminApi.disconnectDomain(company.id),
+    mutationFn: () => superAdminApi.disconnectDomain(companyId),
     onSuccess: () => {
       setCustomDomain('');
+      showFeedback('success', 'Custom domain disconnected. Company will use the system subdomain.');
       onUpdated?.();
     },
+    onError: (err) => showFeedback('error', mutationErrorMessage(err)),
   });
 
   const systemDomain = company?.systemDomain || `${company?.subdomain}.${PLATFORM_DOMAIN}`;
@@ -109,7 +148,7 @@ export default function DomainManagementPanel({ company, onUpdated }) {
               onChange={(e) => setCustomDomain(e.target.value)}
             />
             <Button
-              disabled={!customDomain.trim() || busy}
+              disabled={!companyId || !customDomain.trim() || busy}
               onClick={() => connectMutation.mutate(customDomain.trim())}
             >
               {connectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -120,7 +159,7 @@ export default function DomainManagementPanel({ company, onUpdated }) {
           <div className="mt-4 flex flex-wrap gap-2">
             <Button
               variant="outline"
-              disabled={!hasCustom || busy}
+              disabled={!companyId || !hasCustom || busy}
               onClick={() => verifyMutation.mutate()}
             >
               {verifyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
@@ -128,7 +167,7 @@ export default function DomainManagementPanel({ company, onUpdated }) {
             </Button>
             <Button
               variant="outline"
-              disabled={!hasCustom || busy}
+              disabled={!companyId || !hasCustom || busy}
               onClick={() => refreshMutation.mutate()}
             >
               {refreshMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -137,7 +176,7 @@ export default function DomainManagementPanel({ company, onUpdated }) {
             <Button
               variant="outline"
               className="text-rose-600 hover:text-rose-700"
-              disabled={!hasCustom || busy}
+              disabled={!companyId || !hasCustom || busy}
               onClick={() => {
                 if (window.confirm('Disconnect custom domain? The company will use the system subdomain only.')) {
                   disconnectMutation.mutate();
@@ -149,7 +188,14 @@ export default function DomainManagementPanel({ company, onUpdated }) {
             </Button>
           </div>
 
-          {domainStatus === 'failed' && (
+          {feedback && (
+            <p className={`mt-3 flex items-center gap-2 text-sm ${feedback.type === 'success' ? 'text-emerald-700' : 'text-rose-600'}`}>
+              {feedback.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {feedback.text}
+            </p>
+          )}
+
+          {domainStatus === 'failed' && !feedback && (
             <p className="mt-3 flex items-center gap-2 text-sm text-rose-600">
               <XCircle className="h-4 w-4" />
               DNS verification failed. Ensure CNAME points to the platform proxy target.

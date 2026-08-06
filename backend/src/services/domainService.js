@@ -1,7 +1,6 @@
 const Company = require('../superadmin/models/Company');
 const { domainPointsToPlatform, normalizeDomain } = require('../controllers/publicDomainController');
 const { onDomainVerified } = require('./sslProvisioningService');
-const { markOnboardingStep } = require('./onboardingService');
 const { logPlatformAudit } = require('../superadmin/services/platformAuditService');
 const { notifyDomainAdmins } = require('./domainNotificationService');
 const { PLATFORM_DOMAIN } = require('./tenantResolveService');
@@ -140,7 +139,11 @@ async function verifyCustomDomain(company, { actor = null, req = null } = {}) {
 
   let ssl = { status: company.sslStatus };
   if (result.verified) {
-    await markOnboardingStep(company._id, 'domainConnected', true);
+    // Update onboarding on the same document — markOnboardingStep() loads + saves a
+    // separate instance and causes VersionError on the subsequent company.save().
+    company.onboarding = company.onboarding || {};
+    company.onboarding.domainConnected = true;
+    company.markModified('onboarding');
     company.sslStatus = 'generating';
     await company.save();
     ssl = await onDomainVerified(company);

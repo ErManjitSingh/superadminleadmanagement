@@ -74,14 +74,14 @@ const connectCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
   if (!company) throw new ApiError(404, 'Company not found');
 
+  // Set before service save — domainService already persists the document.
+  company.updatedBy = req.superAdmin._id;
   const domain = req.body.customDomain || req.body.primaryDomain;
   await connectCustomDomain(company, domain, {
     verify: Boolean(req.body.verify),
     actor: req.superAdmin,
     req,
   });
-  company.updatedBy = req.superAdmin._id;
-  await company.save();
 
   res.json({ company: formatDomainRow(company.toObject()) });
 });
@@ -91,9 +91,8 @@ const verifyCompanyDomain = asyncHandler(async (req, res) => {
   if (!company) throw new ApiError(404, 'Company not found');
   if (!company.primaryDomain) throw new ApiError(400, 'Company has no custom domain');
 
-  const result = await verifyCustomDomain(company, { actor: req.superAdmin, req });
   company.updatedBy = req.superAdmin._id;
-  await company.save();
+  const result = await verifyCustomDomain(company, { actor: req.superAdmin, req });
 
   res.json(result);
 });
@@ -102,9 +101,8 @@ const refreshCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
   if (!company) throw new ApiError(404, 'Company not found');
 
-  const result = await refreshDomainStatus(company, { actor: req.superAdmin, req });
   company.updatedBy = req.superAdmin._id;
-  await company.save();
+  const result = await refreshDomainStatus(company, { actor: req.superAdmin, req });
 
   res.json({ ...result, company: formatDomainRow(company.toObject()) });
 });
@@ -113,9 +111,8 @@ const disconnectCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
   if (!company) throw new ApiError(404, 'Company not found');
 
-  await disconnectCustomDomain(company, { actor: req.superAdmin, req });
   company.updatedBy = req.superAdmin._id;
-  await company.save();
+  await disconnectCustomDomain(company, { actor: req.superAdmin, req });
 
   res.json({ company: formatDomainRow(company.toObject()) });
 });
@@ -124,14 +121,13 @@ const updateCompanyDomain = asyncHandler(async (req, res) => {
   const company = await Company.findOne({ _id: req.params.id, deletedAt: null });
   if (!company) throw new ApiError(404, 'Company not found');
 
+  company.updatedBy = req.superAdmin._id;
   const domain = req.body.customDomain || req.body.primaryDomain;
   await connectCustomDomain(company, domain, {
     verify: Boolean(req.body.verify),
     actor: req.superAdmin,
     req,
   });
-  company.updatedBy = req.superAdmin._id;
-  await company.save();
 
   await logPlatformAudit({
     actor: req.superAdmin,
@@ -143,7 +139,7 @@ const updateCompanyDomain = asyncHandler(async (req, res) => {
     req,
   });
 
-  res.json({ company: formatDomainRow(company) });
+  res.json({ company: formatDomainRow(company.toObject()) });
 });
 
 module.exports = {

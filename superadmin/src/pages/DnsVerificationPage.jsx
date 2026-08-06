@@ -16,7 +16,15 @@ export default function DnsVerificationPage() {
 
   const verifyMutation = useMutation({
     mutationFn: (id) => superAdminApi.verifyDomain(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dns-pending'] }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['dns-pending'] });
+      if (!res?.data?.verified) {
+        window.alert(res?.data?.message || 'DNS not detected yet. Check CNAME/A records and try again.');
+      }
+    },
+    onError: (err) => {
+      window.alert(err?.response?.data?.message || err?.message || 'Verification failed');
+    },
   });
 
   const rows = data?.data || [];
@@ -36,8 +44,13 @@ export default function DnsVerificationPage() {
                 <p className="text-xs text-[var(--text-muted)]">Created {formatDate(r.createdAt)}</p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => verifyMutation.mutate(r.companyId)} disabled={verifyMutation.isPending}>Verify DNS</Button>
-                <Link to={`/admin/companies/${r.companyId}`}><Button variant="outline">Company</Button></Link>
+                <Button
+                  onClick={() => verifyMutation.mutate(r.companyId || r.id)}
+                  disabled={verifyMutation.isPending}
+                >
+                  Verify DNS
+                </Button>
+                <Link to={`/admin/companies/${r.companyId || r.id}`}><Button variant="outline">Company</Button></Link>
               </div>
             </Card>
           ))}

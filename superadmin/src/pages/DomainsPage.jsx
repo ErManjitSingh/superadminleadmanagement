@@ -23,15 +23,17 @@ export default function DomainsPage() {
       verified: tab === 'pending' ? 'false' : undefined,
       domainStatus: tab === 'pending' ? 'pending' : undefined,
     }).then((r) => r.data),
+    enabled: tab === 'all',
   });
 
-  const { data: pendingData } = useQuery({
+  const { data: pendingData, isLoading: pendingLoading } = useQuery({
     queryKey: ['domains-pending'],
     queryFn: () => superAdminApi.listPendingDns().then((r) => r.data),
     enabled: tab === 'pending',
   });
 
   const rows = tab === 'pending' ? (pendingData?.data || []) : (data?.data || []);
+  const loading = tab === 'pending' ? pendingLoading : isLoading;
 
   return (
     <div className="space-y-6">
@@ -85,7 +87,7 @@ export default function DomainsPage() {
 
         {tab === 'pending' ? (
           <div className="space-y-4">
-            {isLoading ? (
+            {loading ? (
               <p className="py-10 text-center text-sm text-[var(--text-muted)]">Loading…</p>
             ) : rows.length === 0 ? (
               <p className="py-10 text-center text-sm text-[var(--text-muted)]">No pending DNS setups</p>
@@ -120,7 +122,7 @@ export default function DomainsPage() {
                 <tr>{['Company', 'Subdomain', 'Custom Domain', 'Type', 'Status', 'Verified', ''].map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
               </thead>
               <tbody>
-                {isLoading ? (
+                {loading ? (
                   <tr><td colSpan={7} className="py-10 text-center">Loading…</td></tr>
                 ) : rows.map((r) => (
                   <tr key={r.id} className="border-t border-[var(--border)]">
