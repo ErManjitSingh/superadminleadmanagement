@@ -39,12 +39,15 @@ async function reassignRelatedDocs(Model, sourceId, targetId, field = 'lead') {
   return count;
 }
 
-async function mergeLeads({ sourceLeadId, targetLeadId, actor, branchId, ip }) {
+async function mergeLeads({ sourceLeadId, targetLeadId, actor, branchId, companyId, ip }) {
   if (String(sourceLeadId) === String(targetLeadId)) {
     throw new ApiError(400, 'Cannot merge a lead into itself');
   }
 
-  const scope = branchId ? { branchId } : {};
+  const scope = {};
+  if (companyId) scope.companyId = companyId;
+  else if (branchId) scope.branchId = branchId;
+
   const [source, target] = await Promise.all([
     Lead.findOne({ _id: sourceLeadId, ...scope, isDeleted: { $ne: true } }),
     Lead.findOne({ _id: targetLeadId, ...scope, isDeleted: { $ne: true } }),
@@ -52,6 +55,12 @@ async function mergeLeads({ sourceLeadId, targetLeadId, actor, branchId, ip }) {
 
   if (!source) throw new ApiError(404, 'Source lead not found');
   if (!target) throw new ApiError(404, 'Target lead not found');
+  if (companyId && source.companyId && String(source.companyId) !== String(companyId)) {
+    throw new ApiError(404, 'Source lead not found');
+  }
+  if (companyId && target.companyId && String(target.companyId) !== String(companyId)) {
+    throw new ApiError(404, 'Target lead not found');
+  }
 
   const sourceSnapshot = {
     leadId: source.leadId,

@@ -77,11 +77,10 @@ async function getSourceAnalytics(branchId) {
 }
 
 async function getExecutivePerformance(branchId) {
-  const execFilter = {
+  const execFilter = withBranch({
     role: 'sales_executive',
     status: 'active',
-    ...(branchId ? { branchId } : {}),
-  };
+  }, branchId);
   const executives = await User.find(execFilter).select('name email').lean();
   const execIds = executives.map((e) => e._id);
 
@@ -97,7 +96,7 @@ async function getExecutivePerformance(branchId) {
       { $group: { _id: '$assignedTo', converted: { $sum: 1 }, revenue: { $sum: '$budget' } } },
     ]),
     FollowUp.aggregate([
-      { $match: { ...(branchId ? { branchId } : {}), assignedTo: { $in: execIds } } },
+      { $match: { ...withBranch({}, branchId), assignedTo: { $in: execIds } } },
       {
         $group: {
           _id: '$assignedTo',

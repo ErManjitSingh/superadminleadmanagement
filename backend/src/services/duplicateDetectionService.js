@@ -6,7 +6,7 @@ function normalizePhone(phone = '') {
 }
 
 /** Duplicate = same 10-digit phone (primary or alternate). Email is not used. */
-async function findDuplicateLeads({ phone, alternatePhone, branchId, excludeId }) {
+async function findDuplicateLeads({ phone, alternatePhone, branchId, companyId, excludeId }) {
   const phones = [...new Set([phone, alternatePhone]
     .filter(Boolean)
     .map(normalizePhone)
@@ -21,6 +21,7 @@ async function findDuplicateLeads({ phone, alternatePhone, branchId, excludeId }
   }
 
   const filter = { $or: or, isDeleted: { $ne: true } };
+  if (companyId) filter.companyId = companyId;
   if (branchId) filter.branchId = branchId;
   if (excludeId) filter._id = { $ne: excludeId };
 

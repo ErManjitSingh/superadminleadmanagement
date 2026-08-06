@@ -8,15 +8,17 @@ function normalizeHost(host) {
   return String(host).split(':')[0].toLowerCase().trim();
 }
 
+function isPlatformHostname(hostname) {
+  if (!hostname) return false;
+  return hostname === PLATFORM_DOMAIN || hostname.endsWith(`.${PLATFORM_DOMAIN}`);
+}
+
 function extractSubdomain(host) {
   const hostname = normalizeHost(host);
   if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') return null;
 
-  const parts = hostname.split('.');
-  if (parts.length < 2) return null;
-
   if (hostname.endsWith(`.${PLATFORM_DOMAIN}`)) {
-    const sub = parts[0];
+    const sub = hostname.split('.')[0];
     if (!sub || RESERVED_SUBDOMAINS.has(sub)) return null;
     return sub;
   }
@@ -42,24 +44,31 @@ async function findCompanyByCustomHost(hostname) {
   }).lean();
 }
 
+/**
+ * Resolve tenant from request.
+ * Priority:
+ *  1) Custom hostname → verified custom domain ONLY (never subdomain header fallback)
+ *  2) Platform subdomain from Host, or x-tenant-subdomain on localhost/platform hosts
+ *
+ * Client-supplied x-company-id is intentionally ignored to prevent cross-tenant spoofing.
+ */
 async function resolveCompanyFromRequest(req) {
   const headerSubdomain = req.headers['x-tenant-subdomain'];
-  const headerCompanyId = req.headers['x-company-id'];
   const hostname = normalizeHost(req.headers['x-forwarded-host'] || req.headers.host);
 
-  if (headerCompanyId) {
-    const company = await Company.findOne({ _id: headerCompanyId, deletedAt: null }).lean();
-    if (company) return company;
-  }
-
   if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // Custom domain host: fail closed — only verified domain mapping, no subdomain fallback.
+    if (!isPlatformHostname(hostname)) {
+      return findCompanyByCustomHost(hostname);
+    }
+
     const byCustomDomain = await findCompanyByCustomHost(hostname);
     if (byCustomDomain) return byCustomDomain;
   }
 
   const subdomain = (headerSubdomain && String(headerSubdomain).toLowerCase().trim())
     || extractSubdomain(hostname);
-  if (!subdomain) return null;
+  if (!subdomain || RESERVED_SUBDOMAINS.has(subdomain)) return null;
 
   return Company.findOne({ subdomain, deletedAt: null }).lean();
 }
@@ -78,6 +87,7 @@ module.exports = {
   PLATFORM_DOMAIN,
   RESERVED_SUBDOMAINS,
   extractSubdomain,
+  isPlatformHostname,
   findCompanyByCustomHost,
   resolveCompanyFromRequest,
   assertCompanyAccessible,

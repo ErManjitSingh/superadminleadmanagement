@@ -7,9 +7,16 @@ const WhatsAppNote = require('../models/WhatsAppNote');
 const LeadAssignmentLog = require('../models/LeadAssignmentLog');
 const Payment = require('../models/Payment');
 const Booking = require('../models/Booking');
+const ApiError = require('../utils/apiError');
+const { normalizeCompanyId } = require('../utils/branchScope');
 const { invalidate: invalidateDashboardCache } = require('./dashboardCacheService');
 
-async function clearAllLeadsData() {
+async function clearAllLeadsData(companyId) {
+  if (!companyId) {
+    throw new ApiError(403, 'Company scope required to clear leads');
+  }
+  const scoped = { companyId: normalizeCompanyId(companyId) };
+
   const [
     notes,
     followups,
@@ -21,15 +28,15 @@ async function clearAllLeadsData() {
     bookings,
     leads,
   ] = await Promise.all([
-    LeadNote.deleteMany({}),
-    FollowUp.deleteMany({}),
-    Quotation.deleteMany({}),
-    WhatsAppMessage.deleteMany({}),
-    WhatsAppNote.deleteMany({}),
-    LeadAssignmentLog.deleteMany({}),
-    Payment.deleteMany({}),
-    Booking.deleteMany({}),
-    Lead.deleteMany({}),
+    LeadNote.deleteMany(scoped),
+    FollowUp.deleteMany(scoped),
+    Quotation.deleteMany(scoped),
+    WhatsAppMessage.deleteMany(scoped),
+    WhatsAppNote.deleteMany(scoped),
+    LeadAssignmentLog.deleteMany(scoped),
+    Payment.deleteMany(scoped),
+    Booking.deleteMany(scoped),
+    Lead.deleteMany(scoped),
   ]);
 
   invalidateDashboardCache('admin');

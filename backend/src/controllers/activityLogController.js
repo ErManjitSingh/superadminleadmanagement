@@ -3,14 +3,14 @@ const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { logActivity, getClientIp, purgeOldActivityLogs } = require('../services/activityService');
 const { ACTIVITY_LOG_RETENTION_MS } = require('../services/activityService');
+const { tenantFilter } = require('../utils/tenantDocument');
 
 const listActivityLogs = asyncHandler(async (req, res) => {
   await purgeOldActivityLogs();
 
   const { type, search } = req.query;
   const since = new Date(Date.now() - ACTIVITY_LOG_RETENTION_MS);
-  const filter = { createdAt: { $gte: since } };
-  if (req.branchId) filter.branchId = req.branchId;
+  const filter = tenantFilter({ createdAt: { $gte: since } }, req);
 
   if (type) filter.type = type;
   if (search?.trim()) {
@@ -45,6 +45,7 @@ const createActivityLog = asyncHandler(async (req, res) => {
     ip: getClientIp(req),
     meta,
     branchId: req.branchId,
+    companyId: req.companyId,
   });
 
   const obj = log.toObject();

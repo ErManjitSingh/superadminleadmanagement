@@ -42,8 +42,19 @@ API.interceptors.response.use(
   },
   (error) => {
     const isLogoutRequest = error.config?.url?.includes('/auth/logout');
-    if (error.response?.status === 401 && !isLogoutRequest) {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || '';
+    if (status === 401 && !isLogoutRequest) {
       authStorage.clearSession();
+      if (!window.location.pathname.endsWith('/login')) {
+        goToLogin();
+      }
+    } else if (
+      status === 403
+      && /access denied for this tenant|tenant context required/i.test(message)
+    ) {
+      authStorage.clearSession();
+      try { localStorage.removeItem('tenant_subdomain'); } catch { /* ignore */ }
       if (!window.location.pathname.endsWith('/login')) {
         goToLogin();
       }

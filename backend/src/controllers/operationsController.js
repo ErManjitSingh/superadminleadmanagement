@@ -142,7 +142,7 @@ const getTransport = asyncHandler(async (req, res) => {
 });
 
 const listActivities = asyncHandler(async (req, res) => {
-  const activities = await Activity.find().populate('vendor', 'name').sort({ createdAt: -1 }).lean();
+  const activities = await Activity.find(tenantFilter({}, req)).populate('vendor', 'name').sort({ createdAt: -1 }).lean();
   res.json(activities);
 });
 
@@ -181,7 +181,7 @@ const deleteActivity = asyncHandler(async (req, res) => {
 });
 
 const listVendors = asyncHandler(async (req, res) => {
-  const filter = {};
+  const filter = tenantFilter({}, req);
   if (req.query.type) filter.type = req.query.type === 'cab' ? 'transport' : req.query.type;
   if (req.query.search) {
     filter.$or = [
@@ -336,12 +336,15 @@ const getProfile = asyncHandler(async (req, res) => {
       roleName: 'Operations Manager',
       department: req.user.department || 'Operations',
     },
-    stats: { bookingsManaged: await Booking.countDocuments() },
+    stats: { bookingsManaged: await Booking.countDocuments(tenantFilter({}, req)) },
   });
 });
 
 const getCalendar = asyncHandler(async (req, res) => {
-  const bookings = await Booking.find({ travelDate: { $exists: true }, archivedAt: { $exists: false } }).lean();
+  const bookings = await Booking.find(tenantFilter({
+    travelDate: { $exists: true },
+    archivedAt: { $exists: false },
+  }, req)).lean();
   const events = bookings.map((b) => ({
     _id: b._id,
     title: `${b.customerName} — ${b.destination}`,

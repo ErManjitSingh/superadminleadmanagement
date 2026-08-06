@@ -20,13 +20,14 @@ const {
 } = require('../services/leadAnalyticsService');
 const { getSlaDashboard } = require('../services/slaService');
 const { listBranchAuditLogs } = require('../services/leadAuditService');
-const { companyScopedIdFilter } = require('../utils/tenantDocument');
+const { companyScopedIdFilter, tenantFilter } = require('../utils/tenantDocument');
 const checkDuplicate = asyncHandler(async (req, res) => {
   const { phone, alternatePhone, excludeId } = req.query;
   const duplicates = await findDuplicateLeads({
     phone,
     alternatePhone,
     branchId: req.branchId,
+    companyId: req.companyId,
     excludeId,
   });
 
@@ -88,10 +89,7 @@ const getAudit = asyncHandler(async (req, res) => {
 
 const listRecycleBin = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query);
-  const filter = {
-    isDeleted: true,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  };
+  const filter = tenantFilter({ isDeleted: true }, req);
   const [rows, total] = await Promise.all([
     Lead.find(filter).populate(LEAD_POPULATE).sort({ deletedAt: -1 }).skip(skip).limit(limit).lean(),
     Lead.countDocuments(filter),
@@ -101,9 +99,8 @@ const listRecycleBin = asyncHandler(async (req, res) => {
 
 const restoreLead = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({
-    _id: req.params.id,
+    ...companyScopedIdFilter(req.params.id, req),
     isDeleted: true,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
   });
   if (!lead) throw new ApiError(404, 'Deleted lead not found');
 
@@ -134,9 +131,8 @@ const restoreLead = asyncHandler(async (req, res) => {
 
 const permanentDeleteLead = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({
-    _id: req.params.id,
+    ...companyScopedIdFilter(req.params.id, req),
     isDeleted: true,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
   });
   if (!lead) throw new ApiError(404, 'Deleted lead not found in recycle bin');
   await lead.deleteOne();
@@ -144,7 +140,7 @@ const permanentDeleteLead = asyncHandler(async (req, res) => {
 });
 
 const getAgingAnalytics = asyncHandler(async (req, res) => {
-  const match = { isDeleted: { $ne: true }, ...(req.branchId ? { branchId: req.branchId } : {}) };
+  const match = tenantFilter({ isDeleted: { $ne: true } }, req);
   const buckets = await Lead.aggregate([
     { $match: match },
     { $group: { _id: '$agingBucket', count: { $sum: 1 } } },
@@ -234,11 +230,10 @@ const bulkUpdateStatus = asyncHandler(async (req, res) => {
   if (!Array.isArray(leadIds) || !leadIds.length) throw new ApiError(400, 'leadIds required');
   if (!status) throw new ApiError(400, 'status required');
 
-  const filter = {
+  const filter = tenantFilter({
     _id: { $in: leadIds },
     isDeleted: { $ne: true },
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  };
+  }, req);
 
   const leads = await Lead.find(filter);
   if (!leads.length) throw new ApiError(404, 'No matching leads found');
@@ -267,11 +262,10 @@ const bulkExportLeads = asyncHandler(async (req, res) => {
   const { leadIds } = req.body;
   if (!Array.isArray(leadIds) || !leadIds.length) throw new ApiError(400, 'leadIds required');
 
-  const filter = {
+  const filter = tenantFilter({
     _id: { $in: leadIds },
     isDeleted: { $ne: true },
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  };
+  }, req);
 
   const leads = await Lead.find(filter).populate(LEAD_POPULATE).lean();
   const headers = [
@@ -318,6 +312,7 @@ const mergeDuplicateLeads = asyncHandler(async (req, res) => {
     targetLeadId,
     actor: req.user,
     branchId: req.branchId,
+    companyId: req.companyId,
     ip: getClientIp(req),
   });
 
@@ -326,10 +321,7 @@ const mergeDuplicateLeads = asyncHandler(async (req, res) => {
 });
 
 const getTransferHistory = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({
-    _id: req.params.id,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  }).select('_id');
+  const lead = await Lead.findOne(companyScopedIdFilter(req.params.id, req)).select('_id');
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   const result = await getLeadTransferHistory(lead._id, {

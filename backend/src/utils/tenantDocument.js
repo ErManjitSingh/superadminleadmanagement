@@ -1,16 +1,23 @@
 const ApiError = require('./apiError');
 const { withCompany, normalizeCompanyId } = require('./branchScope');
 
+function requireCompanyId(req) {
+  if (!req?.companyId) {
+    throw new ApiError(403, 'Tenant context required');
+  }
+  return normalizeCompanyId(req.companyId);
+}
+
 function tenantFilter(filter = {}, req) {
-  return withCompany(filter, req?.companyId || null);
+  const companyId = requireCompanyId(req);
+  return withCompany(filter, companyId);
 }
 
 function companyScopedIdFilter(id, req) {
-  const filter = { _id: id };
-  if (req?.companyId) {
-    filter.companyId = normalizeCompanyId(req.companyId);
-  }
-  return filter;
+  return {
+    _id: id,
+    companyId: requireCompanyId(req),
+  };
 }
 
 function assertTenantDocument(doc, req, label = 'Resource') {
@@ -25,4 +32,5 @@ module.exports = {
   tenantFilter,
   companyScopedIdFilter,
   assertTenantDocument,
+  requireCompanyId,
 };

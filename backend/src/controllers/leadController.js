@@ -43,7 +43,7 @@ const { logLeadActivity } = require('../services/leadActivityService');
 const { logLeadTransfer } = require('../services/leadTransferService');
 const { logAudit, diffLeadChanges } = require('../services/leadAuditService');
 const { applyLeadMetrics } = require('../services/leadScoringService');
-const { companyScopedIdFilter } = require('../utils/tenantDocument');
+const { companyScopedIdFilter, tenantFilter } = require('../utils/tenantDocument');
 const {
   getLeaderLeadScopeFilter,
   getExecutiveIdsForLeader,
@@ -188,17 +188,18 @@ const listLostLeads = asyncHandler(async (req, res) => {
   const { page, limit, skip } = parsePagination(req.query, { defaultLimit: 20, maxLimit: 100 });
   const search = req.query.search?.trim();
   const filter = {
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-    status: { $in: LOST_LEAD_STATUSES },
-    ...(search
-      ? {
-          $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { phone: { $regex: search, $options: 'i' } },
-            { destination: { $regex: search, $options: 'i' } },
-          ],
-        }
-      : {}),
+    ...tenantFilter({
+      status: { $in: LOST_LEAD_STATUSES },
+      ...(search
+        ? {
+            $or: [
+              { name: { $regex: search, $options: 'i' } },
+              { phone: { $regex: search, $options: 'i' } },
+              { destination: { $regex: search, $options: 'i' } },
+            ],
+          }
+        : {}),
+    }, req),
   };
   const [rows, total] = await Promise.all([
     Lead.find(filter).populate(LEAD_POPULATE).sort({ updatedAt: -1 }).skip(skip).limit(limit).lean(),
@@ -371,7 +372,7 @@ const seedDemoLeads = asyncHandler(async (req, res) => {
 });
 
 const clearAllLeads = asyncHandler(async (req, res) => {
-  const deleted = await clearAllLeadsData();
+  const deleted = await clearAllLeadsData(req.companyId);
 
   await logActivity({
     type: 'lead_action',
@@ -503,8 +504,7 @@ const updateLead = asyncHandler(async (req, res) => {
 
 const deleteLead = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne({
-    _id: req.params.id,
-    ...(req.branchId ? { branchId: req.branchId } : {}),
+    ...companyScopedIdFilter(req.params.id, req),
     isDeleted: { $ne: true },
   });
   if (!lead) throw new ApiError(404, 'Lead not found');
@@ -596,7 +596,7 @@ const reactivateLead = asyncHandler(async (req, res) => {
 });
 
 const reassignReactivatedLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne(companyScopedIdFilter(req.params.id, req));
   if (!lead) throw new ApiError(404, 'Lead not found');
   await assertLeadReactivationAccess(req, lead);
   if (!lead.reactivation?.isReactivated || lead.status !== 'reactivated') {
@@ -631,7 +631,7 @@ const reassignReactivatedLead = asyncHandler(async (req, res) => {
 });
 
 const updateReactivationStage = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({ _id: req.params.id, ...(req.branchId ? { branchId: req.branchId } : {}) });
+  const lead = await Lead.findOne(companyScopedIdFilter(req.params.id, req));
   if (!lead) throw new ApiError(404, 'Lead not found');
   await assertLeadReactivationAccess(req, lead);
   if (!lead.reactivation?.isReactivated) throw new ApiError(400, 'Lead is not reactivated');
