@@ -1,28 +1,34 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Outfit, Figtree } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
-const displayFont = Plus_Jakarta_Sans({
+const displayFont = Outfit({
   subsets: ["latin"],
   variable: "--font-display",
   weight: ["500", "600", "700", "800"],
 });
 
+const bodyFont = Figtree({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: {
-    default: `${siteConfig.name} — AI-Powered Travel Business Platform`,
+    default: `${siteConfig.name} — Holiday Packages Across India`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   keywords: [
-    "travel CRM",
-    "travel agency software",
-    "lead management",
-    "quotation builder",
-    "booking management",
+    "India holiday packages",
+    "Goa tour package",
+    "Kerala honeymoon",
+    "Himachal packages",
+    "Rajasthan tour",
+    "India Holiday Destination",
   ],
   openGraph: {
     title: siteConfig.name,
@@ -39,7 +45,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${GeistSans.className} ${displayFont.variable} min-h-screen antialiased`}>
+      <body className={`${bodyFont.className} ${displayFont.variable} min-h-screen antialiased`}>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

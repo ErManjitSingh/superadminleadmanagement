@@ -1,39 +1,31 @@
 "use client";
 
-import { Star } from "lucide-react";
-import { SectionHeading, StaggerContainer, StaggerItem } from "@/components/effects/FadeIn";
 import { testimonials } from "@/lib/data";
+import { FadeIn, StaggerContainer, StaggerItem } from "@/components/effects/FadeIn";
 
 export function Testimonials() {
   return (
-    <section id="testimonials" className="section-muted section-padding">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          title="Loved by Travel Companies"
-          subtitle="See what travel business owners say about Travel CRM."
-          theme="light"
-        />
+    <section id="testimonials" className="section-padding bg-[var(--ink)] text-white">
+      <div className="mx-auto max-w-7xl">
+        <FadeIn className="mb-14 mx-auto max-w-2xl text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[var(--coral)]">
+            Traveller stories
+          </p>
+          <h2 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
+            Loved by families, couples & groups
+          </h2>
+        </FadeIn>
 
-        <StaggerContainer className="grid gap-6 md:grid-cols-3">
+        <StaggerContainer className="grid gap-6 lg:grid-cols-3">
           {testimonials.map((t) => (
-            <StaggerItem key={t.author}>
-              <div className="card-light flex h-full flex-col">
-                <div className="mb-4 flex gap-0.5">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="flex-1 text-sm leading-relaxed text-slate-600">&ldquo;{t.quote}&rdquo;</p>
-                <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full gradient-purple text-sm font-bold text-white">
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="font-display text-sm font-bold text-slate-900">{t.author}</p>
-                    <p className="text-xs text-slate-500">{t.role}</p>
-                  </div>
-                </div>
-              </div>
+            <StaggerItem key={t.name}>
+              <blockquote className="flex h-full flex-col rounded-3xl border border-white/10 bg-white/5 p-7 backdrop-blur-sm">
+                <p className="flex-1 text-base leading-relaxed text-white/80">&ldquo;{t.quote}&rdquo;</p>
+                <footer className="mt-6 border-t border-white/10 pt-5">
+                  <cite className="not-italic font-display text-lg font-bold text-white">{t.name}</cite>
+                  <p className="mt-0.5 text-sm text-white/45">{t.trip}</p>
+                </footer>
+              </blockquote>
             </StaggerItem>
           ))}
         </StaggerContainer>

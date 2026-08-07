@@ -1,176 +1,225 @@
 import {
-  BarChart3,
-  Bell,
-  Building2,
-  Bus,
-  ClipboardList,
-  Clock,
-  FileText,
-  Hotel,
-  Mail,
-  MessageCircle,
-  Shield,
-  Target,
-  TrendingUp,
-  Truck,
-  UserCheck,
+  Compass,
+  Headphones,
+  HeartHandshake,
+  MapPinned,
+  ShieldCheck,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
 export const navLinks = [
-  { label: "Home", href: "#" },
-  { label: "Features", href: "#features" },
-  { label: "Modules", href: "#modules" },
-  { label: "Solutions", href: "#comparison" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Testimonials", href: "#testimonials" },
-  { label: "Help", href: "#faq" },
+  { label: "Packages", href: "#packages" },
+  { label: "Destinations", href: "#destinations" },
+  { label: "Why Us", href: "#why-us" },
+  { label: "How It Works", href: "#how-it-works" },
+  { label: "Stories", href: "#testimonials" },
   { label: "Contact", href: "#contact" },
 ];
 
-export const heroStats = [
-  { value: "100+", label: "Travel Companies" },
-  { value: "10,00,000+", label: "Leads Managed" },
-  { value: "99.9%", label: "Uptime" },
-  { value: "24/7", label: "Support" },
-];
-
-export const trustLogos = [
-  "Thomas Cook",
-  "SOTC",
-  "MakeMyTrip",
-  "Yatra",
-  "Airbnb",
-  "Expedia",
-  "Cleartrip",
-  "Goibibo",
-];
-
-export const featureCards: { title: string; description: string; icon: LucideIcon }[] = [
-  { title: "Lead Management", description: "Capture, assign and track every travel inquiry in one place.", icon: Target },
-  { title: "Quotation Builder", description: "Create professional travel quotes with hotels, transport and margins.", icon: FileText },
-  { title: "Operations Management", description: "Coordinate hotels, cabs, activities and vendors seamlessly.", icon: ClipboardList },
-  { title: "Hotel Management", description: "Maintain a searchable hotel database with rates and contacts.", icon: Hotel },
-  { title: "Transport Management", description: "Manage fleet, drivers and transfer schedules effortlessly.", icon: Bus },
-  { title: "Vendor Management", description: "Build trusted vendor relationships with full performance history.", icon: Truck },
-  { title: "Attendance", description: "Track team presence and working hours across branches.", icon: UserCheck },
-  { title: "WhatsApp Integration", description: "Native WhatsApp inbox with lead capture and templates.", icon: MessageCircle },
-  { title: "Email Integration", description: "Email templates, tracking and activity logs built in.", icon: Mail },
-  { title: "Follow-up Automation", description: "Never miss a follow-up with smart reminders and SLAs.", icon: Clock },
-  { title: "Reminder Center", description: "Central hub for all tasks, calls and pending actions.", icon: Bell },
-  { title: "Analytics", description: "Real-time dashboards with conversion and revenue insights.", icon: TrendingUp },
-  { title: "Reports", description: "Exportable sales, ops and team performance reports.", icon: BarChart3 },
-  { title: "Role Management", description: "Granular permissions for every team member and branch.", icon: Shield },
-  { title: "Branch Management", description: "Manage multiple offices with branch-scoped data.", icon: Building2 },
-];
-
-export const moduleTabs = [
-  { id: "leads", title: "Lead Management", description: "Capture leads from WhatsApp, email, website and walk-ins. Auto-assign to the right executive instantly." },
-  { id: "quotations", title: "Quotation Management", description: "Build beautiful PDF quotations with hotels, transport and activities. Track approvals and conversions." },
-  { id: "operations", title: "Operations Management", description: "Execute trips flawlessly with hotel, cab and vendor coordination from one hub." },
-  { id: "bookings", title: "Booking Management", description: "Manage the full booking lifecycle — payments, vouchers and customer communication." },
-  { id: "reports", title: "Reports & Analytics", description: "Data-driven decisions with sales, team and operations reports in real time." },
-];
-
-export const comparisonColumns = [
-  { key: "traditional", label: "Traditional", negative: true },
-  { key: "excel", label: "Excel / Manual", negative: true },
-  { key: "whatsapp", label: "WhatsApp / Calls", negative: true },
-  { key: "crm", label: "Travel CRM", negative: false },
-];
-
-export const comparisonRows = [
-  { feature: "Lead Tracking", traditional: "Difficult", excel: "Manual", whatsapp: "Messy", crm: "Centralized" },
-  { feature: "Follow-ups", traditional: "Missed", excel: "Forgotten", whatsapp: "Scattered", crm: "Automated" },
-  { feature: "Quotations", traditional: "Slow", excel: "Error-prone", whatsapp: "Unprofessional", crm: "Fast & Branded" },
-  { feature: "Team Management", traditional: "Chaotic", excel: "No visibility", whatsapp: "No tracking", crm: "Organized" },
-  { feature: "Reports", traditional: "None", excel: "Manual", whatsapp: "None", crm: "Real-time" },
-  { feature: "Scalability", traditional: "Limited", excel: "Breaks", whatsapp: "Breaks", crm: "Unlimited" },
-];
-
-export const switchBenefits = [
-  "Easy to use — no training required",
-  "Reduce errors and double data entry",
-  "Improve team efficiency by 40%",
-  "Scale from 1 to 100+ users",
-  "24/7 cloud access from anywhere",
-  "Dedicated support & onboarding",
-];
-
-export const statsBar = [
-  { value: "100+", label: "Travel Companies" },
-  { value: "10,00,000+", label: "Leads Managed" },
-  { value: "50,00,000+", label: "Follow-ups Done" },
-  { value: "1,00,000+", label: "Quotations Created" },
-  { value: "25,000+", label: "Bookings Confirmed" },
-];
-
-export const pricingPlans = [
+export const packages: {
+  id: string;
+  title: string;
+  location: string;
+  duration: string;
+  priceFrom: string;
+  tag: string;
+  highlights: string[];
+  image: string;
+  imageAlt: string;
+}[] = [
   {
-    name: "Starter",
-    slug: "starter",
-    monthly: 29,
-    yearly: 23,
-    description: "Perfect for small travel agencies getting started.",
-    features: ["Up to 5 users", "Lead management", "Quotation builder", "WhatsApp integration", "Basic reports", "Email support"],
-    popular: false,
+    id: "goa-beach",
+    title: "Goa Beach Bliss",
+    location: "North & South Goa",
+    duration: "4N / 5D",
+    priceFrom: "₹12,999",
+    tag: "Beach",
+    highlights: ["Beachfront stay", "Water sports", "Sunset cruise"],
+    image:
+      "https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Goa beach coastline at sunset",
   },
   {
-    name: "Professional",
-    slug: "professional",
-    monthly: 79,
-    yearly: 63,
-    description: "For growing teams that need full operations control.",
-    features: ["Up to 25 users", "Everything in Starter", "Operations module", "Hotel & transport DB", "Attendance tracking", "Advanced analytics", "Priority support"],
-    popular: true,
+    id: "kerala-backwaters",
+    title: "Kerala Backwater Escape",
+    location: "Alleppey · Kochi · Munnar",
+    duration: "5N / 6D",
+    priceFrom: "₹18,499",
+    tag: "Nature",
+    highlights: ["Houseboat night", "Tea gardens", "Ayurveda spa"],
+    image:
+      "https://images.unsplash.com/photo-1602216056336-8b5a9d71098e?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Kerala backwaters with palm trees",
   },
   {
-    name: "Enterprise",
-    slug: "enterprise",
-    monthly: 149,
-    yearly: 119,
-    description: "For large travel companies with multiple branches.",
-    features: ["Unlimited users", "Everything in Professional", "Multi-branch management", "Custom roles", "Audit logs", "API access", "Dedicated manager", "24/7 phone support"],
-    popular: false,
+    id: "himachal-hills",
+    title: "Himachal Hill Retreat",
+    location: "Manali · Solang · Kasol",
+    duration: "5N / 6D",
+    priceFrom: "₹16,999",
+    tag: "Mountains",
+    highlights: ["Snow peaks", "Adventure day", "Café trails"],
+    image:
+      "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Himachal Pradesh mountain landscape",
+  },
+  {
+    id: "rajasthan-royal",
+    title: "Royal Rajasthan Trail",
+    location: "Jaipur · Udaipur · Jodhpur",
+    duration: "6N / 7D",
+    priceFrom: "₹22,499",
+    tag: "Heritage",
+    highlights: ["Palace hotels", "Desert sunset", "Cultural shows"],
+    image:
+      "https://images.unsplash.com/photo-1477587458883-471945f94173?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Rajasthan palace and desert architecture",
+  },
+  {
+    id: "kashmir-valley",
+    title: "Kashmir Valley Dreams",
+    location: "Srinagar · Gulmarg · Pahalgam",
+    duration: "5N / 6D",
+    priceFrom: "₹24,999",
+    tag: "Valley",
+    highlights: ["Shikara ride", "Gulmarg gondola", "Houseboat stay"],
+    image:
+      "https://images.unsplash.com/photo-1595815771614-ade9d652a65d?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Dal Lake Srinagar with mountains",
+  },
+  {
+    id: "andaman-islands",
+    title: "Andaman Island Hop",
+    location: "Port Blair · Havelock · Neil",
+    duration: "5N / 6D",
+    priceFrom: "₹28,999",
+    tag: "Islands",
+    highlights: ["Scuba / snorkel", "Radhanagar Beach", "Ferry hops"],
+    image:
+      "https://images.unsplash.com/photo-1586500036706-41963de24d8b?auto=format&fit=crop&w=1200&q=80",
+    imageAlt: "Andaman turquoise beach and clear water",
+  },
+];
+
+export const destinations: {
+  name: string;
+  blurb: string;
+  image: string;
+}[] = [
+  {
+    name: "Goa",
+    blurb: "Beaches, nightlife & Portuguese charm",
+    image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Kerala",
+    blurb: "Backwaters, hills & quiet luxury",
+    image:
+      "https://images.unsplash.com/photo-1593693397690-362cb9666fc2?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Himachal",
+    blurb: "Alpine towns & adventure trails",
+    image:
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    name: "Rajasthan",
+    blurb: "Forts, deserts & royal stays",
+    image:
+      "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=900&q=80",
+  },
+];
+
+export const whyUs: { title: string; description: string; icon: LucideIcon }[] = [
+  {
+    title: "Curated packages",
+    description: "Every itinerary is built by travel experts who know the destination inside out.",
+    icon: Sparkles,
+  },
+  {
+    title: "Transparent pricing",
+    description: "Clear inclusions, no last-minute surprises — what you see is what you pay.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Local experiences",
+    description: "Stay, eat and explore like a local with handpicked stays and activities.",
+    icon: MapPinned,
+  },
+  {
+    title: "24×7 trip support",
+    description: "From booking to return, our team stays one message away for any help.",
+    icon: Headphones,
+  },
+  {
+    title: "Flexible customisation",
+    description: "Honeymoon, family, group or solo — we reshape packages around your dates.",
+    icon: Compass,
+  },
+  {
+    title: "Trusted partnerships",
+    description: "Verified hotels, drivers and vendors so your holiday stays smooth end to end.",
+    icon: HeartHandshake,
+  },
+];
+
+export const howItWorks = [
+  {
+    step: "01",
+    title: "Pick a package",
+    description: "Browse destinations and choose a package that matches your vibe and budget.",
+  },
+  {
+    step: "02",
+    title: "Tell us your dates",
+    description: "Share travel dates, group size and preferences — we fine-tune the itinerary.",
+  },
+  {
+    step: "03",
+    title: "Confirm & travel",
+    description: "Lock hotels and transfers, get vouchers, and enjoy your India holiday.",
   },
 ];
 
 export const testimonials = [
   {
-    quote: "We replaced 12 Excel sheets with Travel CRM. Our team closes 40% more bookings because nothing falls through the cracks anymore.",
-    author: "Rajesh Mehta",
-    role: "CEO, Golden Triangle Tours",
-    avatar: "RM",
-    rating: 5,
+    quote:
+      "Our Kerala honeymoon was flawless — houseboat, Munnar and every transfer was on time. Felt premium without the stress.",
+    name: "Ananya & Rohan",
+    trip: "Kerala Backwater Escape",
   },
   {
-    quote: "The quotation builder alone saved us 3 hours per day. Clients love the professional PDFs and our conversion rate has doubled.",
-    author: "Priya Sharma",
-    role: "Sales Director, Himalaya Voyages",
-    avatar: "PS",
-    rating: 5,
+    quote:
+      "Booked Goa for my family of six. Kids loved the water sports and the hotel was exactly as promised. Will book again.",
+    name: "Vikram Shah",
+    trip: "Goa Beach Bliss",
   },
   {
-    quote: "Managing 4 branches was chaos before. Now I see everything — leads, operations, attendance — from one dashboard.",
-    author: "Amit Patel",
-    role: "Operations Head, Coastal Escapes",
-    avatar: "AP",
-    rating: 5,
+    quote:
+      "Himachal in winter can be tricky, but their team handled snow routes and hotel changes without fuss. Highly recommended.",
+    name: "Neha Kapoor",
+    trip: "Himachal Hill Retreat",
   },
 ];
 
-export const faqs = [
-  { q: "What is Travel CRM?", a: "Travel CRM is an all-in-one platform built specifically for travel companies — covering leads, quotations, bookings, operations, WhatsApp, email and team management." },
-  { q: "Is there a free trial?", a: "Yes! Start a 14-day free trial with full access. No credit card required." },
-  { q: "Can I migrate from Excel?", a: "Absolutely. We offer data import assistance and onboarding support to get you set up quickly." },
-  { q: "Is my data secure?", a: "Enterprise-grade encryption, role-based access, audit logs and per-company data isolation." },
-  { q: "Does it support multiple branches?", a: "Yes. Professional and Enterprise plans include multi-branch management with consolidated reporting." },
-  { q: "Do you offer training?", a: "All plans include email support. Professional gets priority support and Enterprise includes a dedicated account manager." },
-];
-
-export const heroFloatingCards = [
-  { label: "New Lead", sub: "Goa Package — Rajesh K.", color: "border-violet-500/30 bg-violet-500/10" },
-  { label: "Booking Confirmed", sub: "Himachal — 6 pax", color: "border-emerald-500/30 bg-emerald-500/10" },
-  { label: "Payment Received", sub: "₹45,000 advance", color: "border-blue-500/30 bg-blue-500/10" },
-  { label: "Hot Lead", sub: "Kerala Honeymoon", color: "border-rose-500/30 bg-rose-500/10" },
+export const faqItems = [
+  {
+    q: "Can I customise a package?",
+    a: "Yes. Every package can be adjusted for dates, hotels, activities and group size. Share your preferences and we will reshape the itinerary.",
+  },
+  {
+    q: "What is included in the price?",
+    a: "Most packages include stays, daily breakfast, sightseeing as listed, and airport/railway transfers. Flights are usually optional add-ons unless mentioned.",
+  },
+  {
+    q: "How do I book?",
+    a: "Choose a package, send an enquiry via WhatsApp or the contact form, confirm the itinerary, and pay the advance to lock your dates.",
+  },
+  {
+    q: "Do you arrange flights?",
+    a: "We can arrange domestic flights and train tickets on request, or you can book your own and we handle the ground package.",
+  },
 ];

@@ -11,9 +11,9 @@ export default function SignupRedirectPage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0b0b14] text-white">
-      <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
-      <p className="text-sm text-white/60">Opening signup wizard…</p>
+    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--ink)] text-white">
+      <Loader2 className="h-8 w-8 animate-spin text-[var(--coral)]" />
+      <p className="text-sm text-white/60">Opening CRM signup…</p>
     </div>
   );
 }

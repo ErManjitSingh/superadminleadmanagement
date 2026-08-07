@@ -96,8 +96,9 @@ cd "$APP_ROOT/marketing"
 npm install
 npm run build
 
-echo "==> Publish marketing site to public_html root..."
-rsync -a --delete "$APP_ROOT/marketing/out/" "$WEB_ROOT/"
+echo "==> Publish marketing site to public_html root (preserve /app + /uploads)..."
+# Never wipe CRM SPA or uploaded media when syncing static marketing export
+rsync -a --delete --exclude 'app/' --exclude 'uploads/' "$APP_ROOT/marketing/out/" "$WEB_ROOT/"
 
 echo "==> Publish CRM to public_html/app/..."
 mkdir -p "$WEB_ROOT/app"

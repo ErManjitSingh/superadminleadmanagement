@@ -1,32 +1,41 @@
 "use client";
 
+import { faqItems } from "@/lib/data";
+import { FadeIn } from "@/components/effects/FadeIn";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { SectionHeading, FadeIn } from "@/components/effects/FadeIn";
-import { faqs } from "@/lib/data";
 
 export function FAQ() {
   return (
-    <section id="faq" className="section-light section-padding">
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          title="Frequently Asked Questions"
-          subtitle="Everything you need to know before getting started."
-          theme="light"
-        />
+    <section id="faq" className="section-padding bg-[var(--sand)]">
+      <div className="mx-auto max-w-3xl">
+        <FadeIn className="mb-12 text-center">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[var(--lagoon)]">
+            FAQs
+          </p>
+          <h2 className="font-display text-3xl font-extrabold tracking-tight text-[var(--ink)] sm:text-4xl">
+            Before you pack your bags
+          </h2>
+        </FadeIn>
 
-        <FadeIn>
-          <Accordion type="single" collapsible className="rounded-2xl border border-slate-200 bg-white px-6 shadow-card">
-            {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="border-slate-100">
-                <AccordionTrigger className="text-left font-display font-semibold text-slate-900 hover:text-violet-600">
-                  {faq.q}
+        <FadeIn delay={0.1}>
+          <Accordion type="single" collapsible className="space-y-3">
+            {faqItems.map((item, i) => (
+              <AccordionItem
+                key={item.q}
+                value={`item-${i}`}
+                className="rounded-2xl border border-[var(--ink)]/8 bg-white px-5"
+              >
+                <AccordionTrigger className="text-left font-display text-base font-semibold text-[var(--ink)] hover:no-underline">
+                  {item.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-slate-500">{faq.a}</AccordionContent>
+                <AccordionContent className="text-sm leading-relaxed text-[var(--ink)]/60">
+                  {item.a}
+                </AccordionContent>
               </AccordionItem>
             ))}
           </Accordion>
