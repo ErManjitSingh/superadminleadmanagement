@@ -1,35 +1,42 @@
+import { heroImage } from "@/lib/data";
 import { siteConfig } from "@/lib/config";
 
 export function Hero() {
   return (
-    <section className="relative min-h-[88svh] overflow-hidden bg-[var(--ink)]">
-      {/* CSS-only atmosphere — no hero image download */}
-      <div
-        className="absolute inset-0 opacity-80"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 70% 20%, rgba(26,122,114,0.45), transparent 55%), radial-gradient(ellipse 50% 40% at 10% 80%, rgba(232,72,46,0.22), transparent 50%), linear-gradient(160deg, #0c2426 0%, #134e4a 55%, #0c2426 100%)",
-        }}
+    <section className="relative min-h-[100svh] overflow-hidden">
+      <img
+        src={heroImage}
+        alt=""
+        width={1600}
+        height={1000}
+        fetchPriority="high"
+        decoding="async"
+        className="anim-kenburns absolute inset-0 h-full w-full object-cover"
         aria-hidden
       />
-      <div className="hero-wash absolute inset-0" aria-hidden />
+      <div className="hero-veil absolute inset-0" aria-hidden />
 
-      <div className="relative mx-auto flex min-h-[88svh] max-w-6xl flex-col justify-end px-4 pb-14 pt-24 sm:px-6 sm:pb-16 lg:justify-center lg:pb-20">
-        <p className="hero-enter font-display text-2xl font-bold tracking-tight text-white sm:text-3xl lg:text-4xl">
+      <div className="relative mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-end px-4 pb-16 pt-28 sm:px-6 sm:pb-20 lg:justify-center lg:px-8 lg:pb-24">
+        <p className="anim-rise font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
           India Holiday Destination
         </p>
-        <div className="hero-enter hero-enter-d1 mt-3 h-0.5 w-20 bg-[var(--coral)]" />
-        <h1 className="hero-enter hero-enter-d2 mt-5 max-w-2xl font-display text-3xl font-bold leading-tight text-white sm:text-4xl lg:text-5xl">
-          Holiday packages that feel like home across India
+
+        <div className="anim-line mt-5 h-[3px] w-28 bg-[var(--coral)] sm:w-36" />
+
+        <h1 className="anim-rise anim-rise-2 mt-7 max-w-3xl font-display text-[2rem] font-bold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-[3.4rem]">
+          Holidays that feel like home — across every corner of India
         </h1>
-        <p className="hero-enter hero-enter-d3 mt-4 max-w-lg text-base text-white/70">
-          Beaches, mountains, heritage trails — curated stays and transfers, ready for your dates.
+
+        <p className="anim-rise anim-rise-3 mt-5 max-w-xl text-base leading-relaxed text-white/78 sm:text-lg">
+          Handpicked packages for beaches, mountains, heritage cities and islands —
+          with stays, transfers and local experiences ready for your dates.
         </p>
-        <div className="hero-enter hero-enter-d3 mt-8 flex flex-wrap gap-3">
+
+        <div className="anim-rise anim-rise-4 mt-9 flex flex-wrap items-center gap-3">
           <a href="#packages" className="btn-primary">
-            Explore Packages
+            Explore packages
           </a>
-          <a href={siteConfig.whatsapp} target="_blank" rel="noreferrer" className="btn-secondary">
+          <a href={siteConfig.whatsapp} target="_blank" rel="noreferrer" className="btn-ghost">
             Enquire on WhatsApp
           </a>
         </div>

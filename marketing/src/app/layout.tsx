@@ -1,12 +1,19 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Syne, DM_Sans } from "next/font/google";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
-const font = Outfit({
+const display = Syne({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "700"],
+  weight: ["600", "700", "800"],
+  display: "swap",
+});
+
+const body = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -39,7 +46,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${font.className} ${font.variable} min-h-screen antialiased`}>
+      <body className={`${body.className} ${display.variable} ${body.variable} min-h-screen antialiased`}>
         {children}
       </body>
     </html>

@@ -4,11 +4,12 @@
 
 @layer base {
   :root {
-    --ink: #0c2426;
-    --lagoon: #1a7a72;
-    --coral: #e8482e;
-    --sand: #f5f8f7;
-    --mist: #e8f1ef;
+    --ink: #071c1e;
+    --lagoon: #0f766e;
+    --coral: #e23e2b;
+    --sand: #f3f7f6;
+    --mist: #e4efed;
+    --glow: #f0c27a;
   }
 
   html {
@@ -16,7 +17,12 @@
   }
 
   body {
-    @apply bg-[var(--sand)] text-[var(--ink)] antialiased;
+    background: var(--sand);
+    color: var(--ink);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--lagoon) 28%, white);
   }
 }
 
@@ -25,46 +31,34 @@
     font-family: var(--font-display), system-ui, sans-serif;
   }
 
-  .section-padding {
-    @apply px-4 py-16 sm:px-6 lg:px-8 lg:py-20;
+  .section-pad {
+    @apply px-4 py-20 sm:px-6 lg:px-8 lg:py-28;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[var(--coral)] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[var(--coral)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_14px_36px_-10px_rgba(226,62,43,0.55)] transition duration-300 hover:-translate-y-0.5 hover:brightness-110;
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/35 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20;
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/35 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition duration-300 hover:bg-white/20;
   }
 
-  .hero-wash {
-    background: linear-gradient(
-      180deg,
-      rgba(8, 28, 30, 0.5) 0%,
-      rgba(8, 28, 30, 0.78) 55%,
-      rgba(8, 28, 30, 0.94) 100%
-    );
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-[var(--ink)]/15 bg-white px-7 py-3.5 text-sm font-semibold text-[var(--ink)] transition duration-300 hover:border-[var(--lagoon)] hover:text-[var(--lagoon)];
   }
 
-  .dest-goa {
-    background: linear-gradient(145deg, #0e7490, #155e75);
-  }
-  .dest-kerala {
-    background: linear-gradient(145deg, #15803d, #166534);
-  }
-  .dest-himachal {
-    background: linear-gradient(145deg, #475569, #1e3a5f);
-  }
-  .dest-rajasthan {
-    background: linear-gradient(145deg, #c2410c, #9a3412);
+  .hero-veil {
+    background:
+      linear-gradient(105deg, rgba(7, 28, 30, 0.88) 0%, rgba(7, 28, 30, 0.55) 48%, rgba(7, 28, 30, 0.35) 100%),
+      linear-gradient(180deg, rgba(7, 28, 30, 0.25) 0%, rgba(7, 28, 30, 0.75) 100%);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  @keyframes hero-fade {
+  @keyframes rise {
     from {
       opacity: 0;
-      transform: translateY(12px);
+      transform: translateY(22px);
     }
     to {
       opacity: 1;
@@ -72,16 +66,46 @@
     }
   }
 
-  .hero-enter {
-    animation: hero-fade 0.6s ease-out both;
+  @keyframes line-grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
   }
-  .hero-enter-d1 {
-    animation-delay: 0.1s;
+
+  @keyframes kenburns {
+    from {
+      transform: scale(1);
+    }
+    to {
+      transform: scale(1.08);
+    }
   }
-  .hero-enter-d2 {
-    animation-delay: 0.2s;
+
+  .anim-rise {
+    animation: rise 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
-  .hero-enter-d3 {
-    animation-delay: 0.3s;
+  .anim-rise-1 {
+    animation-delay: 0.12s;
+  }
+  .anim-rise-2 {
+    animation-delay: 0.24s;
+  }
+  .anim-rise-3 {
+    animation-delay: 0.36s;
+  }
+  .anim-rise-4 {
+    animation-delay: 0.48s;
+  }
+
+  .anim-line {
+    transform-origin: left;
+    animation: line-grow 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+  }
+
+  .anim-kenburns {
+    animation: kenburns 18s ease-out forwards;
   }
 }
