@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
-import { Outfit, Figtree } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
-const displayFont = Outfit({
+const font = Outfit({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["500", "600", "700", "800"],
-});
-
-const bodyFont = Figtree({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -44,7 +39,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${bodyFont.className} ${displayFont.variable} min-h-screen antialiased`}>
+      <body className={`${font.className} ${font.variable} min-h-screen antialiased`}>
         {children}
       </body>
     </html>

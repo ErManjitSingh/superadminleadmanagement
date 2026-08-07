@@ -1,19 +1,20 @@
 "use client";
 
 import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
 import { siteConfig } from "@/lib/config";
 
-/** Marketing /signup → CRM SaaS onboarding wizard */
+/** Marketing /signup → CRM onboarding */
 export default function SignupRedirectPage() {
   useEffect(() => {
     window.location.replace(siteConfig.crmSignup);
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--ink)] text-white">
-      <Loader2 className="h-8 w-8 animate-spin text-[var(--coral)]" />
+    <div className="flex min-h-screen flex-col items-center justify-center gap-2 bg-[var(--ink)] text-white">
       <p className="text-sm text-white/60">Opening CRM signup…</p>
+      <a href={siteConfig.crmSignup} className="text-sm text-[var(--coral)] underline">
+        Continue
+      </a>
     </div>
   );
 }

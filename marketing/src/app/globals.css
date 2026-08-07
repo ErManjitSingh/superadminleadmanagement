@@ -4,31 +4,11 @@
 
 @layer base {
   :root {
-    --background: 160 20% 97%;
-    --foreground: 185 45% 8%;
-    --card: 0 0% 100%;
-    --card-foreground: 185 45% 8%;
-    --primary: 174 62% 28%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 160 18% 93%;
-    --secondary-foreground: 185 45% 8%;
-    --muted: 160 14% 94%;
-    --muted-foreground: 185 12% 40%;
-    --accent: 12 88% 55%;
-    --accent-foreground: 0 0% 100%;
-    --border: 170 16% 88%;
-    --input: 170 16% 88%;
-    --ring: 174 62% 28%;
-    --radius: 1rem;
     --ink: #0c2426;
     --lagoon: #1a7a72;
     --coral: #e8482e;
     --sand: #f5f8f7;
     --mist: #e8f1ef;
-  }
-
-  * {
-    @apply border-border;
   }
 
   html {
@@ -46,108 +26,62 @@
   }
 
   .section-padding {
-    @apply px-4 py-20 sm:px-6 lg:px-8 lg:py-28;
+    @apply px-4 py-16 sm:px-6 lg:px-8 lg:py-20;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[var(--coral)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_12px_32px_-8px_rgba(232,72,46,0.55)] transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110;
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-[var(--coral)] px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/35 bg-white/10 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-all duration-300 hover:bg-white/20;
-  }
-
-  .btn-outline {
-    @apply inline-flex items-center justify-center gap-2 rounded-full border border-[var(--ink)]/15 bg-white px-7 py-3.5 text-sm font-semibold text-[var(--ink)] transition-all duration-300 hover:border-[var(--lagoon)] hover:text-[var(--lagoon)];
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-white/35 bg-white/10 px-6 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20;
   }
 
   .hero-wash {
-    background:
-      linear-gradient(180deg, rgba(8, 28, 30, 0.55) 0%, rgba(8, 28, 30, 0.72) 45%, rgba(8, 28, 30, 0.92) 100%),
-      radial-gradient(ellipse 80% 50% at 70% 20%, rgba(26, 122, 114, 0.35), transparent 55%);
+    background: linear-gradient(
+      180deg,
+      rgba(8, 28, 30, 0.5) 0%,
+      rgba(8, 28, 30, 0.78) 55%,
+      rgba(8, 28, 30, 0.94) 100%
+    );
   }
 
-  .text-balance {
-    text-wrap: balance;
+  .dest-goa {
+    background: linear-gradient(145deg, #0e7490, #155e75);
   }
-}
-
-@keyframes drift {
-  0%,
-  100% {
-    transform: translateY(0);
+  .dest-kerala {
+    background: linear-gradient(145deg, #15803d, #166534);
   }
-  50% {
-    transform: translateY(-12px);
+  .dest-himachal {
+    background: linear-gradient(145deg, #475569, #1e3a5f);
   }
-}
-
-.animate-drift {
-  animation: drift 7s ease-in-out infinite;
-}
-
-@keyframes shimmer-line {
-  0% {
-    transform: scaleX(0);
-    transform-origin: left;
-  }
-  50% {
-    transform: scaleX(1);
-    transform-origin: left;
-  }
-  51% {
-    transform-origin: right;
-  }
-  100% {
-    transform: scaleX(0);
-    transform-origin: right;
-  }
-}
-
-.animate-shimmer-line {
-  animation: shimmer-line 2.8s ease-in-out infinite;
-}
-
-@keyframes hero-enter {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes hero-line {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
+  .dest-rajasthan {
+    background: linear-gradient(145deg, #c2410c, #9a3412);
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  @keyframes hero-fade {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .hero-enter {
-    animation: hero-enter 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: hero-fade 0.6s ease-out both;
   }
-
-  .hero-enter-delay-1 {
-    animation-name: hero-line;
+  .hero-enter-d1 {
+    animation-delay: 0.1s;
+  }
+  .hero-enter-d2 {
     animation-delay: 0.2s;
-    animation-duration: 0.8s;
   }
-
-  .hero-enter-delay-2 {
-    animation-delay: 0.15s;
-  }
-
-  .hero-enter-delay-3 {
-    animation-delay: 0.28s;
-  }
-
-  .hero-enter-delay-4 {
-    animation-delay: 0.4s;
+  .hero-enter-d3 {
+    animation-delay: 0.3s;
   }
 }
