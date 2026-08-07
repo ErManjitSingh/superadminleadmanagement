@@ -5,8 +5,9 @@ export const navLinks = [
   { label: "Family", href: "#family" },
 ];
 
+/** Reliable Unsplash crop URL (avoid fm=webp — some IDs 404 with it). */
 const photo = (id: string, w = 720) =>
-  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70&fm=webp`;
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=75`;
 
 /** Decorative flip-card images for Thrillophilia-style hero */
 export const heroFlipCards = [
@@ -15,11 +16,11 @@ export const heroFlipCards = [
     back: photo("photo-1507525428034-b723cf961d3e", 220),
   },
   {
-    front: photo("photo-1602216056336-8b5a9d71098e", 220),
+    front: photo("photo-1605649487212-47bdab064df7", 220),
     back: photo("photo-1593693397690-362cb9666fc2", 220),
   },
   {
-    front: photo("photo-1477587458883-471945f94173", 220),
+    front: photo("photo-1564507592333-c60657eea523", 220),
     back: photo("photo-1524492412937-b28074a5d7da", 220),
   },
   {
@@ -158,10 +159,10 @@ export const megaFamily = [
 
 export const exploreDestinations = [
   { name: "Goa", trending: true, image: photo("photo-1512343879784-a960bf40e7f2", 400) },
-  { name: "Kerala", trending: true, image: photo("photo-1602216056336-8b5a9d71098e", 400) },
+  { name: "Kerala", trending: true, image: photo("photo-1605649487212-47bdab064df7", 400) },
   { name: "Ladakh", trending: true, image: photo("photo-1581791534721-e599df4417f7", 400) },
   { name: "Kashmir", trending: false, image: photo("photo-1595815771614-ade9d652a65d", 400) },
-  { name: "Rajasthan", trending: false, image: photo("photo-1477587458883-471945f94173", 400) },
+  { name: "Rajasthan", trending: false, image: photo("photo-1564507592333-c60657eea523", 400) },
   { name: "Himachal", trending: true, image: photo("photo-1626621341517-bbf3d9990a23", 400) },
   { name: "Andaman", trending: false, image: photo("photo-1586500036706-41963de24d8b", 400) },
   { name: "Spiti", trending: true, image: photo("photo-1506905925346-21bda4d32df4", 400) },
@@ -208,7 +209,7 @@ export const destinationSections: DestinationSection[] = [
         priceWas: 28689,
         priceNow: 21571,
         per: "/Adult",
-        image: photo("photo-1602216056336-8b5a9d71098e"),
+        image: photo("photo-1605649487212-47bdab064df7"),
         badge: "Bestseller",
       },
       {
@@ -345,7 +346,7 @@ export const destinationSections: DestinationSection[] = [
         priceWas: 51769,
         priceNow: 36769,
         per: "/Adult",
-        image: photo("photo-1477587458883-471945f94173"),
+        image: photo("photo-1564507592333-c60657eea523"),
         badge: "Bestseller",
       },
       {
