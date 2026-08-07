@@ -1,77 +1,110 @@
-import { exploreDestinations } from "@/lib/data";
-import { siteConfig } from "@/lib/config";
+import { heroFlipCards, exploreDestinations } from "@/lib/data";
+
+function FlipCard({
+  front,
+  back,
+  size,
+}: {
+  front: string;
+  back: string;
+  size: number;
+}) {
+  return (
+    <div className="th-flip shrink-0" style={{ width: size, height: size }}>
+      <div className="th-flip-inner">
+        <div className="th-flip-face">
+          <img src={front} alt="" width={size} height={size} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+        <div className="th-flip-face th-flip-back">
+          <img src={back} alt="" width={size} height={size} className="h-full w-full object-cover" loading="lazy" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function Hero() {
+  const left = heroFlipCards.slice(0, 3);
+  const right = heroFlipCards.slice(3, 6);
+
   return (
-    <section className="relative overflow-hidden bg-[#1b1b1b] text-white">
-      <div
-        className="absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "url(https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1600&q=65&fm=webp)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-        aria-hidden
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/35" aria-hidden />
+    <section className="overflow-hidden bg-white">
+      {/* Exact Thrillophilia hero structure: flip rows + centered headline */}
+      <div className="relative mx-auto flex min-h-[280px] max-w-[1400px] items-start justify-between overflow-hidden pt-6 sm:min-h-[300px] sm:pt-8">
+        {/* Left flip cards */}
+        <div className="pointer-events-none absolute left-0 top-4 hidden w-[38%] select-none lg:block" aria-hidden>
+          <div className="flex items-end gap-5 overflow-hidden pl-2" style={{ transform: "scaleX(-1)", marginLeft: -48 }}>
+            {left.map((c, i) => (
+              <div key={i} className="pointer-events-auto" style={{ transform: "scaleX(-1)" }}>
+                <FlipCard front={c.front} back={c.back} size={i === 1 ? 120 : 107} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-start gap-5 overflow-hidden pl-8">
+            {left.map((c, i) => (
+              <FlipCard key={`b-${i}`} front={c.back} back={c.front} size={96} />
+            ))}
+          </div>
+        </div>
 
-      <div className="th-container relative py-16 sm:py-20 lg:py-24">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--th-yellow)]">
-          Explore expertly curated multi-day tours
-        </p>
-        <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl lg:text-[3.4rem]">
-          Your Tour,
-          <br />
-          <span className="text-[var(--th-orange)]">Perfectly Personalised!</span>
-        </h1>
-        <p className="mt-4 max-w-xl text-base text-white/75 sm:text-lg">
-          Handpicked holiday packages across India — beaches, mountains, heritage and islands.
-        </p>
+        {/* Center heading */}
+        <div className="relative z-10 mx-auto w-full max-w-xl px-4 pt-10 text-center sm:pt-14">
+          <h1 className="text-[35px] font-semibold capitalize leading-tight text-[#202020] sm:text-[50px]">
+            Your Tour,
+            <br className="hidden sm:block" />
+            Perfectly{" "}
+            <span className="th-gradient-text">Personalised!</span>
+          </h1>
+          <p className="mt-3 text-[15px] font-light text-black sm:mt-4 sm:text-[20px] sm:font-normal sm:text-[#515151]">
+            Explore expertly curated multi-day tours
+          </p>
+        </div>
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          <a href="#packages" className="th-btn px-6 py-3">
-            Explore packages
-          </a>
-          <a
-            href={siteConfig.whatsapp}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center rounded-lg border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold backdrop-blur-sm transition hover:bg-white/20"
-          >
-            Talk to an expert
-          </a>
+        {/* Right flip cards */}
+        <div className="pointer-events-none absolute right-0 top-4 hidden w-[38%] select-none lg:block" aria-hidden>
+          <div className="flex items-end justify-end gap-5 overflow-hidden pr-2" style={{ marginRight: -48 }}>
+            {right.map((c, i) => (
+              <div key={i} className="pointer-events-auto">
+                <FlipCard front={c.front} back={c.back} size={i === 1 ? 120 : 107} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 flex items-start justify-end gap-5 overflow-hidden pr-8">
+            {right.map((c, i) => (
+              <FlipCard key={`b-${i}`} front={c.back} back={c.front} size={96} />
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="relative border-t border-white/10 bg-black/30 backdrop-blur-md">
-        <div className="th-container py-5">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-white/55">Explore</p>
-          <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-1">
+      {/* Explore destination chips — Thrillophilia style */}
+      <div className="border-t border-[var(--th-border)] bg-white pb-6 pt-2">
+        <div className="th-container">
+          <p className="mb-3 text-[13px] font-semibold text-[var(--th-muted)]">Explore</p>
+          <div className="hide-scrollbar flex gap-4 overflow-x-auto pb-1">
             {exploreDestinations.map((d) => (
               <a
                 key={d.name}
-                href={`#${d.name.toLowerCase() === "himachal" ? "ladakh" : d.name.toLowerCase()}`}
-                className="group relative w-[118px] shrink-0 overflow-hidden rounded-2xl"
+                href={`#${["goa", "kerala", "ladakh", "kashmir", "rajasthan"].includes(d.name.toLowerCase()) ? d.name.toLowerCase() : "packages"}`}
+                className="group relative w-[92px] shrink-0 text-center sm:w-[100px]"
               >
-                <img
-                  src={d.image}
-                  alt={d.name}
-                  width={118}
-                  height={148}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-[148px] w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                {d.trending && (
-                  <span className="absolute left-2 top-2 rounded bg-[var(--th-orange)] px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-                    Trending
-                  </span>
-                )}
-                <span className="absolute inset-x-0 bottom-0 p-2.5 text-center text-[13px] font-bold text-white">
-                  {d.name}
-                </span>
+                <div className="relative mx-auto h-[92px] w-[92px] overflow-hidden rounded-2xl sm:h-[100px] sm:w-[100px]">
+                  <img
+                    src={d.image}
+                    alt={d.name}
+                    width={100}
+                    height={100}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                  {d.trending && (
+                    <span className="absolute left-1 top-1 rounded bg-[var(--th-orange)] px-1 py-0.5 text-[8px] font-bold uppercase text-white">
+                      Trending
+                    </span>
+                  )}
+                </div>
+                <span className="mt-2 block text-[13px] font-semibold text-[var(--th-ink)]">{d.name}</span>
               </a>
             ))}
           </div>

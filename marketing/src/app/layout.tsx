@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
-const sans = Plus_Jakarta_Sans({
+/** Thrillophilia uses a clean Inter-like geometric sans */
+const sans = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: `${siteConfig.name} – India's Trusted Holiday Packages`,
+    default: `${siteConfig.name} – India's Most Trusted Holiday Packages`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -31,7 +32,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${sans.className} ${sans.variable} min-h-screen bg-[#f5f5f5] text-[#1a1a1a] antialiased`}>
+      <body className={`${sans.className} ${sans.variable} min-h-screen bg-white text-[var(--th-ink)] antialiased`}>
         {children}
       </body>
     </html>

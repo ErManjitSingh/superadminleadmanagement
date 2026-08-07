@@ -8,6 +8,154 @@ export const navLinks = [
 const photo = (id: string, w = 720) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=70&fm=webp`;
 
+/** Decorative flip-card images for Thrillophilia-style hero */
+export const heroFlipCards = [
+  {
+    front: photo("photo-1512343879784-a960bf40e7f2", 220),
+    back: photo("photo-1507525428034-b723cf961d3e", 220),
+  },
+  {
+    front: photo("photo-1602216056336-8b5a9d71098e", 220),
+    back: photo("photo-1593693397690-362cb9666fc2", 220),
+  },
+  {
+    front: photo("photo-1477587458883-471945f94173", 220),
+    back: photo("photo-1524492412937-b28074a5d7da", 220),
+  },
+  {
+    front: photo("photo-1581791534721-e599df4417f7", 220),
+    back: photo("photo-1626621341517-bbf3d9990a23", 220),
+  },
+  {
+    front: photo("photo-1595815771614-ade9d652a65d", 220),
+    back: photo("photo-1586500036706-41963de24d8b", 220),
+  },
+  {
+    front: photo("photo-1506905925346-21bda4d32df4", 220),
+    back: photo("photo-1464822759023-fed622ff2c3b", 220),
+  },
+];
+
+export const megaIndia = [
+  {
+    title: "Popular Destinations",
+    links: [
+      { label: "Ladakh Tour Packages", href: "#ladakh" },
+      { label: "Kashmir Tour Packages", href: "#kashmir" },
+      { label: "Kerala Tour Packages", href: "#kerala" },
+      { label: "Goa Tour Packages", href: "#goa" },
+      { label: "Rajasthan Tour Packages", href: "#rajasthan" },
+      { label: "Himachal Tour Packages", href: "#packages" },
+      { label: "Andaman Tour Packages", href: "#packages" },
+      { label: "Spiti Tour Packages", href: "#packages" },
+    ],
+  },
+  {
+    title: "Honeymoon Tour Packages",
+    links: [
+      { label: "Kerala Honeymoon Packages", href: "#kerala" },
+      { label: "Kashmir Honeymoon Packages", href: "#kashmir" },
+      { label: "Goa Honeymoon Packages", href: "#goa" },
+      { label: "Rajasthan Honeymoon Packages", href: "#rajasthan" },
+      { label: "Ladakh Honeymoon Packages", href: "#ladakh" },
+      { label: "Andaman Honeymoon Packages", href: "#packages" },
+    ],
+  },
+  {
+    title: "Family Tour Packages",
+    links: [
+      { label: "Kerala Family Packages", href: "#kerala" },
+      { label: "Kashmir Family Packages", href: "#kashmir" },
+      { label: "Goa Family Packages", href: "#goa" },
+      { label: "Rajasthan Family Packages", href: "#rajasthan" },
+      { label: "Himachal Family Packages", href: "#packages" },
+    ],
+  },
+  {
+    title: "Trending This Month",
+    links: [
+      { label: "Ladakh Bike Trip Packages", href: "#ladakh" },
+      { label: "Golden Triangle Tour Packages", href: "#rajasthan" },
+      { label: "Kerala Backwater Packages", href: "#kerala" },
+      { label: "Spiti Bike Trip Packages", href: "#packages" },
+      { label: "Manali Tour Packages", href: "#packages" },
+    ],
+  },
+];
+
+export const megaHoneymoon = [
+  {
+    title: "India Honeymoon",
+    links: [
+      { label: "Kerala Honeymoon", href: "#kerala" },
+      { label: "Kashmir Honeymoon", href: "#kashmir" },
+      { label: "Goa Honeymoon", href: "#goa" },
+      { label: "Andaman Honeymoon", href: "#packages" },
+      { label: "Rajasthan Honeymoon", href: "#rajasthan" },
+    ],
+  },
+  {
+    title: "Hill Stations",
+    links: [
+      { label: "Manali Honeymoon", href: "#packages" },
+      { label: "Shimla Honeymoon", href: "#packages" },
+      { label: "Munnar Honeymoon", href: "#kerala" },
+      { label: "Darjeeling Honeymoon", href: "#packages" },
+      { label: "Nainital Honeymoon", href: "#packages" },
+    ],
+  },
+  {
+    title: "Luxury Escapes",
+    links: [
+      { label: "Kashmir Luxury DEAL", href: "#kashmir" },
+      { label: "Royal Rajasthan", href: "#rajasthan" },
+      { label: "Kerala Houseboat", href: "#kerala" },
+    ],
+  },
+  {
+    title: "Trending",
+    links: [
+      { label: "Ladakh for Couples", href: "#ladakh" },
+      { label: "Goa Romantic Escape", href: "#goa" },
+    ],
+  },
+];
+
+export const megaFamily = [
+  {
+    title: "Family Favourites",
+    links: [
+      { label: "Kerala Family Packages", href: "#kerala" },
+      { label: "Goa Family Packages", href: "#goa" },
+      { label: "Rajasthan Family Packages", href: "#rajasthan" },
+      { label: "Kashmir Family Packages", href: "#kashmir" },
+    ],
+  },
+  {
+    title: "Adventure with Family",
+    links: [
+      { label: "Ladakh Family Adventure", href: "#ladakh" },
+      { label: "Himachal Family Trip", href: "#packages" },
+      { label: "Andaman Family Fun", href: "#packages" },
+    ],
+  },
+  {
+    title: "Short Breaks",
+    links: [
+      { label: "Weekend Goa", href: "#goa" },
+      { label: "Golden Triangle", href: "#rajasthan" },
+      { label: "Kerala Weekend", href: "#kerala" },
+    ],
+  },
+  {
+    title: "Top Picks",
+    links: [
+      { label: "Best of Kerala", href: "#kerala" },
+      { label: "Royal Rajasthan", href: "#rajasthan" },
+    ],
+  },
+];
+
 export const exploreDestinations = [
   { name: "Goa", trending: true, image: photo("photo-1512343879784-a960bf40e7f2", 400) },
   { name: "Kerala", trending: true, image: photo("photo-1602216056336-8b5a9d71098e", 400) },
