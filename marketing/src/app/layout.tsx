@@ -1,36 +1,21 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
-const display = Syne({
+const sans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["600", "700", "800"],
-  display: "swap",
-});
-
-const body = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: `${siteConfig.name} — Holiday Packages Across India`,
+    default: `${siteConfig.name} – India's Trusted Holiday Packages`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: [
-    "India holiday packages",
-    "Goa tour package",
-    "Kerala honeymoon",
-    "Himachal packages",
-    "Rajasthan tour",
-    "India Holiday Destination",
-  ],
   openGraph: {
     title: siteConfig.name,
     description: siteConfig.tagline,
@@ -46,7 +31,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${body.className} ${display.variable} ${body.variable} min-h-screen antialiased`}>
+      <body className={`${sans.className} ${sans.variable} min-h-screen bg-[#f5f5f5] text-[#1a1a1a] antialiased`}>
         {children}
       </body>
     </html>

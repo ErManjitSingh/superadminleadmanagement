@@ -2,34 +2,34 @@ import { siteConfig } from "@/lib/config";
 
 export function FinalCTA() {
   return (
-    <section className="relative overflow-hidden bg-[var(--lagoon)] section-pad">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 15% 20%, rgba(255,255,255,0.35), transparent 40%), radial-gradient(circle at 85% 70%, rgba(226,62,43,0.4), transparent 42%)",
-        }}
-        aria-hidden
-      />
-      <div className="relative mx-auto max-w-3xl text-center text-white">
-        <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
-          Ready for your next India holiday?
+    <section id="family" className="bg-[var(--th-orange)] py-12 text-white sm:py-14">
+      <div className="th-container max-w-3xl text-center">
+        <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          Ready to plan your perfect tour?
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-white/80">
-          Tell us where you want to go — we will send a customised package within hours.
+        <p className="mx-auto mt-3 max-w-xl text-white/90">
+          Get a personalised itinerary from our travel experts — free consultation, no obligation.
         </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <a href={siteConfig.whatsapp} target="_blank" rel="noreferrer" className="btn-primary">
-            Chat on WhatsApp
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={siteConfig.whatsapp}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex rounded-lg bg-white px-6 py-3 text-sm font-bold text-[var(--th-orange)] transition hover:bg-orange-50"
+          >
+            Request callback
           </a>
-          <a href={`mailto:${siteConfig.contactEmail}`} className="btn-ghost">
+          <a
+            href={`mailto:${siteConfig.contactEmail}`}
+            className="inline-flex rounded-lg border border-white/40 px-6 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+          >
             Email enquiry
           </a>
         </div>
-        <p className="mt-8 text-sm text-white/60">
-          Travel agents &amp; team:{" "}
-          <a href={siteConfig.crmLogin} className="font-semibold text-white underline-offset-4 hover:underline">
-            open CRM Login
+        <p className="mt-6 text-sm text-white/80">
+          Travel agents:{" "}
+          <a href={siteConfig.crmLogin} className="font-bold underline underline-offset-2">
+            CRM Login
           </a>
         </p>
       </div>
