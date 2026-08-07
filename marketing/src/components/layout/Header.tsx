@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Compass } from "lucide-react";
 import { siteConfig } from "@/lib/config";
 import { navLinks } from "@/lib/data";
@@ -62,45 +61,40 @@ export function Header() {
         </div>
 
         <button
+          type="button"
           onClick={() => setMobileOpen(!mobileOpen)}
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/10 text-white lg:hidden"
           aria-label="Menu"
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="border-b border-white/10 bg-[var(--ink)] lg:hidden"
-          >
-            <nav className="flex flex-col gap-1 px-4 py-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="rounded-lg px-3 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white"
-                >
-                  {link.label}
-                </a>
-              ))}
-              <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-3">
-                <a href={siteConfig.crmLogin} className="btn-secondary text-center">
-                  CRM Login
-                </a>
-                <a href={siteConfig.whatsapp} target="_blank" rel="noreferrer" className="btn-primary text-center">
-                  Plan My Trip
-                </a>
-              </div>
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {mobileOpen && (
+        <div className="border-b border-white/10 bg-[var(--ink)] lg:hidden">
+          <nav className="flex flex-col gap-1 px-4 py-4">
+            {navLinks.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-3">
+              <a href={siteConfig.crmLogin} className="btn-secondary text-center">
+                CRM Login
+              </a>
+              <a href={siteConfig.whatsapp} target="_blank" rel="noreferrer" className="btn-primary text-center">
+                Plan My Trip
+              </a>
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }

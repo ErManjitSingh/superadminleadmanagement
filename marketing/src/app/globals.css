@@ -107,3 +107,47 @@
 .animate-shimmer-line {
   animation: shimmer-line 2.8s ease-in-out infinite;
 }
+
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-enter {
+    animation: hero-enter 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .hero-enter-delay-1 {
+    animation-name: hero-line;
+    animation-delay: 0.2s;
+    animation-duration: 0.8s;
+  }
+
+  .hero-enter-delay-2 {
+    animation-delay: 0.15s;
+  }
+
+  .hero-enter-delay-3 {
+    animation-delay: 0.28s;
+  }
+
+  .hero-enter-delay-4 {
+    animation-delay: 0.4s;
+  }
+}

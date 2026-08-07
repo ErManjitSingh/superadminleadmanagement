@@ -72,7 +72,7 @@ export function Footer() {
 
         <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-8 sm:flex-row">
           <p className="text-sm text-white/40">
-            © {new Date().getFullYear()} India Holiday Destination. All rights reserved.
+            © 2026 India Holiday Destination. All rights reserved.
           </p>
           <p className="flex items-center gap-1.5 text-sm text-white/40">
             Made with <Heart className="h-3.5 w-3.5 fill-[var(--coral)] text-[var(--coral)]" /> in India

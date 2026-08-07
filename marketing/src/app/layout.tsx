@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Outfit, Figtree } from "next/font/google";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { siteConfig } from "@/lib/config";
 import "./globals.css";
 
@@ -44,9 +43,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <body className={`${bodyFont.className} ${displayFont.variable} min-h-screen antialiased`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );
