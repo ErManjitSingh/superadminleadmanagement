@@ -24,6 +24,32 @@ const userSchema = new mongoose.Schema(
     },
     lastLogin: { type: Date },
     avatar: { type: String, default: null },
+    workAccess: {
+      enabled: { type: Boolean, default: true },
+      role: {
+        type: String,
+        enum: ['admin', 'project_manager', 'team_leader', 'member', 'client_viewer'],
+        default: null,
+        index: true,
+      },
+      disciplines: {
+        type: [{
+          type: String,
+          enum: [
+            'development',
+            'design',
+            'seo',
+            'content',
+            'marketing',
+            'it',
+            'project_management',
+            'other',
+          ],
+        }],
+        default: [],
+      },
+      jobTitle: { type: String, trim: true, maxlength: 100, default: '' },
+    },
     inviteToken: String,
     inviteExpiresAt: Date,
   },

@@ -91,18 +91,26 @@ cd "$APP_ROOT/frontend"
 npm install
 VITE_BASE=/app/ npm run build
 
+echo "==> WorkFlow Hub build (base /task/)..."
+VITE_BASE=/task/ npm run build:task
+test -f "$APP_ROOT/frontend/dist-task/index.html"
+
 echo "==> Marketing site build..."
 cd "$APP_ROOT/marketing"
 npm install
 npm run build
 
-echo "==> Publish marketing site to public_html root (preserve root /app + /uploads)..."
+echo "==> Publish marketing site to public_html root (preserve /app + /task + /uploads)..."
 # Anchored /app/ only — bare 'app/' also excludes Next.js _next/static/chunks/app/ (ChunkLoadError)
-rsync -a --delete --exclude '/app/' --exclude '/uploads/' "$APP_ROOT/marketing/out/" "$WEB_ROOT/"
+rsync -a --delete --exclude '/app/' --exclude '/task/' --exclude '/uploads/' "$APP_ROOT/marketing/out/" "$WEB_ROOT/"
 
 echo "==> Publish CRM to public_html/app/..."
 mkdir -p "$WEB_ROOT/app"
 rsync -a --delete "$APP_ROOT/frontend/dist/" "$WEB_ROOT/app/"
+
+echo "==> Publish WorkFlow Hub to public_html/task/..."
+mkdir -p "$WEB_ROOT/task"
+rsync -a --delete "$APP_ROOT/frontend/dist-task/" "$WEB_ROOT/task/"
 
 echo "==> Super Admin build..."
 cd "$APP_ROOT/superadmin"
@@ -131,4 +139,5 @@ sleep 2
 curl -sf http://127.0.0.1:5000/api/health
 echo ""
 test -f "$WEB_ROOT/index.html" && echo "public_html index.html OK"
+test -f "$WEB_ROOT/task/index.html" && echo "WorkFlow Hub index.html OK"
 echo "DEPLOY_OK"

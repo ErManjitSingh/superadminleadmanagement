@@ -34,6 +34,11 @@ export default function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to="/unauthorized" replace />;
   }
 
+  if (currentUser.role === 'work_user') {
+    window.location.replace('/task/');
+    return <AuthLoading />;
+  }
+
   if (allowedRoles?.length && !allowedRoles.includes(currentUser.role)) {
     return <Navigate to="/unauthorized" replace />;
   }

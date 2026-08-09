@@ -13,6 +13,7 @@
     "seed:whatsapp-demo": "node src/scripts/seedWhatsappDemo.js",
     "seed:operations-user": "node src/scripts/seedOperationsUser.js",
     "seed:operations-demo": "node src/scripts/seedOperationsDemo.js",
+    "test:work": "node --test src/work/__tests__/*.test.js",
     "cleanup:extra-branches": "node src/scripts/cleanupExtraBranches.js",
     "seed:load-test-leads": "node src/scripts/seedLoadTestLeads.js",
     "clear:load-test-leads": "node src/scripts/clearLoadTestLeads.js",
@@ -33,11 +34,13 @@
     "jsonwebtoken": "^9.0.2",
     "mailparser": "^3.9.9",
     "mongoose": "^8.7.0",
+    "multer": "^2.2.0",
     "nodemailer": "^8.0.11",
     "pdfkit": "^0.19.1",
     "puppeteer": "^24.43.1",
     "qrcode": "^1.5.4",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"

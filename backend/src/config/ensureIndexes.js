@@ -22,6 +22,16 @@ const TripTask = require('../models/TripTask');
 const TripDocument = require('../models/TripDocument');
 const SupportTicket = require('../models/SupportTicket');
 const Voucher = require('../models/Voucher');
+const WorkWorkspace = require('../work/models/Workspace');
+const WorkWorkspaceMember = require('../work/models/WorkspaceMember');
+const WorkProject = require('../work/models/Project');
+const WorkProjectMember = require('../work/models/ProjectMember');
+const WorkTask = require('../work/models/Task');
+const WorkSubTask = require('../work/models/SubTask');
+const WorkApproval = require('../work/models/Approval');
+const WorkAttachment = require('../work/models/Attachment');
+const WorkComment = require('../work/models/Comment');
+const WorkActivityLog = require('../work/models/ActivityLog');
 
 async function dropLegacyBranchIndexes() {
   try {
@@ -68,6 +78,89 @@ async function ensureIndexes() {
     User.collection.createIndex({ companyId: 1, email: 1 }, { unique: true, background: true }),
     User.collection.createIndex({ role: 1, status: 1 }, { background: true }),
     User.collection.createIndex({ branchId: 1, role: 1, status: 1 }, { background: true }),
+    User.collection.createIndex(
+      { companyId: 1, 'workAccess.role': 1, 'workAccess.enabled': 1, status: 1 },
+      { background: true },
+    ),
+    User.collection.createIndex(
+      { companyId: 1, 'workAccess.disciplines': 1 },
+      { background: true },
+    ),
+    WorkWorkspace.collection.createIndex({ companyId: 1, slug: 1 }, { unique: true, background: true }),
+    WorkWorkspace.collection.createIndex(
+      { companyId: 1, status: 1, deletedAt: 1, updatedAt: -1 },
+      { background: true },
+    ),
+    WorkWorkspaceMember.collection.createIndex(
+      { companyId: 1, workspaceId: 1, userId: 1 },
+      { unique: true, background: true },
+    ),
+    WorkWorkspaceMember.collection.createIndex(
+      { companyId: 1, userId: 1, role: 1 },
+      { background: true },
+    ),
+    WorkProject.collection.createIndex({ companyId: 1, key: 1 }, { unique: true, background: true }),
+    WorkProject.collection.createIndex(
+      { companyId: 1, workspaceId: 1, status: 1, deletedAt: 1, updatedAt: -1 },
+      { background: true },
+    ),
+    WorkProject.collection.createIndex(
+      { companyId: 1, managerId: 1, status: 1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkProjectMember.collection.createIndex(
+      { companyId: 1, projectId: 1, userId: 1 },
+      { unique: true, background: true },
+    ),
+    WorkProjectMember.collection.createIndex(
+      { companyId: 1, userId: 1, role: 1 },
+      { background: true },
+    ),
+    WorkTask.collection.createIndex({ companyId: 1, key: 1 }, { unique: true, background: true }),
+    WorkTask.collection.createIndex(
+      { companyId: 1, projectId: 1, status: 1, order: 1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkTask.collection.createIndex(
+      { companyId: 1, assigneeIds: 1, status: 1, dueDate: 1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkTask.collection.createIndex(
+      { companyId: 1, approvalStatus: 1, updatedAt: -1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkSubTask.collection.createIndex(
+      { companyId: 1, taskId: 1, order: 1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkSubTask.collection.createIndex(
+      { companyId: 1, assigneeId: 1, completed: 1, dueDate: 1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkApproval.collection.createIndex(
+      { companyId: 1, taskId: 1, revision: 1 },
+      { unique: true, background: true },
+    ),
+    WorkApproval.collection.createIndex(
+      { companyId: 1, status: 1, submittedAt: -1 },
+      { background: true },
+    ),
+    WorkApproval.collection.createIndex(
+      { companyId: 1, taskId: 1, status: 1 },
+      { unique: true, partialFilterExpression: { status: 'pending' }, background: true },
+    ),
+    WorkComment.collection.createIndex(
+      { companyId: 1, taskId: 1, createdAt: 1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkAttachment.collection.createIndex(
+      { companyId: 1, taskId: 1, createdAt: -1, deletedAt: 1 },
+      { background: true },
+    ),
+    WorkActivityLog.collection.createIndex(
+      { companyId: 1, taskId: 1, createdAt: -1 },
+      { background: true },
+    ),
 
     Lead.collection.createIndex({ phone: 1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, status: 1, createdAt: -1 }, { background: true }),

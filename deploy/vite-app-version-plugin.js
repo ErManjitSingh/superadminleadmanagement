@@ -13,7 +13,7 @@ function resolveBuildId() {
   }
 }
 
-export function appVersionPlugin() {
+export function appVersionPlugin({ outDir = 'dist' } = {}) {
   const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'));
   const meta = {
     version: pkg.version || '1.0.0',
@@ -33,7 +33,7 @@ export function appVersionPlugin() {
       };
     },
     closeBundle() {
-      writeFileSync(resolve(process.cwd(), 'dist', 'build-meta.json'), JSON.stringify(meta, null, 2));
+      writeFileSync(resolve(process.cwd(), outDir, 'build-meta.json'), JSON.stringify(meta, null, 2));
     },
   };
 }
