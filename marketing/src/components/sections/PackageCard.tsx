@@ -2,13 +2,12 @@ import type { PackageCard as PackageCardType } from "@/lib/data";
 import { formatInr } from "@/lib/data";
 import { siteConfig } from "@/lib/config";
 
-/** Thrillophilia-style tour package card — tight spacing */
 export function PackageCard({ pkg }: { pkg: PackageCardType }) {
   const save = pkg.priceWas - pkg.priceNow;
 
   return (
-    <article className="flex w-[280px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-[#ececec] bg-white shadow-[0_2px_10px_rgba(0,0,0,0.06)] sm:w-[286px]">
-      <div className="relative h-[168px] overflow-hidden bg-[#eee]">
+    <article className="group flex w-[280px] shrink-0 flex-col overflow-hidden rounded-[18px] border border-[#e9ebef] bg-white shadow-[0_7px_24px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(15,23,42,0.13)] sm:w-[286px]">
+      <div className="relative h-[178px] overflow-hidden bg-[#eee]">
         <img
           src={pkg.image}
           alt={pkg.title}
@@ -16,10 +15,10 @@ export function PackageCard({ pkg }: { pkg: PackageCardType }) {
           height={168}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
         {pkg.badge && (
-          <span className="absolute left-2.5 top-2.5 rounded-[3px] bg-[var(--th-orange)] px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-[var(--th-orange)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-white shadow-sm">
             {pkg.badge}
           </span>
         )}
@@ -36,7 +35,7 @@ export function PackageCard({ pkg }: { pkg: PackageCardType }) {
           </span>
         </div>
 
-        <h3 className="mt-2 line-clamp-2 min-h-[40px] text-[14px] font-bold leading-[20px] text-[#202020]">
+        <h3 className="mt-2 line-clamp-2 min-h-[40px] text-[14px] font-extrabold leading-[20px] text-[#20283d]">
           {pkg.title}
         </h3>
 
@@ -69,7 +68,7 @@ export function PackageCard({ pkg }: { pkg: PackageCardType }) {
             href={siteConfig.whatsapp}
             target="_blank"
             rel="noreferrer"
-            className="th-btn-outline mt-3 w-full !py-[9px] text-[13px]"
+            className="th-btn-outline mt-3 w-full !rounded-full !py-[9px] text-[13px]"
           >
             Request callback
           </a>

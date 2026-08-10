@@ -4,14 +4,15 @@ import { PackageCard } from "./PackageCard";
 
 export function Packages() {
   return (
-    <div id="packages" className="bg-white py-10 sm:py-12">
-      <div className="space-y-12 sm:space-y-14">
+    <div id="packages" className="bg-white py-12 sm:py-16">
+      <div className="space-y-14 sm:space-y-16">
         {destinationSections.map((section) => (
           <section key={section.id} id={section.id} className="scroll-mt-24">
             <div className="th-container mb-5 flex items-end justify-between gap-3">
-              <h2 className="text-[24px] font-bold tracking-tight text-[#202020] sm:text-[28px]">
-                {section.title}
-              </h2>
+              <div>
+                <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--th-orange)]">Explore the best of</p>
+                <h2 className="text-[27px] font-extrabold tracking-tight text-[#17213a] sm:text-[32px]">{section.title}</h2>
+              </div>
               <a
                 href={siteConfig.whatsapp}
                 target="_blank"

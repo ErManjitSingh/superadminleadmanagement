@@ -4,24 +4,35 @@ import { useState } from "react";
 import Link from "next/link";
 import { siteConfig } from "@/lib/config";
 import { megaIndia, megaHoneymoon, megaFamily } from "@/lib/data";
+import { Search, ChevronDown, X } from "lucide-react";
 
 const tabs = [
   { id: "india", label: "India Packages", columns: megaIndia },
-  { id: "honeymoon", label: "Honeymoon", columns: megaHoneymoon },
-  { id: "family", label: "Family", columns: megaFamily },
+  { id: "domestic", label: "Domestic Packages", columns: megaHoneymoon },
+  { id: "activities", label: "Activities", columns: megaFamily },
 ] as const;
 
 export function Header() {
   const [open, setOpen] = useState<string | null>(null);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--th-border)] bg-white">
-      <div className="th-container relative flex h-[64px] items-center justify-between gap-4">
+    <header className="relative z-50 bg-white">
+      <div className="relative flex h-[31px] items-center justify-center bg-[#ff6105] text-[11px] font-medium text-white">
+        <span>⛺ <b>MONSOON SALE</b>&nbsp; ☁️ &nbsp; Save up to <b>40%</b> on your trip</span>
+        <span className="absolute right-[78px] hidden rounded-full bg-black/20 px-3 py-1 text-[10px] sm:block">
+          ◷ 6 Days : 1 Hr : 47 Min
+        </span>
+        <X className="absolute right-12 hidden h-3.5 w-3.5 sm:block" />
+      </div>
+      <div className="th-container relative flex h-[59px] items-center justify-between gap-4">
         <div className="flex items-center gap-6 lg:gap-8">
           <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="text-[17px] font-extrabold tracking-tight">
-              <span className="text-[var(--th-orange)]">india</span>
-              <span className="text-[var(--th-ink)]">holiday</span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-xl">✈️</span>
+            <span>
+              <span className="block text-[16px] font-extrabold leading-none tracking-tight text-[var(--th-orange)]">
+                India Holiday Destination
+              </span>
+              <span className="mt-1 block text-[7px] font-medium text-[#737373]">Your trusted holiday planning partner</span>
             </span>
           </Link>
 
@@ -42,21 +53,24 @@ export function Header() {
                 </button>
               </div>
             ))}
-            <a href="#destinations" className="px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]">
-              Destinations
+            <a href="#packages" className="px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]">
+              Mice
             </a>
           </nav>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="hidden items-center gap-1 rounded border border-[var(--th-border)] px-2 py-1 text-xs font-semibold text-[var(--th-muted)] sm:inline-flex">
-            INR ₹
+          <button aria-label="Search" className="hidden h-8 w-8 items-center justify-center rounded-lg border border-[#e8e8e8] text-[#303030] sm:flex">
+            <Search className="h-4 w-4" />
+          </button>
+          <span className="hidden items-center gap-2 px-2 py-1 text-xs font-semibold text-[var(--th-muted)] sm:inline-flex">
+            <span className="text-lg">🇮🇳</span> INR ₹ <ChevronDown className="h-3 w-3" />
           </span>
           <a
             href={siteConfig.crmLogin}
-            className="text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]"
+            className="rounded-lg border border-[#ff985e] px-5 py-2 text-[12px] font-semibold text-[#d96220] hover:bg-orange-50"
           >
-            login
+            Login
           </a>
           <a href={siteConfig.whatsapp} target="_blank" rel="noreferrer" className="th-btn !py-1.5 !text-[13px] sm:hidden">
             Enquire

@@ -15,14 +15,14 @@ export function Destinations() {
   );
 
   return (
-    <section id="destinations" className="bg-[#f7f7f7] py-10 sm:py-12">
+    <section id="destinations" className="bg-[#f8fafc] py-12 sm:py-16">
       <div className="th-container mb-5 flex items-end justify-between gap-4">
         <div>
-          <p className="text-[12px] font-bold uppercase tracking-[0.04em] text-[var(--th-orange)]">
-            Top Picks
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--th-orange)]">
+            Handpicked for you
           </p>
-          <h2 className="mt-1 text-[24px] font-bold leading-tight text-[#202020] sm:text-[28px]">
-            Popular Destinations
+          <h2 className="mt-1 text-[27px] font-extrabold leading-tight tracking-tight text-[#17213a] sm:text-[34px]">
+            Popular destinations
           </h2>
         </div>
         <a href="#packages" className="shrink-0 text-[13px] font-bold text-[var(--th-orange)] hover:underline">
@@ -38,7 +38,7 @@ export function Destinations() {
               <a
                 key={d.name}
                 href={`#${d.name.toLowerCase()}`}
-                className="relative h-[167px] w-[280px] shrink-0 overflow-hidden rounded-[16px] bg-[#ddd]"
+                className="group relative h-[190px] w-[290px] shrink-0 overflow-hidden rounded-[20px] bg-[#ddd] shadow-[0_8px_24px_rgba(15,23,42,.09)]"
               >
                 <img
                   src={d.image}
@@ -47,7 +47,7 @@ export function Destinations() {
                   height={167}
                   loading="lazy"
                   decoding="async"
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
                 <div
                   className="absolute inset-x-0 bottom-0 h-[121px]"

@@ -5,7 +5,6 @@ const ROLES = [
   'sales_executive',
   'accountant',
   'operations_manager',
-  'work_user',
 ];
 
 const ROLE_LABELS = {
@@ -15,7 +14,6 @@ const ROLE_LABELS = {
   sales_executive: 'Sales Executive',
   accountant: 'Accountant',
   operations_manager: 'Operations Manager',
-  work_user: 'WorkFlow Hub User',
 };
 
 const ROLE_DASHBOARD_PATHS = {
@@ -25,7 +23,6 @@ const ROLE_DASHBOARD_PATHS = {
   team_leader: '/team-leader/dashboard',
   accountant: '/accountant/dashboard',
   operations_manager: '/operations-manager/dashboard',
-  work_user: '/task/',
 };
 
 module.exports = { ROLES, ROLE_LABELS, ROLE_DASHBOARD_PATHS };
