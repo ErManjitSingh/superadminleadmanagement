@@ -29,11 +29,30 @@ function sanitizeSettings(doc) {
   };
 }
 
+const TREK_CONTACT_PHONE = '+91 89887 69444';
+const TREK_CONTACT_WHATSAPP = '918988769444';
+
 async function getOrCreate() {
   let settings = await WebsiteSettings.findOne({ key: 'default' });
   if (!settings) {
-    settings = await WebsiteSettings.create({ key: 'default', businessName: 'Trek Website' });
+    settings = await WebsiteSettings.create({
+      key: 'default',
+      businessName: 'Trek Website',
+      phone: TREK_CONTACT_PHONE,
+      whatsapp: TREK_CONTACT_WHATSAPP,
+    });
+    return settings;
   }
+  let dirty = false;
+  if (!String(settings.phone || '').trim()) {
+    settings.phone = TREK_CONTACT_PHONE;
+    dirty = true;
+  }
+  if (!String(settings.whatsapp || '').trim()) {
+    settings.whatsapp = TREK_CONTACT_WHATSAPP;
+    dirty = true;
+  }
+  if (dirty) await settings.save();
   return settings;
 }
 

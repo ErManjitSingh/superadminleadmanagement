@@ -16,8 +16,8 @@ export const siteConfig = {
   superAdmin: process.env.NEXT_PUBLIC_SUPERADMIN_URL || "https://admin.indiaholidaydestination.com/admin/login",
   apiUrl: apiBase,
   contactEmail: "sales@indiaholidaydestination.com",
-  contactPhone: "+91 98765 43210",
-  whatsapp: "https://wa.me/919876543210",
+  contactPhone: "+91 89887 69444",
+  whatsapp: "https://wa.me/918988769444",
   links: {
     packages: "#packages",
     destinations: "#destinations",
