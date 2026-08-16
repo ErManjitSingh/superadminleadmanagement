@@ -2,15 +2,18 @@
 
 import { useRef, useState } from "react";
 import { destinationIcons, IconExplore } from "@/components/icons/DestinationIcons";
+import { siteConfig } from "@/lib/config";
 
 type Tab = {
   name: string;
   href: string;
   trending?: boolean;
+  external?: boolean;
 };
 
 const tabs: (Tab & { icon: string })[] = [
   { name: "Explore", href: "#packages", icon: "Explore" },
+  { name: "Treks", href: siteConfig.treksUrl, icon: "Himachal", trending: true, external: true },
   { name: "Goa", href: "#goa", icon: "Goa", trending: true },
   { name: "Kerala", href: "#kerala", icon: "Kerala", trending: true },
   { name: "Ladakh", href: "#ladakh", icon: "Ladakh", trending: true },
@@ -43,6 +46,7 @@ export function ExploreTabs() {
                 key={tab.name}
                 href={tab.href}
                 onClick={() => setActive(tab.name)}
+                {...(tab.external ? { rel: "noopener noreferrer" } : {})}
                 className={`relative mr-8 flex min-h-[76px] min-w-max flex-col items-center justify-center px-1 pt-1 last:mr-0 sm:mr-5 ${
                   i === tabs.length - 1 ? "mr-0" : ""
                 }`}

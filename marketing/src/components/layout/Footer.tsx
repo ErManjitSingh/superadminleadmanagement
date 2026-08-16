@@ -33,6 +33,11 @@ export function Footer() {
                   </a>
                 </li>
               ))}
+              <li>
+                <a href={siteConfig.treksUrl} className="text-sm text-white/55 hover:text-[var(--th-orange)]">
+                  Himalayan Treks
+                </a>
+              </li>
             </ul>
           </div>
 

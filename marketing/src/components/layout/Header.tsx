@@ -55,6 +55,12 @@ export function Header() {
                 </button>
               </div>
             ))}
+            <a
+              href={siteConfig.treksUrl}
+              className="px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]"
+            >
+              Treks
+            </a>
             <a href="#packages" className="px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]">
               Mice
             </a>
@@ -88,6 +94,9 @@ export function Header() {
                   {t.label}
                 </a>
               ))}
+              <a href={siteConfig.treksUrl} className="block rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-black/[0.04]">
+                Treks
+              </a>
               <a href={siteConfig.crmLogin} className="block rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-black/[0.04]">
                 CRM Login
               </a>

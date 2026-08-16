@@ -8,6 +8,7 @@ export const siteConfig = {
   description:
     "Discover handpicked holiday packages across India. From Goa beaches to Himalayan escapes, Kerala backwaters to Rajasthan forts — plan your perfect trip with India Holiday Destination.",
   url: "https://indiaholidaydestination.com",
+  treksUrl: process.env.NEXT_PUBLIC_TREKS_URL || "https://treks.indiaholidaydestination.com/",
   crmBase,
   crmLogin: `${crmBase}/login`,
   crmSignup: `${crmBase}/signup`,
