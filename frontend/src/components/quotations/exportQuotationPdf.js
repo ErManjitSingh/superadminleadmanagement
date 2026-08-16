@@ -85,6 +85,12 @@ function prepareForCapture(root, widthPx) {
     if (node.style?.opacity === '0') node.style.opacity = '1';
   });
 
+  // Strip HTML watermarks — PDF pages get a single stamp from jsPDF instead
+  // (avoids 2–3 stacked marks from the long HTML capture).
+  root.querySelectorAll('.qp-watermark, .qp-watermark-text').forEach((node) => {
+    node.remove();
+  });
+
   root.querySelectorAll('a[href]').forEach((anchor) => {
     const text = document.createElement('span');
     text.textContent = anchor.textContent || '';

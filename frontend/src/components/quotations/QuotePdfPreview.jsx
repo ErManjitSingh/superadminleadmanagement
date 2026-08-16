@@ -97,12 +97,16 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       className="quote-ht-pdf quote-ht-pdf-v2"
       data-watermark={brandName || 'INDIA HOLIDAY DESTINATION'}
     >
-      {/* Watermark — company name (repeated for multi-page capture) */}
-      <div className="qp-watermark" aria-hidden="true">
-        {Array.from({ length: 18 }).map((_, i) => (
-          <span key={i} className="qp-watermark-text">{brandName}</span>
-        ))}
-      </div>
+      {/* One watermark per A4 page (SVG tile) — not stacked 3× on one page */}
+      <div
+        className="qp-watermark"
+        aria-hidden="true"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123"><text x="397" y="561" text-anchor="middle" dominant-baseline="middle" fill="rgba(15,23,42,0.28)" font-size="40" font-weight="800" font-family="Arial,Helvetica,sans-serif" letter-spacing="6" transform="rotate(-32 397 561)">${String(brandName || 'EXPLORE MY BHARAT').replace(/[<>&'"]/g, '')}</text></svg>`,
+          )}")`,
+        }}
+      />
 
       {/* Header */}
       <header className="qp-header">

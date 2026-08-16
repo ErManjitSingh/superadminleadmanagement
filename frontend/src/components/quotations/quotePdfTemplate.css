@@ -1346,31 +1346,20 @@
   min-height: 48px;
 }
 
-/* Watermark — Travel CRM @ 0.3 opacity */
+/* Watermark — exactly one stamp per A4 page (background tile) */
 .qp-watermark {
   position: absolute;
   inset: 0;
   z-index: 20;
   pointer-events: none;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  padding: 24px 0;
+  background-repeat: repeat-y;
+  background-position: center top;
+  background-size: 100% 1123px;
 }
 
 .qp-watermark-text {
-  display: block;
-  font-size: 42px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #0f172a;
-  opacity: 0.3 !important;
-  transform: rotate(-32deg);
-  white-space: nowrap;
-  user-select: none;
+  display: none;
 }
 
 .qp-header {
