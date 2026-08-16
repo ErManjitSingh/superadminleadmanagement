@@ -36,12 +36,12 @@ function buildFallbackActivities(stats) {
   return items.slice(0, 6);
 }
 
-export default function ActivityTimeline({ activities = [], stats }) {
+export default function ActivityTimeline({ activities = [], stats, title = 'Lead Activity', subtitle = 'Live updates from your team' }) {
   const items = activities.length ? activities : buildFallbackActivities(stats || {});
 
   return (
-    <DashboardPanel title="Recent Activities" subtitle="Latest updates across your CRM">
-      <div className="space-y-1">
+    <DashboardPanel title={title} subtitle={subtitle} className="h-full">
+      <div className="space-y-0.5">
         {items.length === 0 ? (
           <p className="text-sm text-content-muted text-center py-6">No recent activity</p>
         ) : (
@@ -56,15 +56,15 @@ export default function ActivityTimeline({ activities = [], stats }) {
                 transition={{ delay: i * 0.04 }}
                 className="flex gap-3 py-3 border-b border-subtle last:border-0"
               >
-                <div className={`w-8 h-8 rounded-lg ${c.color} flex items-center justify-center shrink-0`}>
+                <div className={`w-9 h-9 rounded-xl ${c.color} flex items-center justify-center shrink-0 shadow-sm`}>
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-content-primary">
+                  <p className="text-sm text-content-primary leading-snug">
                     <span className="font-semibold">{item.user}</span>{' '}
                     <span className="text-content-secondary">{item.text || c.label}</span>
                   </p>
-                  <p className="text-xs text-content-muted mt-0.5">{item.time}</p>
+                  <p className="text-xs text-content-muted mt-1">{item.time}</p>
                 </div>
               </motion.div>
             );

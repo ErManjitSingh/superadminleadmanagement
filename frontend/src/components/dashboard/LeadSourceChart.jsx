@@ -50,8 +50,8 @@ export default function LeadSourceChart({ data = [] }) {
   const total = chartData.reduce((s, d) => s + d.value, 0);
 
   return (
-    <DashboardPanel title="Leads by Source" subtitle="Where your leads come from" className="h-full">
-      <div className="flex flex-col sm:flex-row items-center gap-4">
+    <DashboardPanel title="Leads By Source" subtitle="Where your leads come from" className="h-full">
+      <div className="flex flex-col sm:flex-row items-center gap-4 min-h-[220px]">
         <div className="w-full sm:w-[180px] h-[180px] shrink-0 relative">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

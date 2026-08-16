@@ -68,17 +68,16 @@ export default function DashboardLeadsTabs({
           </div>
         </div>
 
-        <RecentLeadsTable
-          embedded
-          leads={leads}
-          totalCount={totalCount}
-          maxRows={maxRows}
-          title={active.label}
-          subtitle={active.subtitle}
-          viewAllHref={active.viewAllHref}
-          emptyMessage={active.emptyMessage}
-          showAgent={tab !== 'unassigned'}
-        />
+          <RecentLeadsTable
+            embedded
+            leads={leads}
+            totalCount={totalCount}
+            maxRows={maxRows}
+            title={active.label}
+            subtitle={active.subtitle}
+            viewAllHref={active.viewAllHref}
+            emptyMessage={active.emptyMessage}
+          />
       </div>
     </div>
   );

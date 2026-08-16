@@ -1,35 +1,43 @@
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Phone, Inbox } from 'lucide-react';
+import { ArrowUpRight, Inbox } from 'lucide-react';
 import LeadStatusBadge from '../leads/LeadStatusBadge';
-import Avatar from '../ui/Avatar';
 import DashboardPanel from './DashboardPanel';
+
+function formatBudget(n) {
+  if (!n) return '—';
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  return `₹${Number(n).toLocaleString('en-IN')}`;
+}
 
 export default function RecentLeadsTable({
   leads = [],
   title = 'Recent Leads',
-  subtitle = 'Latest inquiries',
+  subtitle = 'Latest inquiries across your pipeline',
   viewAllHref = '/leads',
   emptyMessage = 'No leads to show',
-  maxRows = 5,
+  maxRows = 6,
   totalCount,
   embedded = false,
-  showAgent = true,
 }) {
   const visibleLeads = maxRows ? leads.slice(0, maxRows) : leads;
   const total = totalCount ?? leads.length;
   const hasMore = total > visibleLeads.length;
 
   const columns = [
-    { key: 'customer', label: 'Customer', className: 'min-w-[180px] w-[28%]' },
-    { key: 'destination', label: 'Destination', className: 'min-w-[110px] w-[14%]' },
-    { key: 'budget', label: 'Budget', className: 'min-w-[100px] w-[12%]' },
-    { key: 'travelDate', label: 'Travel Date', className: 'min-w-[100px] w-[12%]' },
-    ...(showAgent
-      ? [{ key: 'agent', label: 'Agent', className: 'min-w-[100px] w-[14%]' }]
-      : [{ key: 'created', label: 'Created', className: 'min-w-[100px] w-[14%]' }]),
-    { key: 'status', label: 'Status', className: 'min-w-[110px] w-[12%]' },
-    { key: 'source', label: 'Source', className: 'min-w-[90px] w-[10%]' },
+    { key: 'name', label: 'Name' },
+    { key: 'source', label: 'Source' },
+    { key: 'destination', label: 'Destination' },
+    { key: 'budget', label: 'Budget' },
+    { key: 'status', label: 'Status' },
+    { key: 'assigned', label: 'Assigned To' },
+    { key: 'created', label: 'Created On' },
   ];
+
+  const viewAllLink = (
+    <Link to={viewAllHref} className="text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-1">
+      View all{hasMore ? ` (${total})` : ''} <ArrowUpRight className="w-3.5 h-3.5" />
+    </Link>
+  );
 
   const tableBody = visibleLeads.length === 0 ? (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
@@ -38,13 +46,13 @@ export default function RecentLeadsTable({
     </div>
   ) : (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] table-fixed border-collapse">
+      <table className="w-full min-w-[720px] border-collapse">
         <thead>
-          <tr className="border-b border-subtle bg-surface-elevated/70">
+          <tr className="border-b border-subtle bg-slate-50/80">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-content-muted whitespace-nowrap first:pl-5 last:pr-5 ${col.className}`}
+                className="text-left px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-content-muted whitespace-nowrap first:pl-5 last:pr-5"
               >
                 {col.label}
               </th>
@@ -55,63 +63,47 @@ export default function RecentLeadsTable({
           {visibleLeads.map((lead, i) => (
             <tr
               key={lead._id}
-              className={`border-b border-subtle last:border-0 hover:bg-brand-500/[0.04] transition-colors align-middle ${
-                i % 2 === 1 ? 'bg-surface-elevated/30' : ''
+              className={`border-b border-subtle last:border-0 hover:bg-blue-50/40 transition-colors ${
+                i % 2 === 1 ? 'bg-slate-50/40' : ''
               }`}
             >
               <td className="px-4 py-3.5 first:pl-5">
-                <Link to={`/leads/${lead._id}`} className="flex items-center gap-2.5 group min-w-0">
-                  <Avatar name={lead.name} size="sm" className="!w-8 !h-8 !text-xs shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-content-primary truncate group-hover:text-brand-600 transition-colors">
-                      {lead.name}
-                    </p>
-                    <p className="text-[11px] text-content-muted flex items-center gap-1 truncate">
-                      <Phone className="w-3 h-3 shrink-0" />
-                      {lead.phone}
-                    </p>
-                  </div>
+                <Link
+                  to={`/leads/${lead._id}`}
+                  className="text-sm font-semibold text-content-primary hover:text-blue-600 truncate block max-w-[160px]"
+                >
+                  {lead.name}
                 </Link>
               </td>
-              <td className="px-4 py-3.5 text-sm text-content-secondary truncate">{lead.destination || '—'}</td>
+              <td className="px-4 py-3.5 text-sm text-content-secondary whitespace-nowrap">
+                {lead.sourceShort || lead.sourceLabel || lead.source || '—'}
+              </td>
+              <td className="px-4 py-3.5 text-sm text-content-secondary truncate max-w-[120px]">
+                {lead.destination || '—'}
+              </td>
               <td className="px-4 py-3.5 text-sm font-semibold metric-tabular whitespace-nowrap">
-                ₹{(lead.budget || 0).toLocaleString('en-IN')}
+                {formatBudget(lead.budget)}
               </td>
-              <td className="px-4 py-3.5 text-sm text-content-muted whitespace-nowrap">
-                {lead.travelDate
-                  ? new Date(lead.travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                  : '—'}
-              </td>
-              {showAgent ? (
-                <td className="px-4 py-3.5 text-xs text-content-secondary truncate">
-                  {lead.assignedTo?.name || 'Unassigned'}
-                </td>
-              ) : (
-                <td className="px-4 py-3.5 text-xs text-content-muted whitespace-nowrap">
-                  {lead.createdAt
-                    ? new Date(lead.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-                    : '—'}
-                </td>
-              )}
               <td className="px-4 py-3.5">
                 <LeadStatusBadge status={lead.status} pulse={lead.status === 'new'} size="sm" />
               </td>
-              <td className="px-4 py-3.5 last:pr-5">
-                <span className="text-xs text-content-muted truncate block">
-                  {lead.sourceShort || lead.sourceLabel || lead.source || '—'}
-                </span>
+              <td className="px-4 py-3.5 text-sm text-content-secondary truncate max-w-[120px]">
+                {lead.assignedTo?.name || 'Unassigned'}
+              </td>
+              <td className="px-4 py-3.5 last:pr-5 text-sm text-content-muted whitespace-nowrap">
+                {lead.createdAt
+                  ? new Date(lead.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : '—'}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
-  );
-
-  const viewAllLink = (
-    <Link to={viewAllHref} className="text-xs font-medium text-brand-600 hover:underline inline-flex items-center gap-1">
-      View all{hasMore ? ` (${total})` : ''} <ArrowUpRight className="w-3.5 h-3.5" />
-    </Link>
   );
 
   if (embedded) {
@@ -129,12 +121,7 @@ export default function RecentLeadsTable({
   }
 
   return (
-    <DashboardPanel
-      title={title}
-      subtitle={hasMore ? `${subtitle} · Showing ${visibleLeads.length} of ${total}` : subtitle}
-      noPadding
-      action={viewAllLink}
-    >
+    <DashboardPanel title={title} subtitle={subtitle} noPadding action={viewAllLink} className="h-full">
       {tableBody}
     </DashboardPanel>
   );

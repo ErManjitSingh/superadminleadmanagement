@@ -131,6 +131,8 @@ async function buildAdminDashboard(options = {}) {
     leadsWithoutFollowup,
     hotLeadsCount,
     highBudgetLeadsCount,
+    leadsByDestination,
+    avgResponseAgg,
   ] = await Promise.all([
     Lead.countDocuments(activeLeadScope({}, branchId)),
     Lead.countDocuments(activeLeadScope({ createdAt: { $gte: todayStart, $lte: todayEnd } }, branchId)),
@@ -149,7 +151,7 @@ async function buildAdminDashboard(options = {}) {
       { $group: { _id: null, total: { $sum: '$paidAmount' } } },
     ]),
     Lead.find(activeLeadScope({}, branchId))
-      .select('leadId name phone destination status budget assignedTo createdAt')
+      .select('leadId name phone destination status budget assignedTo createdAt source')
       .populate('assignedTo', 'name email')
       .sort({ createdAt: -1 })
       .limit(10)
@@ -188,6 +190,27 @@ async function buildAdminDashboard(options = {}) {
     Lead.countDocuments(activeLeadScope({ $or: [{ nextFollowUp: { $exists: false } }, { nextFollowUp: null }] }, branchId)),
     Lead.countDocuments(activeLeadScope({ $or: [{ isHot: true }, { leadScore: 'hot' }] }, branchId)),
     Lead.countDocuments(activeLeadScope({ budget: { $gte: 60000 } }, branchId)),
+    Lead.aggregate([
+      { $match: activeLeadScope({ destination: { $exists: true, $nin: [null, ''] } }, branchId) },
+      { $group: { _id: '$destination', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 8 },
+    ]),
+    Lead.aggregate([
+      {
+        $match: activeLeadScope(
+          { firstContactAt: { $exists: true, $ne: null }, createdAt: { $exists: true } },
+          branchId,
+        ),
+      },
+      {
+        $project: {
+          responseMs: { $subtract: ['$firstContactAt', '$createdAt'] },
+        },
+      },
+      { $match: { responseMs: { $gte: 0, $lte: 1000 * 60 * 60 * 72 } } },
+      { $group: { _id: null, avgMs: { $avg: '$responseMs' }, count: { $sum: 1 } } },
+    ]),
   ]);
 
   const agentIds = topAgents.map((a) => a._id);
@@ -207,14 +230,41 @@ async function buildAdminDashboard(options = {}) {
   ]);
 
   const statusCounts = Object.fromEntries(leadsByStatus.map((s) => [s._id, s.count]));
+  const contactedCount =
+    (statusCounts.contacted || 0) +
+    (statusCounts.follow_up || 0) +
+    (statusCounts.negotiation || 0) +
+    (statusCounts.quotation_sent || 0) +
+    (statusCounts.interested || 0) +
+    convertedLeads;
+  const interestedCount =
+    (statusCounts.follow_up || 0) +
+    (statusCounts.negotiation || 0) +
+    (statusCounts.quotation_sent || 0) +
+    (statusCounts.interested || 0) +
+    convertedLeads;
   const salesFunnel = [
-    { stage: 'New Lead', count: statusCounts.new || 0 },
-    { stage: 'Contacted', count: statusCounts.contacted || 0 },
-    { stage: 'Follow Up', count: (statusCounts.follow_up || 0) + (statusCounts.negotiation || 0) },
-    { stage: 'Quotation Sent', count: statusCounts.quotation_sent || 0 },
-    { stage: 'Negotiation', count: statusCounts.negotiation || 0 },
+    { stage: 'Total Leads', count: totalLeads },
+    { stage: 'Contacted', count: Math.max(contactedCount, convertedLeads) },
+    { stage: 'Interested', count: Math.max(interestedCount, convertedLeads) },
     { stage: 'Converted', count: convertedLeads },
   ];
+
+  const destTotal = leadsByDestination.reduce((s, d) => s + (d.count || 0), 0) || 1;
+  const leadsByLocation = leadsByDestination.map((d) => ({
+    name: d._id || 'Other',
+    count: d.count || 0,
+    pct: Math.round(((d.count || 0) / destTotal) * 1000) / 10,
+  }));
+
+  const avgResponseMs = Math.round(avgResponseAgg[0]?.avgMs || 0);
+  const avgResponseMinutes = avgResponseMs > 0 ? Math.round(avgResponseMs / 60000) : 0;
+  const avgResponseTime =
+    avgResponseMinutes <= 0
+      ? '—'
+      : avgResponseMinutes < 60
+        ? `${avgResponseMinutes}m`
+        : `${Math.floor(avgResponseMinutes / 60)}h ${avgResponseMinutes % 60}m`;
 
   const todayFollowUps = await FollowUp.find(withBranch({
     scheduledAt: { $gte: todayStart, $lte: todayEnd },
@@ -260,6 +310,10 @@ async function buildAdminDashboard(options = {}) {
       value: s.count,
       pct: totalLeads ? Math.round((s.count / totalLeads) * 100) : 0,
     })),
+    leadsByLocation,
+    avgResponseMs,
+    avgResponseMinutes,
+    avgResponseTime,
     topAgents: topAgents.map((a, i) => ({
       name: agentMap[a._id?.toString()] || 'Unknown',
       conversions: a.conversions,
@@ -279,6 +333,7 @@ async function buildAdminDashboard(options = {}) {
       leadsWithoutFollowup,
       hotLeads: hotLeadsCount,
       highBudgetLeads: highBudgetLeadsCount,
+      unassignedLeads: unassignedLeadsTotal,
     },
     activityTimeline: [],
     enterpriseKpis,
@@ -292,6 +347,8 @@ async function buildAdminDashboard(options = {}) {
       converted: [convertedLeads],
       conversionRate: [conversionRate],
       revenue: [revenue],
+      hotLeads: [hotLeadsCount],
+      avgResponse: [avgResponseMinutes || 1],
     },
   };
 }

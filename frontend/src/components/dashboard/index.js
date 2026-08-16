@@ -5,6 +5,8 @@ export { default as KpiCard } from './KpiCard';
 export { default as LeadSourceChart } from './LeadSourceChart';
 export { default as RevenueChart } from './RevenueChart';
 export { default as SalesFunnel } from './SalesFunnel';
+export { default as ConversionOverview } from './ConversionOverview';
+export { default as LeadsByLocationPanel } from './LeadsByLocationPanel';
 export { default as RecentLeadsTable } from './RecentLeadsTable';
 export { default as DashboardLeadsTabs } from './DashboardLeadsTabs';
 export { default as TodayFollowUps } from './TodayFollowUps';
