@@ -137,8 +137,8 @@ export default function DashboardHero({ stats }) {
   const hotLeads = q.hotLeads ?? 0;
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3.5">
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         {KPI_CONFIG.map((cfg, i) => {
           let raw;
           if (cfg.key === 'hotLeads') raw = hotLeads;
@@ -176,7 +176,7 @@ export default function DashboardHero({ stats }) {
         })}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         {PRIORITY_CONFIG.map((item, i) => {
           const count = item.key === 'unassignedLeads'
             ? (q.unassignedLeads ?? stats.unassignedLeadsTotal ?? 0)
@@ -191,15 +191,15 @@ export default function DashboardHero({ stats }) {
             >
               <Link
                 to={item.href}
-                className="flex items-center gap-3 rounded-2xl border border-subtle bg-surface px-4 py-3.5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+                className="flex items-center gap-2 rounded-xl border border-subtle bg-surface px-3 py-2 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
               >
-                <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.iconWrap}`}>
-                  <Icon className="w-4.5 h-4.5" strokeWidth={2.2} />
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.iconWrap}`}>
+                  <Icon className="w-3.5 h-3.5" strokeWidth={2.2} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-medium text-content-secondary truncate">{item.label}</p>
+                  <p className="text-[11px] font-medium text-content-secondary truncate">{item.label}</p>
                 </div>
-                <p className="text-xl font-bold text-content-primary metric-tabular">{count}</p>
+                <p className="text-base font-bold text-content-primary metric-tabular">{count}</p>
               </Link>
             </motion.div>
           );
