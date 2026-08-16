@@ -191,8 +191,9 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
   }, [noHotel, b.step, b.setStep]);
 
   const canContinue = () => {
-    if (b.step === 1) return b.state.leadId && (b.state.packageId || b.state.templateKey);
-    if (b.step === 2) return (b.customItinerary || []).length > 0;
+    // Package / package name is optional — custom quotes only need a lead.
+    if (b.step === 1) return Boolean(b.state.leadId || b.selectedLead?._id);
+    if (b.step === 2) return true;
     return true;
   };
 
@@ -516,10 +517,11 @@ function StepPackage({ b, initialLeadId }) {
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <IconField
-          label="Package Name"
+          label="Package Name (optional)"
           icon={Tag}
           value={info.packageName}
           onChange={(v) => b.updatePackageInfo({ packageName: v })}
+          placeholder="e.g. Shimla Manali Special"
         />
         <IconField
           label="Destination"
@@ -790,7 +792,7 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
   );
 }
 
-function IconField({ label, icon: Icon, value, onChange, type = 'text', min, max }) {
+function IconField({ label, icon: Icon, value, onChange, type = 'text', min, max, placeholder }) {
   return (
     <div>
       <label className="text-sm font-semibold text-slate-700 mb-1.5 block">{label}</label>
@@ -803,8 +805,9 @@ function IconField({ label, icon: Icon, value, onChange, type = 'text', min, max
           value={value ?? ''}
           min={min}
           max={max}
+          placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full h-11 pl-10 pr-4 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15"
+          className="w-full h-11 pl-10 pr-4 rounded-xl text-sm border border-slate-200 bg-white text-slate-900 outline-none transition-all focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15 placeholder:text-slate-400"
         />
       </div>
     </div>

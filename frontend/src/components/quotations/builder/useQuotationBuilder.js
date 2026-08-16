@@ -242,8 +242,13 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
 
       return {
         ...pkg,
-        name: state.packageInfo?.packageName || pkg?.name,
-        destination: state.packageInfo?.destination || pkg?.destination,
+        name:
+          state.packageInfo?.packageName
+          || pkg?.name
+          || state.packageInfo?.destination
+          || selectedLead?.destination
+          || 'Custom Package',
+        destination: state.packageInfo?.destination || pkg?.destination || selectedLead?.destination || '',
         duration: state.packageInfo?.duration || pkg?.duration,
         coverImage: pkg?.coverImage || state.packageInfo?.coverImage,
         hotels: skipHotel ? [] : (pkg?.hotels || []),
@@ -307,9 +312,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     [state, builderUi, activePkg, buildPackageSnapshot, hotelDestination, selectedLead]
   );
 
-  const canPersistDraft = Boolean(
-    (state.leadId || selectedLead?._id) && (state.packageId || state.templateKey)
-  );
+  const canPersistDraft = Boolean(state.leadId || selectedLead?._id);
 
   const draftQuote = useMemo(() => {
     if (!selectedLead) return null;
