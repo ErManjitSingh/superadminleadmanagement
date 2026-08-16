@@ -113,16 +113,17 @@ function HotelFields({
   const nights = nightsBetween(checkIn, checkOut);
   const entryMode = inferEntryMode(hotel, catalogHotels);
 
-  // Auto-fill check-in/out from quotation travel date + duration (once).
+  // Auto-fill check-in/out once when empty (chained from previous hotel / travel date).
   useEffect(() => {
-    if (!defaultCheckIn || !defaultNights) return;
+    if (!defaultCheckIn) return;
     const hasIn = Boolean(hotel.checkIn?.slice?.(0, 10) || hotel.checkIn);
     const hasOut = Boolean(hotel.checkOut?.slice?.(0, 10) || hotel.checkOut);
     if (hasIn && hasOut) return;
+    const nightsSeed = Math.max(1, Number(defaultNights) || 1);
     const nextIn = hasIn ? (hotel.checkIn?.slice?.(0, 10) || hotel.checkIn) : defaultCheckIn;
     const nextOut = hasOut
       ? (hotel.checkOut?.slice?.(0, 10) || hotel.checkOut)
-      : addDays(nextIn, defaultNights);
+      : addDays(nextIn, nightsSeed);
     if (!nextIn || !nextOut) return;
     onChange({
       ...hotel,
@@ -136,16 +137,22 @@ function HotelFields({
 
   const setDates = (patch) => {
     let next = { ...hotel, ...patch };
+    const prevIn = hotel.checkIn?.slice?.(0, 10) || hotel.checkIn || '';
+    const prevOut = hotel.checkOut?.slice?.(0, 10) || hotel.checkOut || '';
+    const prevNights = nightsBetween(prevIn, prevOut) || Math.max(1, Number(defaultNights) || 1);
+
     const inDate = next.checkIn?.slice?.(0, 10) || next.checkIn || '';
     let outDate = next.checkOut?.slice?.(0, 10) || next.checkOut || '';
 
-    if (patch.checkIn && inDate && !outDate && defaultNights > 0) {
-      outDate = addDays(inDate, defaultNights);
+    // Changing check-in keeps the same night count and shifts check-out.
+    if (patch.checkIn && inDate) {
+      outDate = addDays(inDate, prevNights);
       next = { ...next, checkOut: outDate };
-    }
-
-    if (inDate && outDate && nightsBetween(inDate, outDate) === 0 && outDate <= inDate) {
-      outDate = addDays(inDate, Math.max(1, defaultNights || 1));
+    } else if (patch.checkOut && inDate && outDate && outDate <= inDate) {
+      outDate = addDays(inDate, Math.max(1, prevNights));
+      next = { ...next, checkOut: outDate };
+    } else if (patch.checkIn && inDate && !outDate) {
+      outDate = addDays(inDate, Math.max(1, Number(defaultNights) || 1));
       next = { ...next, checkOut: outDate };
     }
 
@@ -397,6 +404,52 @@ export default function SimplifiedHotelSection({
     onCatalogHotelsChange?.(next);
   };
 
+  /** After hotel[i] nights/checkout change, next hotels check-in from previous check-out. */
+  const chainFromIndex = (list, fromIndex = 0) => {
+    const next = list.map((h) => ({ ...h }));
+    for (let i = fromIndex; i < next.length - 1; i++) {
+      const currOut = String(next[i].checkOut || '').slice(0, 10);
+      if (!currOut) break;
+      const following = next[i + 1];
+      const followIn = String(following.checkIn || '').slice(0, 10);
+      const followOut = String(following.checkOut || '').slice(0, 10);
+      let stayNights = nightsBetween(followIn, followOut);
+      if (!stayNights || stayNights < 1) {
+        stayNights = Math.max(1, Number(following.nights) || 1);
+      }
+      const chainedIn = currOut;
+      const chainedOut = addDays(chainedIn, stayNights);
+      next[i + 1] = {
+        ...following,
+        checkIn: chainedIn,
+        checkOut: chainedOut,
+        nights: stayNights,
+      };
+    }
+    return next;
+  };
+
+  const updateDestinationHotel = (index, hotelPatch) => {
+    const list = [...(builderUi.destinationHotels || [])];
+    list[index] = hotelPatch;
+    update({ destinationHotels: chainFromIndex(list, index) });
+  };
+
+  const addDestinationHotel = () => {
+    const list = [...(builderUi.destinationHotels || [])];
+    const prev = list[list.length - 1];
+    const prevOut = String(prev?.checkOut || '').slice(0, 10);
+    const checkIn = prevOut || defaultCheckIn;
+    const nights = 1;
+    const fresh = {
+      ...emptyDestinationHotel(destinations[destinations.length - 1]?.name || prev?.destination || ''),
+      checkIn: checkIn || '',
+      checkOut: checkIn ? addDays(checkIn, nights) : '',
+      nights,
+    };
+    update({ destinationHotels: [...list, fresh] });
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -468,57 +521,59 @@ export default function SimplifiedHotelSection({
             </div>
           ) : (
             <div className="space-y-4">
-              {(builderUi.destinationHotels || []).map((hotel, index) => (
-                <div key={hotel.id} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm relative">
-                  <div className="flex items-center justify-between gap-2 mb-4">
-                    <div className="flex items-center gap-2 text-sm font-bold text-violet-700">
-                      <MapPin className="w-4 h-4" />
-                      <input
-                        value={hotel.destination}
-                        onChange={(e) => {
-                          const next = [...builderUi.destinationHotels];
-                          next[index] = { ...hotel, destination: e.target.value };
-                          update({ destinationHotels: next });
-                        }}
-                        className={cn(inputCls('h-10 max-w-[220px]'), 'font-semibold')}
-                        placeholder="Destination"
-                      />
+              {(builderUi.destinationHotels || []).map((hotel, index) => {
+                const prevOut = index > 0
+                  ? String(builderUi.destinationHotels[index - 1]?.checkOut || '').slice(0, 10)
+                  : '';
+                const chainedCheckIn = prevOut || defaultCheckIn;
+                return (
+                  <div key={hotel.id} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm relative">
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <div className="flex items-center gap-2 text-sm font-bold text-violet-700">
+                        <MapPin className="w-4 h-4" />
+                        <input
+                          value={hotel.destination}
+                          onChange={(e) => {
+                            const next = [...builderUi.destinationHotels];
+                            next[index] = { ...hotel, destination: e.target.value };
+                            update({ destinationHotels: next });
+                          }}
+                          className={cn(inputCls('h-10 max-w-[220px]'), 'font-semibold')}
+                          placeholder="Destination"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => update({
+                          destinationHotels: builderUi.destinationHotels.filter((_, i) => i !== index),
+                        })}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => update({
-                        destinationHotels: builderUi.destinationHotels.filter((_, i) => i !== index),
-                      })}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {index > 0 && prevOut && (
+                      <p className="text-[11px] text-slate-500 mb-3">
+                        Check-in auto-chained from previous hotel check-out ({prevOut})
+                      </p>
+                    )}
+                    <HotelFields
+                      hotel={hotel}
+                      defaultNights={index === 0 ? defaultNights : 1}
+                      defaultCheckIn={chainedCheckIn}
+                      catalogHotels={catalogHotels}
+                      destinationHint={hotel.destination || destinations[index]?.name || ''}
+                      onCatalogSaved={handleCatalogSaved}
+                      onChange={(next) => updateDestinationHotel(index, next)}
+                    />
                   </div>
-                  <HotelFields
-                    hotel={hotel}
-                    defaultNights={defaultNights}
-                    defaultCheckIn={defaultCheckIn}
-                    catalogHotels={catalogHotels}
-                    destinationHint={hotel.destination || destinations[index]?.name || ''}
-                    onCatalogSaved={handleCatalogSaved}
-                    onChange={(next) => {
-                      const list = [...builderUi.destinationHotels];
-                      list[index] = next;
-                      update({ destinationHotels: list });
-                    }}
-                  />
-                </div>
-              ))}
+                );
+              })}
               <Button
                 type="button"
                 variant="outline"
                 className="rounded-xl gap-2 border-slate-200"
-                onClick={() => update({
-                  destinationHotels: [
-                    ...(builderUi.destinationHotels || []),
-                    emptyDestinationHotel(destinations[destinations.length - 1]?.name || ''),
-                  ],
-                })}
+                onClick={addDestinationHotel}
               >
                 <Plus className="w-4 h-4" /> Add Destination Hotel
               </Button>
