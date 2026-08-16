@@ -22,9 +22,7 @@ import {
   sanitizeTransportLabel,
   sanitizeItineraryDayTitle,
 } from './quotePdfHelpers';
-
-const DEMO_QR_URL =
-  'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3Ddemo%40travelcrm%26pn%3DTravel%2520CRM%26cu%3DINR';
+import { getPaymentQrSrc, PAYMENT_UPI_ID } from './paymentQr';
 
 const DEFAULT_COVER =
   'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
@@ -68,13 +66,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const companyBanks = (company?.bankAccounts || []).filter((b) => b && (b.bank || b.accountNo || b.upi));
   const banks = companyBanks.length ? companyBanks : resolveBankAccounts(quote);
   const bank = banks[0] || null;
-  const upiId = company?.upiId || bank?.upi || '';
-  const upiName = company?.upiName || brand.name;
-  const qrUrl = upiId
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-        `upi://pay?pa=${upiId}&pn=${upiName}&cu=INR`,
-      )}`
-    : DEMO_QR_URL;
+  const upiId = company?.upiId || bank?.upi || PAYMENT_UPI_ID;
+  const qrUrl = getPaymentQrSrc();
   const pax = resolveTravelerCounts(quote);
   const duration = Number(packageInfo.duration || pkg.duration || 0);
   const nights = Math.max(0, duration > 0 ? duration - 1 : 0);
@@ -386,7 +379,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             crossOrigin="anonymous"
           />
           <p className="qp-qr-title">Scan to Pay</p>
-          <p className="qp-qr-demo">{upiId ? upiId : 'Demo QR Code'}</p>
+          <p className="qp-qr-demo">UPI ID: {upiId || PAYMENT_UPI_ID}</p>
         </div>
       </div>
       </section>

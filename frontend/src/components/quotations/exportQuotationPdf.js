@@ -99,6 +99,15 @@ function prepareForCapture(root, widthPx) {
   });
 
   root.querySelectorAll('img').forEach((img) => {
+    // Keep payment QR + already-inlined images for PDF capture
+    if (
+      img.src?.startsWith('data:')
+      || img.classList?.contains('qp-qr-img')
+      || img.alt === 'Scan to pay'
+      || img.alt === 'Payment QR'
+    ) {
+      return;
+    }
     if (!img.src?.startsWith('data:')) {
       const placeholder = document.createElement('div');
       placeholder.className = `${img.className || ''} qp-img-placeholder`.trim();

@@ -73,17 +73,20 @@ function drawFooter(doc) {
     if (qr && qr.startsWith('data:image/png;base64,')) {
       const b64 = qr.replace(/^data:image\/png;base64,/, '');
       const buf = Buffer.from(b64, 'base64');
-      const size = 72;
+      const size = 96;
       const x = doc.page.width - 48 - size;
-      const y = doc.page.height - 50 - size - 8;
+      const y = doc.page.height - 56 - size - 12;
+      doc.roundedRect(x - 6, y - 18, size + 12, size + 36, 8).fill('#f8fafc');
       doc.image(buf, x, y, { width: size, height: size });
+      doc.fontSize(8).fillColor(TEXT_MUTED).font('Helvetica-Bold')
+        .text('Scan QR to Pay', x - 6, y - 14, { width: size + 12, align: 'center' });
       doc.fontSize(7).fillColor(TEXT_MUTED).font('Helvetica')
-        .text('Scan to Pay', x, y + size + 2, { width: size, align: 'center' });
+        .text('exploremybharat01@okicici', x - 10, y + size + 2, { width: size + 20, align: 'center' });
     }
   } catch {
     /* ignore */
   }
-  const y = doc.page.height - 36;
+  const y = doc.page.height - 28;
   doc.fontSize(8).fillColor(TEXT_MUTED).font('Helvetica')
     .text(`Generated ${fmtDate(new Date())} · ${branding.brandName}`, 48, y, { align: 'center', width: doc.page.width - 96 });
 }
