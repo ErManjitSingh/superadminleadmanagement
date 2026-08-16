@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { siteConfig } from "@/lib/config";
 import { megaIndia, megaHoneymoon, megaFamily } from "@/lib/data";
 import { Search, ChevronDown, X } from "lucide-react";
@@ -27,7 +26,7 @@ export function Header() {
       </div>
       <div className="th-container relative flex h-[59px] items-center justify-between gap-4">
         <div className="flex items-center gap-6 lg:gap-8">
-          <Link href="/" className="flex shrink-0 items-center" aria-label={siteConfig.name}>
+          <a href={siteConfig.url + "/"} className="flex shrink-0 items-center" aria-label={siteConfig.name}>
             <Image
               src="/logo.png"
               alt={siteConfig.name}
@@ -36,7 +35,7 @@ export function Header() {
               className="h-10 w-auto object-contain sm:h-11"
               priority
             />
-          </Link>
+          </a>
 
           <nav className="hidden items-center lg:flex" onMouseLeave={() => setOpen(null)}>
             {tabs.map((tab) => (
