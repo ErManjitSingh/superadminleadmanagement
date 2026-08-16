@@ -1,73 +1,128 @@
-import { exploreDestinations, destinationSections } from "@/lib/data";
+"use client";
 
-function startPrice(name: string) {
-  const section = destinationSections.find(
-    (s) => s.title.toLowerCase() === name.toLowerCase()
-  );
-  if (!section) return null;
-  return Math.min(...section.packages.map((p) => p.priceNow));
-}
+import { useRef } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Mountain,
+  Umbrella,
+  TreePalm,
+  Castle,
+  Snowflake,
+  Tent,
+} from "lucide-react";
+import { exploreDestinations } from "@/lib/data";
 
-/** Thrillophilia Top Picks — exact 280×167, radius 16, gap 16 */
+const displayName: Record<string, string> = {
+  Himachal: "Himachal Pradesh",
+  Spiti: "Spiti Valley",
+  Andaman: "Andaman",
+};
+
+const cardIcon: Record<string, typeof Mountain> = {
+  Goa: Umbrella,
+  Kerala: TreePalm,
+  Ladakh: Mountain,
+  Kashmir: Snowflake,
+  Rajasthan: Castle,
+  Himachal: Mountain,
+  Andaman: Umbrella,
+  Spiti: Mountain,
+  Sikkim: Mountain,
+  Uttarakhand: Tent,
+};
+
+/** Tall destination carousel matching homepage mock */
 export function Destinations() {
-  const picks = exploreDestinations.filter((d) =>
-    destinationSections.some((s) => s.title.toLowerCase() === d.name.toLowerCase())
-  );
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
+  const scrollBy = (dir: -1 | 1) => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 240, behavior: "smooth" });
+  };
 
   return (
-    <section id="destinations" className="bg-[var(--th-bg)] py-12 sm:py-16">
-      <div className="th-container mb-5 flex items-end justify-between gap-4">
+    <section id="destinations" className="bg-white py-12 sm:py-16">
+      <div className="th-container mb-7 flex items-end justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--th-orange)]">
-            Handpicked for you
-          </p>
-          <h2 className="mt-1 text-[27px] font-extrabold leading-tight tracking-tight text-[#17213a] sm:text-[34px]">
-            Popular destinations
+          <h2 className="text-[26px] font-extrabold leading-tight tracking-tight text-[var(--th-ink)] sm:text-[32px]">
+            Explore Popular Destinations
           </h2>
+          <p className="mt-1.5 text-[14px] text-[var(--th-muted)]">
+            Handpicked places for your next adventure
+          </p>
         </div>
-        <a href="#packages" className="shrink-0 text-[13px] font-bold text-[var(--th-orange)] hover:underline">
-          View All
+        <a
+          href="#packages"
+          className="hidden shrink-0 items-center rounded-xl border border-[var(--th-border)] bg-white px-4 py-2.5 text-[13px] font-semibold text-[var(--th-ink)] transition hover:border-[var(--th-orange)] hover:text-[var(--th-orange)] sm:inline-flex"
+        >
+          View all destinations <span className="ml-1">›</span>
         </a>
       </div>
 
-      <div className="th-container">
-        <div className="hide-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:gap-4 sm:px-0">
-          {picks.map((d) => {
-            const price = startPrice(d.name);
+      <div className="relative">
+        <button
+          type="button"
+          aria-label="Previous destinations"
+          onClick={() => scrollBy(-1)}
+          className="absolute -left-1 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e4ebe6] bg-white text-[var(--th-ink)] shadow-md transition hover:border-[var(--th-orange)] sm:flex lg:left-2"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          aria-label="Next destinations"
+          onClick={() => scrollBy(1)}
+          className="absolute -right-1 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#e4ebe6] bg-white text-[var(--th-ink)] shadow-md transition hover:border-[var(--th-orange)] sm:flex lg:right-2"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+
+        <div
+          ref={scrollerRef}
+          className="hide-scrollbar th-container flex gap-4 overflow-x-auto scroll-smooth pb-1"
+        >
+          {exploreDestinations.map((d) => {
+            const Icon = cardIcon[d.name] || Mountain;
+            const label = displayName[d.name] || d.name;
+            const href =
+              d.name === "Himachal" || d.name === "Spiti" || d.name === "Andaman" || d.name === "Sikkim" || d.name === "Uttarakhand"
+                ? "#packages"
+                : `#${d.name.toLowerCase()}`;
+
             return (
               <a
                 key={d.name}
-                href={`#${d.name.toLowerCase()}`}
-                className="group relative h-[190px] w-[290px] shrink-0 overflow-hidden rounded-[20px] bg-[#ddd] shadow-[0_8px_24px_rgba(15,23,42,.09)]"
+                href={href}
+                className="group relative h-[320px] w-[200px] shrink-0 overflow-hidden rounded-2xl bg-[#ddd] shadow-[0_10px_28px_rgba(15,23,42,0.1)] sm:h-[340px] sm:w-[210px]"
               >
                 <img
                   src={d.image}
-                  alt={d.name}
-                  width={280}
-                  height={167}
+                  alt={label}
+                  width={420}
+                  height={680}
                   loading="lazy"
                   decoding="async"
                   className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
                 />
                 <div
-                  className="absolute inset-x-0 bottom-0 h-[121px]"
+                  className="absolute inset-0"
                   style={{
                     background:
-                      "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.75) 100%)",
+                      "linear-gradient(180deg, rgba(0,0,0,0.05) 35%, rgba(0,0,0,0.75) 100%)",
                   }}
                 />
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 px-3.5 pb-3.5 text-white">
-                  <div>
-                    <p className="text-[11px] font-semibold text-white/85">Explore</p>
-                    <p className="text-[18px] font-bold leading-tight">{d.name}</p>
-                  </div>
-                  {price != null && (
-                    <div className="pb-0.5 text-right">
-                      <p className="text-[10px] text-white/85">Starts @</p>
-                      <span className="th-price-badge">₹ {price.toLocaleString("en-IN")}</span>
-                      <p className="mt-0.5 text-[10px] text-white/85">/person</p>
-                    </div>
-                  )}
+
+                {d.trending && (
+                  <span className="absolute right-3 top-3 rounded-md bg-[var(--th-orange)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                    Trending
+                  </span>
+                )}
+
+                <div className="absolute inset-x-0 bottom-0 px-4 pb-4 text-white">
+                  <Icon className="mb-2 h-5 w-5 text-white/95" strokeWidth={2} />
+                  <p className="text-[17px] font-bold leading-tight">{label}</p>
                 </div>
               </a>
             );

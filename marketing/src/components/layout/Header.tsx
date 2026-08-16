@@ -17,12 +17,17 @@ export function Header() {
 
   return (
     <header className="relative z-50 bg-white">
-      <div className="relative flex h-[31px] items-center justify-center bg-[var(--th-forest)] text-[11px] font-medium text-white">
-        <span>⛺ <b>MONSOON SALE</b>&nbsp; ☁️ &nbsp; Save up to <b>40%</b> on your trip</span>
-        <span className="absolute right-[78px] hidden rounded-full bg-black/20 px-3 py-1 text-[10px] sm:block">
-          ◷ 6 Days : 1 Hr : 47 Min
+      <div className="relative flex h-[34px] items-center justify-center bg-[var(--th-forest)] text-[11px] font-medium text-white">
+        <span className="inline-flex items-center gap-2">
+          <span aria-hidden>☁</span>
+          <b className="tracking-wide">MONSOON SALE</b>
+          <span className="text-white/80">Save up to <b className="text-white">40%</b> on your trip</span>
         </span>
-        <X className="absolute right-12 hidden h-3.5 w-3.5 sm:block" />
+        <span className="absolute right-10 hidden items-center gap-1.5 text-[11px] sm:inline-flex md:right-14">
+          <span aria-hidden>◷</span>
+          6 Days : 1 Hr : 47 Min
+        </span>
+        <X className="absolute right-3 hidden h-3.5 w-3.5 opacity-70 sm:block" />
       </div>
       <div className="th-container relative flex h-[59px] items-center justify-between gap-4">
         <div className="flex items-center gap-6 lg:gap-8">
@@ -63,6 +68,18 @@ export function Header() {
             <a href="#packages" className="px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]">
               Mice
             </a>
+            <a href="#packages" className="px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]">
+              Blog
+            </a>
+              <a
+                href="#packages"
+                className="relative px-3 py-5 text-[13px] font-semibold text-[var(--th-ink)] hover:text-[var(--th-orange)]"
+              >
+                Offers
+                <span className="ml-1.5 inline-block rounded-full bg-[var(--th-orange)] px-1.5 py-0.5 text-[8px] font-bold uppercase leading-none text-white align-middle">
+                  New
+                </span>
+              </a>
           </nav>
         </div>
 

@@ -14,8 +14,8 @@ export default function HomePage() {
       <main>
         <Hero />
         <Destinations />
-        <Packages />
         <TrustBar />
+        <Packages />
         <FAQ />
         <div id="honeymoon">
           <FinalCTA />
