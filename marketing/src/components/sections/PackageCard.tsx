@@ -59,7 +59,7 @@ export function PackageCard({ pkg }: { pkg: PackageCardType }) {
                 <span className="ml-1 text-[11px] font-medium text-[#666]">{pkg.per}</span>
               </p>
             </div>
-            <span className="rounded-[4px] bg-[#eaf7ef] px-1.5 py-1 text-[10px] font-bold uppercase leading-none text-[var(--th-save)]">
+            <span className="rounded-[4px] bg-[var(--th-bg)] px-1.5 py-1 text-[10px] font-bold uppercase leading-none text-[var(--th-save)]">
               save {formatInr(save)}
             </span>
           </div>

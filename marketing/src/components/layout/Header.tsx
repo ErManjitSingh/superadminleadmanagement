@@ -18,7 +18,7 @@ export function Header() {
 
   return (
     <header className="relative z-50 bg-white">
-      <div className="relative flex h-[31px] items-center justify-center bg-[#ff6105] text-[11px] font-medium text-white">
+      <div className="relative flex h-[31px] items-center justify-center bg-[var(--th-forest)] text-[11px] font-medium text-white">
         <span>⛺ <b>MONSOON SALE</b>&nbsp; ☁️ &nbsp; Save up to <b>40%</b> on your trip</span>
         <span className="absolute right-[78px] hidden rounded-full bg-black/20 px-3 py-1 text-[10px] sm:block">
           ◷ 6 Days : 1 Hr : 47 Min
@@ -70,7 +70,7 @@ export function Header() {
           </span>
           <a
             href={siteConfig.crmLogin}
-            className="rounded-lg border border-[#ff985e] px-5 py-2 text-[12px] font-semibold text-[#d96220] hover:bg-orange-50"
+            className="rounded-lg border border-[var(--th-orange)] px-5 py-2 text-[12px] font-semibold text-[var(--th-orange-dark)] hover:bg-[var(--th-bg)]"
           >
             Login
           </a>

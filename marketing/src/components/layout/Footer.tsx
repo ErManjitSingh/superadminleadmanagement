@@ -5,7 +5,7 @@ import { destinationSections } from "@/lib/data";
 
 export function Footer() {
   return (
-    <footer id="contact" className="border-t border-[var(--th-border)] bg-[#1b1b1b] pt-12 pb-8 text-white">
+    <footer id="contact" className="border-t border-[var(--th-border)] bg-[var(--th-forest)] pt-12 pb-8 text-white">
       <div className="th-container">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">

@@ -4,16 +4,20 @@
 
 @layer base {
   :root {
-    --th-orange: #f37022;
-    --th-orange-dark: #e05f12;
-    --th-yellow: #fcaf17;
-    --th-price: #ffba09;
-    --th-price-shadow: #845804;
-    --th-ink: #202020;
-    --th-muted: #515151;
-    --th-border: #eaeaea;
-    --th-bg: #f7f7f7;
-    --th-save: #128c4b;
+    /* Logo palette: forest green + India saffron orange */
+    --th-forest: #084028;
+    --th-forest-dark: #063321;
+    --th-forest-light: #0f5a38;
+    --th-orange: #f88008;
+    --th-orange-dark: #e07000;
+    --th-yellow: #f9a825;
+    --th-price: #f88008;
+    --th-price-shadow: #8a4a00;
+    --th-ink: #14201a;
+    --th-muted: #5c6b5f;
+    --th-border: #e2ebe4;
+    --th-bg: #f6faf7;
+    --th-save: #084028;
   }
 
   html {
@@ -32,7 +36,7 @@
   }
 
   .th-gradient-text {
-    background: linear-gradient(90deg, #fcaf17, #f37022);
+    background: linear-gradient(90deg, #f88008, #084028);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -43,7 +47,7 @@
   }
 
   .th-btn-outline {
-    @apply inline-flex items-center justify-center rounded-md border border-[var(--th-orange)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--th-orange)] transition hover:bg-orange-50;
+    @apply inline-flex items-center justify-center rounded-md border border-[var(--th-forest)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--th-forest)] transition hover:bg-[var(--th-bg)];
   }
 
   .th-price-badge {
@@ -51,7 +55,7 @@
     box-shadow: 1.5px 1.5px var(--th-price-shadow);
     border-radius: 3px;
     padding: 0 5px;
-    color: #202020;
+    color: #fff;
     font-size: 12px;
     font-weight: 600;
     line-height: 16px;

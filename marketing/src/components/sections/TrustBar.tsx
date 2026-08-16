@@ -13,8 +13,8 @@ export function TrustBar() {
           </div>
         ))}
       </div>
-      <div className="border-t border-[var(--th-border)] bg-[#fff8ef] py-3.5 text-center">
-        <p className="text-[13px] font-bold tracking-wide text-[var(--th-ink)]">
+      <div className="border-t border-[var(--th-border)] bg-[var(--th-bg)] py-3.5 text-center">
+        <p className="text-[13px] font-bold tracking-wide text-[var(--th-forest)]">
           AWARDED BEST LEISURE TOURS BRAND
         </p>
         <p className="mt-0.5 text-[11px] text-[var(--th-muted)]">

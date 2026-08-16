@@ -15,7 +15,7 @@ export function Destinations() {
   );
 
   return (
-    <section id="destinations" className="bg-[#f8fafc] py-12 sm:py-16">
+    <section id="destinations" className="bg-[var(--th-bg)] py-12 sm:py-16">
       <div className="th-container mb-5 flex items-end justify-between gap-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--th-orange)]">
