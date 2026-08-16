@@ -4,7 +4,7 @@ import type { ReactElement } from "react";
 
 type IconProps = { className?: string; active?: boolean };
 
-const fill = (active?: boolean) => (active ? "var(--th-orange, #f37022)" : "#515151");
+const fill = (active?: boolean) => (active ? "var(--th-orange, #f88008)" : "#515151");
 
 export function IconExplore({ active }: IconProps) {
   return (
