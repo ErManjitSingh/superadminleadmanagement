@@ -105,43 +105,41 @@ export function Hero() {
         />
       </div>
 
-      {/* ===== Mobile: image + copy as one hero plane ===== */}
+      {/* ===== Mobile hero ===== */}
       <div className="relative lg:hidden">
-        <div className="relative min-h-[340px] overflow-hidden">
+        {/* Banner image */}
+        <div className="relative h-[210px] overflow-hidden sm:h-[240px]">
           <img
             src={HERO_IMAGE}
             alt="Himachal green mountains — Incredible India holidays"
-            className="absolute inset-0 h-full w-full object-cover object-[50%_35%]"
+            className="absolute inset-0 h-full w-full object-cover object-[50%_40%]"
             width={1600}
-            height={1200}
+            height={1000}
             loading="eager"
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.45) 35%, rgba(255,255,255,0.15) 60%, rgba(255,255,255,0.55) 100%)",
-            }}
-          />
-          <div className="relative z-10 px-4 pb-24 pt-8">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#f3d9c0] bg-white/95 px-3 py-[6px] text-[9.5px] font-bold uppercase tracking-[0.12em] text-[#d96a12] shadow-sm">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-white" />
+        </div>
+
+        {/* Copy BELOW banner on solid white — always readable */}
+        <div className="relative z-10 -mt-8 bg-gradient-to-b from-white/0 via-white to-white px-4 pb-2 pt-2">
+          <div className="rounded-2xl bg-white/95 px-3 py-4 shadow-[0_8px_28px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#f3d9c0] bg-[#fff7ef] px-3 py-[6px] text-[9.5px] font-bold uppercase tracking-[0.12em] text-[#d96a12]">
               <span className="h-[6px] w-[6px] rounded-full bg-[#f46c14]" />
               Made for your kind of holiday
             </div>
-            <h1 className="text-[32px] font-extrabold leading-[1.08] tracking-[-0.03em] text-[#003322]">
+            <h1 className="text-[30px] font-extrabold leading-[1.1] tracking-[-0.03em] text-[#003322] sm:text-[34px]">
               Incredible India,
               <br />
               <span className="text-[#f46c14]">made</span> personal.
             </h1>
-            <p className="mt-3 max-w-[340px] text-[13.5px] leading-[1.55] text-[#4b5563]">
+            <p className="mt-2.5 text-[13.5px] leading-[1.55] text-[#4b5563]">
               Handpicked stays, memorable experiences and thoughtfully planned
               journeys—all designed around you.
             </p>
           </div>
         </div>
 
-        {/* Search overlaps bottom of hero image */}
-        <div className="relative z-20 -mt-16 px-3">
+        <div className="relative z-20 px-3 pt-3">
           <ExploreTabs />
         </div>
 

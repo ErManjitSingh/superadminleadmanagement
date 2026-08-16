@@ -1,5 +1,9 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import {
+  FloatingContactButtons,
+  MobileFloatingFooter,
+} from "@/components/layout/FloatingContact";
 import { Hero } from "@/components/sections/Hero";
 import { Destinations } from "@/components/sections/Destinations";
 import { Packages } from "@/components/sections/Packages";
@@ -11,7 +15,7 @@ export default function HomePage() {
   return (
     <>
       <Header />
-      <main>
+      <main className="pb-20 lg:pb-0">
         <Hero />
         <Destinations />
         <TrustBar />
@@ -22,6 +26,8 @@ export default function HomePage() {
         </div>
       </main>
       <Footer />
+      <FloatingContactButtons />
+      <MobileFloatingFooter />
     </>
   );
 }
