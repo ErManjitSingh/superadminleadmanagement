@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/lib/config";
 import { destinationSections } from "@/lib/data";
@@ -8,11 +9,14 @@ export function Footer() {
       <div className="th-container">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--th-orange)] text-sm font-extrabold">
-                IHD
-              </span>
-              <span className="text-sm font-extrabold">India Holiday Destination</span>
+            <Link href="/" className="inline-flex items-center" aria-label={siteConfig.name}>
+              <Image
+                src="/logo.png"
+                alt={siteConfig.name}
+                width={220}
+                height={74}
+                className="h-12 w-auto rounded-md bg-white object-contain p-1.5"
+              />
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/55">
               India&apos;s trusted holiday packages — curated tours, clear pricing, 24×7 support.

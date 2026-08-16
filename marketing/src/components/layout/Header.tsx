@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { siteConfig } from "@/lib/config";
 import { megaIndia, megaHoneymoon, megaFamily } from "@/lib/data";
@@ -26,14 +27,15 @@ export function Header() {
       </div>
       <div className="th-container relative flex h-[59px] items-center justify-between gap-4">
         <div className="flex items-center gap-6 lg:gap-8">
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-50 text-xl">✈️</span>
-            <span>
-              <span className="block text-[16px] font-extrabold leading-none tracking-tight text-[var(--th-orange)]">
-                India Holiday Destination
-              </span>
-              <span className="mt-1 block text-[7px] font-medium text-[#737373]">Your trusted holiday planning partner</span>
-            </span>
+          <Link href="/" className="flex shrink-0 items-center" aria-label={siteConfig.name}>
+            <Image
+              src="/logo.png"
+              alt={siteConfig.name}
+              width={210}
+              height={71}
+              className="h-10 w-auto object-contain sm:h-11"
+              priority
+            />
           </Link>
 
           <nav className="hidden items-center lg:flex" onMouseLeave={() => setOpen(null)}>
