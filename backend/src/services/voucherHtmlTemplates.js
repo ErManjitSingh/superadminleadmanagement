@@ -816,7 +816,7 @@ async function buildCabVoucherHtml(voucher, booking) {
   const bookingDate = fmtIssued(voucher.createdAt || voucher.issuedAt || booking.createdAt);
   const pickupLoc = p.pickupLocation || booking.pickup || booking.destination || '-';
   const dropLoc = p.dropLocation || booking.drop || booking.destination || '-';
-  const pickupWhen = fmtDateTime(p.pickupDate || booking.travelDate, p.pickupTime || p.reportingTime || '09:00 AM');
+  const pickupWhen = fmtDate(p.pickupDate || booking.travelDate);
   const vehicleName = vehicleDisplayName(p);
   const vehicleType = vehicleLabel(p.vehicleType);
   const vehicleNo = p.vehicleNumber || p.vehicleName || '-';
@@ -921,7 +921,7 @@ async function buildCabVoucherHtml(voucher, booking) {
     <div class="emb-card">
       <div class="emb-card-h">Journey Details</div>
       <div class="emb-card-b">
-        ${embRow('o', '📅', 'Pickup Date & Time', pickupWhen)}
+        ${embRow('o', '📅', 'Pickup Date', pickupWhen)}
         ${embRow('', '📍', 'Pickup Location', pickupLoc)}
         ${embRow('r', '🏁', 'Drop Location', dropLoc)}
         ${embRow('g', '🛣', 'Total Distance', distance ? String(distance) : 'As per itinerary')}

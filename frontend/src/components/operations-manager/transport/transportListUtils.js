@@ -21,13 +21,10 @@ export function countActiveTransportFilters(filters) {
 
 export function formatTransportDateTime(dateStr) {
   if (!dateStr) return null;
-  return new Date(dateStr).toLocaleString('en-IN', {
+  return new Date(dateStr).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
   });
 }
 
