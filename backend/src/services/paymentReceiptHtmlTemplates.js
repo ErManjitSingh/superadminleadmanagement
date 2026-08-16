@@ -117,7 +117,6 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     brandedTile('rupee', amountLabel, fmtINR(thisPayment)),
     brandedTile('info', 'Payment Mode', modeLabel(payment.mode)),
     brandedTile('calendar', 'Payment Date', fmtDate(payment.paymentDate || payment.createdAt)),
-    brandedTile('ticket', 'Transaction ID', payment.transactionId || payment.referenceNumber || '-'),
     brandedTile('user', 'Received By', `${receivedBy} (${roleLabel})`),
     brandedTile('ticket', 'Receipt No', receiptNumber),
     brandedTile('phone', 'Customer Phone', customerPhone),

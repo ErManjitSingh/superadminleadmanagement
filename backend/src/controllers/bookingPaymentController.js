@@ -52,10 +52,28 @@ const getConvertPreview = asyncHandler(async (req, res) => {
 });
 
 const convertLeadWithPayment = asyncHandler(async (req, res) => {
-  const { amount, paymentDate, mode, paymentMode, transactionId, referenceNumber, bankName, remarks, screenshotBase64, sendReceipt } = req.body;
+  const {
+    amount,
+    paymentDate,
+    mode,
+    paymentMode,
+    transactionId,
+    referenceNumber,
+    bankName,
+    remarks,
+    screenshotBase64,
+    sendReceipt,
+    aadhaarNumber,
+    aadhaarPhotoBase64,
+  } = req.body;
 
   if (!amount || Number(amount) <= 0) {
     throw new ApiError(400, 'Advance amount is required');
+  }
+
+  const aadhaarDigits = String(aadhaarNumber || '').replace(/\D/g, '');
+  if (aadhaarDigits.length !== 12) {
+    throw new ApiError(400, 'Valid 12-digit Aadhaar number is required');
   }
 
   const lead = await Lead.findOne(tenantFilter({ _id: req.params.id }, req));
@@ -77,6 +95,8 @@ const convertLeadWithPayment = asyncHandler(async (req, res) => {
       remarks,
       screenshotBase64,
       sendReceipt,
+      aadhaarNumber: aadhaarDigits,
+      aadhaarPhotoBase64,
     },
     req.user
   );

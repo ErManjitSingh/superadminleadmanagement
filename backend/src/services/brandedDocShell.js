@@ -546,7 +546,9 @@ function brandedHelpBox(rows = []) {
   </div>`;
 }
 
-function wrapBrandedDocument({ title, bodyHtml, brand, heroSrc, pills, stripItems, stripCols = 5, thanksText }) {
+function wrapBrandedDocument({ title, bodyHtml, brand, heroSrc, pills, stripItems, stripCols = 5, thanksText, paymentQr = true }) {
+  const { paymentQrBlockHtml } = require('./paymentQrAsset');
+  const qrHtml = paymentQr ? paymentQrBlockHtml('Scan QR to Pay') : '';
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"/>
@@ -558,6 +560,7 @@ function wrapBrandedDocument({ title, bodyHtml, brand, heroSrc, pills, stripItem
   ${brandedHeaderHtml({ title, pills, brand, heroSrc })}
   ${stripItems?.length ? brandedStripHtml(stripItems, stripCols) : ''}
   ${bodyHtml}
+  ${qrHtml}
   ${brandedFooterHtml(brand, thanksText)}
 </div>
 </body></html>`;

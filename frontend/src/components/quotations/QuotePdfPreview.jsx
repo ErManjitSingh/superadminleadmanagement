@@ -92,10 +92,14 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const coverImage = pkg.coverImage || packageInfo.coverImage || DEFAULT_COVER;
 
   return (
-    <div ref={ref} className="quote-ht-pdf quote-ht-pdf-v2">
-      {/* Watermark — company name */}
+    <div
+      ref={ref}
+      className="quote-ht-pdf quote-ht-pdf-v2"
+      data-watermark={brandName || 'INDIA HOLIDAY DESTINATION'}
+    >
+      {/* Watermark — company name (repeated for multi-page capture) */}
       <div className="qp-watermark" aria-hidden="true">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: 18 }).map((_, i) => (
           <span key={i} className="qp-watermark-text">{brandName}</span>
         ))}
       </div>

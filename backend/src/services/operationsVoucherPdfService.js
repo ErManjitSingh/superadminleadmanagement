@@ -67,7 +67,23 @@ function drawSectionTitle(doc, title) {
 }
 
 function drawFooter(doc) {
-  const y = doc.page.height - 50;
+  try {
+    const { getPaymentQrDataUrl } = require('./paymentQrAsset');
+    const qr = getPaymentQrDataUrl();
+    if (qr && qr.startsWith('data:image/png;base64,')) {
+      const b64 = qr.replace(/^data:image\/png;base64,/, '');
+      const buf = Buffer.from(b64, 'base64');
+      const size = 72;
+      const x = doc.page.width - 48 - size;
+      const y = doc.page.height - 50 - size - 8;
+      doc.image(buf, x, y, { width: size, height: size });
+      doc.fontSize(7).fillColor(TEXT_MUTED).font('Helvetica')
+        .text('Scan to Pay', x, y + size + 2, { width: size, align: 'center' });
+    }
+  } catch {
+    /* ignore */
+  }
+  const y = doc.page.height - 36;
   doc.fontSize(8).fillColor(TEXT_MUTED).font('Helvetica')
     .text(`Generated ${fmtDate(new Date())} · ${branding.brandName}`, 48, y, { align: 'center', width: doc.page.width - 96 });
 }

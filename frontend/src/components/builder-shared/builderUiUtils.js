@@ -12,7 +12,8 @@ export function defaultBuilderUi() {
       checkIn: '',
       checkOut: '',
       roomType: 'Deluxe',
-      mealPlan: MEAL_PLANS[2] || 'MAP (Breakfast + Dinner)',
+      mealPlan: '',
+      phone: '',
     },
     destinationHotels: [],
     transportMode: 'fleet',
@@ -47,7 +48,8 @@ export function emptyDestinationHotel(destination = '') {
     checkIn: '',
     checkOut: '',
     roomType: 'Deluxe',
-    mealPlan: MEAL_PLANS[2] || 'MAP (Breakfast + Dinner)',
+    mealPlan: '',
+    phone: '',
   };
 }
 
@@ -99,6 +101,7 @@ export function builderUiToHotels(builderUi = {}, destinations = [], travelDate 
           category: h.category || '4 Star',
           roomType: h.roomType || 'Deluxe',
           mealPlan: h.mealPlan || '',
+          phone: h.phone || '',
           checkIn: h.checkIn || '',
           checkOut: h.checkOut || '',
           nights,
@@ -121,6 +124,7 @@ export function builderUiToHotels(builderUi = {}, destinations = [], travelDate 
       category: same.category || '4 Star',
       roomType: same.roomType || 'Deluxe',
       mealPlan: same.mealPlan || '',
+      phone: same.phone || '',
       checkIn: same.checkIn || '',
       checkOut: same.checkOut || '',
       nights,
@@ -206,6 +210,7 @@ export function builderUiFromPackage(pkg = {}) {
       checkOut: hotels[0].checkOut || '',
       roomType: hotels[0].roomType || 'Deluxe',
       mealPlan: hotels[0].mealPlan || base.sameHotel.mealPlan,
+      phone: hotels[0].phone || '',
     };
   } else {
     base.hotelMode = 'per_destination';
@@ -222,6 +227,7 @@ export function builderUiFromPackage(pkg = {}) {
       checkOut: h.checkOut || '',
       roomType: h.roomType || 'Deluxe',
       mealPlan: h.mealPlan || base.sameHotel.mealPlan,
+      phone: h.phone || '',
     }));
   }
 

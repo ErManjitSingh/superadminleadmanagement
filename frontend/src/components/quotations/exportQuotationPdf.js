@@ -187,7 +187,7 @@ async function captureFullContent(viewport, widthPx, scale) {
   });
 }
 
-async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression) {
+async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, watermarkText = 'INDIA HOLIDAY DESTINATION') {
   const pdf = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -219,6 +219,26 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression)
 
     if (page > 0) pdf.addPage();
     pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, pdfCompression);
+
+    // Watermark on every PDF page @ 0.3 opacity
+    try {
+      const wm = String(watermarkText || 'INDIA HOLIDAY DESTINATION').toUpperCase();
+      if (pdf.GState && pdf.setGState) {
+        pdf.saveGraphicsState();
+        pdf.setGState(new pdf.GState({ opacity: 0.3 }));
+      }
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(26);
+      pdf.text(wm, pageWidth / 2, pageHeight / 2, {
+        align: 'center',
+        angle: -32,
+      });
+      if (pdf.restoreGraphicsState) pdf.restoreGraphicsState();
+      pdf.setTextColor(0, 0, 0);
+    } catch {
+      /* ignore */
+    }
 
     y += sliceH;
     page += 1;
@@ -267,7 +287,17 @@ async function renderWithProfile(contentEl, profile, preset) {
     }
 
     const master = downscaleCanvas(canvas, Math.round(profile.width * profile.scale));
-    return buildPdfFromCanvas(master, profile.quality, preset.pageMaxWidth, preset.pdfCompression);
+    const watermarkText =
+      embedded?.dataset?.watermark ||
+      contentEl?.dataset?.watermark ||
+      'INDIA HOLIDAY DESTINATION';
+    return buildPdfFromCanvas(
+      master,
+      profile.quality,
+      preset.pageMaxWidth,
+      preset.pdfCompression,
+      watermarkText,
+    );
   } finally {
     host.remove();
   }

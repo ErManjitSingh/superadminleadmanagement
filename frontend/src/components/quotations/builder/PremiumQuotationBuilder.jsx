@@ -40,7 +40,7 @@ import SimplifiedHotelSection from '../../builder-shared/SimplifiedHotelSection'
 import SimplifiedTransportSection from '../../builder-shared/SimplifiedTransportSection';
 import SimplifiedPricingSection from '../../builder-shared/SimplifiedPricingSection';
 import { builderUiToHotels, builderUiToTransport } from '../../builder-shared/builderUiUtils';
-import { BUILDER_STEPS, GUEST_COUNT_OPTIONS, TEMPLATE_TAGLINES, VEHICLE_TYPES } from './builderConstants';
+import { BUILDER_STEPS, GUEST_COUNT_OPTIONS, VEHICLE_TYPES } from './builderConstants';
 import { useAuth } from '../../../context/AuthContext';
 import { toast } from '../../../context/ToastContext';
 import { buildQuotationShareUrl } from '../../../lib/whatsappContact';
@@ -473,34 +473,6 @@ function StepPackage({ b, initialLeadId }) {
           </Link>
         </div>
       )}
-
-      <div>
-        <h3 className="text-base font-bold text-slate-900 mb-3">Quick Templates</h3>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x scrollbar-thin">
-          {b.templates.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              onClick={() => b.applyTemplate(t)}
-              className={cn(
-                'relative shrink-0 w-[130px] sm:w-[150px] aspect-[4/5] rounded-2xl overflow-hidden border text-left snap-start transition-all',
-                b.state.templateKey === t.key
-                  ? 'ring-2 ring-violet-500 ring-offset-2 border-violet-300 shadow-lg shadow-violet-500/20'
-                  : 'border-slate-200 hover:border-violet-300 hover:shadow-md',
-              )}
-            >
-              <img src={t.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className="text-white text-sm font-bold leading-tight">{t.name}</p>
-                <p className="text-white/80 text-[10px] mt-0.5 leading-snug">
-                  {TEMPLATE_TAGLINES[t.key] || t.destination}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {b.packages.length > 0 && (
         <div>

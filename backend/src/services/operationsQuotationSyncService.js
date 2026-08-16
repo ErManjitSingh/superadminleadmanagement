@@ -197,6 +197,7 @@ function mapQuoteHotels(quotation, travelDate) {
         category: asTextValue(h.category),
         roomType,
         mealPlan: asTextValue(h.mealPlan),
+        phone: asTextValue(h.phone || h.hotelPhone),
         day: h.day,
         nights,
         checkIn,
@@ -216,6 +217,7 @@ function mapQuoteHotels(quotation, travelDate) {
     category: asTextValue(h.category),
     roomType: asTextValue(h.roomType || h.room?.name),
     mealPlan: asTextValue(h.mealPlan),
+    phone: asTextValue(h.phone || h.hotelPhone),
     status: 'pending',
   }));
 }

@@ -16,6 +16,7 @@ const { createBooking } = require('./operationsService');
 const { pickQuotationForLead, ensureQuotationApproved } = require('./leadConversionService');
 
 const SCREENSHOT_DIR = path.join(__dirname, '../../uploads/payment-screenshots');
+const AADHAAR_DIR = path.join(__dirname, '../../uploads/aadhaar');
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Prefer grandTotal / total / packageInfo / costing / lead budget (never treat 0 as missing when a positive sibling exists). */
@@ -70,6 +71,24 @@ function saveScreenshot(base64, receiptNumber) {
     const filePath = path.join(SCREENSHOT_DIR, fileName);
     fs.writeFileSync(filePath, buffer);
     return `/uploads/payment-screenshots/${fileName}`;
+  } catch {
+    return '';
+  }
+}
+
+function saveAadhaarPhoto(base64, bookingNumber) {
+  if (!base64) return '';
+  try {
+    const raw = String(base64);
+    const isPdf = raw.includes('application/pdf');
+    const buffer = Buffer.from(raw.replace(/^data:[^;]+;base64,/, ''), 'base64');
+    if (!buffer.length || buffer.length > 8 * 1024 * 1024) return '';
+    ensureDir(AADHAAR_DIR);
+    const ext = isPdf ? 'pdf' : 'jpg';
+    const fileName = `${String(bookingNumber || 'guest').replace(/[^a-zA-Z0-9-_]/g, '_')}-aadhaar.${ext}`;
+    const filePath = path.join(AADHAAR_DIR, fileName);
+    fs.writeFileSync(filePath, buffer);
+    return `/uploads/aadhaar/${fileName}`;
   } catch {
     return '';
   }
@@ -464,6 +483,17 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
   });
 
   const booking = await createBooking(payload, actor);
+
+  const aadhaarNumber = String(paymentData.aadhaarNumber || '').replace(/\D/g, '').slice(0, 12);
+  const aadhaarPhotoUrl = saveAadhaarPhoto(paymentData.aadhaarPhotoBase64, booking.bookingNumber);
+  if (aadhaarNumber || aadhaarPhotoUrl) {
+    await Booking.findByIdAndUpdate(booking._id, {
+      ...(aadhaarNumber ? { aadhaarNumber } : {}),
+      ...(aadhaarPhotoUrl ? { aadhaarPhotoUrl } : {}),
+    });
+    booking.aadhaarNumber = aadhaarNumber || booking.aadhaarNumber;
+    booking.aadhaarPhotoUrl = aadhaarPhotoUrl || booking.aadhaarPhotoUrl;
+  }
 
   await logPaymentEvent({
     bookingId: booking._id,

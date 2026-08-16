@@ -28,6 +28,8 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
     bankName: '',
     remarks: '',
     screenshotBase64: '',
+    aadhaarNumber: '',
+    aadhaarPhotoBase64: '',
   });
 
   useEffect(() => {
@@ -55,12 +57,26 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
     reader.readAsDataURL(file);
   };
 
+  const handleAadhaarPhoto = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => set('aadhaarPhotoBase64', reader.result);
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async () => {
     if (!form.amount || Number(form.amount) <= 0) return;
+    const aadhaarDigits = String(form.aadhaarNumber || '').replace(/\D/g, '');
+    if (aadhaarDigits.length !== 12) {
+      window.alert('Please enter a valid 12-digit Aadhaar number');
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await convertLeadWithPayment(leadId, {
         ...form,
+        aadhaarNumber: aadhaarDigits,
         amount: Number(form.amount),
         sendReceipt: false,
       });
@@ -117,6 +133,37 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
                       <p className="font-bold text-content-primary mt-0.5">{value}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-subtle bg-surface/80 backdrop-blur-md p-5 space-y-4">
+                <h3 className="text-sm font-bold text-content-primary flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-violet-600" /> Guest ID (Aadhaar)
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <label className="block sm:col-span-2">
+                    <span className="text-xs font-semibold text-content-muted">Aadhaar Card Number *</span>
+                    <input
+                      value={form.aadhaarNumber}
+                      onChange={(e) => set('aadhaarNumber', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                      className="input-premium mt-1 w-full"
+                      placeholder="12-digit Aadhaar number"
+                      inputMode="numeric"
+                      maxLength={12}
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="text-xs font-semibold text-content-muted">Upload Aadhaar Photo / Scan</span>
+                    <div className="mt-1 flex items-center gap-3">
+                      <label className={cn(
+                        'flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-subtle cursor-pointer hover:bg-violet-50/50 transition-colors text-sm font-medium text-content-secondary'
+                      )}>
+                        <Upload className="w-4 h-4" /> Choose Aadhaar image
+                        <input type="file" accept="image/*,.pdf" className="hidden" onChange={handleAadhaarPhoto} />
+                      </label>
+                      {form.aadhaarPhotoBase64 && <span className="text-xs text-emerald-600 font-semibold">Aadhaar file attached</span>}
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -190,7 +237,12 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
                 <Button variant="secondary" onClick={onClose} disabled={submitting}>Cancel</Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={submitting || !form.amount || Number(form.amount) <= 0}
+                  disabled={
+                    submitting
+                    || !form.amount
+                    || Number(form.amount) <= 0
+                    || String(form.aadhaarNumber || '').replace(/\D/g, '').length !== 12
+                  }
                   className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-bold"
                 >
                   {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Processing...</> : 'Receive Payment & Review Voucher'}

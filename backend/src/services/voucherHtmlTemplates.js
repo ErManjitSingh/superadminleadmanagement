@@ -991,6 +991,15 @@ async function buildCabVoucherHtml(voucher, booking) {
 
   ${vendorBlock}
 
+  ${(() => {
+    try {
+      const { paymentQrBlockHtml } = require('./paymentQrAsset');
+      return paymentQrBlockHtml('Scan QR to Pay');
+    } catch {
+      return '';
+    }
+  })()}
+
   <div class="emb-foot-row">
     <div class="emb-support">
       <div class="emb-support-ico">🎧</div>

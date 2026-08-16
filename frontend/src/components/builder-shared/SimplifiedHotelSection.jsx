@@ -90,7 +90,10 @@ function applyCatalogHotel(hotel, catalog) {
     category: catalog.category || '4 Star',
     location: catalog.location || catalog.destination || hotel.location || '',
     roomType: roomFromCatalog,
-    mealPlan: catalog.mealPlan || hotel.mealPlan || MEAL_PLANS_WITH_HOTEL[2],
+    mealPlan: catalog.mealPlan && !hotel.mealPlan
+      ? catalog.mealPlan
+      : (hotel.mealPlan || catalog.mealPlan || ''),
+    phone: hotel.phone || catalog.phone || catalog.contactPhone || '',
   };
 }
 
@@ -338,16 +341,28 @@ function HotelFields({
             ))}
           </select>
         </Field>
-        <Field label="Meal Plan">
-          <select
-            value={hotel.mealPlan || MEAL_PLANS_WITH_HOTEL[2]}
+        <Field label="Meal Plan (editable)">
+          <input
+            list={`meal-plans-${hotel.id || hotel.hotelId || 'same'}`}
+            value={hotel.mealPlan || ''}
             onChange={(e) => onChange({ ...hotel, mealPlan: e.target.value })}
+            placeholder="e.g. MAP / CP / EP / Custom"
             className={inputCls()}
-          >
+          />
+          <datalist id={`meal-plans-${hotel.id || hotel.hotelId || 'same'}`}>
             {MEAL_PLANS_WITH_HOTEL.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m} />
             ))}
-          </select>
+          </datalist>
+        </Field>
+        <Field label="Hotel Phone / Contact No." className="sm:col-span-2">
+          <input
+            type="tel"
+            value={hotel.phone || ''}
+            onChange={(e) => onChange({ ...hotel, phone: e.target.value })}
+            placeholder="Hotel front desk number"
+            className={inputCls()}
+          />
         </Field>
       </div>
     </div>
