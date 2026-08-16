@@ -1,6 +1,5 @@
-import { Suspense } from 'react';
+import { Suspense, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useDashboardQuery } from '../features/dashboard/hooks/useDashboardQuery';
 import { invalidateDashboard } from '../lib/queryInvalidation';
@@ -14,7 +13,6 @@ import {
 } from '../components/dashboard';
 import ConversionOverview from '../components/dashboard/ConversionOverview';
 import LeadsByLocationPanel from '../components/dashboard/LeadsByLocationPanel';
-import OnboardingChecklist from '../components/onboarding/OnboardingChecklist';
 import DnsPendingBanner from '../components/onboarding/DnsPendingBanner';
 import TrialExpiryBanner from '../components/onboarding/TrialExpiryBanner';
 import { useAuth } from '../context/AuthContext';
@@ -49,7 +47,6 @@ export default function Dashboard() {
       {user?.role === 'admin' && <TrialExpiryBanner />}
       <DashboardHeader onRefresh={refreshDashboard} isRefreshing={isFetching} />
       <DashboardHero stats={stats} />
-      {user?.role === 'admin' && <OnboardingChecklist compact />}
       {user?.role === 'admin' && <DnsPendingBanner />}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
