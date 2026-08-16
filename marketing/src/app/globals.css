@@ -5,11 +5,11 @@
 @layer base {
   :root {
     /* Logo palette: forest green + India saffron orange */
-    --th-forest: #0f3d2e;
-    --th-forest-dark: #0a2e22;
-    --th-forest-light: #165a42;
-    --th-orange: #f27c22;
-    --th-orange-dark: #e07000;
+    --th-forest: #00332b;
+    --th-forest-dark: #002821;
+    --th-forest-light: #0a4a3c;
+    --th-orange: #f47920;
+    --th-orange-dark: #e06a14;
     --th-yellow: #f9a825;
     --th-price: #f88008;
     --th-price-shadow: #8a4a00;

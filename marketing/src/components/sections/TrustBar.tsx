@@ -28,25 +28,22 @@ const items = [
   },
 ];
 
-/** Cream trust strip — exact mock copy & layout */
 export function TrustBar() {
   return (
     <section className="mt-10 border-y border-[#efe6d8] bg-[#fcf8f2]">
-      <div className="th-container grid grid-cols-1 gap-7 py-9 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:gap-6 lg:py-10">
+      <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 gap-7 px-4 py-9 sm:grid-cols-2 sm:gap-8 sm:px-6 lg:grid-cols-4 lg:gap-6 lg:py-10">
         {items.map((item) => {
           const Icon = item.icon;
           return (
             <div key={item.title} className="flex items-start gap-3.5">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center text-[#f27c22]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center text-[#f47920]">
                 <Icon className="h-[22px] w-[22px]" strokeWidth={2} />
               </div>
               <div>
-                <p className="text-[15px] font-bold leading-tight text-[#1a2420]">
+                <p className="text-[15px] font-bold leading-tight text-[#111827]">
                   {item.title}
                 </p>
-                <p className="mt-1 text-[13px] leading-snug text-[#6b7a72]">
-                  {item.desc}
-                </p>
+                <p className="mt-1 text-[13px] leading-snug text-[#6b7280]">{item.desc}</p>
               </div>
             </div>
           );

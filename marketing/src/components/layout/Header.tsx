@@ -24,7 +24,7 @@ export function Header() {
   return (
     <header className="relative z-50 bg-white">
       {/* Announcement — exact mock */}
-      <div className="relative flex h-[32px] items-center justify-center bg-[#0f3d2e] text-[11px] font-medium text-white">
+      <div className="relative flex h-[32px] items-center justify-center bg-[#00332b] text-[11px] font-medium text-white">
         <span className="inline-flex items-center gap-2">
           <Cloud className="h-3.5 w-3.5 opacity-90" strokeWidth={2} />
           <b className="font-bold tracking-[0.04em]">MONSOON SALE</b>
@@ -78,8 +78,8 @@ export function Header() {
                   type="button"
                   className={`px-2.5 py-5 text-[13px] font-semibold transition ${
                     open === tab.id
-                      ? "text-[#f27c22]"
-                      : "text-[#1a2420] hover:text-[#f27c22]"
+                      ? "text-[#f47920]"
+                      : "text-[#1a2420] hover:text-[#f47920]"
                   }`}
                 >
                   {tab.label}
@@ -90,17 +90,17 @@ export function Header() {
               <a
                 key={link.label}
                 href={link.href}
-                className="px-2.5 py-5 text-[13px] font-semibold text-[#1a2420] hover:text-[#f27c22]"
+                className="px-2.5 py-5 text-[13px] font-semibold text-[#1a2420] hover:text-[#f47920]"
               >
                 {link.label}
               </a>
             ))}
             <a
               href="#packages"
-              className="inline-flex items-center gap-1.5 px-2.5 py-5 text-[13px] font-semibold text-[#1a2420] hover:text-[#f27c22]"
+              className="inline-flex items-center gap-1.5 px-2.5 py-5 text-[13px] font-semibold text-[#1a2420] hover:text-[#f47920]"
             >
               Offers
-              <span className="rounded-full bg-[#f27c22] px-[6px] py-[2px] text-[8px] font-bold uppercase leading-none text-white">
+              <span className="rounded-full bg-[#f47920] px-[6px] py-[2px] text-[8px] font-bold uppercase leading-none text-white">
                 NEW
               </span>
             </a>
@@ -121,7 +121,7 @@ export function Header() {
           </span>
           <a
             href={siteConfig.crmLogin}
-            className="rounded-md border border-[#f27c22] px-5 py-[7px] text-[12px] font-semibold text-[#e07000] transition hover:bg-[#fff6ec]"
+            className="rounded-md border border-[#f47920] px-5 py-[7px] text-[12px] font-semibold text-[#f47920] transition hover:bg-[#fff6ec]"
           >
             Login
           </a>
