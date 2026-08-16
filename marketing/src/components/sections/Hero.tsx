@@ -2,9 +2,8 @@ import { heroFlipCards } from "@/lib/data";
 import { ExploreTabs } from "@/components/sections/ExploreTabs";
 import { CheckCircle2, Headphones, BadgeIndianRupee } from "lucide-react";
 
-/** Banner mountain cropped from the design mock. */
+/** HD Himachal mountain banner (3000px wide). */
 const HERO_IMAGE = "/hero-banner.jpg";
-const HERO_OBJECT = "object-cover object-center";
 
 const valueProps = [
   {
@@ -53,43 +52,41 @@ function SocialProof({ className = "" }: { className?: string }) {
   );
 }
 
-/**
- * Exact mock layout:
- * white left + mountain right (mock banner) → copy → search → green-circle value props → social proof
- */
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-white lg:min-h-[640px]">
-      {/* Mountain on the RIGHT — same image as design mock */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[58%] lg:block">
+      {/* HD banner — full bleed, soft left wash for text */}
+      <div className="pointer-events-none absolute inset-0 hidden lg:block">
         <img
           src={HERO_IMAGE}
-          alt="Himalayan holiday destinations"
-          className={`h-full w-full object-cover ${HERO_OBJECT}`}
-          width={1600}
-          height={900}
+          alt="Himachal green mountains — Incredible India holidays"
+          className="h-full w-full object-cover object-[58%_40%]"
+          width={3000}
+          height={2000}
           loading="eager"
+          decoding="async"
         />
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.92) 4%, rgba(255,255,255,0.45) 22%, rgba(255,255,255,0) 42%)",
+              "linear-gradient(90deg, #ffffff 0%, rgba(255,255,255,0.94) 26%, rgba(255,255,255,0.55) 46%, rgba(255,255,255,0.12) 68%, rgba(255,255,255,0) 82%)",
           }}
         />
       </div>
 
-      {/* Mobile full-bleed banner */}
-      <div className="relative h-[220px] overflow-hidden sm:h-[260px] lg:hidden">
+      {/* Mobile HD banner */}
+      <div className="relative h-[240px] overflow-hidden sm:h-[280px] lg:hidden">
         <img
           src={HERO_IMAGE}
-          alt="Himalayan holiday destinations"
-          className={`h-full w-full object-cover ${HERO_OBJECT}`}
-          width={1200}
-          height={600}
+          alt="Himachal green mountains — Incredible India holidays"
+          className="h-full w-full object-cover object-[58%_40%]"
+          width={1600}
+          height={1000}
           loading="eager"
+          decoding="async"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50 to-transparent" />
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-[1200px] px-4 pb-8 pt-8 sm:px-6 sm:pb-10 sm:pt-10 lg:pt-14">
@@ -112,12 +109,10 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Search widget */}
         <div className="relative z-20 mt-8 max-w-[1080px] sm:mt-10">
           <ExploreTabs />
         </div>
 
-        {/* Value props — green circular icons + grey subtext (NOT solid green bar) */}
         <div className="relative z-10 mt-6 flex flex-col gap-5 sm:mt-7 sm:flex-row sm:items-start sm:justify-between sm:gap-8">
           <div className="grid flex-1 grid-cols-1 gap-5 sm:grid-cols-3 sm:gap-6">
             {valueProps.map((item) => {
@@ -136,7 +131,7 @@ export function Hero() {
             })}
           </div>
 
-          <div className="shrink-0 sm:pt-0">
+          <div className="shrink-0">
             <SocialProof />
           </div>
         </div>
