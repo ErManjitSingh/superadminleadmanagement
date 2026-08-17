@@ -44,16 +44,14 @@ const {
 const { normalizeLeadInput } = require('../utils/normalizeLeadInput');
 const { applyLeadMetrics } = require('../services/leadScoringService');
 const { logAudit, diffLeadChanges } = require('../services/leadAuditService');
+const { withCompany } = require('../utils/branchScope');
 
 const LEAD_FILTER_KEYS = ['new', 'contacted', 'follow-up', 'hot', 'converted', 'lost', 'reactivated', 'all'];
 const LOST_LEAD_STATUSES = ['lost', 'booked_from_another_company'];
 const WORKING_PIPELINE_STATUSES = ['working_progress', 'follow_up', 'quotation_sent', 'negotiation', 'reactivated', 'converted'];
 
-async function getExecutiveLeadIds(userId, branchId = null) {
-  const leads = await Lead.find({
-    assignedTo: userId,
-    ...(branchId ? { branchId } : {}),
-  })
+async function getExecutiveLeadIds(userId, companyId = null) {
+  const leads = await Lead.find(withCompany({ assignedTo: userId }, companyId))
     .select('_id')
     .lean();
   return leads.map((l) => l._id);
@@ -98,7 +96,7 @@ const listLeads = asyncHandler(async (req, res) => {
       ...req.query,
       filter: filterKey,
     },
-    { branchId: req.branchId }
+    { companyId: req.companyId }
   );
   res.json(result);
 });
@@ -107,6 +105,7 @@ const getLeadDetail = asyncHandler(async (req, res) => {
   const lead = await loadLeadCore(req.params.id, {
     branchId: req.branchId,
     extraFilter: { assignedTo: req.user._id },
+    companyId: req.companyId,
   });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
@@ -124,6 +123,7 @@ const getLeadQuotationsList = asyncHandler(async (req, res) => {
   const lead = await loadLeadCore(req.params.id, {
     branchId: req.branchId,
     extraFilter: { assignedTo: req.user._id },
+    companyId: req.companyId,
   });
   if (!lead) throw new ApiError(404, 'Lead not found');
   const result = await loadLeadQuotations(lead._id, { branchId: req.branchId, query: req.query });
@@ -134,6 +134,7 @@ const getLeadNotesList = asyncHandler(async (req, res) => {
   const lead = await loadLeadCore(req.params.id, {
     branchId: req.branchId,
     extraFilter: { assignedTo: req.user._id },
+    companyId: req.companyId,
   });
   if (!lead) throw new ApiError(404, 'Lead not found');
   const result = await loadLeadNotes(lead._id, { query: req.query });
@@ -330,17 +331,17 @@ const addLeadNote = asyncHandler(async (req, res) => {
 });
 
 const listFollowUps = asyncHandler(async (req, res) => {
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
   const result = await findScopedFollowUpsPaginated(
     { $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }] },
     req.query,
-    { branchId: req.branchId }
+    { companyId: req.companyId }
   );
   res.json(result);
 });
 
 const getFollowUpSummary = asyncHandler(async (req, res) => {
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
   const baseFilter = { $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }] };
   const [summary, missedPreview] = await Promise.all([
     getExecutiveFollowUpSummary(req.user._id, leadIds),
@@ -351,7 +352,7 @@ const getFollowUpSummary = asyncHandler(async (req, res) => {
 
 const createFollowUp = asyncHandler(async (req, res) => {
   const leadId = req.body.lead || req.body.leadId;
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
   const lead = await Lead.findOne({ _id: leadId, ...(req.branchId ? { branchId: req.branchId } : {}) });
   if (!lead) throw new ApiError(404, 'Lead not found');
 
@@ -365,7 +366,7 @@ const createFollowUp = asyncHandler(async (req, res) => {
 });
 
 const updateFollowUp = asyncHandler(async (req, res) => {
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
   const followup = await FollowUp.findOne({
     _id: req.params.id,
     $or: [{ assignedTo: req.user._id }, { lead: { $in: leadIds } }],
@@ -378,13 +379,13 @@ const updateFollowUp = asyncHandler(async (req, res) => {
 });
 
 const listQuotations = asyncHandler(async (req, res) => {
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
   const filter = {
     $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
   };
   if (req.query.status) filter.status = req.query.status;
 
-  const result = await findScopedQuotationsPaginated(filter, req.query, { branchId: req.branchId });
+  const result = await findScopedQuotationsPaginated(filter, req.query, { companyId: req.companyId });
   res.json(result);
 });
 
@@ -514,7 +515,7 @@ const createQuotation = asyncHandler(async (req, res) => {
 });
 
 const updateQuotation = asyncHandler(async (req, res) => {
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
   const quotation = await Quotation.findOne({
     _id: req.params.id,
     $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
@@ -654,7 +655,7 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const getCalendar = asyncHandler(async (req, res) => {
-  const leadIds = await getExecutiveLeadIds(req.user._id, req.branchId);
+  const leadIds = await getExecutiveLeadIds(req.user._id, req.companyId);
 
   const [followups, travelLeads] = await Promise.all([
     FollowUp.find({

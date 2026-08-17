@@ -77,15 +77,17 @@ async function findCompanyByCustomHost(hostname) {
  * Resolve tenant from request.
  * Priority:
  *  1) Custom hostname → verified custom domain ONLY (never subdomain header fallback)
- *  2) Platform subdomain from Host, or x-tenant-subdomain on localhost/platform hosts
+ *  2) Platform subdomain from Host. x-tenant-subdomain is localhost-only
+ *     (never trusted on a live hostname — prevents switching tenants from another CRM).
  *
  * Client-supplied x-company-id is intentionally ignored to prevent cross-tenant spoofing.
  */
 async function resolveCompanyFromRequest(req) {
   const headerSubdomain = req.headers['x-tenant-subdomain'];
   const hostname = normalizeHost(req.headers['x-forwarded-host'] || req.headers.host);
+  const isLocal = !hostname || hostname === 'localhost' || hostname === '127.0.0.1';
 
-  if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+  if (!isLocal) {
     // Custom domain host: fail closed — only verified domain mapping, no subdomain fallback.
     if (!isPlatformHostname(hostname)) {
       return findCompanyByCustomHost(hostname);
@@ -95,8 +97,10 @@ async function resolveCompanyFromRequest(req) {
     if (byCustomDomain) return byCustomDomain;
   }
 
-  const subdomain = (headerSubdomain && String(headerSubdomain).toLowerCase().trim())
-    || extractSubdomain(hostname);
+  const hostSubdomain = extractSubdomain(hostname);
+  const subdomain = isLocal
+    ? (headerSubdomain && String(headerSubdomain).toLowerCase().trim()) || hostSubdomain
+    : hostSubdomain;
   if (!subdomain || RESERVED_SUBDOMAINS.has(subdomain)) return null;
 
   return Company.findOne({ subdomain, deletedAt: null }).lean();

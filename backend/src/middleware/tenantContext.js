@@ -62,7 +62,7 @@ const attachTenantContext = asyncHandler(async (req, res, next) => {
   req.companyId = companyId;
   req.branchId = null;
 
-  runWithTenantContext(
+  return runWithTenantContext(
     {
       companyId,
       branchId: null,

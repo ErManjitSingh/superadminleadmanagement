@@ -6,6 +6,7 @@ const { jwtSecret, corsOrigins } = require('../config/env');
 const { isPlatformHostname } = require('../services/tenantResolveService');
 const { setIO } = require('../config/socket');
 const { formatNotification } = require('../utils/queryHelpers');
+const { runWithTenantContext } = require('../utils/tenantContextStore');
 
 function isAllowedCorsOrigin(origin) {
   if (!origin) return true;
@@ -35,11 +36,15 @@ function initializeSocket(httpServer) {
       if (!token) return next(new Error('Unauthorized'));
 
       const decoded = jwt.verify(token, jwtSecret);
-      const user = await User.findById(decoded.id).select('_id status role name');
+      const user = await User.findById(decoded.id).select('_id status role name companyId');
       if (!user || user.status === 'disabled') return next(new Error('Unauthorized'));
+      if (decoded.cid && user.companyId && String(decoded.cid) !== String(user.companyId)) {
+        return next(new Error('Unauthorized'));
+      }
 
       socket.userId = user._id.toString();
       socket.user = user;
+      socket.companyId = user.companyId ? String(user.companyId) : null;
       next();
     } catch {
       next(new Error('Unauthorized'));
@@ -49,19 +54,22 @@ function initializeSocket(httpServer) {
   io.on('connection', async (socket) => {
     const room = `user:${socket.userId}`;
     socket.join(room);
+    if (socket.companyId) socket.join(`company:${socket.companyId}`);
 
     try {
-      const unread = await Notification.countDocuments({
-        user: socket.userId,
-        read: false,
-      });
-      socket.emit('notification:unread', { count: unread });
+      await runWithTenantContext({ companyId: socket.companyId }, async () => {
+        const unread = await Notification.countDocuments({
+          user: socket.userId,
+          read: false,
+        });
+        socket.emit('notification:unread', { count: unread });
 
-      const recent = await Notification.find({ user: socket.userId })
-        .sort({ createdAt: -1 })
-        .limit(30)
-        .lean();
-      socket.emit('notification:history', recent.map(formatNotification));
+        const recent = await Notification.find({ user: socket.userId })
+          .sort({ createdAt: -1 })
+          .limit(30)
+          .lean();
+        socket.emit('notification:history', recent.map(formatNotification));
+      });
     } catch (err) {
       console.error('[Socket] bootstrap error:', err.message);
     }

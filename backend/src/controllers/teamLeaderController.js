@@ -87,7 +87,7 @@ const getDashboard = asyncHandler(async (req, res) => {
 
 const listLeads = asyncHandler(async (req, res) => {
   const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
-  const result = await findTeamLeaderLeadsPaginated(squadFilter, req.query, { branchId: req.branchId });
+  const result = await findTeamLeaderLeadsPaginated(squadFilter, req.query, { companyId: req.companyId });
   res.json(result);
 });
 
@@ -191,7 +191,7 @@ const listFollowUps = asyncHandler(async (req, res) => {
   const result = await findScopedFollowUpsPaginated(
     { $or: [{ assignedTo: { $in: execIds } }, { lead: { $in: myLeadIds } }] },
     req.query,
-    { branchId: req.branchId }
+    { companyId: req.companyId }
   );
   res.json(result);
 });

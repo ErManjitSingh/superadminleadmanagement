@@ -308,7 +308,7 @@ const impersonateCompany = asyncHandler(async (req, res) => {
   if (!user || user.status === 'disabled') throw new ApiError(400, 'Company admin unavailable');
 
   const permissions = await resolveUserPermissions(user);
-  const token = generateToken(user._id, user.role);
+  const token = generateToken(user._id, user.role, user.companyId);
 
   await CompanyLoginLog.create({
     companyId: company._id,

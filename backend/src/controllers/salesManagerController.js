@@ -54,7 +54,7 @@ const getDashboard = asyncHandler(async (req, res) => {
 });
 
 const listLeads = asyncHandler(async (req, res) => {
-  const result = await findManagerLeadsPaginated(req.query, { branchId: req.branchId });
+  const result = await findManagerLeadsPaginated(req.query, { companyId: req.companyId });
   res.json(result);
 });
 
@@ -233,7 +233,7 @@ const listExecutives = asyncHandler(async (req, res) => {
 });
 
 const listFollowUps = asyncHandler(async (req, res) => {
-  const result = await findScopedFollowUpsPaginated({}, req.query, { branchId: req.branchId });
+  const result = await findScopedFollowUpsPaginated({}, req.query, { companyId: req.companyId });
   res.json(result);
 });
 
@@ -255,7 +255,7 @@ const listQuotations = asyncHandler(async (req, res) => {
     approvalStatus: q.status === 'negotiation' ? 'pending_approval' : q.status,
   });
 
-  const result = await findScopedQuotationsPaginated(filter, req.query, { mapRow, branchId: req.branchId });
+  const result = await findScopedQuotationsPaginated(filter, req.query, { mapRow, companyId: req.companyId });
   res.json(result);
 });
 

@@ -1,11 +1,13 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { appVersionPlugin } from '../deploy/vite-app-version-plugin.js'
 
-export default defineConfig({
-  base: process.env.VITE_BASE || '/',
-  plugins: [react(), appVersionPlugin()],
-  build: {
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  return {
+    base: env.VITE_BASE || process.env.VITE_BASE || '/',
+    plugins: [react(), appVersionPlugin()],
+    build: {
     rollupOptions: {
       output: {
         manualChunks: {
@@ -29,4 +31,5 @@ export default defineConfig({
       '/socket.io': { target: 'http://127.0.0.1:5000', ws: true, changeOrigin: true },
     },
   },
+  }
 })

@@ -22,7 +22,7 @@ function companyScopedIdFilter(id, req) {
 
 function assertTenantDocument(doc, req, label = 'Resource') {
   if (!doc) throw new ApiError(404, `${label} not found`);
-  if (req?.companyId && doc.companyId && String(doc.companyId) !== String(req.companyId)) {
+  if (req?.companyId && String(doc.companyId || '') !== String(req.companyId)) {
     throw new ApiError(404, `${label} not found`);
   }
   return doc;

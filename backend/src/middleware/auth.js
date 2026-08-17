@@ -17,6 +17,9 @@ const protect = asyncHandler(async (req, res, next) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
   const user = await User.findById(decoded.id).select('-password');
   if (!user || user.status === 'disabled') throw new ApiError(401, 'User not found or disabled');
+  if (decoded.cid && user.companyId && String(decoded.cid) !== String(user.companyId)) {
+    throw new ApiError(401, 'Not authorized for this company');
+  }
 
   req.user = user;
   req.permissions = await resolveUserPermissions(user);
@@ -49,12 +52,14 @@ function formatUserResponse(user, permissions) {
 
 const RESTRICTED_SESSION_ROLES = ['admin', 'sales_manager'];
 
-const generateToken = (id, role) => {
+const generateToken = (id, role, companyId) => {
   const restricted = RESTRICTED_SESSION_ROLES.includes(role);
   const expiresIn = restricted
     ? process.env.JWT_EXPIRES_IN_RESTRICTED || '30m'
     : process.env.JWT_EXPIRES_IN || '30d';
-  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn });
+  const payload = { id };
+  if (companyId) payload.cid = String(companyId);
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 };
 
 const RESTRICTED_SESSION_MS = 30 * 60 * 1000;

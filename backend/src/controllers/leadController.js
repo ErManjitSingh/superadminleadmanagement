@@ -133,7 +133,7 @@ function ensureLeadQualifiedForPipeline(payload = {}) {
 }
 
 const listLeads = asyncHandler(async (req, res) => {
-  const result = await findLeadsPaginated(req.query, { branchId: req.branchId });
+  const result = await findLeadsPaginated(req.query, { companyId: req.companyId });
   res.json(result);
 });
 

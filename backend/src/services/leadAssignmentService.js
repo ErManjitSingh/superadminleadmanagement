@@ -70,35 +70,34 @@ async function syncCompanyAssignees(companyId) {
   if (branchIds.length) {
     await User.updateMany(
       { ...baseFilter, branchId: { $in: branchIds } },
-      { $set: { companyId: normalizedId } }
+      { $set: { companyId: normalizedId } },
+      { skipTenantFilter: true }
     );
   }
 
   if (companyRoleIds.length) {
     await User.updateMany(
       { ...baseFilter, roleId: { $in: companyRoleIds } },
-      { $set: setFields }
+      { $set: setFields },
+      { skipTenantFilter: true }
     );
   }
 }
 
-/** Backfill companyId on legacy users/leads created before tenant scoping was enforced. */
-async function ensureTenantRecordsForAssignment({ leadIds = [], assigneeId } = {}) {
+/** Backfill companyId only on records that already belong to this tenant or have none. */
+async function ensureTenantRecordsForAssignment({ assigneeId } = {}) {
   const companyId = normalizeCompanyId(getCompanyId());
   if (!companyId) return;
 
   await syncCompanyAssignees(companyId);
 
-  const ops = [];
   if (assigneeId) {
-    ops.push(User.updateOne({ _id: assigneeId, companyId: null }, { $set: { companyId } }));
-  }
-  if (leadIds.length) {
-    ops.push(
-      Lead.updateMany({ _id: { $in: leadIds }, companyId: null }, { $set: { companyId } })
+    await User.updateOne(
+      { _id: assigneeId, $or: [{ companyId: null }, { companyId }] },
+      { $set: { companyId } },
+      { skipTenantFilter: true }
     );
   }
-  if (ops.length) await Promise.all(ops);
 }
 
 async function assertCanAssignLeads(req, { leadIds, assigneeRole, assigneeId }) {

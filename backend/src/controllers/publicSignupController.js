@@ -142,7 +142,7 @@ const publicSignup = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     ...formatUserResponse(user, permissions),
-    token: generateToken(user._id, user.role),
+        token: generateToken(user._id, user.role, user.companyId),
     ...getRestrictedSessionMeta(user.role),
     company: {
       id: result.company._id,

@@ -9,7 +9,7 @@ const {
   buildCursorFilter,
   DEEP_PAGE_THRESHOLD,
 } = require('../utils/pagination');
-const { withBranch } = require('../utils/branchScope');
+const { withCompany } = require('../utils/branchScope');
 
 function buildLeadListFilter(query = {}) {
   const {
@@ -81,12 +81,12 @@ function buildLeadListFilter(query = {}) {
   return mongoFilter;
 }
 
-async function findLeadsPaginated(query = {}, { branchId } = {}) {
+async function findLeadsPaginated(query = {}, { companyId } = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
   const sortField = Object.keys(sort)[0] || 'createdAt';
   const sortDir = sort[sortField] ?? -1;
-  const filter = withBranch(buildLeadListFilter(query), branchId);
+  const filter = withCompany(buildLeadListFilter(query), companyId);
 
   const useCursor = Boolean(query.cursor);
   const listFilter = useCursor
@@ -125,8 +125,8 @@ async function findLeadsPaginated(query = {}, { branchId } = {}) {
   });
 }
 
-async function countLeads(query = {}, { branchId } = {}) {
-  return Lead.countDocuments(withBranch(buildLeadListFilter(query), branchId));
+async function countLeads(query = {}, { companyId } = {}) {
+  return Lead.countDocuments(withCompany(buildLeadListFilter(query), companyId));
 }
 
 module.exports = {

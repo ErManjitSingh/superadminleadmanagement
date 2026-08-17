@@ -14,7 +14,7 @@ const {
   startOfDay,
 } = require('../utils/queryHelpers');
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
-const { withBranch } = require('../utils/branchScope');
+const { withCompany } = require('../utils/branchScope');
 const { applyQuotationQueryFilters } = require('./quotationRepository');
 
 function applyReactivationQueryFilters(mongoFilter, query = {}) {
@@ -72,7 +72,7 @@ function buildExecutiveLeadFilter(filterKey) {
 async function findManagerLeadsPaginated(query = {}, options = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
-  const filter = withBranch(buildManagerLeadFilter(query), options.branchId);
+  const filter = withCompany(buildManagerLeadFilter(query), options.companyId);
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
@@ -98,7 +98,7 @@ async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
     ...buildExecutiveLeadFilter(filterKey),
     ...buildLeadSearchFilter(query.search),
   };
-  Object.assign(filter, withBranch({}, options.branchId));
+  Object.assign(filter, withCompany({}, options.companyId));
 
   if (filterKey === 'hot') {
     filter.isHot = true;
@@ -141,7 +141,7 @@ async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {
     extra.$or = [{ isHot: true }, { leadScore: 'hot' }];
     extra.status = { $nin: ['converted', 'lost', 'booked_from_another_company'] };
   }
-  const filter = withBranch({ ...squadFilter, ...extra, ...buildLeadSearchFilter(query.search) }, options.branchId);
+  const filter = withCompany({ ...squadFilter, ...extra, ...buildLeadSearchFilter(query.search) }, options.companyId);
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
@@ -159,7 +159,7 @@ async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {
 
 async function resolveLeadIdsForSearch(search, options = {}) {
   if (!search?.trim()) return null;
-  const leads = await Lead.find(withBranch(buildLeadSearchFilter(search), options.branchId))
+  const leads = await Lead.find(withCompany(buildLeadSearchFilter(search), options.companyId))
     .select('_id')
     .limit(200)
     .lean();
@@ -171,7 +171,7 @@ async function findScopedFollowUpsPaginated(baseFilter, query = {}, options = {}
   const sort = parseSort(query, { scheduledAt: 1 });
 
   const filter = {
-    ...withBranch(baseFilter, options.branchId),
+    ...withCompany(baseFilter, options.companyId),
     ...buildFollowUpTabFilter(query.tab || query.kpiTab),
     ...buildFollowUpCategoryFilter(query.category),
   };
@@ -190,10 +190,10 @@ async function findScopedFollowUpsPaginated(baseFilter, query = {}, options = {}
   return paginatedResponse(rows, { page, limit, total });
 }
 
-async function findScopedQuotationsPaginated(baseFilter, query = {}, { mapRow, branchId } = {}) {
+async function findScopedQuotationsPaginated(baseFilter, query = {}, { mapRow, companyId } = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
-  const filter = await applyQuotationQueryFilters(withBranch(baseFilter, branchId), query, branchId);
+  const filter = await applyQuotationQueryFilters(withCompany(baseFilter, companyId), query);
 
   const [rows, total] = await Promise.all([
     Quotation.find(filter).populate(QUOTATION_POPULATE).sort(sort).skip(skip).limit(limit).lean(),
@@ -205,7 +205,7 @@ async function findScopedQuotationsPaginated(baseFilter, query = {}, { mapRow, b
 }
 
 async function getFollowUpSummary(baseFilter = {}, options = {}) {
-  const scopedBase = withBranch(baseFilter, options.branchId);
+  const scopedBase = withCompany(baseFilter, options.companyId);
   const todayStart = startOfDay();
   const todayEnd = new Date(todayStart);
   todayEnd.setHours(23, 59, 59, 999);
@@ -249,7 +249,7 @@ async function getFollowUpSummary(baseFilter = {}, options = {}) {
 }
 
 async function getQuotationStats(baseFilter = {}, options = {}) {
-  const scopedBase = withBranch(baseFilter, options.branchId);
+  const scopedBase = withCompany(baseFilter, options.companyId);
   const [total, sent, approved, pipelineAgg] = await Promise.all([
     Quotation.countDocuments(scopedBase),
     Quotation.countDocuments({ ...scopedBase, status: 'sent' }),

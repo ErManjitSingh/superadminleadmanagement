@@ -62,7 +62,7 @@ const login = asyncHandler(async (req, res) => {
   const payload = formatUserResponse(user, permissions);
   res.json({
     ...payload,
-    token: generateToken(user._id, user.role),
+    token: generateToken(user._id, user.role, user.companyId),
     ...getRestrictedSessionMeta(user.role),
   });
 });
@@ -102,7 +102,7 @@ const register = asyncHandler(async (req, res) => {
   const payload = formatUserResponse(user, permissions);
   res.status(201).json({
     ...payload,
-    token: generateToken(user._id, user.role),
+    token: generateToken(user._id, user.role, user.companyId),
     ...getRestrictedSessionMeta(user.role),
   });
 });
