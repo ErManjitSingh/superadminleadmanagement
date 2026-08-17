@@ -195,13 +195,17 @@ const updateCompanyDomain = asyncHandler(async (req, res) => {
   if (!company) throw new ApiError(404, 'Company not found');
 
   const domain = req.body.customDomain || req.body.primaryDomain;
-  await connectCustomDomain(company, domain, {
+  const result = await connectCustomDomain(company, domain, {
     verify: Boolean(req.body.verify),
     actor: req.user,
     req,
   });
 
-  res.json({ company: formatCompanyPublic(company.toObject()) });
+  res.json({
+    company: formatCompanyPublic(company.toObject()),
+    assignedPlatformSubdomain: Boolean(result.assignedPlatformSubdomain),
+    systemDomain: result.systemDomain,
+  });
 });
 
 const removeCompanyDomain = asyncHandler(async (req, res) => {

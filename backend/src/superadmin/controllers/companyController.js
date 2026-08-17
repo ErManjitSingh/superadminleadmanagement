@@ -11,7 +11,7 @@ const { logPlatformAudit } = require('../services/platformAuditService');
 const { computeExtendedRenewDate, applyPlanToCompany } = require('../services/subscriptionService');
 const { generateToken, formatUserResponse } = require('../../middleware/auth');
 const { resolveUserPermissions } = require('../../services/permissionsService');
-const { formatDomainFields } = require('../../services/domainService');
+const { formatDomainFields, assertSubdomainAvailable } = require('../../services/domainService');
 const { mergeFeatures, normalizeFeaturePatch } = require('../../config/featureFlags');
 
 function sanitizeCompany(doc, counts = {}) {
@@ -204,6 +204,10 @@ const updateCompany = asyncHandler(async (req, res) => {
 
   for (const key of allowed) {
     if (req.body[key] !== undefined) company[key] = req.body[key];
+  }
+
+  if (req.body.subdomain !== undefined) {
+    company.subdomain = await assertSubdomainAvailable(req.body.subdomain, company._id);
   }
 
   if (req.body.features !== undefined) {

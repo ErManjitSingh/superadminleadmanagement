@@ -77,13 +77,17 @@ const connectCompanyDomain = asyncHandler(async (req, res) => {
   // Set before service save — domainService already persists the document.
   company.updatedBy = req.superAdmin._id;
   const domain = req.body.customDomain || req.body.primaryDomain;
-  await connectCustomDomain(company, domain, {
+  const result = await connectCustomDomain(company, domain, {
     verify: Boolean(req.body.verify),
     actor: req.superAdmin,
     req,
   });
 
-  res.json({ company: formatDomainRow(company.toObject()) });
+  res.json({
+    company: formatDomainRow(company.toObject()),
+    assignedPlatformSubdomain: Boolean(result.assignedPlatformSubdomain),
+    systemDomain: result.systemDomain,
+  });
 });
 
 const verifyCompanyDomain = asyncHandler(async (req, res) => {

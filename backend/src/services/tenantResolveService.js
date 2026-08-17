@@ -26,6 +26,35 @@ function extractSubdomain(host) {
   return null;
 }
 
+function slugifySubdomain(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+/**
+ * Platform workspace URL → label. `crm.indiaholidaydestination.com` → `crm`.
+ * Apex and nested hosts (a.b.platform.com) return null.
+ */
+function parsePlatformWorkspaceHost(domain) {
+  const hostname = String(domain || '')
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\.$/, '')
+    .split(':')[0];
+  if (!hostname || hostname === PLATFORM_DOMAIN) return null;
+  const suffix = `.${PLATFORM_DOMAIN}`;
+  if (!hostname.endsWith(suffix)) return null;
+  const rawLabel = hostname.slice(0, -suffix.length);
+  if (!rawLabel || rawLabel.includes('.')) return null;
+  return slugifySubdomain(rawLabel);
+}
+
 async function findCompanyByCustomHost(hostname) {
   if (!hostname) return null;
 
@@ -88,6 +117,8 @@ module.exports = {
   RESERVED_SUBDOMAINS,
   extractSubdomain,
   isPlatformHostname,
+  parsePlatformWorkspaceHost,
+  slugifySubdomain,
   findCompanyByCustomHost,
   resolveCompanyFromRequest,
   assertCompanyAccessible,

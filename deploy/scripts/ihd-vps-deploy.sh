@@ -35,7 +35,7 @@ SUPERADMIN_EMAIL=superadmin@${DOMAIN}
 SUPERADMIN_PASSWORD=SuperAdmin@IHD2026
 CRM_FRONTEND_URL=https://${DOMAIN}
 PLATFORM_DOMAIN=${DOMAIN}
-CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN},https://admin.${DOMAIN}
+CORS_ORIGINS=https://${DOMAIN},https://www.${DOMAIN},https://admin.${DOMAIN},https://crm.${DOMAIN}
 SEED_PASSWORD=123456
 REDIS_URL=redis://127.0.0.1:6379
 EOF

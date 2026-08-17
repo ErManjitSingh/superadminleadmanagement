@@ -15,7 +15,7 @@ const {
   getRestrictedSessionMeta,
 } = require("../middleware/auth");
 const { resolveUserPermissions } = require("../services/permissionsService");
-const { assertCompanyAccessible } = require("../services/tenantResolveService");
+const { assertCompanyAccessible, parsePlatformWorkspaceHost } = require("../services/tenantResolveService");
 const { platformDomain } = require("../config/branding");
 const { sendOwnerVerificationEmail } = require("../services/emailVerificationService");
 const { onDomainVerified } = require("../services/sslProvisioningService");
@@ -76,11 +76,16 @@ const publicSignup = asyncHandler(async (req, res) => {
   });
   if (!plan) throw new ApiError(400, "Invalid plan selected");
 
-  const resolvedDomainType = domainType === "custom" ? "custom" : "subdomain";
+  let resolvedDomainType = domainType === "custom" ? "custom" : "subdomain";
   let resolvedPrimaryDomain = null;
   let resolvedDomainVerified = resolvedDomainType === "subdomain";
+  const platformWorkspace = parsePlatformWorkspaceHost(primaryDomain);
 
-  if (resolvedDomainType === "custom") {
+  if (platformWorkspace) {
+    resolvedDomainType = "subdomain";
+    resolvedPrimaryDomain = null;
+    resolvedDomainVerified = true;
+  } else if (resolvedDomainType === "custom") {
     resolvedPrimaryDomain = normalizeDomain(primaryDomain);
     if (!resolvedPrimaryDomain) {
       throw new ApiError(400, "Custom domain is required");
@@ -91,7 +96,8 @@ const publicSignup = asyncHandler(async (req, res) => {
     }
   }
 
-  const normalizedSubdomain = subdomain ? slugify(subdomain) : slugify(companyName);
+  const normalizedSubdomain = platformWorkspace
+    || (subdomain ? slugify(subdomain) : slugify(companyName));
   if (!normalizedSubdomain || normalizedSubdomain.length < 2) {
     throw new ApiError(400, "A valid workspace subdomain is required");
   }

@@ -19,11 +19,13 @@ function mutationErrorMessage(err) {
 export default function DomainManagementPanel({ company, onUpdated }) {
   const companyId = company?.id || company?._id;
   const [customDomain, setCustomDomain] = useState(company?.customDomain || company?.primaryDomain || '');
+  const [workspaceSubdomain, setWorkspaceSubdomain] = useState(company?.subdomain || '');
   const [feedback, setFeedback] = useState(null);
 
   useEffect(() => {
     setCustomDomain(company?.customDomain || company?.primaryDomain || '');
-  }, [company?.id, company?.customDomain, company?.primaryDomain]);
+    setWorkspaceSubdomain(company?.subdomain || '');
+  }, [company?.id, company?.customDomain, company?.primaryDomain, company?.subdomain]);
 
   const showFeedback = (type, text) => {
     setFeedback({ type, text });
@@ -32,8 +34,24 @@ export default function DomainManagementPanel({ company, onUpdated }) {
 
   const connectMutation = useMutation({
     mutationFn: (domain) => superAdminApi.connectDomain(companyId, { customDomain: domain }),
+    onSuccess: (res) => {
+      const assigned = res?.data?.assignedPlatformSubdomain;
+      const system = res?.data?.systemDomain || res?.data?.company?.systemDomain;
+      showFeedback(
+        'success',
+        assigned
+          ? `Workspace URL is now ${system}. No extra DNS is required.`
+          : 'Custom domain connected. Share the DNS records below with the customer.',
+      );
+      onUpdated?.();
+    },
+    onError: (err) => showFeedback('error', mutationErrorMessage(err)),
+  });
+
+  const workspaceMutation = useMutation({
+    mutationFn: (subdomain) => superAdminApi.updateCompany(companyId, { subdomain }),
     onSuccess: () => {
-      showFeedback('success', 'Custom domain connected. Share the DNS records below with the customer.');
+      showFeedback('success', `Workspace URL is now ${workspaceSubdomain.trim()}.${PLATFORM_DOMAIN}`);
       onUpdated?.();
     },
     onError: (err) => showFeedback('error', mutationErrorMessage(err)),
@@ -80,7 +98,7 @@ export default function DomainManagementPanel({ company, onUpdated }) {
   const systemDomain = company?.systemDomain || `${company?.subdomain}.${PLATFORM_DOMAIN}`;
   const hasCustom = Boolean(company?.customDomain || company?.primaryDomain);
   const domainStatus = company?.domainStatus || (company?.domainVerified ? 'verified' : hasCustom ? 'pending' : 'not_connected');
-  const busy = connectMutation.isPending || verifyMutation.isPending || refreshMutation.isPending || disconnectMutation.isPending;
+  const busy = connectMutation.isPending || verifyMutation.isPending || refreshMutation.isPending || disconnectMutation.isPending || workspaceMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -101,6 +119,9 @@ export default function DomainManagementPanel({ company, onUpdated }) {
           <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-5 dark:border-emerald-900/40 dark:bg-emerald-950/20">
             <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Current System Domain</p>
             <p className="mt-2 font-mono text-lg font-semibold text-slate-900 dark:text-white">{systemDomain}</p>
+            <p className="mt-2 text-xs text-emerald-800/80 dark:text-emerald-200/70">
+              Platform URLs like <span className="font-mono">crm.{PLATFORM_DOMAIN}</span> are set here — not as a custom domain.
+            </p>
             <div className="mt-4 flex items-center justify-between">
               <span className="text-sm text-[var(--text-muted)]">Status</span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
@@ -139,7 +160,33 @@ export default function DomainManagementPanel({ company, onUpdated }) {
         </div>
 
         <div className="border-t border-[var(--border)] bg-slate-50/50 px-6 py-5 dark:bg-slate-900/30">
+          <label className="mb-2 block text-sm font-medium">Workspace URL (platform subdomain)</label>
+          <p className="mb-2 text-xs text-[var(--text-muted)]">
+            To use <span className="font-mono">crm.{PLATFORM_DOMAIN}</span>, set the subdomain to <span className="font-mono">crm</span>.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              className="min-w-[160px] max-w-[220px] font-mono text-sm"
+              placeholder="crm"
+              value={workspaceSubdomain}
+              onChange={(e) => setWorkspaceSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+            />
+            <span className="font-mono text-sm text-[var(--text-muted)]">.{PLATFORM_DOMAIN}</span>
+            <Button
+              disabled={!companyId || !workspaceSubdomain.trim() || workspaceSubdomain.trim() === company?.subdomain || busy}
+              onClick={() => workspaceMutation.mutate(workspaceSubdomain.trim())}
+            >
+              {workspaceMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Save workspace URL
+            </Button>
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--border)] bg-slate-50/50 px-6 py-5 dark:bg-slate-900/30">
           <label className="mb-2 block text-sm font-medium">Connect custom domain</label>
+          <p className="mb-2 text-xs text-[var(--text-muted)]">
+            Use the customer&apos;s own domain (e.g. crm.company.com). A platform URL like crm.{PLATFORM_DOMAIN} is also accepted and will update the workspace subdomain.
+          </p>
           <div className="flex flex-wrap gap-2">
             <Input
               className="min-w-[240px] flex-1 font-mono text-sm"

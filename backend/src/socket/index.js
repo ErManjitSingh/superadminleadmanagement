@@ -3,13 +3,27 @@ const { Server } = require('socket.io');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { jwtSecret, corsOrigins } = require('../config/env');
+const { isPlatformHostname } = require('../services/tenantResolveService');
 const { setIO } = require('../config/socket');
 const { formatNotification } = require('../utils/queryHelpers');
+
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return true;
+  if (corsOrigins.includes(origin)) return true;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return protocol === 'https:' && isPlatformHostname(hostname);
+  } catch {
+    return false;
+  }
+}
 
 function initializeSocket(httpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: corsOrigins,
+      origin: (origin, callback) => {
+        callback(null, isAllowedCorsOrigin(origin));
+      },
       credentials: true,
     },
     path: '/socket.io',

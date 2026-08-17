@@ -10,6 +10,7 @@ const ApiError = require("../../utils/apiError");
 const { markOnboardingStep } = require("../../services/onboardingService");
 const { DEFAULT_FEATURES } = require("../../config/featureFlags");
 const { getDefaultFeatureFlags } = require("./platformFeatureService");
+const { parsePlatformWorkspaceHost, PLATFORM_DOMAIN } = require("../../services/tenantResolveService");
 
 function slugify(value) {
   return String(value)
@@ -95,14 +96,25 @@ async function provisionCompany({ payload, superAdminId }) {
   let subdomain = slugify(payload.subdomain || baseSlug);
   let attempt = 0;
 
+  const platformWorkspace = parsePlatformWorkspaceHost(payload.primaryDomain);
+  if (platformWorkspace) {
+    subdomain = platformWorkspace;
+  }
+
   while (
     // Note: `subdomain` has a unique index in MongoDB, which also blocks soft-deleted
     // documents. So we must check uniqueness across ALL docs, not only `deletedAt:null`.
     await Company.findOne({ $or: [{ slug }, { subdomain }] })
   ) {
+    const subTaken = await Company.findOne({ subdomain }).select('_id').lean();
+    if (platformWorkspace && subTaken) {
+      throw new ApiError(409, `${platformWorkspace}.${PLATFORM_DOMAIN} is already used by another company`);
+    }
     attempt += 1;
     slug = `${baseSlug}-${attempt}`;
-    subdomain = `${slugify(payload.subdomain || baseSlug)}-${attempt}`;
+    if (!platformWorkspace) {
+      subdomain = `${slugify(payload.subdomain || baseSlug)}-${attempt}`;
+    }
     if (attempt > 50)
       throw new ApiError(409, "Could not generate unique company slug");
   }
@@ -114,7 +126,11 @@ async function provisionCompany({ payload, superAdminId }) {
   });
   if (existingUser) throw new ApiError(409, "Owner email already registered");
 
-  const domainType = payload.domainType === "custom" ? "custom" : "subdomain";
+  const domainType = platformWorkspace
+    ? "subdomain"
+    : payload.domainType === "custom"
+      ? "custom"
+      : "subdomain";
   const primaryDomain =
     domainType === "custom" && payload.primaryDomain
       ? String(payload.primaryDomain).toLowerCase().trim()

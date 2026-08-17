@@ -3,7 +3,7 @@ const { domainPointsToPlatform, normalizeDomain } = require('../controllers/publ
 const { onDomainVerified } = require('./sslProvisioningService');
 const { logPlatformAudit } = require('../superadmin/services/platformAuditService');
 const { notifyDomainAdmins } = require('./domainNotificationService');
-const { PLATFORM_DOMAIN } = require('./tenantResolveService');
+const { PLATFORM_DOMAIN, RESERVED_SUBDOMAINS, parsePlatformWorkspaceHost, slugifySubdomain } = require('./tenantResolveService');
 const { enrichWithDnsInstructions } = require('./dnsInstructionsService');
 const ApiError = require('../utils/apiError');
 
@@ -69,6 +69,61 @@ function validateCustomDomain(domain) {
   return normalized;
 }
 
+async function assertSubdomainAvailable(subdomain, excludeCompanyId = null) {
+  const label = slugifySubdomain(subdomain);
+  if (!label || label.length < 2) {
+    throw new ApiError(400, 'Workspace subdomain must be at least 2 characters');
+  }
+  if (RESERVED_SUBDOMAINS.has(label)) {
+    throw new ApiError(400, `"${label}" is reserved and cannot be used as a workspace URL`);
+  }
+  const filter = { subdomain: label };
+  if (excludeCompanyId) filter._id = { $ne: excludeCompanyId };
+  const taken = await Company.findOne(filter).select('name').lean();
+  if (taken) {
+    throw new ApiError(409, `${label}.${PLATFORM_DOMAIN} is already used by another company`);
+  }
+  return label;
+}
+
+async function assignWorkspaceSubdomain(company, rawSubdomain, { actor = null, req = null } = {}) {
+  const subdomain = await assertSubdomainAvailable(rawSubdomain, company._id);
+  const previous = company.subdomain;
+  const existingCustom = getCustomDomain(company);
+  if (existingCustom && parsePlatformWorkspaceHost(existingCustom)) {
+    company.primaryDomain = null;
+    company.domainType = 'subdomain';
+    company.domainVerified = true;
+    company.domainStatus = DOMAIN_STATUS.NOT_CONNECTED;
+    company.sslStatus = 'not_applicable';
+    company.domainLastVerifiedAt = new Date();
+    company.dnsVerifiedAt = null;
+    company.domainConnectedAt = null;
+  }
+
+  company.subdomain = subdomain;
+  await company.save();
+
+  if (previous !== subdomain) {
+    await logDomainAudit({
+      actor,
+      action: 'workspace_subdomain_updated',
+      company,
+      metadata: { subdomain, previous, systemDomain: getSystemDomain(company) },
+      req,
+    });
+  }
+
+  return {
+    company,
+    assignedPlatformSubdomain: true,
+    subdomain,
+    systemDomain: getSystemDomain(company),
+    domainStatus: deriveDomainStatus(company),
+    verified: true,
+  };
+}
+
 async function assertDomainAvailable(domain, excludeCompanyId = null) {
   const filter = {
     deletedAt: null,
@@ -100,6 +155,11 @@ function applyDomainStatus(company, { verified, failed = false } = {}) {
 }
 
 async function connectCustomDomain(company, rawDomain, { verify = false, actor = null, req = null } = {}) {
+  const platformSubdomain = parsePlatformWorkspaceHost(rawDomain);
+  if (platformSubdomain) {
+    return assignWorkspaceSubdomain(company, platformSubdomain, { actor, req });
+  }
+
   const domain = validateCustomDomain(rawDomain);
   await assertDomainAvailable(domain, company._id);
 
@@ -273,6 +333,9 @@ module.exports = {
   deriveDomainStatus,
   formatDomainFields,
   validateCustomDomain,
+  parsePlatformWorkspaceHost,
+  assertSubdomainAvailable,
+  assignWorkspaceSubdomain,
   assertDomainAvailable,
   connectCustomDomain,
   verifyCustomDomain,

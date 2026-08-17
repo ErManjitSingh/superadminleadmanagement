@@ -3,6 +3,18 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { port, corsOrigins } = require('./config/env');
+const { isPlatformHostname } = require('./services/tenantResolveService');
+
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return true;
+  if (corsOrigins.includes(origin)) return true;
+  try {
+    const { hostname, protocol } = new URL(origin);
+    return protocol === 'https:' && isPlatformHostname(hostname);
+  } catch {
+    return false;
+  }
+}
 const { connectDB, getDbStatus } = require('./config/db');
 const { connectRedis } = require('./config/redis');
 const { ensureIndexes } = require('./config/ensureIndexes');
@@ -32,7 +44,7 @@ applySecurityMiddleware(app);
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || corsOrigins.includes(origin)) {
+      if (isAllowedCorsOrigin(origin)) {
         callback(null, true);
       } else {
         callback(null, false);

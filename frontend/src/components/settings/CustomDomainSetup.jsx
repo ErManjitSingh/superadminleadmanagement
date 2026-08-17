@@ -18,6 +18,19 @@ import { cn } from '../../lib/utils';
 
 const PROVIDERS = ['GoDaddy', 'Cloudflare', 'Namecheap', 'Hostinger'];
 
+function isPlatformWorkspaceHost(value) {
+  const host = String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\.$/, '');
+  if (!host || host === APP_PLATFORM_DOMAIN) return false;
+  const suffix = `.${APP_PLATFORM_DOMAIN}`;
+  if (!host.endsWith(suffix)) return false;
+  return !host.slice(0, -suffix.length).includes('.');
+}
+
 function CopyButton({ value }) {
   return (
     <button
@@ -95,7 +108,11 @@ export default function CustomDomainSetup({ company, onCompanyChange }) {
     try {
       const res = await API.patch('/company-settings/domain', { customDomain, verify: false });
       onCompanyChange?.(res.data.company);
-      toast.success('Custom domain saved — complete DNS setup below');
+      if (res.data.assignedPlatformSubdomain) {
+        toast.success(`Workspace URL is now ${res.data.systemDomain || customDomain}`);
+      } else {
+        toast.success('Custom domain saved — complete DNS setup below');
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not save domain');
     } finally {
@@ -143,7 +160,9 @@ export default function CustomDomainSetup({ company, onCompanyChange }) {
 
       <div className="rounded-2xl border border-subtle bg-surface p-5">
         <label className="mb-2 block text-sm font-medium text-content-primary">Request custom domain</label>
-        <p className="mb-3 text-xs text-content-muted">Examples: crm.yourcompany.com, app.yourcompany.com, travel.yourcompany.com</p>
+        <p className="mb-3 text-xs text-content-muted">
+          Use your own domain (crm.yourcompany.com). To use a platform URL such as crm.{APP_PLATFORM_DOMAIN}, enter it here — it updates your workspace subdomain and needs no extra DNS.
+        </p>
         <div className="flex flex-wrap gap-2">
           <input
             className="h-11 min-w-[240px] flex-1 rounded-xl border border-slate-200 px-3 font-mono text-sm"
@@ -162,7 +181,7 @@ export default function CustomDomainSetup({ company, onCompanyChange }) {
         </div>
       </div>
 
-      {customDomain && (
+      {customDomain && !isPlatformWorkspaceHost(customDomain) && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-violet-200/60 bg-gradient-to-br from-violet-50/80 to-indigo-50/40 p-6">
             <h4 className="flex items-center gap-2 font-semibold text-violet-900">

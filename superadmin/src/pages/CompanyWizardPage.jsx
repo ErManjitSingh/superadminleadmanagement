@@ -7,6 +7,7 @@ import { superAdminApi } from '../api/superadmin';
 import { Button } from '../components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input, Label, Select, Textarea } from '../components/ui/input';
+import { PLATFORM_DOMAIN } from '../lib/branding';
 
 const STEPS = ['Company', 'Plan', 'Domain', 'Finish'];
 
@@ -129,9 +130,14 @@ export default function CompanyWizardPage() {
 
             {step === 2 && (
               <div className="space-y-4">
-                <CardHeader><CardTitle>Custom Domain</CardTitle><CardDescription>Optional — e.g. crm.company.com</CardDescription></CardHeader>
-                <div><Label>Subdomain</Label><Input value={form.subdomain} onChange={(e) => updateField('subdomain', e.target.value)} placeholder="acme" /></div>
-                <div><Label>Primary Domain</Label><Input value={form.primaryDomain} onChange={(e) => updateField('primaryDomain', e.target.value)} placeholder="crm.acme.com" /></div>
+                <CardHeader>
+                  <CardTitle>Workspace domain</CardTitle>
+                  <CardDescription>
+                    Platform URL uses the subdomain (e.g. crm.{PLATFORM_DOMAIN}). Custom domain is optional and must be the customer&apos;s own domain.
+                  </CardDescription>
+                </CardHeader>
+                <div><Label>Subdomain</Label><Input value={form.subdomain} onChange={(e) => updateField('subdomain', e.target.value)} placeholder="crm" /></div>
+                <div><Label>Custom Domain (optional)</Label><Input value={form.primaryDomain} onChange={(e) => updateField('primaryDomain', e.target.value)} placeholder="crm.acme.com" /></div>
               </div>
             )}
 
