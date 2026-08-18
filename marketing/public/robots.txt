@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /api/
+Disallow: /admin
+
+Host: https://indiaholidaydestination.com
+Sitemap: https://indiaholidaydestination.com/sitemap.xml

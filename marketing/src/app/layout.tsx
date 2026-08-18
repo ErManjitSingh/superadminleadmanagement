@@ -12,23 +12,74 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} – India's Most Trusted Holiday Packages`,
+    default: "India Holiday Destination | Holiday Packages & Himalayan Treks",
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
+  keywords: [
+    "India Holiday Destination",
+    "India Holiday Destinations",
+    "IHD treks",
+    "Himalayan treks",
+    "Himachal holiday packages",
+    "McLeodganj Triund",
+    "Kheerganga trek",
+    "Kareri Lake trek",
+  ],
+  alternates: {
+    canonical: siteConfig.url,
+  },
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
   },
   openGraph: {
-    title: siteConfig.name,
+    title: "India Holiday Destination",
     description: siteConfig.tagline,
     url: siteConfig.url,
-    siteName: siteConfig.name,
+    siteName: "India Holiday Destination",
     type: "website",
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "India Holiday Destination",
+    description: siteConfig.tagline,
   },
   robots: { index: true, follow: true },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TravelAgency",
+      name: "India Holiday Destination",
+      alternateName: ["India Holiday Destinations", "IHD"],
+      url: siteConfig.url,
+      telephone: siteConfig.contactPhone,
+      email: siteConfig.contactEmail,
+      image: `${siteConfig.url}/logo.png`,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Delhi NCR",
+        addressCountry: "IN",
+      },
+      sameAs: [siteConfig.treksUrl],
+    },
+    {
+      "@type": "WebSite",
+      name: "India Holiday Destination",
+      url: siteConfig.url,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${siteConfig.url}/?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -37,6 +88,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sans.className} ${sans.variable} min-h-screen bg-white text-[var(--th-ink)] antialiased`}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {children}
       </body>
     </html>

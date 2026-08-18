@@ -6,7 +6,7 @@ export const siteConfig = {
   shortName: "IHD",
   tagline: "Curated holiday packages across India — beaches, mountains, heritage & islands",
   description:
-    "Discover handpicked holiday packages across India. From Goa beaches to Himalayan escapes, Kerala backwaters to Rajasthan forts — plan your perfect trip with India Holiday Destination.",
+    "India Holiday Destination (India Holiday Destinations) — handpicked holiday packages and Himalayan treks across India. Goa, Kerala, Rajasthan, Himachal, Ladakh and more. Call +91 89887 69444.",
   url: "https://indiaholidaydestination.com",
   treksUrl: process.env.NEXT_PUBLIC_TREKS_URL || "https://treks.indiaholidaydestination.com/",
   crmBase,
