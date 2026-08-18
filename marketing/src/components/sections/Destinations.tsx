@@ -81,7 +81,9 @@ export function Destinations() {
         >
           {cards.map((d) => {
             const href =
-              ["Himachal", "Spiti", "Andaman", "Sikkim", "Uttarakhand"].includes(d.key)
+              d.key === "Himachal" || d.key === "Spiti"
+                ? "#himachal"
+                : ["Andaman", "Sikkim", "Uttarakhand"].includes(d.key)
                 ? "#packages"
                 : `#${d.key.toLowerCase()}`;
 

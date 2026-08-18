@@ -6,7 +6,7 @@ export function PackageCard({ pkg }: { pkg: PackageCardType }) {
   const save = pkg.priceWas - pkg.priceNow;
 
   return (
-    <article className="group flex w-[280px] shrink-0 flex-col overflow-hidden rounded-[18px] border border-[#e9ebef] bg-white shadow-[0_7px_24px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(15,23,42,0.13)] sm:w-[286px]">
+    <article className="group flex w-full flex-col overflow-hidden rounded-[18px] border border-[#e9ebef] bg-white shadow-[0_7px_24px_rgba(15,23,42,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_16px_34px_rgba(15,23,42,0.13)]">
       <div className="relative h-[178px] overflow-hidden bg-[#eee]">
         <img
           src={pkg.image}

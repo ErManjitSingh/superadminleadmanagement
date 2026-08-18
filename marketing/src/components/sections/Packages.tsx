@@ -1,5 +1,4 @@
 import { destinationSections } from "@/lib/data";
-import { siteConfig } from "@/lib/config";
 import { PackageCard } from "./PackageCard";
 
 export function Packages() {
@@ -14,9 +13,7 @@ export function Packages() {
                 <h2 className="text-[27px] font-extrabold tracking-tight text-[#17213a] sm:text-[32px]">{section.title}</h2>
               </div>
               <a
-                href={siteConfig.whatsapp}
-                target="_blank"
-                rel="noreferrer"
+                href={`#${section.id}`}
                 className="shrink-0 text-[13px] font-bold text-[var(--th-orange)] hover:underline"
               >
                 View All
@@ -24,7 +21,7 @@ export function Packages() {
             </div>
 
             <div className="th-container">
-              <div className="hide-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:gap-[16px] sm:px-0">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {section.packages.map((pkg) => (
                   <PackageCard key={pkg.id} pkg={pkg} />
                 ))}
