@@ -12,6 +12,7 @@ import ReactivationActionsModal from '../lead-detail/ReactivationActionsModal';
 import { LeadDetailLayout } from '../lead-detail';
 import ConvertLeadModal from '../payments/ConvertLeadModal';
 import { canConvertLead } from '../../utils/leadUtils';
+import LeadStatusChangeModal, { canShowStatusChange } from '../lead-detail/LeadStatusChangeModal';
 import { useLeadActivities } from '../../features/leads/hooks/useLeadActivities';
 import LeadEmailHistory from '../email/LeadEmailHistory';
 
@@ -22,6 +23,7 @@ export default function LeaderLeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [assignOpen, setAssignOpen] = useState(false);
   const [convertModalOpen, setConvertModalOpen] = useState(false);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
   const [executives, setExecutives] = useState([]);
 
   const loadLead = useCallback(() => {
@@ -110,6 +112,8 @@ export default function LeaderLeadDetailPage() {
         onAssign={() => setAssignOpen(true)}
         onConvertLead={canConvertLead(lead.status) ? () => setConvertModalOpen(true) : undefined}
         canConvertLead={canConvertLead(lead.status)}
+        onChangeStatus={canShowStatusChange(lead) ? () => setStatusModalOpen(true) : undefined}
+        canChangeStatus={canShowStatusChange(lead)}
         headerExtra={headerExtra}
         sidebarExtra={sidebarExtra}
         bottomExtra={(
@@ -143,6 +147,13 @@ export default function LeaderLeadDetailPage() {
         onSuccess={async () => {
           await loadLead();
         }}
+      />
+      <LeadStatusChangeModal
+        open={statusModalOpen}
+        lead={lead}
+        endpoint={`/leads/${id}`}
+        onClose={() => setStatusModalOpen(false)}
+        onSaved={loadLead}
       />
     </motion.div>
   );

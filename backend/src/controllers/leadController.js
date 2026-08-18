@@ -403,10 +403,7 @@ const clearAllLeads = asyncHandler(async (req, res) => {
 });
 
 const updateLead = asyncHandler(async (req, res) => {
-  const lead = await Lead.findOne({
-    ...companyScopedIdFilter(req.params.id, req),
-    ...(req.branchId ? { branchId: req.branchId } : {}),
-  });
+  const lead = await Lead.findOne(companyScopedIdFilter(req.params.id, req));
   if (!lead) throw new ApiError(404, 'Lead not found');
 
   if (req.body.status && !LEAD_STATUSES.includes(req.body.status)) {
@@ -415,10 +412,30 @@ const updateLead = asyncHandler(async (req, res) => {
 
   const prevStatus = lead.status;
   const before = lead.toObject();
-  const data = normalizeLeadInput(req.body, { isUpdate: true });
+  const bodyKeys = Object.keys(req.body || {});
+  const isStatusOnly =
+    bodyKeys.length > 0 && bodyKeys.every((k) => ['status', 'statusReason'].includes(k));
+
+  const data = isStatusOnly
+    ? {
+      status: req.body.status,
+      ...(req.body.statusReason !== undefined
+        ? { statusReason: String(req.body.statusReason || '').trim() }
+        : {}),
+    }
+    : normalizeLeadInput(req.body, { isUpdate: true });
+
+  if (!isStatusOnly) {
+    Object.keys(data).forEach((key) => {
+      if (data[key] === undefined) delete data[key];
+    });
+    const statusReasonRaw = typeof req.body.statusReason === 'string' ? req.body.statusReason.trim() : '';
+    if (req.body.statusReason !== undefined) data.statusReason = statusReasonRaw;
+  }
+
   const nextStatus = data.status || lead.status;
   const effectivePayload = {
-    budget: data.budget ?? lead.budget,
+    budget: data.budget !== undefined ? data.budget : lead.budget,
     nextFollowUp: data.nextFollowUp ?? lead.nextFollowUp,
   };
   if (WORKING_PIPELINE_STATUSES.includes(nextStatus)) {
@@ -435,6 +452,9 @@ const updateLead = asyncHandler(async (req, res) => {
   }
 
   Object.assign(lead, data);
+  if (data.statusReason !== undefined) {
+    lead.statusReasonUpdatedAt = new Date();
+  }
   if (!lead.firstContactAt && (data.status === 'contacted' || ['contacted', 'working_progress', 'follow_up'].includes(nextStatus))) {
     lead.firstContactAt = new Date();
     if (!lead.slaContactedAt) lead.slaContactedAt = lead.firstContactAt;

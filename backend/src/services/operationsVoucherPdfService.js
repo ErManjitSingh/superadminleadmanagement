@@ -54,14 +54,14 @@ function drawHeader(doc, title, subtitle) {
 }
 
 function drawField(doc, label, value, x, y, width) {
-  doc.fontSize(8).fillColor(TEXT_MUTED).font('Helvetica-Bold').text(label.toUpperCase(), x, y, { width });
-  doc.fontSize(11).fillColor(TEXT_DARK).font('Helvetica-Bold').text(String(value || '—'), x, y + 12, { width });
+  doc.fontSize(10).fillColor(TEXT_MUTED).font('Helvetica-Bold').text(label.toUpperCase(), x, y, { width });
+  doc.fontSize(13).fillColor(TEXT_DARK).font('Helvetica-Bold').text(String(value || '—'), x, y + 14, { width });
 }
 
 function drawSectionTitle(doc, title) {
   doc.moveDown(0.5);
   const y = doc.y;
-  doc.fontSize(10).fillColor(BRAND_PURPLE).font('Helvetica-Bold').text(title.toUpperCase(), 48, y);
+  doc.fontSize(12).fillColor(BRAND_PURPLE).font('Helvetica-Bold').text(title.toUpperCase(), 48, y);
   doc.moveTo(48, y + 14).lineTo(doc.page.width - 48, y + 14).strokeColor('#e2e8f0').lineWidth(1).stroke();
   doc.y = y + 24;
 }

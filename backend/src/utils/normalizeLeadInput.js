@@ -109,6 +109,31 @@ function normalizeLeadInput(body = {}, { isUpdate = false } = {}) {
   if (!isUpdate && body.status) normalized.status = body.status;
   if (isUpdate && body.status) normalized.status = body.status;
 
+  if (isUpdate) {
+    const keysInBody = new Set(Object.keys(body));
+    if (keysInBody.has('leadSource')) {
+      keysInBody.add('source');
+      keysInBody.add('sourceLabel');
+      keysInBody.add('leadSource');
+    }
+    if (keysInBody.has('assignedExecutive')) keysInBody.add('assignedTo');
+    if (keysInBody.has('specialRequirements')) keysInBody.add('notes');
+
+    const out = {};
+    for (const [key, value] of Object.entries(normalized)) {
+      if (!keysInBody.has(key) || value === undefined) continue;
+      out[key] = value;
+    }
+    if (keysInBody.has('status')) out.status = body.status;
+    if (keysInBody.has('statusReason')) out.statusReason = String(body.statusReason || '').trim();
+    if (keysInBody.has('budget') || keysInBody.has('budgetRange')) {
+      out.budget = Number(body.budget) || 0;
+      out.budgetRange = parseBudgetRange(body, out.budget);
+      if (!keysInBody.has('leadScore')) out.leadScore = computeLeadScoreByBudget(out.budget);
+    }
+    return out;
+  }
+
   return normalized;
 }
 

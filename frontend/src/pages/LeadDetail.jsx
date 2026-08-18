@@ -37,6 +37,7 @@ const STATUSES = [
   'follow_up',
   'quotation_sent',
   'negotiation',
+  'reactivated',
   'lost',
   'booked_from_another_company',
 ];

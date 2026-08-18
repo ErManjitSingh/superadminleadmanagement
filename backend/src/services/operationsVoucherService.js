@@ -39,12 +39,12 @@ const BASE_STYLES = `
   .badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-top: 10px; }
   .body { padding: 28px 32px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-  .field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
-  .field p { font-size: 14px; font-weight: 600; }
+  .field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
+  .field p { font-size: 15px; font-weight: 600; }
   .section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
-  .section h2 { font-size: 13px; font-weight: 800; text-transform: uppercase; color: #0d9488; margin-bottom: 12px; }
-  .note { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 12px 14px; font-size: 12px; color: #115e59; margin-top: 16px; }
-  .footer { padding: 16px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; text-align: center; }
+  .section h2 { font-size: 14px; font-weight: 800; text-transform: uppercase; color: #0d9488; margin-bottom: 12px; }
+  .note { background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #115e59; margin-top: 16px; }
+  .footer { padding: 16px 32px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; text-align: center; }
   @media print { body { background: #fff; padding: 0; } .page { border: none; border-radius: 0; } }
 `;
 

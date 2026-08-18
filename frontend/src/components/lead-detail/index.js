@@ -14,6 +14,7 @@ export { default as LeadActionPanel } from './LeadActionPanel';
 export { default as LeadTransferHistory } from './LeadTransferHistory';
 export { default as LeadAuditPanel } from './LeadAuditPanel';
 export { default as ReactivationActionsModal } from './ReactivationActionsModal';
+export { default as LeadStatusChangeModal, canShowStatusChange } from './LeadStatusChangeModal';
 export {
   getLeadDetailData,
   mergeLeadActivities,

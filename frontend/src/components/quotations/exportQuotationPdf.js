@@ -80,17 +80,9 @@ function prepareForCapture(root, widthPx) {
 
   root.querySelectorAll('*').forEach((node) => {
     if (node.style?.visibility === 'hidden') node.style.visibility = 'visible';
-    if (node.classList?.contains('qp-watermark') || node.classList?.contains('qp-watermark-text')) {
-      return;
-    }
     if (node.style?.opacity === '0') node.style.opacity = '1';
   });
 
-  // Strip HTML watermarks — PDF pages get a single stamp from jsPDF instead
-  // (avoids 2–3 stacked marks from the long HTML capture).
-  root.querySelectorAll('.qp-watermark, .qp-watermark-text').forEach((node) => {
-    node.remove();
-  });
   // Certificate is appended as a dedicated HD last page, not sliced from the canvas.
   root.querySelectorAll('.qp-certificate-page').forEach((node) => {
     node.remove();
@@ -267,7 +259,7 @@ async function captureFullContent(viewport, widthPx, scale) {
   });
 }
 
-async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, watermarkText = 'INDIA HOLIDAY DESTINATION', certificateDataUrl = null) {
+async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, certificateDataUrl = null) {
   const pdf = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -299,26 +291,6 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression,
 
     if (page > 0) pdf.addPage();
     pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeightMm, undefined, pdfCompression);
-
-    // Watermark on every PDF page @ 0.3 opacity
-    try {
-      const wm = String(watermarkText || 'INDIA HOLIDAY DESTINATION').toUpperCase();
-      if (pdf.GState && pdf.setGState) {
-        pdf.saveGraphicsState();
-        pdf.setGState(new pdf.GState({ opacity: 0.3 }));
-      }
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(26);
-      pdf.text(wm, pageWidth / 2, pageHeight / 2, {
-        align: 'center',
-        angle: -32,
-      });
-      if (pdf.restoreGraphicsState) pdf.restoreGraphicsState();
-      pdf.setTextColor(0, 0, 0);
-    } catch {
-      /* ignore */
-    }
 
     y += sliceH;
     page += 1;
@@ -368,17 +340,12 @@ async function renderWithProfile(contentEl, profile, preset) {
     }
 
     const master = downscaleCanvas(canvas, Math.round(profile.width * profile.scale));
-    const watermarkText =
-      embedded?.dataset?.watermark ||
-      contentEl?.dataset?.watermark ||
-      'INDIA HOLIDAY DESTINATION';
     const certificateDataUrl = await loadCertificateDataUrl();
     return buildPdfFromCanvas(
       master,
       profile.quality,
       preset.pageMaxWidth,
       preset.pdfCompression,
-      watermarkText,
       certificateDataUrl,
     );
   } finally {

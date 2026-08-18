@@ -38,7 +38,7 @@ const REACTIVATION_STAGES = [
 
 const leadSchema = new mongoose.Schema(
   {
-    leadId: { type: String, unique: true, sparse: true },
+    leadId: { type: String, sparse: true },
     name: { type: String, required: true, trim: true },
     email: { type: String, trim: true },
     phone: { type: String, required: true, trim: true, index: true },
@@ -153,8 +153,13 @@ leadSchema.index({ assignedTo: 1, status: 1 });
 leadSchema.index({ branchId: 1, assignedTo: 1, status: 1 });
 leadSchema.index({ branchId: 1, assignedTo: 1, isHot: 1, status: 1 });
 leadSchema.index({ branchId: 1, 'reactivation.isReactivated': 1, 'reactivation.stage': 1, updatedAt: -1 });
+leadSchema.index({ companyId: 1, leadId: 1 }, { unique: true, sparse: true });
 
-async function allocateNextLeadId(LeadModel) {
+function formatLeadId(n) {
+  return `L-${String(Math.max(1, n)).padStart(4, '0')}`;
+}
+
+async function maxLeadSeq(LeadModel) {
   const result = await LeadModel.aggregate([
     { $match: { leadId: { $regex: /^L-\d+$/ } } },
     {
@@ -171,22 +176,23 @@ async function allocateNextLeadId(LeadModel) {
     },
     { $group: { _id: null, max: { $max: '$n' } } },
   ]);
-  const next = (result[0]?.max || 0) + 1;
-  return `L-${String(next).padStart(4, '0')}`;
+  return result[0]?.max || 0;
 }
 
 leadSchema.pre('save', async function generateLeadId(next) {
   if (this.leadId) return next();
   try {
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const candidate = await allocateNextLeadId(this.constructor);
+    const start = (await maxLeadSeq(this.constructor)) + 1;
+    for (let n = start; n < start + 24; n += 1) {
+      const candidate = formatLeadId(n);
       const taken = await this.constructor.exists({ leadId: candidate });
       if (!taken) {
         this.leadId = candidate;
         return next();
       }
     }
-    return next(new Error('Could not allocate a unique lead ID'));
+    this.leadId = `L-${Date.now().toString().slice(-10)}`;
+    return next();
   } catch (err) {
     return next(err);
   }

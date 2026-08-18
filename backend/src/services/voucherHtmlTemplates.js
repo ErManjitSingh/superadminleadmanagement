@@ -190,6 +190,40 @@ html, body {
   font-size: 7px; display: flex; justify-content: space-between; gap: 8px; align-items: center;
 }
 .foot span { line-height: 1.3; }
+
+@media print {
+  .brand-name { font-size: 16px; }
+  .brand-tag { font-size: 11px; }
+  .qr-label { font-size: 8px; }
+  .title { font-size: 20px; }
+  .pill { font-size: 10px; padding: 5px 12px; }
+  .issued { font-size: 10px; }
+  .strip label { font-size: 9px; }
+  .strip p { font-size: 12px; }
+  .card-title { font-size: 12px; }
+  .cell label { font-size: 9px; }
+  .cell p { font-size: 12px; }
+  .hotel-name { font-size: 14px; }
+  .addr { font-size: 11px; }
+  .note { font-size: 11px; line-height: 1.45; }
+  .itinerary-day-num { font-size: 10px; }
+  .itinerary-day-date { font-size: 10px; }
+  .itinerary-day-title { font-size: 12px; }
+  .itinerary-day-places { font-size: 11px; }
+  .itinerary-day-route { font-size: 10px; }
+  .emerg-title { font-size: 11px; }
+  .emerg-row { font-size: 11px; }
+  .vendor-left h4 { font-size: 12px; }
+  .vendor-left p { font-size: 10px; }
+  .btn { font-size: 10px; padding: 6px 12px; }
+  .vendor-link strong { font-size: 10px; }
+  .vendor-link span { font-size: 9px; }
+  .sign-label { font-size: 9px; }
+  .sign-name { font-size: 11px; }
+  .stamp { font-size: 8px; }
+  .help { font-size: 11px; }
+  .foot { font-size: 10px; }
+}
 `;
 
 function esc(value) {
@@ -764,6 +798,43 @@ html, body {
     padding: 12px 14px;
     font-size: 12px;
   }
+}
+
+@media print {
+  .emb-brand-name { font-size: 16px; }
+  .emb-brand-tag { font-size: 11px; }
+  .emb-title { font-size: 18px; }
+  .emb-id-box .lbl { font-size: 9px; }
+  .emb-id-box .id { font-size: 14px; }
+  .emb-id-box .date { font-size: 11px; }
+  .emb-thanks-text { font-size: 11px; line-height: 1.4; }
+  .emb-safe-badge { font-size: 10px; }
+  .emb-booked-by { font-size: 11px; line-height: 1.4; }
+  .emb-booked-by strong { font-size: 13px; }
+  .emb-card-h { font-size: 12px; }
+  .emb-row label { font-size: 9px; }
+  .emb-row p { font-size: 12px; }
+  .emb-fare-total label { font-size: 10px; }
+  .emb-fare-total p { font-size: 16px; }
+  .emb-fare-adv label, .emb-fare-bal label { font-size: 10px; }
+  .emb-fare-adv p, .emb-fare-bal p { font-size: 13px; }
+  .emb-check { font-size: 11px; }
+  .emb-terms { font-size: 11px; line-height: 1.45; }
+  .emb-itinerary-h { font-size: 12px; }
+  .emb-day-num { font-size: 11px; }
+  .emb-day-title { font-size: 12px; }
+  .emb-day-date { font-size: 10px; }
+  .emb-day-places { font-size: 11px; }
+  .emb-vendor h4 { font-size: 12px; }
+  .emb-vendor p { font-size: 11px; }
+  .emb-btn { font-size: 10px; }
+  .emb-support .lbl { font-size: 9px; }
+  .emb-support .num { font-size: 13px; }
+  .emb-wish { font-size: 22px; }
+  .emb-sign-line .n { font-size: 11px; }
+  .emb-sign-line .l { font-size: 10px; }
+  .emb-qr span { font-size: 8px; }
+  .emb-bottom-bar { font-size: 10px; padding: 8px 14px; }
 }
 `;
 

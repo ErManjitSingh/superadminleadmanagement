@@ -402,6 +402,50 @@ html, body {
 
 @media print {
   html, body, .cv-page { width: 210mm; }
+  .cv-logo { font-size: 16px; width: 48px; height: 48px; }
+  .cv-brand-name { font-size: 16px; }
+  .cv-brand-tag { font-size: 10px; }
+  .cv-title { font-size: 20px; margin: 10px 0 8px; }
+  .cv-pill { font-size: 10px; padding: 6px 12px; }
+  .cv-pill svg { width: 12px; height: 12px; }
+  .cv-strip label { font-size: 9px; }
+  .cv-strip p { font-size: 12px; }
+  .cv-panel-title { font-size: 12px; }
+  .cv-tile label { font-size: 9px; }
+  .cv-tile p { font-size: 12px; }
+  .cv-hotel-name { font-size: 14px; }
+  .cv-hotel-stars { font-size: 12px; }
+  .cv-hotel-addr { font-size: 11px; }
+  .cv-note-item { font-size: 11px; line-height: 1.45; }
+  .cv-note-item::after { font-size: 8px; }
+  .cv-itinerary-num { font-size: 10px; }
+  .cv-itinerary-date { font-size: 10px; }
+  .cv-itinerary-title { font-size: 12px; }
+  .cv-itinerary-places { font-size: 11px; }
+  .cv-footnote { font-size: 10px; line-height: 1.45; }
+  .cv-amount-box label { font-size: 10px; }
+  .cv-amount-value { font-size: 24px; }
+  .cv-amount-card label { font-size: 9px; }
+  .cv-amount-card p { font-size: 16px; }
+  .cv-disclaimer { font-size: 10px; line-height: 1.4; }
+  .cv-help-title { font-size: 12px; }
+  .cv-help-row { font-size: 11px; }
+  .cv-balance-row { font-size: 11px; }
+  .cv-progress-label { font-size: 10px; }
+  .cv-history-title { font-size: 11px; }
+  .cv-history table { font-size: 11px; }
+  .cv-history th { font-size: 9px; }
+  .cv-vendor h4 { font-size: 12px; }
+  .cv-vendor p { font-size: 10px; }
+  .cv-btn { font-size: 10px; padding: 6px 12px; }
+  .cv-vendor-link strong { font-size: 10px; }
+  .cv-vendor-link span { font-size: 9px; }
+  .cv-thanks-title { font-size: 14px; }
+  .cv-thanks-text { font-size: 11px; }
+  .cv-sign-label { font-size: 9px; }
+  .cv-sign-name { font-size: 15px; }
+  .cv-stamp { font-size: 8px; width: 58px; height: 58px; }
+  .cv-contact { font-size: 10px; padding: 8px 14px; }
 }
 `;
 

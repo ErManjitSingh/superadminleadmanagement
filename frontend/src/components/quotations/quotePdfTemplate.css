@@ -53,8 +53,8 @@
   background: #ffffff;
   color: var(--uno-text);
   font-family: 'Lato', 'Segoe UI', system-ui, Arial, sans-serif;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.65;
 }
 
 /* ── Cover page ── */
@@ -1344,22 +1344,6 @@
   background: #eef2f6;
   border: 1px solid #e3eaf0;
   min-height: 48px;
-}
-
-/* Watermark — exactly one stamp per A4 page (background tile) */
-.qp-watermark {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  pointer-events: none;
-  overflow: hidden;
-  background-repeat: repeat-y;
-  background-position: center top;
-  background-size: 100% 1123px;
-}
-
-.qp-watermark-text {
-  display: none;
 }
 
 .qp-header {

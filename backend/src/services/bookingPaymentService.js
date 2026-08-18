@@ -460,7 +460,15 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
   }
 
   lead.status = 'converted';
-  await lead.save();
+  try {
+    await lead.save();
+  } catch (err) {
+    if (!(err.code === 11000 || err.code === 11001) || !/leadId/i.test(err.message || '')) {
+      throw err;
+    }
+    await Lead.findByIdAndUpdate(leadId, { $set: { status: 'converted' } });
+    lead.status = 'converted';
+  }
 
   await logLeadActivity({
     leadId: lead._id,

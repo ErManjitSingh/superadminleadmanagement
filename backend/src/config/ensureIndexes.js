@@ -40,6 +40,25 @@ async function dropLegacyBranchIndexes() {
   }
 }
 
+// A global unique index on { leadId } blocks every tenant from using L-0030
+// if any other company in the same DB already has it. IDs are per-company.
+async function dropLegacyLeadIdIndex() {
+  try {
+    const indexes = await Lead.collection.indexes();
+    for (const idx of indexes) {
+      const keys = idx.key || {};
+      if (keys.leadId === 1 && Object.keys(keys).length === 1) {
+        await Lead.collection.dropIndex(idx.name);
+        console.log(`[MongoDB] Dropped legacy global leadId index: ${idx.name}`);
+      }
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[MongoDB] Legacy leadId index cleanup:', err.message);
+    }
+  }
+}
+
 // A global unique index on { email } breaks multi-tenancy: two companies could
 // never share an owner/user email, and provisioning would silently fail and
 // leave orphaned companies. Drop it in favour of the compound
@@ -64,11 +83,13 @@ async function dropLegacyUserEmailIndex() {
 async function ensureIndexes() {
   await dropLegacyBranchIndexes();
   await dropLegacyUserEmailIndex();
+  await dropLegacyLeadIdIndex();
   await Promise.all([
     User.collection.createIndex({ companyId: 1, email: 1 }, { unique: true, background: true }),
     User.collection.createIndex({ role: 1, status: 1 }, { background: true }),
     User.collection.createIndex({ branchId: 1, role: 1, status: 1 }, { background: true }),
 
+    Lead.collection.createIndex({ companyId: 1, leadId: 1 }, { unique: true, sparse: true, background: true }),
     Lead.collection.createIndex({ phone: 1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, status: 1, createdAt: -1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, leadScore: 1, budget: -1 }, { background: true }),
