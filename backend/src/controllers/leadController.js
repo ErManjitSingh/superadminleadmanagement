@@ -238,7 +238,19 @@ const createLead = asyncHandler(async (req, res) => {
 
   await applyLeadMetrics(data);
   await assertLeadLimit(req.companyId);
-  const lead = await Lead.create(data);
+  let lead;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      delete data.leadId;
+      lead = await Lead.create(data);
+      break;
+    } catch (err) {
+      if (attempt < 5 && (err.code === 11000 || err.code === 11001) && /leadId/i.test(err.message || '')) {
+        continue;
+      }
+      throw err;
+    }
+  }
 
   if (req.companyId) {
     await markOnboardingStep(req.companyId, 'firstLeadAdded', true).catch(() => {});

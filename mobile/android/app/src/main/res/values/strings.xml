@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Explore My Bharat</string>
+    <string name="title_activity_main">Explore My Bharat</string>
+    <string name="package_name">info.exploremybharat.crm</string>
+    <string name="custom_url_scheme">info.exploremybharat.crm</string>
+</resources>

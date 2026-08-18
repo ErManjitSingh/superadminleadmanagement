@@ -2167,6 +2167,35 @@
   color: #fff;
 }
 
+.qp-certificate-page {
+  margin: 0;
+  padding: 18px 14px 22px;
+  background: #ffffff;
+  page-break-before: always;
+  break-before: page;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.qp-certificate-title {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b2239;
+}
+
+.qp-certificate-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  background: #ffffff;
+  border: 1px solid #e3eaf0;
+}
+
 @media print {
   @page {
     margin: 5mm;
@@ -2262,6 +2291,21 @@
   .qp-inc-exc-list li {
     orphans: 1;
     widows: 1;
+  }
+
+  .qp-certificate-page {
+    page-break-before: always !important;
+    break-before: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin: 0 !important;
+    padding: 8mm 4mm !important;
+  }
+
+  .qp-certificate-img {
+    width: 100% !important;
+    max-height: 250mm;
+    object-fit: contain !important;
   }
 }
 

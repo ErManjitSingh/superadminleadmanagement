@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { WizardFormContext } from './WizardFormContext';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -30,6 +30,7 @@ export default function LeadWizard({ paths: pathsProp } = {}) {
   const [loadingLead, setLoadingLead] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -43,6 +44,8 @@ export default function LeadWizard({ paths: pathsProp } = {}) {
   const { formApi, step, maxReachable, draftStatus, lastSaved, goNext, goBack, goToStep, clearDraft, setStep, getValues, reset, validateStep } = wizard;
 
   const saveLead = async (action = 'list') => {
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError('');
     const values = getValues();
@@ -56,6 +59,7 @@ export default function LeadWizard({ paths: pathsProp } = {}) {
       validateStep(2);
       setStep(2);
       setError('Enter a valid whole-number traveler count before creating lead');
+      savingRef.current = false;
       setSaving(false);
       return;
     }
@@ -63,6 +67,7 @@ export default function LeadWizard({ paths: pathsProp } = {}) {
     const budgetValue = values.budgetRange === 'custom' ? Number(values.customBudget) : Number(values.budget);
     if (!(budgetValue > 0)) {
       setError('Budget is required before creating lead');
+      savingRef.current = false;
       setSaving(false);
       return;
     }
@@ -93,6 +98,7 @@ export default function LeadWizard({ paths: pathsProp } = {}) {
       const apiMsg = err.response?.data?.message;
       setError(apiMsg || err.message || 'Failed to save lead');
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

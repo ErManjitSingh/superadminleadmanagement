@@ -87,6 +87,33 @@ function assignmentKey(type, index) {
   return `${type}:${index}`;
 }
 
+async function enrichClientHotelsPhones(hotels, bookingHotels = []) {
+  if (!Array.isArray(hotels) || !hotels.length) return hotels || [];
+  const mongoose = require('mongoose');
+  const Hotel = require('../models/Hotel');
+  const missingIds = [];
+  hotels.forEach((h, i) => {
+    const phone = h.hotelPhone || h.phone || bookingHotels[i]?.phone || bookingHotels[i]?.hotelPhone;
+    const hotelId = h.hotelId || bookingHotels[i]?.hotelId;
+    if (!phone && hotelId) missingIds.push(String(hotelId));
+  });
+  const uniqueIds = [...new Set(missingIds)].filter((id) => (
+    mongoose.Types.ObjectId.isValid(id)
+    && String(new mongoose.Types.ObjectId(id)) === id
+  ));
+  let catalogById = {};
+  if (uniqueIds.length) {
+    const docs = await Hotel.find({ _id: { $in: uniqueIds } }).select('phone').lean();
+    catalogById = Object.fromEntries(docs.map((d) => [String(d._id), d.phone || '']));
+  }
+  return hotels.map((h, i) => {
+    const fromBooking = bookingHotels[i] || {};
+    const hotelId = h.hotelId || fromBooking.hotelId;
+    const phone = h.hotelPhone || h.phone || fromBooking.phone || fromBooking.hotelPhone || catalogById[String(hotelId)] || '';
+    return { ...h, hotelId, phone, hotelPhone: phone };
+  });
+}
+
 function extractPayload(booking, type, index = 0) {
   if (type === 'hotel') {
     const h = booking.hotels?.[index];
@@ -206,12 +233,15 @@ function extractPayload(booking, type, index = 0) {
       remainingBalance,
       hotels: (booking.hotels || []).map((h) => ({
         hotelName: h.hotelName || h.name,
+        hotelId: h.hotelId,
         roomType: h.roomType,
         destination: h.destination,
         checkIn: h.checkIn,
         checkOut: h.checkOut,
         nights: h.nights,
         status: h.status,
+        phone: h.phone || h.hotelPhone || '',
+        hotelPhone: h.hotelPhone || h.phone || '',
       })),
       transport: (booking.transport || []).map((t) => ({
         vehicleType: t.vehicleType,
@@ -345,6 +375,7 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   // Client voucher never includes day-wise itinerary
   if (normalizedType === 'client' && payload) {
     delete payload.itinerary;
+    payload.hotels = await enrichClientHotelsPhones(payload.hotels || [], booking.hotels || []);
   }
 
   if (existing && !force) {
@@ -498,6 +529,12 @@ async function repairVoucherPdfFile(voucher) {
   if (!payload || !Object.keys(payload).length) {
     payload = extractPayload(booking, voucher.type, voucher.assignmentIndex || 0) || {};
   }
+  if (voucher.type === 'client' || voucher.type === 'master') {
+    payload = {
+      ...payload,
+      hotels: await enrichClientHotelsPhones(payload.hotels || [], booking.hotels || []),
+    };
+  }
 
   const fileMeta = await generateVoucherPdfFile(voucher, booking, payload);
   const buffer = readPdfBuffer(fileMeta?.filePath);
@@ -509,6 +546,7 @@ async function repairVoucherPdfFile(voucher) {
     fileSize: fileMeta.fileSize,
     pdfUrl: fileMeta.pdfUrl,
     mimeType: 'application/pdf',
+    ...(payload ? { payload } : {}),
   });
 
   return {

@@ -75,7 +75,12 @@ export async function cloneWithEmbeddedImages(contentEl) {
   for (let i = 0; i < cloneImgs.length; i += 1) {
     const srcImg = srcImgs[i];
     const cloneImg = cloneImgs[i];
-    let dataUrl = imgElementToDataUrl(srcImg);
+    let dataUrl = null;
+    const keepOriginal = cloneImg.classList?.contains('qp-certificate-img')
+      || cloneImg.classList?.contains('qp-qr-img');
+    if (!keepOriginal) {
+      dataUrl = imgElementToDataUrl(srcImg);
+    }
     if (!dataUrl && srcImg?.src && !srcImg.src.startsWith('data:')) {
       dataUrl = await urlToDataUrl(srcImg.src);
     }

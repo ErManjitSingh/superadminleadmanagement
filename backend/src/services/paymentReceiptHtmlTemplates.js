@@ -39,6 +39,13 @@ function fmtIssued(d) {
   return `${fmtDate(dt)}, ${dt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
+function fmtAadhaar(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length !== 12) return digits;
+  return `${digits.slice(0, 4)} ${digits.slice(4, 8)} ${digits.slice(8, 12)}`;
+}
+
 function buildPaymentHistoryRows(paymentHistory = [], currentReceiptNumber) {
   if (!paymentHistory.length) return '';
   const rows = paymentHistory.map((p, i) => {
@@ -98,6 +105,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
   const progress = totalAmount > 0 ? Math.min(100, Math.round((totalPaid / totalAmount) * 100)) : 0;
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const customerPhone = booking.customerPhone || booking.phone || payment.customerPhone || '-';
+  const aadhaarNumber = fmtAadhaar(booking.aadhaarNumber || payment.aadhaarNumber);
   const pickup = booking.pickup || booking.pickupLocation || '-';
   const drop = booking.drop || booking.dropLocation || '-';
   const receivedBy = payment.createdByName
@@ -120,6 +128,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     brandedTile('user', 'Received By', `${receivedBy} (${roleLabel})`),
     brandedTile('ticket', 'Receipt No', receiptNumber),
     brandedTile('phone', 'Customer Phone', customerPhone),
+    ...(aadhaarNumber ? [brandedTile('ticket', 'Aadhaar Number', aadhaarNumber)] : []),
     brandedTile('phone', 'Company / Exec Phone', executivePhone || footPhone || '-'),
     brandedTile('mail', 'Customer Email', booking.customerEmail || '-'),
     brandedTile('user', 'Sales Executive', executiveName),

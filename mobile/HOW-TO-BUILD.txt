@@ -1,0 +1,35 @@
+# Explore My Bharat CRM — Android APK
+
+This app is a wrapper around the live CRM:
+https://crm.exploremybharat.info/app/
+
+Same login and screens as the website. CRM web updates appear in the app without a new APK.
+
+## One-time setup
+
+1. Install Android Studio: https://developer.android.com/studio
+2. Open Android Studio once so it installs Android SDK and JDK 17.
+3. In this folder run:
+
+```
+cd mobile
+npm install
+npm run apk
+```
+
+APK path: mobile/dist/ExploreMyBharat-CRM.apk
+
+Share that file on WhatsApp. On the phone: allow Install unknown apps for WhatsApp, then open the APK.
+
+Optional custom signing (better than debug key):
+
+```
+npm run keystore
+npm run apk
+```
+
+Open the Android project in Studio:
+
+```
+npm run open
+```

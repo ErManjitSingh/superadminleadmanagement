@@ -154,11 +154,42 @@ leadSchema.index({ branchId: 1, assignedTo: 1, status: 1 });
 leadSchema.index({ branchId: 1, assignedTo: 1, isHot: 1, status: 1 });
 leadSchema.index({ branchId: 1, 'reactivation.isReactivated': 1, 'reactivation.stage': 1, updatedAt: -1 });
 
+async function allocateNextLeadId(LeadModel) {
+  const result = await LeadModel.aggregate([
+    { $match: { leadId: { $regex: /^L-\d+$/ } } },
+    {
+      $project: {
+        n: {
+          $convert: {
+            input: { $substrBytes: ['$leadId', 2, 12] },
+            to: 'int',
+            onError: 0,
+            onNull: 0,
+          },
+        },
+      },
+    },
+    { $group: { _id: null, max: { $max: '$n' } } },
+  ]);
+  const next = (result[0]?.max || 0) + 1;
+  return `L-${String(next).padStart(4, '0')}`;
+}
+
 leadSchema.pre('save', async function generateLeadId(next) {
   if (this.leadId) return next();
-  const count = await this.constructor.countDocuments();
-  this.leadId = `L-${String(count + 1).padStart(4, '0')}`;
-  next();
+  try {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const candidate = await allocateNextLeadId(this.constructor);
+      const taken = await this.constructor.exists({ leadId: candidate });
+      if (!taken) {
+        this.leadId = candidate;
+        return next();
+      }
+    }
+    return next(new Error('Could not allocate a unique lead ID'));
+  } catch (err) {
+    return next(err);
+  }
 });
 
 leadSchema.plugin(tenantPlugin);

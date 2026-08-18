@@ -23,6 +23,7 @@ import {
   sanitizeItineraryDayTitle,
 } from './quotePdfHelpers';
 import { getPaymentQrSrc, PAYMENT_UPI_ID } from './paymentQr';
+import travelAgentCertificate from '../../assets/hp-travel-agent-certificate.png';
 
 const DEFAULT_COVER =
   'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
@@ -403,6 +404,15 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <p>Thank you for choosing {brand.name}</p>
         <p>{executivePhone || brand.phone} · {brand.email}</p>
       </footer>
+
+      <section className="qp-certificate-page" aria-label="Travel agent registration certificate">
+        <p className="qp-certificate-title">Certificate of Registration of Travel Agent</p>
+        <img
+          src={travelAgentCertificate}
+          alt="Certificate of Registration of Travel Agent — Government of Himachal Pradesh"
+          className="qp-certificate-img"
+        />
+      </section>
     </div>
   );
 });

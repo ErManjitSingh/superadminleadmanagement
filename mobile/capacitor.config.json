@@ -1,0 +1,34 @@
+{
+  "appId": "info.exploremybharat.crm",
+  "appName": "Explore My Bharat",
+  "webDir": "www",
+  "server": {
+    "url": "https://crm.exploremybharat.info/app/",
+    "androidScheme": "https",
+    "errorPath": "offline.html",
+    "allowNavigation": [
+      "crm.exploremybharat.info",
+      "*.exploremybharat.info",
+      "exploremybharat.info"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0B2239",
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "launchAutoHide": true,
+      "backgroundColor": "#0B2239",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "LIGHT",
+      "backgroundColor": "#0B2239"
+    }
+  }
+}

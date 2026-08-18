@@ -1,6 +1,7 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
+import travelAgentCertificate from '../../assets/hp-travel-agent-certificate.png';
 
 /** HD for WhatsApp / download — sharp, ~800KB. */
 const HD_TARGET_MAX_BYTES = 800 * 1024;
@@ -90,6 +91,10 @@ function prepareForCapture(root, widthPx) {
   root.querySelectorAll('.qp-watermark, .qp-watermark-text').forEach((node) => {
     node.remove();
   });
+  // Certificate is appended as a dedicated HD last page, not sliced from the canvas.
+  root.querySelectorAll('.qp-certificate-page').forEach((node) => {
+    node.remove();
+  });
 
   root.querySelectorAll('a[href]').forEach((anchor) => {
     const text = document.createElement('span');
@@ -118,6 +123,9 @@ function prepareForCapture(root, widthPx) {
 
 function compressImagesInClone(root, maxEdge = 780, quality = 0.72) {
   root.querySelectorAll('img').forEach((img) => {
+    if (img.classList?.contains('qp-certificate-img') || img.classList?.contains('qp-qr-img')) {
+      return;
+    }
     try {
       const w = img.naturalWidth || img.width || 0;
       const h = img.naturalHeight || img.height || 0;
@@ -174,6 +182,63 @@ function canvasToJpeg(canvas, quality) {
   }
 }
 
+let certificateDataUrlPromise;
+
+async function loadCertificateDataUrl() {
+  if (!travelAgentCertificate) return null;
+  if (!certificateDataUrlPromise) {
+    certificateDataUrlPromise = (async () => {
+      try {
+        const res = await fetch(travelAgentCertificate, { cache: 'force-cache' });
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        return null;
+      }
+    })();
+  }
+  return certificateDataUrlPromise;
+}
+
+function appendCertificatePage(pdf, dataUrl) {
+  if (!pdf || !dataUrl) return;
+  let props;
+  try {
+    props = pdf.getImageProperties(dataUrl);
+  } catch {
+    return;
+  }
+  if (!props?.width || !props?.height) return;
+
+  pdf.addPage();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  pdf.setFillColor(255, 255, 255);
+  pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  const marginX = 8;
+  const marginY = 12;
+  const maxW = pageWidth - marginX * 2;
+  const maxH = pageHeight - marginY * 2;
+  const ratio = props.width / props.height;
+  let w = maxW;
+  let h = w / ratio;
+  if (h > maxH) {
+    h = maxH;
+    w = h * ratio;
+  }
+  const x = (pageWidth - w) / 2;
+  const y = (pageHeight - h) / 2;
+  const format = String(dataUrl).startsWith('data:image/png') ? 'PNG' : 'JPEG';
+  pdf.addImage(dataUrl, format, x, y, w, h, undefined, 'NONE');
+}
+
 function downscaleCanvas(source, maxWidth) {
   if (source.width <= maxWidth) return source;
   const ratio = maxWidth / source.width;
@@ -202,7 +267,7 @@ async function captureFullContent(viewport, widthPx, scale) {
   });
 }
 
-async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, watermarkText = 'INDIA HOLIDAY DESTINATION') {
+async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, watermarkText = 'INDIA HOLIDAY DESTINATION', certificateDataUrl = null) {
   const pdf = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -260,6 +325,7 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression,
   }
 
   if (!page) throw new Error('PDF render failed');
+  appendCertificatePage(pdf, certificateDataUrl);
   return pdf.output('blob');
 }
 
@@ -306,12 +372,14 @@ async function renderWithProfile(contentEl, profile, preset) {
       embedded?.dataset?.watermark ||
       contentEl?.dataset?.watermark ||
       'INDIA HOLIDAY DESTINATION';
+    const certificateDataUrl = await loadCertificateDataUrl();
     return buildPdfFromCanvas(
       master,
       profile.quality,
       preset.pageMaxWidth,
       preset.pdfCompression,
       watermarkText,
+      certificateDataUrl,
     );
   } finally {
     host.remove();

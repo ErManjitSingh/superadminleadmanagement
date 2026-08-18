@@ -1,0 +1,25 @@
+{
+  "name": "explore-my-bharat-crm",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Android wrapper for Explore My Bharat CRM",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open": "npx cap open android",
+    "keystore": "powershell -ExecutionPolicy Bypass -File scripts/create-keystore.ps1",
+    "apk:debug": "npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "apk:release": "npx cap sync android && cd android && gradlew.bat assembleRelease",
+    "apk": "powershell -ExecutionPolicy Bypass -File scripts/build-apk.ps1"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/splash-screen": "^7.0.3",
+    "@capacitor/status-bar": "^7.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.3"
+  }
+}

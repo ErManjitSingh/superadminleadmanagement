@@ -1152,7 +1152,13 @@ async function buildHotelVoucherHtml(voucher, booking) {
 async function buildClientVoucherHtml(voucher, booking) {
   const brand = await resolveBrand(booking);
   const p = voucher.payload || {};
-  const hotels = Array.isArray(p.hotels) ? p.hotels : (booking.hotels || []);
+  const payloadHotels = Array.isArray(p.hotels) ? p.hotels : [];
+  const bookingHotels = Array.isArray(booking.hotels) ? booking.hotels : [];
+  const hotels = (payloadHotels.length ? payloadHotels : bookingHotels).map((h, i) => {
+    const fromBooking = bookingHotels[i] || {};
+    const phone = h.hotelPhone || h.phone || fromBooking.hotelPhone || fromBooking.phone || '';
+    return { ...fromBooking, ...h, phone, hotelPhone: phone };
+  });
   const transport = Array.isArray(p.transport) ? p.transport : (booking.transport || []);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const total = Number(p.amount ?? p.totalAmount ?? booking.totalAmount ?? 0);
@@ -1175,11 +1181,22 @@ async function buildClientVoucherHtml(voucher, booking) {
   const supportPhone = brand.phone || branding.supportPhone || execPhone || '-';
 
   const bookingTiles = [];
+  const hotelHelpRows = [];
   if (hotels.length) {
     hotels.forEach((h, i) => {
-      const line = [h.hotelName || h.name || 'Confirmed', h.roomType || h.category || '', h.destination || '']
+      const label = hotels.length > 1 ? `Hotel ${i + 1}` : 'Hotel';
+      const hotelName = h.hotelName || h.name || 'Confirmed';
+      const line = [hotelName, h.roomType || h.category || '', h.destination || '']
         .filter(Boolean).join(' · ');
-      bookingTiles.push(brandedTile('hotel', `Hotel ${hotels.length > 1 ? i + 1 : ''}`, line));
+      bookingTiles.push(brandedTile('hotel', label, line));
+      const hotelPhone = h.hotelPhone || h.phone || '';
+      if (hotelPhone) {
+        bookingTiles.push(brandedTile('phone', `${label} Contact`, hotelPhone));
+        hotelHelpRows.push([
+          hotels.length > 1 ? `${hotelName} Contact` : 'Hotel Contact',
+          hotelPhone,
+        ]);
+      }
     });
   } else {
     bookingTiles.push(brandedTile('hotel', 'Hotel', 'Details will be shared once confirmed'));
@@ -1218,6 +1235,7 @@ async function buildClientVoucherHtml(voucher, booking) {
       ${brandedHelpBox([
         ['Sales Executive', execPhone],
         ['Support', supportPhone],
+        ...hotelHelpRows,
       ])}
     </div>
   </div>`;
