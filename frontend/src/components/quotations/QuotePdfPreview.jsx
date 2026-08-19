@@ -53,7 +53,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
     website: company?.website || COMPANY_INFO.website,
     address: company?.address || COMPANY_INFO.address,
   };
-  const brandName = brand.name;
   if (!quote) return null;
 
   const lead = resolveQuoteLead(quote);

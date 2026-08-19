@@ -80,8 +80,16 @@ app.use(errorHandler);
 async function start() {
   await connectDB();
   await connectRedis();
-  await ensureIndexes();
-  await ensurePlatformIndexes();
+  try {
+    await ensureIndexes();
+  } catch (err) {
+    console.error('[MongoDB] ensureIndexes failed (API will still start):', err.message);
+  }
+  try {
+    await ensurePlatformIndexes();
+  } catch (err) {
+    console.error('[MongoDB] ensurePlatformIndexes failed (API will still start):', err.message);
+  }
   await ensureDefaultSettings();
   await purgeOldActivityLogs();
 

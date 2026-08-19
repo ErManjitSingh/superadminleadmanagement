@@ -462,10 +462,6 @@ html, body {
   width: 210mm; min-height: 297mm; background: #fff; overflow: hidden;
   position: relative;
 }
-.emb-page::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
-  background: radial-gradient(ellipse at 50% 22%, #94a3b8 0%, transparent 50%);
-}
 .emb-top {
   display: grid; grid-template-columns: 1.15fr 1.2fr 1fr; gap: 6px;
   padding: 8px 12px 4px; align-items: start; position: relative; z-index: 1;

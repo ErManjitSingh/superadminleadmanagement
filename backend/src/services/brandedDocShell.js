@@ -273,11 +273,6 @@ html, body {
   margin-top: 4px; position: relative; padding: 6px 12px 0;
   background: linear-gradient(180deg, #fff 0%, #faf8ff 100%);
 }
-.cv-landmarks {
-  position: absolute; left: 0; right: 0; bottom: 34px; height: 42px;
-  opacity: 0.08; pointer-events: none; overflow: hidden;
-}
-.cv-landmarks svg { width: 100%; height: 100%; }
 .cv-thanks-row {
   display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px;
   align-items: end; position: relative; z-index: 1;
@@ -480,25 +475,6 @@ function svgIcon(name) {
   return icons[name] || '';
 }
 
-function landmarksSvg() {
-  return `<svg viewBox="0 0 800 120" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
-    <g fill="#5b21b6">
-      <path d="M40 110h60V70l-30-35-30 35z"/>
-      <rect x="55" y="85" width="12" height="25"/>
-      <path d="M130 110h90V55h-20V40h-20v15h-20V40h-20v15h-10z"/>
-      <path d="M250 110c20-50 40-70 55-70s35 20 55 70z"/>
-      <ellipse cx="305" cy="42" rx="18" ry="8"/>
-      <rect x="380" y="50" width="18" height="60"/>
-      <rect x="410" y="35" width="22" height="75"/>
-      <rect x="445" y="55" width="16" height="55"/>
-      <path d="M500 110h100V60c-15-5-25-20-30-35-5 15-15 30-30 35-15-5-25-20-30-35-5 15-15 30-30 35v50h20z"/>
-      <path d="M630 110h80V45l-40-30-40 30z"/>
-      <circle cx="670" cy="55" r="8"/>
-      <path d="M740 110h40V70c-8 0-15-12-20-25-5 13-12 25-20 25z"/>
-    </g>
-  </svg>`;
-}
-
 function brandMeta(brand = {}) {
   const name = brand.name || branding.brandName || 'Travel Company';
   const tagline = brand.tagline || 'Explore the World. Experience India.';
@@ -558,7 +534,6 @@ function brandedFooterHtml(brand, thanksText) {
   const meta = brandMeta(brand);
   return `
   <div class="cv-bottom">
-    <div class="cv-landmarks">${landmarksSvg()}</div>
     <div class="cv-thanks-row">
       <div>
         <div class="cv-thanks-title">${svgIcon('ribbon')} Thank You!</div>

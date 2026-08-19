@@ -50,6 +50,7 @@ async function connectDB() {
   try {
     const conn = await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 10000,
+      autoIndex: nodeEnv !== 'production',
     });
 
     if (nodeEnv === 'development') {

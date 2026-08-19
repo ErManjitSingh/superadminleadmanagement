@@ -80,17 +80,68 @@ async function dropLegacyUserEmailIndex() {
   }
 }
 
-async function ensureIndexes() {
-  await dropLegacyBranchIndexes();
-  await dropLegacyUserEmailIndex();
-  await dropLegacyLeadIdIndex();
-  await Promise.all([
-    User.collection.createIndex({ companyId: 1, email: 1 }, { unique: true, background: true }),
-    User.collection.createIndex({ role: 1, status: 1 }, { background: true }),
-    User.collection.createIndex({ branchId: 1, role: 1, status: 1 }, { background: true }),
+const TENANT_LEAD_ID_INDEX = {
+  unique: true,
+  name: 'companyId_1_leadId_1',
+  background: true,
+  partialFilterExpression: {
+    companyId: { $type: 'objectId' },
+    leadId: { $type: 'string' },
+  },
+};
 
-    Lead.collection.createIndex({ companyId: 1, leadId: 1 }, { unique: true, sparse: true, background: true }),
-    Lead.collection.createIndex({ phone: 1 }, { background: true }),
+async function createIndexSafe(label, collection, spec, options) {
+  try {
+    await collection.createIndex(spec, options);
+  } catch (err) {
+    console.warn(`[MongoDB] ${label}: ${err.message}`);
+  }
+}
+
+// sparse unique still indexes explicit nulls, so leftover { companyId: null, leadId: null }
+// rows crash API boot. Partial filter only unique-indexes real tenant lead IDs.
+async function ensureTenantLeadIdIndex() {
+  try {
+    const indexes = await Lead.collection.indexes();
+    for (const idx of indexes) {
+      const keys = idx.key || {};
+      const isCompoundLeadId = keys.companyId === 1 && keys.leadId === 1 && Object.keys(keys).length === 2;
+      if (!isCompoundLeadId) continue;
+      if (!idx.partialFilterExpression) {
+        await Lead.collection.dropIndex(idx.name);
+        console.log(`[MongoDB] Dropped incompatible lead unique index: ${idx.name}`);
+      }
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[MongoDB] Tenant leadId index cleanup:', err.message);
+    }
+  }
+
+  await createIndexSafe(
+    'leads.companyId_1_leadId_1',
+    Lead.collection,
+    { companyId: 1, leadId: 1 },
+    TENANT_LEAD_ID_INDEX,
+  );
+}
+
+async function ensureIndexes() {
+  try {
+    await dropLegacyBranchIndexes();
+    await dropLegacyUserEmailIndex();
+    await dropLegacyLeadIdIndex();
+    await ensureTenantLeadIdIndex();
+  } catch (err) {
+    console.error('[MongoDB] Legacy index cleanup failed (API will still start):', err.message);
+  }
+
+  const indexJobs = [
+    createIndexSafe('users.companyId_email', User.collection, { companyId: 1, email: 1 }, { unique: true, background: true }),
+    createIndexSafe('users.role_status', User.collection, { role: 1, status: 1 }, { background: true }),
+    createIndexSafe('users.branch_role_status', User.collection, { branchId: 1, role: 1, status: 1 }, { background: true }),
+
+    createIndexSafe('leads.phone', Lead.collection, { phone: 1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, status: 1, createdAt: -1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, leadScore: 1, budget: -1 }, { background: true }),
     Lead.collection.createIndex({ branchId: 1, 'reactivation.isReactivated': 1, 'reactivation.stage': 1, updatedAt: -1 }, { background: true }),
@@ -159,9 +210,14 @@ async function ensureIndexes() {
     WhatsAppMessage.collection.createIndex({ lead: 1, direction: 1, status: 1 }, { background: true }),
     Payment.collection.createIndex({ branchId: 1, status: 1, paidAt: -1 }, { background: true }),
     Notification.collection.createIndex({ user: 1, read: 1, createdAt: -1 }, { background: true }),
-  ]);
+  ];
 
-  console.log('[MongoDB] Performance indexes ensured');
+  try {
+    await Promise.all(indexJobs);
+    console.log('[MongoDB] Performance indexes ensured');
+  } catch (err) {
+    console.error('[MongoDB] Some indexes failed (API will still start):', err.message);
+  }
 }
 
 module.exports = { ensureIndexes };

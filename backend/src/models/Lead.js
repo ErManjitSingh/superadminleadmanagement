@@ -153,7 +153,16 @@ leadSchema.index({ assignedTo: 1, status: 1 });
 leadSchema.index({ branchId: 1, assignedTo: 1, status: 1 });
 leadSchema.index({ branchId: 1, assignedTo: 1, isHot: 1, status: 1 });
 leadSchema.index({ branchId: 1, 'reactivation.isReactivated': 1, 'reactivation.stage': 1, updatedAt: -1 });
-leadSchema.index({ companyId: 1, leadId: 1 }, { unique: true, sparse: true });
+leadSchema.index(
+  { companyId: 1, leadId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      companyId: { $type: 'objectId' },
+      leadId: { $type: 'string' },
+    },
+  }
+);
 
 function formatLeadId(n) {
   return `L-${String(Math.max(1, n)).padStart(4, '0')}`;
