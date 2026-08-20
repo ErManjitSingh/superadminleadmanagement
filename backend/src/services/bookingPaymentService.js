@@ -432,13 +432,77 @@ async function recordBookingPayment(bookingId, data, actor, { isFirstAdvance = f
   };
 }
 
+function buildConversionSummary(booking, totalAmount, amount) {
+  const packageCost = booking?.totalAmount || totalAmount;
+  const advanceReceived = booking?.advanceReceived || amount;
+  const totalPaid = booking?.totalPaid || amount;
+  return {
+    packageCost,
+    advanceReceived,
+    totalPaid,
+    remainingBalance: booking?.remainingBalance ?? Math.max(0, packageCost - totalPaid),
+    paymentProgress: booking?.paymentProgress || computeProgress(packageCost, totalPaid),
+    paymentStatus: booking?.paymentStatus || 'partial',
+  };
+}
+
+async function finalizeAdvancePayment(booking, lead, quotation, paymentData, actor, totalAmount, amount) {
+  const bookingDoc = booking?.bookingNumber ? booking : await Booking.findById(booking._id || booking);
+  if (!bookingDoc) throw new Error('Booking not found');
+
+  const aadhaarNumber = String(paymentData.aadhaarNumber || '').replace(/\D/g, '').slice(0, 12);
+  const aadhaarPhotoUrl = saveAadhaarPhoto(paymentData.aadhaarPhotoBase64, bookingDoc.bookingNumber);
+  if (aadhaarNumber || aadhaarPhotoUrl) {
+    await Booking.findByIdAndUpdate(bookingDoc._id, {
+      ...(aadhaarNumber ? { aadhaarNumber } : {}),
+      ...(aadhaarPhotoUrl ? { aadhaarPhotoUrl } : {}),
+    });
+  }
+
+  const existingInvoice = await Payment.findOne({ booking: bookingDoc._id }).lean();
+  if (!existingInvoice) {
+    const invoiceCount = await Payment.countDocuments();
+    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`;
+    await Payment.create({
+      invoiceNumber,
+      branchId: lead.branchId,
+      lead: lead._id,
+      quotation: quotation?._id,
+      booking: bookingDoc._id,
+      customerName: lead.name,
+      amount: totalAmount,
+      paidAmount: amount,
+      status: amount >= totalAmount && totalAmount > 0 ? 'paid' : 'partial',
+      method: paymentData.mode || 'upi',
+      paidAt: new Date(),
+      createdBy: actor?._id,
+    });
+  }
+
+  const result = await recordBookingPayment(
+    bookingDoc._id,
+    { ...paymentData, amount },
+    actor,
+    { isFirstAdvance: true, sendReceipt: paymentData.sendReceipt !== false }
+  );
+
+  await Booking.findByIdAndUpdate(bookingDoc._id, {
+    firstAdvancePaymentId: result.payment._id,
+  });
+
+  invalidateDashboards();
+  return {
+    booking: result.booking,
+    payment: result.payment,
+    quotation,
+    receipt: result.receipt,
+    summary: buildConversionSummary(result.booking, totalAmount, amount),
+  };
+}
+
 async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
   const lead = await Lead.findById(leadId);
   if (!lead) throw new Error('Lead not found');
-  if (lead.status === 'converted') {
-    const existingBooking = await Booking.findOne({ lead: leadId });
-    if (existingBooking) return { booking: existingBooking, alreadyConverted: true };
-  }
 
   const amount = Number(paymentData.amount);
   if (!amount || amount <= 0) throw new Error('Advance amount is required');
@@ -448,6 +512,25 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
 
   const totalAmount = resolveQuotationPackageTotal(quotation, lead);
   if (totalAmount > 0 && amount > totalAmount) throw new Error('Advance amount cannot exceed package cost');
+
+  const existingBooking = await Booking.findOne({ lead: leadId });
+  if (existingBooking) {
+    const firstAdvance = await BookingPayment.findOne({
+      booking: existingBooking._id,
+      isFirstAdvance: true,
+    }).lean();
+    if (firstAdvance) {
+      const synced = await Booking.findById(existingBooking._id).lean();
+      return {
+        booking: synced,
+        payment: firstAdvance,
+        quotation,
+        alreadyConverted: true,
+        summary: buildConversionSummary(synced, totalAmount, firstAdvance.amount),
+      };
+    }
+    return finalizeAdvancePayment(existingBooking, lead, quotation, paymentData, actor, totalAmount, amount);
+  }
 
   const opsManager = await pickOperationsManager(lead.branchId);
   const payload = await buildBookingPayloadFromLead(lead, quotation, amount);
@@ -459,48 +542,48 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
     await Lead.findByIdAndUpdate(leadId, { budget: totalAmount });
   }
 
-  lead.status = 'converted';
-  try {
-    await lead.save();
-  } catch (err) {
-    if (!(err.code === 11000 || err.code === 11001) || !/leadId/i.test(err.message || '')) {
-      throw err;
-    }
-    await Lead.findByIdAndUpdate(leadId, { $set: { status: 'converted' } });
+  if (lead.status !== 'converted') {
     lead.status = 'converted';
+    try {
+      await lead.save();
+    } catch (err) {
+      if (!(err.code === 11000 || err.code === 11001) || !/leadId/i.test(err.message || '')) {
+        throw err;
+      }
+      await Lead.findByIdAndUpdate(leadId, { $set: { status: 'converted' } });
+      lead.status = 'converted';
+    }
+
+    await logLeadActivity({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: 'lead_converted',
+      description: 'Lead converted to booking with advance payment',
+      actor,
+      meta: { advanceAmount: amount },
+    });
+
+    await logPaymentEvent({
+      leadId: lead._id,
+      branchId: lead.branchId,
+      type: 'lead_converted',
+      title: 'Lead Converted',
+      description: `${lead.name} converted with advance payment`,
+      actor,
+      amount,
+      paymentMode: paymentData.mode,
+    });
   }
 
-  await logLeadActivity({
-    leadId: lead._id,
-    branchId: lead.branchId,
-    type: 'lead_converted',
-    description: 'Lead converted to booking with advance payment',
-    actor,
-    meta: { advanceAmount: amount },
-  });
-
-  await logPaymentEvent({
-    leadId: lead._id,
-    branchId: lead.branchId,
-    type: 'lead_converted',
-    title: 'Lead Converted',
-    description: `${lead.name} converted with advance payment`,
-    actor,
-    amount,
-    paymentMode: paymentData.mode,
-  });
-
-  const booking = await createBooking(payload, actor);
-
-  const aadhaarNumber = String(paymentData.aadhaarNumber || '').replace(/\D/g, '').slice(0, 12);
-  const aadhaarPhotoUrl = saveAadhaarPhoto(paymentData.aadhaarPhotoBase64, booking.bookingNumber);
-  if (aadhaarNumber || aadhaarPhotoUrl) {
-    await Booking.findByIdAndUpdate(booking._id, {
-      ...(aadhaarNumber ? { aadhaarNumber } : {}),
-      ...(aadhaarPhotoUrl ? { aadhaarPhotoUrl } : {}),
-    });
-    booking.aadhaarNumber = aadhaarNumber || booking.aadhaarNumber;
-    booking.aadhaarPhotoUrl = aadhaarPhotoUrl || booking.aadhaarPhotoUrl;
+  let booking;
+  try {
+    booking = await createBooking(payload, actor);
+  } catch (err) {
+    const recovered = await Booking.findOne({ lead: leadId });
+    if (recovered) {
+      return finalizeAdvancePayment(recovered, lead, quotation, paymentData, actor, totalAmount, amount);
+    }
+    throw err;
   }
 
   await logPaymentEvent({
@@ -543,52 +626,7 @@ async function convertLeadWithAdvancePayment(leadId, paymentData, actor) {
     }).catch(() => {});
   }
 
-  const invoiceCount = await Payment.countDocuments();
-  const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`;
-  await Payment.create({
-    invoiceNumber,
-    branchId: lead.branchId,
-    lead: lead._id,
-    quotation: quotation?._id,
-    booking: booking._id,
-    customerName: lead.name,
-    amount: totalAmount,
-    paidAmount: amount,
-    status: amount >= totalAmount && totalAmount > 0 ? 'paid' : 'partial',
-    method: paymentData.mode || 'upi',
-    paidAt: new Date(),
-    createdBy: actor?._id,
-  });
-
-  booking.firstAdvancePaymentId = null;
-  await booking.save();
-
-  const result = await recordBookingPayment(
-    booking._id,
-    { ...paymentData, amount },
-    actor,
-    { isFirstAdvance: true, sendReceipt: paymentData.sendReceipt !== false }
-  );
-
-  await Booking.findByIdAndUpdate(booking._id, {
-    firstAdvancePaymentId: result.payment._id,
-  });
-
-  invalidateDashboards();
-  return {
-    booking: result.booking,
-    payment: result.payment,
-    quotation,
-    receipt: result.receipt,
-    summary: {
-      packageCost: result.booking?.totalAmount || totalAmount,
-      advanceReceived: result.booking?.advanceReceived || amount,
-      totalPaid: result.booking?.totalPaid || amount,
-      remainingBalance: result.booking?.remainingBalance ?? Math.max(0, totalAmount - amount),
-      paymentProgress: result.booking?.paymentProgress || computeProgress(totalAmount, amount),
-      paymentStatus: result.booking?.paymentStatus || 'partial',
-    },
-  };
+  return finalizeAdvancePayment(booking, lead, quotation, paymentData, actor, totalAmount, amount);
 }
 
 async function listBookingPayments(bookingId) {

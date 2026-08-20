@@ -126,12 +126,69 @@ async function ensureTenantLeadIdIndex() {
   );
 }
 
+// Global unique on { bookingNumber } blocks multi-tenant numbering and retries
+// after a partial convert (same BK-2026-0024 generated twice).
+async function dropLegacyBookingNumberIndex() {
+  try {
+    const indexes = await Booking.collection.indexes();
+    for (const idx of indexes) {
+      const keys = idx.key || {};
+      if (keys.bookingNumber === 1 && Object.keys(keys).length === 1) {
+        await Booking.collection.dropIndex(idx.name);
+        console.log(`[MongoDB] Dropped legacy global bookingNumber index: ${idx.name}`);
+      }
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[MongoDB] Legacy bookingNumber index cleanup:', err.message);
+    }
+  }
+}
+
+const TENANT_BOOKING_NUMBER_INDEX = {
+  unique: true,
+  name: 'companyId_1_bookingNumber_1',
+  background: true,
+  partialFilterExpression: {
+    companyId: { $type: 'objectId' },
+    bookingNumber: { $type: 'string' },
+  },
+};
+
+async function ensureTenantBookingNumberIndex() {
+  try {
+    const indexes = await Booking.collection.indexes();
+    for (const idx of indexes) {
+      const keys = idx.key || {};
+      const isCompound = keys.companyId === 1 && keys.bookingNumber === 1 && Object.keys(keys).length === 2;
+      if (!isCompound) continue;
+      if (!idx.partialFilterExpression) {
+        await Booking.collection.dropIndex(idx.name);
+        console.log(`[MongoDB] Dropped incompatible booking unique index: ${idx.name}`);
+      }
+    }
+  } catch (err) {
+    if (err?.code !== 27) {
+      console.warn('[MongoDB] Tenant bookingNumber index cleanup:', err.message);
+    }
+  }
+
+  await createIndexSafe(
+    'bookings.companyId_1_bookingNumber_1',
+    Booking.collection,
+    { companyId: 1, bookingNumber: 1 },
+    TENANT_BOOKING_NUMBER_INDEX,
+  );
+}
+
 async function ensureIndexes() {
   try {
     await dropLegacyBranchIndexes();
     await dropLegacyUserEmailIndex();
     await dropLegacyLeadIdIndex();
     await ensureTenantLeadIdIndex();
+    await dropLegacyBookingNumberIndex();
+    await ensureTenantBookingNumberIndex();
   } catch (err) {
     console.error('[MongoDB] Legacy index cleanup failed (API will still start):', err.message);
   }

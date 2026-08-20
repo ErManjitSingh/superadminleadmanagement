@@ -146,7 +146,7 @@ const itineraryDaySchema = new mongoose.Schema(
 
 const bookingSchema = new mongoose.Schema(
   {
-    bookingNumber: { type: String, required: true, unique: true },
+    bookingNumber: { type: String, required: true, index: true },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Branch', index: true },
     lead: { type: mongoose.Schema.Types.ObjectId, ref: 'Lead' },
     quotation: { type: mongoose.Schema.Types.ObjectId, ref: 'Quotation' },
@@ -210,6 +210,16 @@ bookingSchema.index({ returnDate: 1, status: 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
 bookingSchema.index({ branchId: 1, status: 1, travelDate: 1 });
 bookingSchema.index({ branchId: 1, archivedAt: 1, createdAt: -1 });
+bookingSchema.index(
+  { companyId: 1, bookingNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      companyId: { $type: 'objectId' },
+      bookingNumber: { $type: 'string' },
+    },
+  }
+);
 
 bookingSchema.plugin(tenantPlugin);
 

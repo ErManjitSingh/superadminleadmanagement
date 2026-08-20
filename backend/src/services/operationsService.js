@@ -134,12 +134,23 @@ function mapStatusToCategory(status) {
   return null;
 }
 
-async function nextBookingNumber() {
+async function nextBookingNumber(companyId) {
   const year = new Date().getFullYear();
-  const count = await Booking.countDocuments({
-    bookingNumber: new RegExp(`^BK-${year}-`),
-  });
-  return `BK-${year}-${String(count + 1).padStart(4, '0')}`;
+  const prefix = `BK-${year}-`;
+  const filter = { bookingNumber: new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`) };
+  if (companyId) filter.companyId = companyId;
+
+  const latest = await Booking.findOne(filter)
+    .sort({ bookingNumber: -1 })
+    .select('bookingNumber')
+    .lean();
+
+  let seq = 0;
+  if (latest?.bookingNumber) {
+    const match = latest.bookingNumber.match(new RegExp(`^BK-${year}-(\\d+)$`));
+    if (match) seq = parseInt(match[1], 10) || 0;
+  }
+  return `${prefix}${String(seq + 1).padStart(4, '0')}`;
 }
 
 async function buildDashboard(branchId) {
@@ -1144,7 +1155,6 @@ async function createBooking(payload, actor) {
   const companyId = payload.companyId || getCompanyId() || actor?.companyId;
   await assertBookingLimit(companyId);
 
-  const bookingNumber = await nextBookingNumber();
   const advance = Number(payload.advanceReceived || 0);
   const total = Number(payload.totalAmount || 0);
   const pendingAmount = Math.max(0, total - advance);
@@ -1153,9 +1163,8 @@ async function createBooking(payload, actor) {
     payload.hotelConfirmation,
   );
 
-  const booking = await Booking.create({
+  const bookingFields = {
     ...payload,
-    bookingNumber,
     hotelConfirmation,
     status: payload.status || 'booking_received',
     pendingAmount,
@@ -1164,7 +1173,22 @@ async function createBooking(payload, actor) {
     paymentProgress: payload.paymentProgress ?? (total > 0 ? Math.round((advance / total) * 100) : 0),
     assignedTo: payload.assignedTo || actor?._id,
     createdBy: actor?._id,
-  });
+  };
+
+  let booking = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const bookingNumber = await nextBookingNumber(companyId);
+    try {
+      booking = await Booking.create({ ...bookingFields, bookingNumber });
+      break;
+    } catch (err) {
+      if ((err.code === 11000 || err.code === 11001) && /bookingNumber/i.test(err.message || '') && attempt < 2) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (!booking) throw new Error('Unable to allocate booking number');
 
   if (booking.status === 'confirmed') {
     await createOperationsTasksForBooking(booking, actor);
