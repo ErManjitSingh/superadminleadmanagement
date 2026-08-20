@@ -1,5 +1,5 @@
 import { wrapEmailHtml } from './emailHtmlLayout';
-import { APP_BRAND_NAME } from '../config/branding';
+import { resolveBrandName } from './tenantBranding';
 
 export function renderEmailTemplate(text, lead = {}, extras = {}) {
   const amount = extras.amount ?? lead.budget;
@@ -22,7 +22,7 @@ export function renderEmailTemplate(text, lead = {}, extras = {}) {
     quotationNumber: extras.quotationNumber || extras.quoteNumber || '',
     amount: formattedAmount,
     travelDate,
-    executiveName: extras.executiveName || APP_BRAND_NAME,
+    executiveName: extras.executiveName || resolveBrandName(),
   };
 
   return String(text || '').replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
@@ -57,7 +57,8 @@ export function buildQuotationHtmlAttachment(quote, lead = {}) {
   const amount = quote.totalAmount ?? quote.grandTotal ?? 0;
   const travelDate = quote.travelDate || lead.travelDate;
 
-  const body = `Thank you for choosing ${APP_BRAND_NAME}. Your personalised quotation is ready for review.
+  const brandName = resolveBrandName();
+  const body = `Thank you for choosing ${brandName}. Your personalised quotation is ready for review.
 
 Our travel experts have prepared this package based on your requirements. Please review the summary and reach out if you'd like any changes.
 
@@ -73,7 +74,7 @@ We look forward to making your journey truly memorable!`;
     travelDate: travelDate
       ? new Date(travelDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
       : '—',
-    executiveName: `${APP_BRAND_NAME} Sales Team`,
+    executiveName: `${brandName} Sales Team`,
   });
 
   const content = btoa(unescape(encodeURIComponent(html)));

@@ -44,6 +44,11 @@ function PolicyBlock({ title, items }) {
 
 const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const { company } = useTenant();
+  const companyAddress = [company?.address, company?.city, company?.state]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(', ');
+
   const brand = {
     name: company?.name || COMPANY_INFO.name,
     tagline: company?.tagline || COMPANY_INFO.tagline,
@@ -51,7 +56,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
     phone: company?.phone || COMPANY_INFO.phone,
     email: company?.email || COMPANY_INFO.email,
     website: company?.website || COMPANY_INFO.website,
-    address: company?.address || COMPANY_INFO.address,
+    address: companyAddress || COMPANY_INFO.address,
   };
   if (!quote) return null;
 

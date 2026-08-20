@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import API from '../api/axios';
 import { getTenantSubdomain, setTenantSubdomain } from '../lib/tenantContext';
+import { cacheTenantCompany, clearCachedTenantCompany } from '../lib/tenantBranding';
 import { APP_PLATFORM_DOMAIN } from '../config/branding';
 import { sidebarGradientFromHex } from '../lib/imageColor';
 import TenantNotFoundPage from '../pages/TenantNotFoundPage';
@@ -62,10 +63,12 @@ export function TenantProvider({ children }) {
       if (data.resolved) {
         setTenant(data);
         if (data.company?.subdomain) setTenantSubdomain(data.company.subdomain);
+        cacheTenantCompany(data.company);
         applyBranding(data.company?.branding);
         setError(null);
       } else {
         setTenant(null);
+        clearCachedTenantCompany();
         setError(data.reason || 'not_found');
       }
     } catch {

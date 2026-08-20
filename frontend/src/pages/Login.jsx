@@ -23,6 +23,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useTenantBranding } from '../context/TenantContext';
 import { AuthError } from '../auth/authService';
 import { cn } from '../lib/utils';
+import { resolveBrandName } from '../lib/tenantBranding';
 import { APP_BRAND_NAME } from '../config/branding';
 import loginBg from '../assets/login-bg.jpg';
 
@@ -84,7 +85,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const brandName = appTitle || APP_BRAND_NAME;
+  const brandName = appTitle || resolveBrandName(APP_BRAND_NAME);
 
   useEffect(() => {
     setTheme('light');

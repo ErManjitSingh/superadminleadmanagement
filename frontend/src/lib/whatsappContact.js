@@ -1,4 +1,4 @@
-import { APP_BRAND_NAME } from '../config/branding';
+import { resolveBrandName } from './tenantBranding';
 
 export function normalizeWhatsAppPhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
@@ -16,7 +16,7 @@ export function renderWhatsAppTemplate(body, lead = {}, user = {}, extras = {}) 
   return String(body || '')
     .replace(/\{\{customerName\}\}/g, lead.name || 'Customer')
     .replace(/\{\{destination\}\}/g, lead.destination || extras.destination || 'your destination')
-    .replace(/\{\{executiveName\}\}/g, user?.name || APP_BRAND_NAME)
+    .replace(/\{\{executiveName\}\}/g, user?.name || resolveBrandName())
     .replace(/\{\{quoteNumber\}\}/g, extras.quoteNumber || lead.quoteNumber || '')
     .replace(/\{\{packageName\}\}/g, extras.packageName || lead.packageName || 'travel package')
     .replace(/\{\{duration\}\}/g, extras.duration || lead.duration || '')
@@ -50,7 +50,7 @@ export function buildQuotationWhatsAppMessage({
   const lines = [
     `Hello ${name},`,
     '',
-    `Greetings from ${executiveName || APP_BRAND_NAME}!`,
+    `Greetings from ${executiveName || resolveBrandName()}!`,
     '',
     `Your quotation is ready for ${dest}:`,
     `Package: ${pkg}`,

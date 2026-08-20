@@ -1,11 +1,14 @@
-import { APP_BRAND_NAME, APP_PLATFORM_DOMAIN, APP_SALES_EMAIL } from '../config/branding';
+import { APP_PLATFORM_DOMAIN, APP_SALES_EMAIL } from '../config/branding';
+import { resolveBrandEmail, resolveBrandName, resolveBrandWebsite } from './tenantBranding';
 
-const BRAND = {
-  name: APP_BRAND_NAME,
+const BRAND = () => ({
+  name: resolveBrandName('CRM'),
   tagline: 'Crafting unforgettable journeys',
-  email: APP_SALES_EMAIL,
-  website: `https://${APP_PLATFORM_DOMAIN}`,
-};
+  email: resolveBrandEmail(APP_SALES_EMAIL),
+  website: resolveBrandWebsite(APP_PLATFORM_DOMAIN)
+    ? `https://${resolveBrandWebsite(APP_PLATFORM_DOMAIN)}`
+    : `https://${APP_PLATFORM_DOMAIN}`,
+});
 
 const CATEGORY_ACCENT = {
   quotation: { primary: '#4f46e5', secondary: '#818cf8', label: 'Travel Quotation', ring: 'ring-indigo-500/30' },
@@ -71,6 +74,7 @@ export function wrapEmailHtml(bodyText, options = {}) {
   } = options;
 
   const accent = CATEGORY_ACCENT[category] || CATEGORY_ACCENT.custom;
+  const brand = BRAND();
   const paragraphs = textToParagraphs(bodyText);
   const highlight = buildHighlightCard({ destination, quotationNumber, amount, travelDate });
   const greeting = customerName ? `Dear ${escapeHtml(customerName)},` : 'Hello,';
@@ -84,20 +88,20 @@ export function wrapEmailHtml(bodyText, options = {}) {
       </div>
       <div style="background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 20px 40px -12px rgba(15,23,42,0.2);border:1px solid #e2e8f0;">
         <div style="padding:28px 24px;text-align:center;background:linear-gradient(135deg,${accent.primary},${accent.secondary});">
-          <div style="font-size:22px;font-weight:800;color:#fff;">✈ ${BRAND.name}</div>
-          <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.9);letter-spacing:0.06em;text-transform:uppercase;">${BRAND.tagline}</div>
+          <div style="font-size:22px;font-weight:800;color:#fff;">✈ ${brand.name}</div>
+          <div style="margin-top:6px;font-size:11px;color:rgba(255,255,255,0.9);letter-spacing:0.06em;text-transform:uppercase;">${brand.tagline}</div>
         </div>
         <div style="padding:24px;">
           <p style="margin:0 0 16px;font-size:16px;font-weight:700;color:#0f172a;">${greeting}</p>
           ${highlight}
           ${paragraphs}
           <div style="text-align:center;margin-top:20px;">
-            <span style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,${accent.primary},${accent.secondary});color:#fff;font-weight:700;font-size:13px;border-radius:10px;">Explore ${BRAND.name}</span>
+            <span style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,${accent.primary},${accent.secondary});color:#fff;font-weight:700;font-size:13px;border-radius:10px;">Explore ${brand.name}</span>
           </div>
         </div>
         <div style="padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;">
-          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0f172a;">${escapeHtml(executiveName || `${BRAND.name} Sales Team`)}</p>
-          <p style="margin:0;font-size:12px;color:#64748b;">${BRAND.email} · ${APP_PLATFORM_DOMAIN}</p>
+          <p style="margin:0 0 4px;font-size:13px;font-weight:700;color:#0f172a;">${escapeHtml(executiveName || `${brand.name} Sales Team`)}</p>
+          <p style="margin:0;font-size:12px;color:#64748b;">${brand.email} · ${resolveBrandWebsite(APP_PLATFORM_DOMAIN) || APP_PLATFORM_DOMAIN}</p>
         </div>
       </div>
     </div>
@@ -120,7 +124,7 @@ export function buildEmailPreviewOptions(lead, category, extras = {}) {
     quotationNumber: extras.quotationNumber || extras.quoteNumber,
     amount: formattedAmount,
     travelDate,
-    executiveName: extras.executiveName || `${BRAND.name} Sales Team`,
+    executiveName: extras.executiveName || `${BRAND().name} Sales Team`,
   };
 }
 

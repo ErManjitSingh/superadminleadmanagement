@@ -170,14 +170,13 @@ export function quoteHasHotels(quote = {}) {
   return (snap.hotels || []).some((h) => String(h?.name || h?.hotelName || '').trim());
 }
 
-import { APP_PLATFORM_DOMAIN, APP_QUOTES_EMAIL, APP_WEBSITE } from '../../config/branding';
-
+/** Generic fallback only when tenant company profile is missing — no platform/IHD defaults. */
 export const COMPANY_INFO = {
-  name: 'TRAVEL CRM',
-  tagline: 'Travel made simple',
+  name: '',
+  tagline: '',
   logoUrl: '/homelogo.webp',
-  phone: '+91 98765 43210',
-  email: APP_QUOTES_EMAIL,
-  website: APP_WEBSITE,
-  address: '2nd Floor, Sheril Villa, Near East End Hotel NH-22 Bye-Pass, Panthaghati, Shimla, Himachal Pradesh 171009',
+  phone: '',
+  email: '',
+  website: '',
+  address: '',
 };

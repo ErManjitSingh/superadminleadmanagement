@@ -3,13 +3,14 @@ import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useSidebar } from '../../context/SidebarContext';
 import { useAuth } from '../../context/AuthContext';
-import { useTenantBranding, useTenantFeatures } from '../../context/TenantContext';
+import { useTenant, useTenantBranding, useTenantFeatures } from '../../context/TenantContext';
 import { filterNavItems } from '../../lib/permissions';
 import { filterNavItemsByFeatures } from '../../lib/featureFlags';
 import { applySidebarCounts } from '../../lib/applySidebarCounts';
 import { useSidebarCounts } from '../../hooks/useSidebarCounts';
 import { TooltipProvider } from '../ui/tooltip';
 import SidebarBrand from './SidebarBrand';
+import { resolveBrandName } from '../../lib/tenantBranding';
 import { APP_BRAND_NAME } from '../../config/branding';
 import SidebarNavItem from './SidebarNavItem';
 import SidebarNavGroup from './SidebarNavGroup';
@@ -62,8 +63,8 @@ export default function AppSidebar({
             '/profile');
 
   const effectiveUser = authUser || user;
-  const resolvedBrandTitle = brandTitle || appTitle || APP_BRAND_NAME;
-  const resolvedBrandSubtitle = brandSubtitle || 'Travel Lead Management';
+  const resolvedBrandTitle = brandTitle || appTitle || resolveBrandName(APP_BRAND_NAME);
+  const resolvedBrandSubtitle = brandSubtitle || company?.tagline || resolveBrandTagline('Lead Management');
 
   return (
     <SidebarThemeProvider accent={accent} profilePath={resolvedProfilePath}>
