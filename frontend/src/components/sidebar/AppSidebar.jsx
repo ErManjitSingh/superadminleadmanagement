@@ -10,7 +10,7 @@ import { applySidebarCounts } from '../../lib/applySidebarCounts';
 import { useSidebarCounts } from '../../hooks/useSidebarCounts';
 import { TooltipProvider } from '../ui/tooltip';
 import SidebarBrand from './SidebarBrand';
-import { resolveBrandName } from '../../lib/tenantBranding';
+import { resolveBrandName, resolveBrandTagline } from '../../lib/tenantBranding';
 import { APP_BRAND_NAME } from '../../config/branding';
 import SidebarNavItem from './SidebarNavItem';
 import SidebarNavGroup from './SidebarNavGroup';
@@ -35,6 +35,7 @@ export default function AppSidebar({
   const location = useLocation();
   const { collapsed, expandedWidth, collapsedWidth } = useSidebar();
   const { user: authUser } = useAuth();
+  const { company } = useTenant();
   const { appTitle, logo } = useTenantBranding();
   const tenantFeatures = useTenantFeatures();
   const [searchQuery] = useState('');
