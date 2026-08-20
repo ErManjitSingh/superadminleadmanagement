@@ -7,6 +7,7 @@ const { createBookingFromPayment } = require('./operationsService');
 const { invalidate: invalidateDashboardCache } = require('./dashboardCacheService');
 const cacheService = require('./cacheService');
 const { notifyUser } = require('./notificationService');
+const { createPaymentWithInvoice } = require('../utils/nextPaymentInvoiceNumber');
 
 const TERMINAL_STATUSES = ['converted', 'lost', 'booked_from_another_company'];
 
@@ -45,12 +46,9 @@ async function ensurePaymentForConversion(lead, quotation, actor) {
   if (payment) return payment;
 
   const amount = quotation?.pricing?.total || quotation?.costing?.grandTotal || lead.budget || 0;
-  const count = await Payment.countDocuments();
-  const invoiceNumber = `INV-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
   const paidAmount = amount > 0 ? Math.round(amount * 0.3) : 0;
 
-  payment = await Payment.create({
-    invoiceNumber,
+  payment = await createPaymentWithInvoice({
     branchId: lead.branchId,
     lead: lead._id,
     quotation: quotation?._id,

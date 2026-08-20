@@ -14,6 +14,7 @@ const { invalidate: invalidateDashboardCache } = require('./dashboardCacheServic
 const cacheService = require('./cacheService');
 const { createBooking } = require('./operationsService');
 const { pickQuotationForLead, ensureQuotationApproved } = require('./leadConversionService');
+const { createPaymentWithInvoice } = require('../utils/nextPaymentInvoiceNumber');
 
 const SCREENSHOT_DIR = path.join(__dirname, '../../uploads/payment-screenshots');
 const AADHAAR_DIR = path.join(__dirname, '../../uploads/aadhaar');
@@ -461,10 +462,7 @@ async function finalizeAdvancePayment(booking, lead, quotation, paymentData, act
 
   const existingInvoice = await Payment.findOne({ booking: bookingDoc._id }).lean();
   if (!existingInvoice) {
-    const invoiceCount = await Payment.countDocuments();
-    const invoiceNumber = `INV-${new Date().getFullYear()}-${String(invoiceCount + 1).padStart(4, '0')}`;
-    await Payment.create({
-      invoiceNumber,
+    await createPaymentWithInvoice({
       branchId: lead.branchId,
       lead: lead._id,
       quotation: quotation?._id,
