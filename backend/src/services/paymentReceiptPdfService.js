@@ -36,10 +36,22 @@ function modeLabel(mode) {
 async function nextReceiptNumber() {
   const BookingPayment = require('../models/BookingPayment');
   const year = new Date().getFullYear();
-  const count = await BookingPayment.countDocuments({
-    receiptNumber: new RegExp(`^RCP-${year}-`),
-  });
-  return `RCP-${year}-${String(count + 1).padStart(5, '0')}`;
+  const prefix = `RCP-${year}-`;
+  const re = new RegExp(`^RCP-${year}-(\\d+)$`);
+
+  // skipTenantFilter: receiptNumber has a collection-wide unique index
+  const docs = await BookingPayment.find({ receiptNumber: { $regex: `^RCP-${year}-` } })
+    .select('receiptNumber')
+    .setOptions({ skipTenantFilter: true })
+    .lean();
+
+  let max = 0;
+  for (const doc of docs) {
+    const match = String(doc.receiptNumber || '').match(re);
+    if (match) max = Math.max(max, parseInt(match[1], 10));
+  }
+
+  return `${prefix}${String(max + 1).padStart(5, '0')}`;
 }
 
 function toPlain(doc) {

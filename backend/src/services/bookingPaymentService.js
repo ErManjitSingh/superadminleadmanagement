@@ -342,36 +342,53 @@ async function recordBookingPayment(bookingId, data, actor, { isFirstAdvance = f
   }
 
   const { nextReceiptNumber } = require('./paymentReceiptPdfService');
-  const receiptNumber = await nextReceiptNumber();
-  const screenshotUrl = saveScreenshot(data.screenshotBase64, receiptNumber);
+  const screenshotBase64 = data.screenshotBase64;
 
   const department = isFirstAdvance ? 'sales' : actor?.role === 'operations_manager' ? 'operations' : 'admin';
   const totalPaidSoFar = (await BookingPayment.find({ booking: bookingId }).lean())
     .reduce((s, p) => s + (p.amount || 0), 0);
   const willBeFullyPaid = totalPaidSoFar + Number(data.amount) >= (booking.totalAmount || 0);
 
-  const paymentRecord = await BookingPayment.create({
-    receiptNumber,
-    booking: bookingId,
-    lead: booking.lead,
-    branchId: booking.branchId,
-    customerName: booking.customerName,
-    amount: Number(data.amount),
-    paymentDate: data.paymentDate ? new Date(data.paymentDate) : new Date(),
-    mode: data.mode || data.paymentMode || 'upi',
-    transactionId: data.transactionId || '',
-    referenceNumber: data.referenceNumber || '',
-    bankName: data.bankName || '',
-    remarks: data.remarks || '',
-    screenshotUrl,
-    paymentType: isFirstAdvance ? 'advance' : willBeFullyPaid ? 'final' : 'installment',
-    isFirstAdvance,
-    department,
-    isLocked: isFirstAdvance,
-    createdBy: actor?._id,
-    createdByRole: actor?.role || '',
-    createdByName: actor?.name || '',
-  });
+  let paymentRecord;
+  let lastDupError;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const receiptNumber = await nextReceiptNumber();
+    const screenshotUrl = saveScreenshot(screenshotBase64, receiptNumber);
+    try {
+      paymentRecord = await BookingPayment.create({
+        receiptNumber,
+        booking: bookingId,
+        lead: booking.lead,
+        branchId: booking.branchId,
+        customerName: booking.customerName,
+        amount: Number(data.amount),
+        paymentDate: data.paymentDate ? new Date(data.paymentDate) : new Date(),
+        mode: data.mode || data.paymentMode || 'upi',
+        transactionId: data.transactionId || '',
+        referenceNumber: data.referenceNumber || '',
+        bankName: data.bankName || '',
+        remarks: data.remarks || '',
+        screenshotUrl,
+        paymentType: isFirstAdvance ? 'advance' : willBeFullyPaid ? 'final' : 'installment',
+        isFirstAdvance,
+        department,
+        isLocked: isFirstAdvance,
+        createdBy: actor?._id,
+        createdByRole: actor?.role || '',
+        createdByName: actor?.name || '',
+      });
+      break;
+    } catch (err) {
+      const isDup =
+        err?.code === 11000 &&
+        (String(err?.message || '').includes('receiptNumber') || err?.keyPattern?.receiptNumber);
+      if (!isDup) throw err;
+      lastDupError = err;
+    }
+  }
+  if (!paymentRecord) {
+    throw lastDupError || new Error('Could not allocate a unique receipt number');
+  }
 
   const syncedBooking = await syncBookingPaymentTotals(bookingId);
 

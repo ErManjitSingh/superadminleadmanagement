@@ -23,9 +23,6 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
     amount: '',
     paymentDate: new Date().toISOString().slice(0, 10),
     mode: 'upi',
-    transactionId: '',
-    referenceNumber: '',
-    bankName: '',
     remarks: '',
     screenshotBase64: '',
     aadhaarNumber: '',
@@ -202,19 +199,7 @@ export default function ConvertLeadModal({ open, onClose, leadId, onSuccess }) {
                       ))}
                     </select>
                   </label>
-                  <label className="block">
-                    <span className="text-xs font-semibold text-content-muted">Transaction ID</span>
-                    <input value={form.transactionId} onChange={(e) => set('transactionId', e.target.value)} className="input-premium mt-1 w-full" />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-semibold text-content-muted">Reference Number</span>
-                    <input value={form.referenceNumber} onChange={(e) => set('referenceNumber', e.target.value)} className="input-premium mt-1 w-full" />
-                  </label>
-                  <label className="block">
-                    <span className="text-xs font-semibold text-content-muted">Bank Name</span>
-                    <input value={form.bankName} onChange={(e) => set('bankName', e.target.value)} className="input-premium mt-1 w-full" />
-                  </label>
-                  <label className="block">
+                  <label className="block sm:col-span-2">
                     <span className="text-xs font-semibold text-content-muted">Remarks</span>
                     <input value={form.remarks} onChange={(e) => set('remarks', e.target.value)} className="input-premium mt-1 w-full" />
                   </label>
