@@ -293,7 +293,7 @@ async function resolveBrand(booking) {
 function footerHtml(brand) {
   const phone = brand?.phone || branding.supportPhone || '-';
   const email = brand?.email || branding.salesEmail || '-';
-  const site = brand?.website || (branding.websiteUrl || '').replace(/^https?:\/\//, '') || '-';
+  const site = brand?.website || branding.publicWebsiteHost || (branding.publicWebsiteUrl || branding.websiteUrl || '').replace(/^https?:\/\//, '') || '-';
   const name = brand?.name || branding.brandName;
   return `
     <div class="help">Present this voucher at check-in / pickup. For support contact your travel executive.</div>
@@ -871,7 +871,7 @@ async function buildCabVoucherHtml(voucher, booking) {
   const tagline = brand?.tagline || 'Discover Incredible India';
   const phone = brand?.phone || branding.supportPhone || '-';
   const email = brand?.email || branding.salesEmail || '-';
-  const site = (brand?.website || branding.websiteUrl || '')
+  const site = (brand?.website || branding.publicWebsiteHost || branding.publicWebsiteUrl || branding.websiteUrl || '')
     .replace(/^https?:\/\//, '')
     .replace(/\/$/, '') || '-';
   const address = brand?.address || [brand?.city, brand?.state].filter(Boolean).join(', ') || 'India';

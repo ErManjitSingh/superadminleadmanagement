@@ -480,7 +480,7 @@ function brandMeta(brand = {}) {
   const tagline = brand.tagline || 'Explore the World. Experience India.';
   const phone = brand.phone || branding.supportPhone || '-';
   const email = brand.email || branding.salesEmail || '-';
-  const site = (brand.website || branding.websiteUrl || '')
+  const site = (brand.website || branding.publicWebsiteHost || branding.publicWebsiteUrl || branding.websiteUrl || '')
     .replace(/^https?:\/\//, '')
     .replace(/\/$/, '') || '-';
   const place = brand.address || 'Chandigarh, India';

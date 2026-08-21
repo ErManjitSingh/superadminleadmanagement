@@ -3,6 +3,24 @@ const path = require('path');
 const platformBranding = require('../config/branding');
 
 const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
+const PLATFORM_SITE_RE = /(^|\.)indiaholidaydestination\.com$/i;
+
+/**
+ * Customer-facing site on vouchers / receipts / PDFs.
+ * Platform domain stays for SaaS routing; documents show the public brand site.
+ */
+function normalizeDocumentWebsite(value, { withProtocol = false } = {}) {
+  const fallbackHost = platformBranding.publicWebsiteHost || 'exploremybharat.com';
+  let raw = String(value || platformBranding.publicWebsiteUrl || fallbackHost).trim();
+  if (!raw) raw = fallbackHost;
+
+  let host = raw.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim();
+  if (!host || PLATFORM_SITE_RE.test(host)) {
+    host = fallbackHost;
+  }
+
+  return withProtocol ? `https://${host}` : host;
+}
 
 function guessMime(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -82,6 +100,12 @@ async function resolveCompanyDocumentBranding(companyId) {
     ? platformBranding.brandName
     : 'Travel Company';
 
+  const publicWebsiteUrl = normalizeDocumentWebsite(
+    platformBranding.publicWebsiteUrl || platformBranding.websiteUrl,
+    { withProtocol: true }
+  );
+  const publicWebsiteHost = normalizeDocumentWebsite(publicWebsiteUrl);
+
   const base = {
     name: fallbackName,
     tagline: '',
@@ -89,8 +113,8 @@ async function resolveCompanyDocumentBranding(companyId) {
     initials: companyInitials(fallbackName),
     phone: platformBranding.supportPhone || '',
     email: platformBranding.salesEmail || platformBranding.quotesEmail || '',
-    website: (platformBranding.websiteUrl || '').replace(/^https?:\/\//, ''),
-    websiteUrl: platformBranding.websiteUrl || '',
+    website: publicWebsiteHost,
+    websiteUrl: publicWebsiteUrl,
     address: '',
     gst: '',
     primaryColor: '#5b21b6',
@@ -116,6 +140,7 @@ async function resolveCompanyDocumentBranding(companyId) {
       || '';
 
     const name = company.name || base.name;
+    const websiteUrl = normalizeDocumentWebsite(company.website || base.websiteUrl, { withProtocol: true });
     return {
       name,
       tagline: company.tagline || company.whiteLabel?.appTitle || '',
@@ -123,8 +148,8 @@ async function resolveCompanyDocumentBranding(companyId) {
       initials: companyInitials(name),
       phone: company.phone || base.phone,
       email: company.quotesEmail || company.tenantSettings?.smtpFromEmail || base.email,
-      website: (company.website || base.websiteUrl || '').replace(/^https?:\/\//, ''),
-      websiteUrl: company.website || base.websiteUrl,
+      website: normalizeDocumentWebsite(websiteUrl),
+      websiteUrl,
       address: formatCompanyAddress(company),
       gst: company.gst || '',
       primaryColor: company.whiteLabel?.primaryColor || base.primaryColor,
@@ -138,6 +163,7 @@ async function resolveCompanyDocumentBranding(companyId) {
 
 module.exports = {
   resolveCompanyDocumentBranding,
+  normalizeDocumentWebsite,
   logoToEmbedSrc,
   companyInitials,
 };
