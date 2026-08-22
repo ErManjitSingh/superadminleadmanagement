@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>McLeodganj Triund Trek | India Holiday Destinations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #16382a;
+      --green-deep: #0c2419;
+      --green-mid: #1f5a40;
+      --orange: #e85d04;
+      --orange-soft: #ff7a1a;
+      --cream: #f4efe6;
+      --paper: #fffdf9;
+      --ink: #16241d;
+      --muted: #5d6f66;
+      --line: #d8cfc0;
+      --sage: #cfe3d4;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #fff;
+      color: var(--ink);
+      font-family: Outfit, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      background: var(--paper);
+      position: relative;
+      overflow: hidden;
+      margin: 0;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .page:last-child { page-break-after: auto; break-after: auto; }
+
+    img { max-width: 100%; display: block; }
+
+    .brand-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10mm 12mm 8mm;
+      background: #fff;
+    }
+    .brand-bar img { height: 18mm; width: auto; }
+    .brand-meta {
+      text-align: right;
+      font-size: 11pt;
+      color: var(--green);
+      font-weight: 500;
+      line-height: 1.45;
+    }
+    .brand-meta strong { display: block; font-size: 12pt; color: var(--orange); font-weight: 700; letter-spacing: .02em; }
+
+    .kicker {
+      font-size: 10.5pt;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--orange);
+    }
+
+    .h1 {
+      font-family: Fraunces, serif;
+      font-weight: 650;
+      line-height: .95;
+    }
+
+    .footer-strip {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5mm 12mm;
+      background: var(--green-deep);
+      color: #e8f0ea;
+      font-size: 9.5pt;
+      letter-spacing: .04em;
+    }
+    .footer-strip a { color: #fff; text-decoration: none; }
+    .bars { display: flex; gap: 2px; }
+    .bars span { width: 4px; height: 10px; display: block; }
+    .bars span:nth-child(1) { background: #d8f0dc; }
+    .bars span:nth-child(2) { background: #9fd4ad; }
+    .bars span:nth-child(3) { background: #5fa87a; }
+    .bars span:nth-child(4) { background: #2e7a52; }
+    .bars span:nth-child(5) { background: #e85d04; }
+
+    /* COVER */
+    .cover { background: #0b1c14; color: #fff; }
+    .cover .hero {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 40%;
+    }
+    .cover .veil {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(8,22,16,.55) 0%, rgba(8,22,16,.18) 28%, rgba(8,22,16,.12) 48%, rgba(8,22,16,.78) 100%);
+    }
+    .cover-top {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 11mm 12mm 0;
+    }
+    .logo-card {
+      background: #fff;
+      border-radius: 6px;
+      padding: 6px 10px 5px;
+    }
+    .logo-card img { height: 20mm; }
+    .cover-contact {
+      text-align: right;
+      font-size: 10.5pt;
+      line-height: 1.5;
+      font-weight: 500;
+      color: #f6f3ee;
+      text-shadow: 0 1px 8px rgba(0,0,0,.45);
+    }
+    .cover-body {
+      position: absolute;
+      z-index: 2;
+      left: 12mm;
+      right: 12mm;
+      bottom: 28mm;
+    }
+    .badge-row { display: flex; gap: 6px; margin-bottom: 8mm; }
+    .badge {
+      background: rgba(255,255,255,.14);
+      border: 1px solid rgba(255,255,255,.28);
+      backdrop-filter: blur(8px);
+      color: #fff;
+      font-size: 10.5pt;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 999px;
+    }
+    .cover h1 {
+      font-family: Fraunces, serif;
+      font-size: 50pt;
+      font-weight: 700;
+      line-height: .92;
+      letter-spacing: -.02em;
+      max-width: 170mm;
+    }
+    .cover h1 em { font-style: italic; color: #ffb36a; }
+    .cover .sub {
+      margin-top: 5mm;
+      font-size: 14.5pt;
+      font-weight: 400;
+      max-width: 145mm;
+      color: #f0e8dc;
+      line-height: 1.4;
+    }
+    .price-chip {
+      position: absolute;
+      right: 12mm;
+      bottom: 42mm;
+      z-index: 3;
+      background: var(--orange);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 14px 9px;
+      text-align: right;
+      min-width: 42mm;
+    }
+    .price-chip small { display: block; font-size: 9.5pt; letter-spacing: .16em; text-transform: uppercase; opacity: .9; }
+    .price-chip b { font-family: Fraunces, serif; font-size: 28pt; font-weight: 700; line-height: 1.05; }
+    .stats {
+      position: absolute;
+      z-index: 2;
+      left: 0; right: 0; bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--green-deep);
+    }
+    .stat { padding: 7mm 8mm 8mm; border-right: 1px solid rgba(255,255,255,.1); }
+    .stat:last-child { border-right: 0; }
+    .stat span { display: block; font-size: 9pt; letter-spacing: .16em; text-transform: uppercase; color: #9fd4ad; font-weight: 600; margin-bottom: 2mm; }
+    .stat strong { font-size: 13.5pt; font-weight: 700; }
+
+    /* INNER */
+    .inner { padding: 0 0 16mm; }
+    .section { padding: 0 12mm; }
+    h2 {
+      font-family: Fraunces, serif;
+      font-size: 28pt;
+      font-weight: 650;
+      color: var(--green);
+      line-height: 1.05;
+      margin: 2mm 0 2mm;
+    }
+    .lead { color: var(--muted); font-size: 12.5pt; margin-bottom: 6mm; max-width: 170mm; }
+
+    .facts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3.5mm;
+      margin-bottom: 7mm;
+    }
+    .fact {
+      background: var(--cream);
+      border-radius: 6px;
+      padding: 4.5mm 5mm;
+    }
+    .fact span { display: block; font-size: 9pt; letter-spacing: .16em; text-transform: uppercase; color: var(--orange); font-weight: 700; margin-bottom: 1.5mm; }
+    .fact strong { font-size: 13pt; color: var(--green); font-weight: 650; }
+
+    .days { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .day {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .day img { width: 100%; height: 40mm; object-fit: cover; }
+    .day-body { padding: 5mm 5.5mm 6mm; }
+    .day-tag {
+      display: inline-block;
+      background: var(--green);
+      color: #fff;
+      font-size: 9.5pt;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-bottom: 3mm;
+    }
+    .day h3 {
+      font-family: Fraunces, serif;
+      font-size: 16.5pt;
+      color: var(--green);
+      margin-bottom: 3.5mm;
+      line-height: 1.15;
+    }
+    .day ol { padding-left: 4.2mm; }
+    .day li {
+      font-size: 11pt;
+      color: #2d3d35;
+      line-height: 1.42;
+      margin-bottom: 2.4mm;
+    }
+
+    .brief {
+      display: flex;
+      gap: 4mm;
+      margin-bottom: 6mm;
+    }
+    .brief-item {
+      flex: 1;
+      display: flex;
+      gap: 3.5mm;
+      align-items: flex-start;
+      background: #fff;
+      border-left: 3px solid var(--orange);
+      padding: 3.5mm 4mm;
+    }
+    .brief-item .n {
+      font-family: Fraunces, serif;
+      font-size: 19pt;
+      color: var(--orange);
+      line-height: 1;
+      min-width: 10mm;
+    }
+    .brief-item small { display: block; font-size: 9pt; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .brief-item b { font-size: 12pt; color: var(--green); font-weight: 650; }
+
+    /* PACKAGE */
+    .price-hero {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 5mm;
+      margin-bottom: 6mm;
+    }
+    .price-box {
+      background: var(--green);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7mm 8mm;
+      position: relative;
+      overflow: hidden;
+    }
+    .price-box::after {
+      content: "";
+      position: absolute;
+      right: -12mm; top: -12mm;
+      width: 42mm; height: 42mm;
+      border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .price-box .kicker { color: #ffb36a; }
+    .price-box .amt {
+      font-family: Fraunces, serif;
+      font-size: 46pt;
+      font-weight: 700;
+      line-height: 1;
+      margin: 2mm 0 1mm;
+    }
+    .price-box p { font-size: 12pt; color: #d5eadb; max-width: 95mm; }
+    .note-box {
+      background: #fff4e8;
+      border: 1px solid #f0c9a0;
+      border-radius: 8px;
+      padding: 6mm 6mm;
+    }
+    .note-box h4 { color: var(--orange); font-size: 11.5pt; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 2mm; }
+    .note-box p { font-size: 12pt; line-height: 1.45; color: #5a3b22; }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6mm 6mm 5mm;
+    }
+    .know {
+      margin-top: 5mm;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3.5mm;
+    }
+    .know div {
+      background: var(--cream);
+      border-radius: 8px;
+      padding: 4.5mm 5mm;
+    }
+    .know span {
+      display: block;
+      font-size: 9pt;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--orange);
+      font-weight: 700;
+      margin-bottom: 1.5mm;
+    }
+    .know p { font-size: 11.5pt; color: var(--green); font-weight: 550; line-height: 1.35; }
+    .card h3 {
+      font-family: Fraunces, serif;
+      font-size: 19pt;
+      color: var(--green);
+      margin-bottom: 4mm;
+    }
+    .card.inc { background: #f3f8f4; border-color: #c5dccb; }
+    .item {
+      display: flex;
+      gap: 3mm;
+      align-items: flex-start;
+      font-size: 11.5pt;
+      line-height: 1.4;
+      margin-bottom: 3.4mm;
+      color: #24352c;
+    }
+    .tick, .cross {
+      width: 4.2mm; height: 4.2mm;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      margin-top: 1.2mm;
+    }
+    .tick { background: var(--green-mid); }
+    .cross { background: #c45c2a; }
+
+    /* BOOKING */
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin-bottom: 6mm;
+    }
+    .step {
+      background: var(--cream);
+      border-radius: 8px;
+      padding: 5mm 5.5mm;
+      display: flex;
+      gap: 4mm;
+    }
+    .step .num {
+      width: 9mm; height: 9mm;
+      border-radius: 50%;
+      background: var(--orange);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13.5pt;
+      flex: 0 0 auto;
+    }
+    .step h4 { font-size: 13pt; color: var(--green); margin-bottom: 1mm; }
+    .step p { font-size: 11pt; color: var(--muted); line-height: 1.4; }
+
+    .policy {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 6mm;
+      margin-bottom: 5mm;
+    }
+    .policy h3 { font-family: Fraunces, serif; font-size: 18pt; color: var(--green); margin-bottom: 3.5mm; }
+    .policy li { font-size: 8.8pt; color: #31433a; line-height: 1.4; margin: 0 0 2.6mm 4mm; }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 5mm;
+    }
+    .pay {
+      background: var(--green);
+      color: #fff;
+      border-radius: 8px;
+      padding: 5.5mm 6.5mm;
+    }
+    .pay h3 { font-family: Fraunces, serif; font-size: 17.5pt; margin-bottom: 1.5mm; }
+    .pay > p { font-size: 11pt; color: #d7eadc; line-height: 1.4; margin-bottom: 3mm; }
+    .pay .row { font-size: 12.5pt; font-weight: 600; margin-bottom: 1.4mm; }
+    .bank-row {
+      display: grid;
+      grid-template-columns: 34mm 1fr;
+      gap: 2mm;
+      align-items: center;
+      padding: 2.1mm 0;
+      border-bottom: 1px solid rgba(255,255,255,.14);
+    }
+    .bank-row:last-of-type { border-bottom: 0; padding-bottom: 0; }
+    .bank-row span {
+      font-size: 9pt;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #9fd4ad;
+      font-weight: 700;
+    }
+    .bank-row b { font-size: 12.5pt; font-weight: 650; letter-spacing: .01em; }
+    .cta {
+      background: var(--cream);
+      border-radius: 8px;
+      padding: 6mm 6mm;
+    }
+    .cta h3 { font-family: Fraunces, serif; font-size: 17pt; color: var(--green); margin-bottom: 2mm; }
+    .cta p { font-size: 11.5pt; color: var(--muted); margin-bottom: 3mm; line-height: 1.4; }
+    .cta a {
+      display: block;
+      color: var(--green);
+      font-weight: 650;
+      text-decoration: none;
+      font-size: 12.5pt;
+      margin-bottom: 1.2mm;
+    }
+
+    @media screen {
+      html, body { background: #d9d2c6; }
+      body { padding: 18px 0 40px; }
+      .page {
+        margin: 0 auto 18px;
+        box-shadow: 0 18px 50px rgba(20,30,20,.22);
+      }
+    }
+
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body {
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 210mm;
+      }
+      .page {
+        box-shadow: none !important;
+        margin: 0 !important;
+        width: 210mm;
+        height: 297mm;
+        max-height: 297mm;
+      }
+      * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1 COVER -->
+  <section class="page cover">
+    <img class="hero" src="triund-cover.png" alt="Dhauladhar range from Triund" />
+    <div class="veil"></div>
+    <div class="cover-top">
+      <div class="logo-card"><img src="logo.png" alt="India Holiday Destinations" /></div>
+      <div class="cover-contact">
+        24x7 Support · +91 89887 69444<br />
+        indiaholidaydestinations.in@gmail.com<br />
+        treks.indiaholidaydestination.com
+      </div>
+    </div>
+    <div class="cover-body">
+      <div class="badge-row">
+        <span class="badge">1 Night / 2 Days</span>
+        <span class="badge">Himachal Pradesh</span>
+        <span class="badge">Camping Trek</span>
+      </div>
+      <h1>McLeodganj<br /><em>Triund Trek</em></h1>
+      <p class="sub">Hike from Bhagsu Nag to the Triund ridge, camp under the Dhauladhar, and wake up to one of Himachal’s most loved sunrise views.</p>
+    </div>
+    <div class="price-chip">
+      <small>From</small>
+      <b>₹999</b>
+      <small>per person</small>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Altitude</span><strong>2,875 m / 10,826 ft</strong></div>
+      <div class="stat"><span>Distance</span><strong>7 km trek</strong></div>
+      <div class="stat"><span>Grade</span><strong>Easy – Moderate</strong></div>
+      <div class="stat"><span>Meals</span><strong>Dinner &amp; Breakfast</strong></div>
+    </div>
+  </section>
+
+  <!-- PAGE 2 ITINERARY -->
+  <section class="page inner">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>+91 89887 69444</strong>
+        indiaholidaydestinations.in@gmail.com
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">Trip overview</div>
+      <h2>A short Himalayan escape with a full mountain night.</h2>
+      <p class="lead">Meet at Bhagsu Nag, McLeodganj. Walk the classic Triund trail, rest at Shepherd Cottage and Shiva Café, and camp at Karthani with views of the Dhauladhar range.</p>
+
+      <div class="brief">
+        <div class="brief-item">
+          <div class="n">01</div>
+          <div>
+            <small>Day one</small>
+            <b>Bhagsu Nag to Triund trek &amp; camping</b>
+          </div>
+        </div>
+        <div class="brief-item">
+          <div class="n">02</div>
+          <div>
+            <small>Day two</small>
+            <b>Triund return &amp; Bhagsu Nag departure</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="facts">
+        <div class="fact"><span>Duration</span><strong>1 Night / 2 Days</strong></div>
+        <div class="fact"><span>Location</span><strong>McLeodganj, Himachal</strong></div>
+        <div class="fact"><span>Meeting point</span><strong>Bhagsu Nag</strong></div>
+        <div class="fact"><span>Nearest market / ATM</span><strong>McLeodganj</strong></div>
+        <div class="fact"><span>Trek distance</span><strong>7 km</strong></div>
+        <div class="fact"><span>Stay</span><strong>Alpine tent camping</strong></div>
+      </div>
+
+      <div class="days">
+        <article class="day">
+          <img src="triund-trail.png" alt="Forest trail towards Triund" />
+          <div class="day-body">
+            <span class="day-tag">Day 01</span>
+            <h3>McLeodganj · Triund trek &amp; camping</h3>
+            <ol>
+              <li>Reach Bhagsu Nag and have breakfast (own cost).</li>
+              <li>Begin the hike to Triund. Pit stop at Shepherd Cottage and unwind for about 30 minutes.</li>
+              <li>Reach Triund (Karthani) by noon and take in the Dhauladhar views.</li>
+              <li>Dinner and overnight stay at the campsite.</li>
+            </ol>
+          </div>
+        </article>
+        <article class="day">
+          <img src="triund-camp.png" alt="Camping at Triund ridge" />
+          <div class="day-body">
+            <span class="day-tag">Day 02</span>
+            <h3>Return trek &amp; Bhagsu Nag departure</h3>
+            <ol>
+              <li>Wake up early, have breakfast, and start the descent to Bhagsu Nag.</li>
+              <li>Pit stop at Shiva Café on the way and relax for about 30 minutes.</li>
+              <li>Return to the office, refresh, and wrap up the trek.</li>
+              <li>Head home by noon with Dhauladhar memories packed in.</li>
+            </ol>
+          </div>
+        </article>
+      </div>
+    </div>
+    <div class="footer-strip">
+      <span>India Holiday Destinations · Himalayan treks with expert local guides</span>
+      <span>treks.indiaholidaydestination.com</span>
+    </div>
+  </section>
+
+  <!-- PAGE 3 PACKAGE -->
+  <section class="page inner">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>24x7 Support · +91 89887 69444</strong>
+        indiaholidaydestinations.in@gmail.com
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">Cost of the trip</div>
+      <h2>Simple pricing. Clear inclusions.</h2>
+      <p class="lead">Weekend-ready Triund camping package — GST included. Forest entry is paid separately on the trail.</p>
+
+      <div class="price-hero">
+        <div class="price-box">
+          <div class="kicker">Total cost per person</div>
+          <div class="amt">₹999</div>
+          <p>1 night tent stay, trekking guide, dinner, breakfast, tea and snacks. Designed as an easy Himalayan starter trek.</p>
+        </div>
+        <div class="note-box">
+          <h4>Please note</h4>
+          <p>Forest entry fee is <strong>not included</strong> in this cost and is payable directly as applicable. Meeting point: Bhagsu Nag, McLeodganj.</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card inc">
+          <h3>Inclusions</h3>
+          <div class="item"><span class="tick"></span>Accommodation for 1 night in alpine tent</div>
+          <div class="item"><span class="tick"></span>Meals: 1 breakfast, 1 dinner, 2 teas and snacks</div>
+          <div class="item"><span class="tick"></span>Local trekking guide</div>
+          <div class="item"><span class="tick"></span>Tent, mattress and sleeping bag for 1 night</div>
+          <div class="item"><span class="tick"></span>GST included</div>
+        </div>
+        <div class="card">
+          <h3>Exclusions</h3>
+          <div class="item"><span class="cross"></span>Travel or medical insurance, rescue, evacuation or hospitalisation</div>
+          <div class="item"><span class="cross"></span>Any lunch and meals not listed in inclusions</div>
+          <div class="item"><span class="cross"></span>Airfare, rail fare or any transportation</div>
+          <div class="item"><span class="cross"></span>Parking, monument and forest / entry tickets</div>
+          <div class="item"><span class="cross"></span>Anything not mentioned in inclusions</div>
+        </div>
+      </div>
+
+      <div class="know">
+        <div>
+          <span>Day-1 breakfast</span>
+          <p>Breakfast at Bhagsu Nag is on your own cost before the hike starts.</p>
+        </div>
+        <div>
+          <span>What to carry</span>
+          <p>Warm layer, torch, water bottle, ID proof, and comfortable trekking shoes.</p>
+        </div>
+        <div>
+          <span>Best for</span>
+          <p>First Himalayan night trek — easy to moderate, 7 km, great Dhauladhar views.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer-strip">
+      <div class="bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <span>Package code · McLeodganj Triund 1N/2D</span>
+      <span>Best price · No hidden trek cost</span>
+    </div>
+  </section>
+
+  <!-- PAGE 4 BOOKING -->
+  <section class="page inner">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>Book on WhatsApp / Call</strong>
+        +91 89887 69444
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">How to book</div>
+      <h2>Four steps to confirm your seat.</h2>
+      <p class="lead">Questions? Call or WhatsApp our trek desk. We are available 24x7.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div>
+            <h4>Pay ₹200 advance</h4>
+            <p>Pay ₹200 per person by NEFT / IMPS / UPI to the SBI account given below.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div>
+            <h4>Share the screenshot</h4>
+            <p>Send the payment screenshot to the India Holiday Destinations representative on WhatsApp.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div>
+            <h4>Fill the form</h4>
+            <p>Complete the booking form sent by the representative with traveller names and details.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div>
+            <h4>Get confirmation</h4>
+            <p>A booking confirmation email with receipt will be issued after the form and payment are verified.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="policy">
+        <h3>Cancellation policy</h3>
+        <ul>
+          <li>No refund shall be made on the initial booking amount for any cancellation.</li>
+          <li>If cancelled 1 week before the trip start date, 50% of the trip cost is charged as cancellation fees.</li>
+          <li>If cancelled on the day of departure, 75% of the trip cost is charged.</li>
+          <li>In case of unforeseen weather or government restrictions, some activities may be cancelled. We will try to offer a feasible alternate activity. No refund is provided for the same.</li>
+        </ul>
+      </div>
+
+      <div class="contact-grid">
+        <div class="pay">
+          <h3>Bank account details</h3>
+          <p>Transfer the ₹200 per person advance to this current account. Share the payment screenshot on WhatsApp.</p>
+          <div class="bank-row"><span>Bank</span><b>State Bank of India (SBI)</b></div>
+          <div class="bank-row"><span>A/C name</span><b>INDIA HOLIDAY DESTINATIONS</b></div>
+          <div class="bank-row"><span>A/C number</span><b>45474143274</b></div>
+        </div>
+        <div class="cta">
+          <h3>Talk to a trek expert</h3>
+          <p>Confirm transfer and get packing help on call or WhatsApp.</p>
+          <a href="tel:+918988769444">Call +91 89887 69444</a>
+          <a href="mailto:indiaholidaydestinations.in@gmail.com">indiaholidaydestinations.in@gmail.com</a>
+          <a href="https://treks.indiaholidaydestination.com/">treks.indiaholidaydestination.com</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-strip">
+      <span>© 2026 India Holiday Destinations. All rights reserved.</span>
+      <span>24x7 Support · Expert local guides · Safety first</span>
+    </div>
+  </section>
+
+</body>
+</html>

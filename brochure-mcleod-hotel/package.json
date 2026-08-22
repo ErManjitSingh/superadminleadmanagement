@@ -1,0 +1,13 @@
+{
+  "name": "brochure-mcleod-hotel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "print": "node print.mjs"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.7",
+    "pdfjs-dist": "^5.6.205",
+    "puppeteer-core": "^24.0.0"
+  }
+}

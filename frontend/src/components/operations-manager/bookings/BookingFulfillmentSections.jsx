@@ -559,6 +559,7 @@ export function BookingHotelsEditor({
                 <input value={h.hotelName || ''} onChange={(e) => update(i, 'hotelName', e.target.value)} placeholder="Hotel name" className="input-premium h-10 rounded-xl text-sm font-medium" />
               )}
               <input value={h.destination || ''} onChange={(e) => update(i, 'destination', e.target.value)} placeholder="Destination / city" className="input-premium h-10 rounded-xl text-sm" />
+              <input value={h.phone || h.hotelPhone || ''} onChange={(e) => update(i, 'phone', e.target.value)} placeholder="Hotel phone / contact" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.roomType || ''} onChange={(e) => update(i, 'roomType', e.target.value)} placeholder="Room type" className="input-premium h-10 rounded-xl text-sm" />
               <input value={h.mealPlan || ''} onChange={(e) => update(i, 'mealPlan', e.target.value)} placeholder="Meal plan (MAP/CP)" className="input-premium h-10 rounded-xl text-sm" />
               <label className="block">

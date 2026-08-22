@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tour Booking Voucher · Rajasthan Tour</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #16382a;
+      --green-deep: #0c2419;
+      --green-mid: #1f5a40;
+      --orange: #e85d04;
+      --cream: #f4efe6;
+      --paper: #fffdf8;
+      --ink: #16241d;
+      --muted: #5d6f66;
+      --line: #d8cfc0;
+      --gold: #c9a227;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: var(--ink); font-family: Outfit, sans-serif; margin: 0; padding: 0; }
+    .page {
+      width: 210mm; height: 297mm; background: var(--paper); position: relative; overflow: hidden; margin: 0;
+    }
+    .page::before {
+      content: ""; position: absolute; inset: 6.5mm;
+      border: 1.6px solid var(--green); pointer-events: none; z-index: 2;
+    }
+    .page::after {
+      content: ""; position: absolute; inset: 8mm;
+      border: 0.45px solid var(--gold); pointer-events: none; z-index: 2;
+    }
+    .watermark {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      pointer-events: none; z-index: 0; opacity: .055;
+    }
+    .watermark img { width: 118mm; height: auto; }
+
+    .ribbon {
+      position: absolute; left: 0; right: 0; top: 0; height: 4.2mm; z-index: 3;
+      background: linear-gradient(90deg, var(--green-deep) 0%, var(--green-mid) 55%, var(--orange) 100%);
+    }
+    .ribbon-b {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 4.2mm; z-index: 3;
+      background: linear-gradient(90deg, var(--orange) 0%, var(--green-mid) 45%, var(--green-deep) 100%);
+    }
+
+    .inner { position: relative; z-index: 1; padding: 13mm 15mm 14mm; height: 100%; }
+
+    .top {
+      display: flex; align-items: center; justify-content: space-between; gap: 8mm;
+      padding-bottom: 4.5mm; border-bottom: 2px solid var(--green);
+    }
+    .logo-wrap { background: #fff; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); }
+    .logo-wrap img { height: 20mm; width: auto; display: block; }
+    .co { text-align: right; color: var(--green); }
+    .co h1 { font-size: 12.5pt; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; line-height: 1.2; }
+    .co p { font-size: 9pt; color: var(--muted); line-height: 1.5; margin-top: 1.4mm; font-weight: 500; }
+    .co strong { color: var(--orange); font-weight: 700; }
+
+    .doc-title { text-align: center; margin: 5mm 0 4.5mm; }
+    .doc-title .kicker {
+      display: inline-block; font-size: 8.5pt; letter-spacing: .32em; text-transform: uppercase;
+      font-weight: 700; color: #fff; background: var(--orange); padding: 2px 10px; border-radius: 999px;
+    }
+    .doc-title h2 {
+      font-family: Fraunces, serif; font-size: 27pt; font-weight: 700; color: var(--green);
+      line-height: 1; margin-top: 3mm;
+    }
+    .doc-title .sub { font-size: 10.5pt; color: var(--muted); margin-top: 1.8mm; }
+
+    .guest {
+      display: grid; grid-template-columns: 1.15fr .95fr .9fr; gap: 3mm; margin-bottom: 4.5mm;
+    }
+    .guest .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 4mm 4.5mm;
+      border-left: 3.5px solid var(--orange);
+    }
+    .guest .card.hi {
+      background: var(--green); color: #fff; border-color: var(--green); border-left-color: #ffb36a;
+    }
+    .guest span {
+      display: block; font-size: 7.8pt; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--orange); font-weight: 700; margin-bottom: 1.2mm;
+    }
+    .guest .hi span { color: #ffb36a; }
+    .guest b { font-size: 13.5pt; color: var(--green); font-weight: 700; font-family: Fraunces, serif; }
+    .guest .hi b { color: #fff; }
+    .guest small { display: block; font-size: 9.5pt; color: var(--muted); margin-top: 0.8mm; font-weight: 500; }
+    .guest .hi small { color: #d5eadb; }
+
+    .meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3mm; margin-bottom: 4.5mm; }
+    .meta div { background: var(--cream); border-radius: 6px; padding: 3.2mm 4mm; }
+    .meta span {
+      display: block; font-size: 7.8pt; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--orange); font-weight: 700; margin-bottom: 1mm;
+    }
+    .meta b { font-size: 11pt; color: var(--green); font-weight: 650; }
+
+    .cert {
+      font-size: 11pt; line-height: 1.52; color: #2d3d35; margin-bottom: 4.5mm; text-align: justify;
+    }
+    .cert strong { color: var(--green); }
+
+    .amount { display: grid; grid-template-columns: 1.2fr .8fr; gap: 4mm; margin-bottom: 4.5mm; }
+    .amt-box {
+      background: linear-gradient(135deg, var(--green-deep) 0%, var(--green) 55%, var(--green-mid) 100%);
+      color: #fff; border-radius: 8px; padding: 5.5mm 6.5mm; position: relative; overflow: hidden;
+    }
+    .amt-box::after {
+      content: ""; position: absolute; right: -10mm; top: -10mm; width: 36mm; height: 36mm;
+      border-radius: 50%; background: rgba(255,255,255,.07);
+    }
+    .amt-box .kicker { color: #ffb36a; font-size: 9pt; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
+    .amt-box .fig { font-family: Fraunces, serif; font-size: 38pt; font-weight: 700; line-height: 1; margin: 1.5mm 0 1.5mm; }
+    .amt-box p { font-size: 10.5pt; color: #d5eadb; }
+    .words { background: #fff4e8; border: 1px solid #f0c9a0; border-radius: 8px; padding: 5.5mm 6mm; }
+    .words h4 { color: var(--orange); font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 2mm; }
+    .words p { font-size: 14pt; line-height: 1.35; color: #5a3b22; font-weight: 650; font-family: Fraunces, serif; }
+
+    .pkg {
+      border: 1px solid var(--line); border-radius: 8px; padding: 4.5mm 5.5mm; margin-bottom: 4.5mm; background: #fff;
+    }
+    .pkg h3 { font-family: Fraunces, serif; font-size: 16pt; color: var(--green); margin-bottom: 3.5mm; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 2.5mm; margin-bottom: 3.5mm; }
+    .facts div { background: var(--cream); border-radius: 6px; padding: 3mm 3.5mm; }
+    .facts span { display: block; font-size: 7.5pt; letter-spacing: .12em; text-transform: uppercase; color: var(--orange); font-weight: 700; margin-bottom: 1mm; }
+    .facts b { font-size: 10.5pt; color: var(--green); font-weight: 650; }
+    .inc { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6mm 6mm; }
+    .inc li {
+      list-style: none; font-size: 10.5pt; color: #24352c; padding-left: 5mm; position: relative; line-height: 1.38;
+    }
+    .inc li::before {
+      content: ""; position: absolute; left: 0; top: 2.2mm; width: 3mm; height: 3mm; border-radius: 50%; background: var(--green-mid);
+    }
+
+    .bank {
+      background: var(--green-deep); color: #e8f0ea; border-radius: 8px; padding: 4.5mm 5.5mm; margin-bottom: 5mm;
+    }
+    .bank h3 { font-family: Fraunces, serif; font-size: 14pt; margin-bottom: 2.5mm; color: #fff; }
+    .rows { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 8mm; }
+    .rows div { display: grid; grid-template-columns: 32mm 1fr; gap: 2mm; align-items: baseline; padding: 1.5mm 0; border-bottom: 1px solid rgba(255,255,255,.12); }
+    .rows span { font-size: 7.5pt; letter-spacing: .12em; text-transform: uppercase; color: #9fd4ad; font-weight: 700; }
+    .rows b { font-size: 11.5pt; font-weight: 650; }
+
+    .sign { display: grid; grid-template-columns: 1.25fr .75fr; gap: 8mm; align-items: end; }
+    .decl { font-size: 9.2pt; color: var(--muted); line-height: 1.45; }
+    .decl strong { color: var(--green); }
+    .stamp { text-align: center; }
+    .seal {
+      width: 26mm; height: 26mm; margin: 0 auto 2mm; border: 2px solid var(--orange); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      font-size: 6.6pt; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--orange);
+      line-height: 1.25; transform: rotate(-10deg); background: rgba(232,93,4,.06);
+    }
+    .stamp .line { border-top: 1.2px solid var(--green); padding-top: 2.2mm; margin-top: 14mm; }
+    .stamp b { display: block; font-size: 10.5pt; color: var(--green); }
+    .stamp small { display: block; font-size: 8.5pt; color: var(--muted); margin-top: 0.6mm; }
+
+    .foot {
+      position: absolute; left: 15mm; right: 15mm; bottom: 11mm;
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 8pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 2.5mm;
+    }
+
+    @media screen {
+      html, body { background: #d9d2c6; }
+      body { padding: 18px 0 40px; }
+      .page { margin: 0 auto; box-shadow: 0 18px 50px rgba(20,30,20,.22); }
+    }
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; width: 210mm; }
+      .page { box-shadow: none !important; margin: 0 !important; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page">
+    <div class="ribbon"></div>
+    <div class="ribbon-b"></div>
+    <div class="watermark"><img src="logo.png" alt="" /></div>
+    <div class="inner">
+      <header class="top">
+        <div class="logo-wrap"><img src="logo.png" alt="India Holiday Destinations" /></div>
+        <div class="co">
+          <h1>India Holiday Destinations</h1>
+          <p>
+            <strong>+91 89887 69444</strong><br />
+            indiaholidaydestinations.in@gmail.com<br />
+            treks.indiaholidaydestination.com
+          </p>
+        </div>
+      </header>
+
+      <div class="doc-title">
+        <div class="kicker">Official booking voucher</div>
+        <h2>Tour Confirmation</h2>
+        <p class="sub">Issued on company letterhead · Booking confirmation</p>
+      </div>
+
+      <div class="guest">
+        <div class="card hi">
+          <span>Package</span>
+          <b>Rajasthan Tour</b>
+          <small>Jaipur · Jodhpur · Udaipur</small>
+        </div>
+        <div class="card">
+          <span>Pickup</span>
+          <b>Delhi</b>
+          <small>Boarding from Delhi</small>
+        </div>
+        <div class="card">
+          <span>Duration</span>
+          <b>6N / 7D</b>
+          <small>Hotel + transfers</small>
+        </div>
+      </div>
+
+      <div class="meta">
+        <div><span>Voucher no.</span><b>IHD/TV/2026/0712</b></div>
+        <div><span>Date of issue</span><b>12 July 2026</b></div>
+        <div><span>Status</span><b>Booking confirmed</b></div>
+      </div>
+
+      <p class="cert">
+        This is to certify that <strong>India Holiday Destinations</strong> has confirmed a
+        <strong>Rajasthan tour package</strong> booking, with pickup from <strong>Delhi</strong>.
+        The total package value is <strong>₹66,000</strong> (Rupees Sixty Six Thousand Only).
+      </p>
+
+      <div class="amount">
+        <div class="amt-box">
+          <div class="kicker">Package value</div>
+          <div class="fig">₹66,000</div>
+          <p>Sixty six thousand rupees only · INR</p>
+        </div>
+        <div class="words">
+          <h4>Amount in words</h4>
+          <p>Rupees Sixty Six Thousand Only</p>
+        </div>
+      </div>
+
+      <div class="pkg">
+        <h3>Rajasthan Tour Package</h3>
+        <div class="facts">
+          <div><span>Destination</span><b>Jaipur · Jodhpur · Udaipur</b></div>
+          <div><span>Duration</span><b>6 Nights / 7 Days</b></div>
+          <div><span>Pickup / drop</span><b>Delhi to Delhi</b></div>
+          <div><span>Stay</span><b>Hotel accommodation</b></div>
+        </div>
+        <ul class="inc">
+          <li>Hotel stay in Jaipur, Jodhpur and Udaipur</li>
+          <li>Delhi pickup and drop transfers</li>
+          <li>Local sightseeing as per itinerary</li>
+          <li>Trip assistance / coordinator</li>
+          <li>Driver allowances, toll &amp; parking as included</li>
+          <li>Applicable taxes as per package</li>
+        </ul>
+      </div>
+
+      <div class="bank">
+        <h3>Company bank account</h3>
+        <div class="rows">
+          <div><span>Bank</span><b>State Bank of India (SBI)</b></div>
+          <div><span>A/C type</span><b>Current account</b></div>
+          <div><span>A/C name</span><b>INDIA HOLIDAY DESTINATIONS</b></div>
+          <div><span>A/C number</span><b>45474143274</b></div>
+        </div>
+      </div>
+
+      <div class="sign">
+        <p class="decl">
+          Issued on <strong>12 July 2026</strong> for the Rajasthan tour package valued at ₹66,000.
+          Computer generated on the stationery of <strong>India Holiday Destinations</strong>.
+          For verification call <strong>+91 89887 69444</strong>
+          or email <strong>indiaholidaydestinations.in@gmail.com</strong>.
+        </p>
+        <div class="stamp">
+          <div class="seal">India Holiday<br />Destinations<br />Confirmed</div>
+          <div class="line">
+            <b>Authorised Signatory</b>
+            <small>India Holiday Destinations</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <span>© 2026 India Holiday Destinations. All rights reserved.</span>
+        <span>IHD/TV/2026/0712 · Rajasthan Tour · Pickup Delhi</span>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

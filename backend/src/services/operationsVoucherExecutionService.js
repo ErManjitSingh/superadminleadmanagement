@@ -92,24 +92,44 @@ async function enrichClientHotelsPhones(hotels, bookingHotels = []) {
   const mongoose = require('mongoose');
   const Hotel = require('../models/Hotel');
   const missingIds = [];
+  const missingNames = [];
   hotels.forEach((h, i) => {
     const phone = h.hotelPhone || h.phone || bookingHotels[i]?.phone || bookingHotels[i]?.hotelPhone;
     const hotelId = h.hotelId || bookingHotels[i]?.hotelId;
+    const name = h.hotelName || h.name || bookingHotels[i]?.hotelName || bookingHotels[i]?.name;
     if (!phone && hotelId) missingIds.push(String(hotelId));
+    if (!phone && !hotelId && name) missingNames.push(String(name).trim());
   });
   const uniqueIds = [...new Set(missingIds)].filter((id) => (
     mongoose.Types.ObjectId.isValid(id)
     && String(new mongoose.Types.ObjectId(id)) === id
   ));
   let catalogById = {};
+  let catalogByName = {};
   if (uniqueIds.length) {
-    const docs = await Hotel.find({ _id: { $in: uniqueIds } }).select('phone').lean();
+    const docs = await Hotel.find({ _id: { $in: uniqueIds } }).select('phone name').lean();
     catalogById = Object.fromEntries(docs.map((d) => [String(d._id), d.phone || '']));
+  }
+  const uniqueNames = [...new Set(missingNames.filter(Boolean))];
+  if (uniqueNames.length) {
+    const docs = await Hotel.find({
+      name: { $in: uniqueNames },
+      phone: { $exists: true, $nin: [null, ''] },
+    }).select('phone name').lean();
+    catalogByName = Object.fromEntries(
+      docs.map((d) => [String(d.name || '').trim().toLowerCase(), d.phone || '']),
+    );
   }
   return hotels.map((h, i) => {
     const fromBooking = bookingHotels[i] || {};
     const hotelId = h.hotelId || fromBooking.hotelId;
-    const phone = h.hotelPhone || h.phone || fromBooking.phone || fromBooking.hotelPhone || catalogById[String(hotelId)] || '';
+    const nameKey = String(h.hotelName || h.name || fromBooking.hotelName || fromBooking.name || '')
+      .trim()
+      .toLowerCase();
+    const phone = h.hotelPhone || h.phone || fromBooking.phone || fromBooking.hotelPhone
+      || catalogById[String(hotelId)]
+      || catalogByName[nameKey]
+      || '';
     return { ...h, hotelId, phone, hotelPhone: phone };
   });
 }

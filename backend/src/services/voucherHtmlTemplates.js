@@ -1257,8 +1257,8 @@ async function buildClientVoucherHtml(voucher, booking) {
         .filter(Boolean).join(' · ');
       bookingTiles.push(brandedTile('hotel', label, line));
       const hotelPhone = h.hotelPhone || h.phone || '';
+      bookingTiles.push(brandedTile('phone', `${label} Contact`, hotelPhone || 'Shared on confirmation'));
       if (hotelPhone) {
-        bookingTiles.push(brandedTile('phone', `${label} Contact`, hotelPhone));
         hotelHelpRows.push([
           hotels.length > 1 ? `${hotelName} Contact` : 'Hotel Contact',
           hotelPhone,

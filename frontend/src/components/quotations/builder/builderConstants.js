@@ -21,11 +21,18 @@ export const VEHICLE_TYPES = [
   'Sedan (Dzire/Etios)',
   'SUV',
   'Cab',
+  'Innova Crysta Captain Seat (6 Seater)',
   'Urbania',
+  'Urbania 1x1 (10 Seater)',
+  'Urbania 1x1 (12 Seater)',
+  'Urbania 1x1 (20 Seater)',
   'Tempo Traveller (12 Seater)',
   'Tempo Traveller (17 Seater)',
+  'Tempo Traveller (20 Seater)',
   'Tempo Traveller 1x1 (10 Seater)',
   'Tempo Traveller 1x1 (12 Seater)',
+  'Bus (55 Seater)',
+  'Bus (60 Seater)',
   'Luxury Car',
 ];
 

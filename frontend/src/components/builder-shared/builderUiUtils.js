@@ -4,7 +4,7 @@ import { normalizeCabType, FLEET_CATALOG } from './fleetConstants';
 export function defaultBuilderUi() {
   return {
     skipHotel: false,
-    hotelMode: 'same',
+    hotelMode: 'per_destination',
     sameHotel: {
       entryMode: 'existing',
       hotelId: '',
@@ -15,7 +15,7 @@ export function defaultBuilderUi() {
       mealPlan: '',
       phone: '',
     },
-    destinationHotels: [],
+    destinationHotels: [emptyDestinationHotel()],
     transportMode: 'fleet',
     fleetCategory: 'Sedan',
     fleetVehicle: FLEET_CATALOG.Sedan[0] || 'Swift Dzire',
@@ -84,54 +84,36 @@ function dayFromCheckIn(travelDate, checkIn) {
 export function builderUiToHotels(builderUi = {}, destinations = [], travelDate = '') {
   if (builderUi.skipHotel) return [];
 
-  if (builderUi.hotelMode === 'per_destination') {
-    let nextDay = 1;
-    return (builderUi.destinationHotels || [])
-      .filter((h) => h.name?.trim())
-      .map((h) => {
-        const nights = nightsFromHotelDates(h);
-        const fromCheckIn = dayFromCheckIn(travelDate, h.checkIn);
-        const day = fromCheckIn && fromCheckIn > 0 ? fromCheckIn : nextDay;
-        nextDay = day + nights;
-        return {
-          day,
-          hotelId: h.hotelId || undefined,
-          name: h.name,
-          location: h.destination || h.location || '',
-          category: h.category || '4 Star',
-          roomType: h.roomType || 'Deluxe',
-          mealPlan: h.mealPlan || '',
-          phone: h.phone || '',
-          checkIn: h.checkIn || '',
-          checkOut: h.checkOut || '',
-          nights,
-          image: '',
-          alternatives: [],
-        };
-      });
-  }
+  // Always prefer per-destination hotels; legacy sameHotel is folded in as one stay
+  const list = (builderUi.destinationHotels || []).filter((h) => h.name?.trim());
+  const hotelsSource = list.length
+    ? list
+    : (builderUi.sameHotel?.name?.trim()
+      ? [{ ...builderUi.sameHotel, destination: builderUi.sameHotel.location || destinations[0]?.name || '' }]
+      : []);
 
-  const same = builderUi.sameHotel || {};
-  if (!same.name?.trim()) return [];
-
-  const nights = nightsFromHotelDates(same);
-  return [
-    {
-      day: 1,
-      hotelId: same.hotelId || undefined,
-      name: same.name,
-      location: same.location || destinations[0]?.name || '',
-      category: same.category || '4 Star',
-      roomType: same.roomType || 'Deluxe',
-      mealPlan: same.mealPlan || '',
-      phone: same.phone || '',
-      checkIn: same.checkIn || '',
-      checkOut: same.checkOut || '',
+  let nextDay = 1;
+  return hotelsSource.map((h) => {
+    const nights = nightsFromHotelDates(h);
+    const fromCheckIn = dayFromCheckIn(travelDate, h.checkIn);
+    const day = fromCheckIn && fromCheckIn > 0 ? fromCheckIn : nextDay;
+    nextDay = day + nights;
+    return {
+      day,
+      hotelId: h.hotelId || undefined,
+      name: h.name,
+      location: h.destination || h.location || '',
+      category: h.category || '4 Star',
+      roomType: h.roomType || 'Deluxe',
+      mealPlan: h.mealPlan || '',
+      phone: h.phone || '',
+      checkIn: h.checkIn || '',
+      checkOut: h.checkOut || '',
       nights,
       image: '',
       alternatives: [],
-    },
-  ];
+    };
+  });
 }
 
 /** Map simplified UI state → backend transport[] */
@@ -198,20 +180,6 @@ export function builderUiFromPackage(pkg = {}) {
 
   if (!hotels.length) {
     base.skipHotel = true;
-  } else if (hotels.length === 1) {
-    base.hotelMode = 'same';
-    base.sameHotel = {
-      entryMode: hotels[0].hotelId ? 'existing' : 'new',
-      hotelId: hotels[0].hotelId || '',
-      name: hotels[0].name || '',
-      category: hotels[0].category || '',
-      location: hotels[0].location || '',
-      checkIn: hotels[0].checkIn || '',
-      checkOut: hotels[0].checkOut || '',
-      roomType: hotels[0].roomType || 'Deluxe',
-      mealPlan: hotels[0].mealPlan || base.sameHotel.mealPlan,
-      phone: hotels[0].phone || '',
-    };
   } else {
     base.hotelMode = 'per_destination';
     base.destinationHotels = hotels.map((h, i) => ({
@@ -226,7 +194,7 @@ export function builderUiFromPackage(pkg = {}) {
       checkIn: h.checkIn || '',
       checkOut: h.checkOut || '',
       roomType: h.roomType || 'Deluxe',
-      mealPlan: h.mealPlan || base.sameHotel.mealPlan,
+      mealPlan: h.mealPlan || '',
       phone: h.phone || '',
     }));
   }
@@ -282,6 +250,7 @@ export function builderUiFromQuotation(quote = {}) {
     checkIn: h.checkIn ? String(h.checkIn).slice(0, 10) : '',
     checkOut: h.checkOut ? String(h.checkOut).slice(0, 10) : '',
     nights: h.nights || 0,
+    phone: h.phone || h.hotelPhone || '',
   })).filter((h) => h.name);
 
   const cabs = Array.isArray(quote.selectedCabs) ? quote.selectedCabs : [];
@@ -329,6 +298,8 @@ export function builderUiToSelectedHotelsSnapshot(builderUi = {}, destinations =
       checkIn: h.checkIn || '',
       checkOut: h.checkOut || '',
       nights,
+      phone: h.phone || '',
+      hotelPhone: h.phone || '',
       price: 0,
       total: 0,
       externalSource: h.hotelId ? 'catalog' : 'manual',

@@ -22,6 +22,7 @@ const TYPE_META = {
   flight: { icon: Plane, label: 'Flight Voucher', gradient: 'from-blue-600/10 to-indigo-500/10' },
   travel_kit: { icon: BookOpen, label: 'Customer Travel Kit', gradient: 'from-emerald-600/10 to-teal-500/10' },
   master: { icon: BookOpen, label: 'Master Voucher', gradient: 'from-purple-600/10 to-violet-500/10' },
+  client: { icon: BookOpen, label: 'Client Voucher', gradient: 'from-emerald-600/10 to-teal-500/10' },
 };
 
 function DetailRow({ label, value }) {

@@ -39,11 +39,17 @@ export default function VoucherCompactCard({
   const ready = !!voucher;
 
   const title = (() => {
+    if (type === 'hotel') {
+      if (!voucher) return hotelFromBooking?.hotelName || hotelFromBooking?.name || 'Hotel not assigned';
+      return payload.hotelName || hotelFromBooking?.hotelName || 'Hotel';
+    }
+    if (type === 'client') {
+      if (!voucher) return booking?.packageName || booking?.customerName || 'Client voucher pending';
+      return payload.packageName || booking?.packageName || booking?.customerName || 'Client Travel Voucher';
+    }
     if (!voucher) {
-      if (type === 'hotel') return hotelFromBooking?.hotelName || hotelFromBooking?.name || 'Hotel not assigned';
       return booking?.transport?.[0]?.vehicleType?.replace(/_/g, ' ') || 'Cab not assigned';
     }
-    if (type === 'hotel') return payload.hotelName || 'Hotel';
     return payload.vehicleDisplayName || payload.vehicleName || payload.vehicleType?.replace(/_/g, ' ') || 'Cab';
   })();
 
@@ -54,12 +60,21 @@ export default function VoucherCompactCard({
         payload.mealPlan || hotelFromBooking?.mealPlan,
         payload.address || hotelFromBooking?.destination || booking?.destination,
       ].filter(Boolean)
-    : [
-        payload.driverName ? `Driver: ${payload.driverName}` : null,
-        payload.pickupLocation || booking?.pickup || booking?.destination,
-        payload.dropLocation || booking?.drop || null,
-        payload.vehicleNumber ? `Vehicle ${payload.vehicleNumber}` : null,
-      ].filter(Boolean);
+    : type === 'client'
+      ? [
+          booking?.customerName ? `Guest: ${booking.customerName}` : null,
+          payload.pickup || booking?.pickup || null,
+          payload.drop || booking?.drop || null,
+          (payload.hotels || booking?.hotels || []).length
+            ? `${(payload.hotels || booking?.hotels || []).length} hotel(s)`
+            : null,
+        ].filter(Boolean)
+      : [
+          payload.driverName ? `Driver: ${payload.driverName}` : null,
+          payload.pickupLocation || booking?.pickup || booking?.destination,
+          payload.dropLocation || booking?.drop || null,
+          payload.vehicleNumber ? `Vehicle ${payload.vehicleNumber}` : null,
+        ].filter(Boolean);
 
   const canSend = voucher && ['hotel', 'transport', 'client'].includes(type);
   const vendorCfg = voucher?.vendorStatus

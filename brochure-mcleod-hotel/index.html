@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>McLeodganj Hotel 2N/3D · Ex Delhi | India Holiday Destinations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650;9..144,700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --green: #16382a;
+      --green-deep: #0c2419;
+      --green-mid: #1f5a40;
+      --orange: #e85d04;
+      --cream: #f4efe6;
+      --paper: #fffdf9;
+      --ink: #16241d;
+      --muted: #5d6f66;
+      --line: #d8cfc0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #fff; color: var(--ink); font-family: Outfit, sans-serif; margin: 0; padding: 0; }
+    .page {
+      width: 210mm; height: 297mm; background: var(--paper); position: relative; overflow: hidden; margin: 0;
+      page-break-after: always; break-after: page; page-break-inside: avoid; break-inside: avoid;
+    }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+    img { max-width: 100%; display: block; }
+    .brand-bar { display: flex; align-items: center; justify-content: space-between; padding: 9mm 12mm 7mm; background: #fff; }
+    .brand-bar img { height: 18mm; width: auto; }
+    .brand-meta { text-align: right; font-size: 11pt; color: var(--green); font-weight: 500; line-height: 1.45; }
+    .brand-meta strong { display: block; font-size: 12pt; color: var(--orange); font-weight: 700; }
+    .kicker { font-size: 10.5pt; letter-spacing: .22em; text-transform: uppercase; font-weight: 700; color: var(--orange); }
+    .footer-strip {
+      position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center;
+      padding: 5mm 12mm; background: var(--green-deep); color: #e8f0ea; font-size: 9.5pt; letter-spacing: .04em;
+    }
+    .bars { display: flex; gap: 2px; }
+    .bars span { width: 4px; height: 10px; display: block; }
+    .bars span:nth-child(1) { background: #d8f0dc; }
+    .bars span:nth-child(2) { background: #9fd4ad; }
+    .bars span:nth-child(3) { background: #5fa87a; }
+    .bars span:nth-child(4) { background: #2e7a52; }
+    .bars span:nth-child(5) { background: #e85d04; }
+
+    .cover { background: #0b1c14; color: #fff; }
+    .cover .hero { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+    .cover .veil {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(8,22,16,.55) 0%, rgba(8,22,16,.18) 28%, rgba(8,22,16,.12) 48%, rgba(8,22,16,.78) 100%);
+    }
+    .cover-top { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: flex-start; padding: 11mm 12mm 0; }
+    .logo-card { background: #fff; border-radius: 6px; padding: 6px 10px 5px; }
+    .logo-card img { height: 20mm; }
+    .cover-contact { text-align: right; font-size: 10.5pt; line-height: 1.5; font-weight: 500; color: #f6f3ee; text-shadow: 0 1px 8px rgba(0,0,0,.45); }
+    .cover-body { position: absolute; z-index: 2; left: 12mm; right: 12mm; bottom: 28mm; }
+    .badge-row { display: flex; gap: 6px; margin-bottom: 8mm; flex-wrap: wrap; }
+    .badge {
+      background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); color: #fff;
+      font-size: 10.5pt; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; padding: 5px 10px; border-radius: 999px;
+    }
+    .cover h1 { font-family: Fraunces, serif; font-size: 44pt; font-weight: 700; line-height: .92; letter-spacing: -.02em; max-width: 170mm; }
+    .cover h1 em { font-style: italic; color: #ffb36a; }
+    .cover .sub { margin-top: 5mm; font-size: 14pt; max-width: 148mm; color: #f0e8dc; line-height: 1.4; }
+    .price-chip {
+      position: absolute; right: 12mm; bottom: 42mm; z-index: 3; background: var(--orange); color: #fff;
+      border-radius: 8px; padding: 8px 14px 9px; text-align: right; min-width: 42mm;
+    }
+    .price-chip small { display: block; font-size: 9.5pt; letter-spacing: .16em; text-transform: uppercase; opacity: .9; }
+    .price-chip b { font-family: Fraunces, serif; font-size: 26pt; font-weight: 700; line-height: 1.05; }
+    .stats { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--green-deep); }
+    .stat { padding: 7mm 7mm 8mm; border-right: 1px solid rgba(255,255,255,.1); }
+    .stat:last-child { border-right: 0; }
+    .stat span { display: block; font-size: 9pt; letter-spacing: .14em; text-transform: uppercase; color: #9fd4ad; font-weight: 600; margin-bottom: 2mm; }
+    .stat strong { font-size: 12.5pt; font-weight: 700; }
+
+    .inner { padding: 0 0 16mm; }
+    .section { padding: 0 12mm; }
+    h2 { font-family: Fraunces, serif; font-size: 26pt; font-weight: 650; color: var(--green); line-height: 1.05; margin: 1.5mm 0 2mm; }
+    .lead { color: var(--muted); font-size: 12.5pt; margin-bottom: 5.5mm; max-width: 176mm; }
+
+    .brief { display: flex; gap: 3mm; margin-bottom: 5.5mm; }
+    .brief-item { flex: 1; display: flex; gap: 2.5mm; align-items: flex-start; background: #fff; border-left: 3px solid var(--orange); padding: 3mm 3.2mm; }
+    .brief-item .n { font-family: Fraunces, serif; font-size: 16pt; color: var(--orange); line-height: 1; min-width: 8mm; }
+    .brief-item small { display: block; font-size: 8.5pt; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .brief-item b { font-size: 10.5pt; color: var(--green); font-weight: 650; line-height: 1.25; }
+
+    .day-row {
+      display: grid; grid-template-columns: 68mm 1fr; border: 1px solid var(--line); border-radius: 8px;
+      overflow: hidden; background: #fff; margin-bottom: 4.5mm;
+    }
+    .day-row img { width: 100%; height: 100%; min-height: 52mm; object-fit: cover; }
+    .day-body { padding: 4.5mm 5.5mm 5mm; }
+    .day-tag {
+      display: inline-block; background: var(--green); color: #fff; font-size: 9.5pt; letter-spacing: .14em;
+      text-transform: uppercase; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-bottom: 2.5mm;
+    }
+    .day-row h3 { font-family: Fraunces, serif; font-size: 16pt; color: var(--green); margin-bottom: 2.8mm; line-height: 1.15; }
+    .day-row ol { padding-left: 4.2mm; }
+    .day-row li { font-size: 11pt; color: #2d3d35; line-height: 1.38; margin-bottom: 1.6mm; }
+
+    .sights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3.5mm; margin-top: 1mm; }
+    .sights div { background: var(--cream); border-radius: 8px; padding: 4.5mm 5mm; }
+    .sights span { display: block; font-size: 9pt; letter-spacing: .16em; text-transform: uppercase; color: var(--orange); font-weight: 700; margin-bottom: 1.5mm; }
+    .sights p { font-size: 11.5pt; color: var(--green); font-weight: 550; line-height: 1.35; }
+
+    .tiers { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; margin-bottom: 5mm; }
+    .tier { background: var(--cream); border-radius: 8px; padding: 6mm 5mm 6.5mm; text-align: center; }
+    .tier.hot { background: var(--green); color: #fff; }
+    .tier small { display: block; font-size: 9.5pt; letter-spacing: .16em; text-transform: uppercase; font-weight: 700; color: var(--orange); margin-bottom: 2mm; }
+    .tier.hot small { color: #ffb36a; }
+    .tier b { display: block; font-family: Fraunces, serif; font-size: 30pt; font-weight: 700; line-height: 1; margin-bottom: 2mm; }
+    .tier p { font-size: 11pt; color: var(--muted); }
+    .tier.hot p { color: #d7eadc; }
+    .tier.hot b { color: #fff; }
+
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+    .card { border: 1px solid var(--line); border-radius: 8px; padding: 5.5mm 6mm 5mm; }
+    .card h3 { font-family: Fraunces, serif; font-size: 18pt; color: var(--green); margin-bottom: 3.5mm; }
+    .card.inc { background: #f3f8f4; border-color: #c5dccb; }
+    .item { display: flex; gap: 3mm; align-items: flex-start; font-size: 11.5pt; line-height: 1.38; margin-bottom: 3mm; color: #24352c; }
+    .tick, .cross { width: 4.2mm; height: 4.2mm; border-radius: 50%; flex: 0 0 auto; margin-top: 1.2mm; }
+    .tick { background: var(--green-mid); }
+    .cross { background: #c45c2a; }
+
+    .steps { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-bottom: 4mm; }
+    .step { background: var(--cream); border-radius: 8px; padding: 3.2mm 4mm; display: flex; gap: 3mm; }
+    .step .num {
+      width: 7.5mm; height: 7.5mm; border-radius: 50%; background: var(--orange); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12pt; flex: 0 0 auto;
+    }
+    .step h4 { font-size: 12pt; color: var(--green); margin-bottom: .6mm; }
+    .step p { font-size: 10pt; color: var(--muted); line-height: 1.3; }
+
+    .policy { border: 1px solid var(--line); border-radius: 8px; padding: 3.5mm 5mm; margin-bottom: 0; }
+    .policy h3 { font-family: Fraunces, serif; font-size: 14pt; color: var(--green); margin-bottom: 2mm; }
+    .terms { columns: 2; column-gap: 6mm; }
+    .terms li { font-size: 9.5pt; color: #31433a; line-height: 1.28; margin: 0 0 1.5mm 4mm; break-inside: avoid; }
+
+    .pay-block {
+      background: var(--green-deep);
+      color: #fff;
+      border-radius: 10px;
+      padding: 4.5mm 5.5mm 5mm;
+      margin-bottom: 3.5mm;
+      border: 2.5px solid #e85d04;
+    }
+    .pay-block .pay-head {
+      display: flex; justify-content: space-between; align-items: flex-end; gap: 4mm; margin-bottom: 3.5mm;
+      padding-bottom: 2.5mm; border-bottom: 1px solid rgba(255,255,255,.18);
+    }
+    .pay-block h3 { font-family: Fraunces, serif; font-size: 18pt; line-height: 1.1; }
+    .pay-block .pay-note { font-size: 10.5pt; color: #ffb36a; font-weight: 650; text-align: right; max-width: 78mm; line-height: 1.3; }
+    .bank-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2.5mm 4mm;
+    }
+    .bank-cell {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 7px;
+      padding: 3mm 4mm;
+    }
+    .bank-cell span {
+      display: block; font-size: 9pt; letter-spacing: .14em; text-transform: uppercase;
+      color: #9fd4ad; font-weight: 700; margin-bottom: 1mm;
+    }
+    .bank-cell b {
+      display: block; font-size: 14pt; font-weight: 700; letter-spacing: .01em; line-height: 1.2; word-break: break-word;
+    }
+    .bank-cell.wide { grid-column: 1 / -1; }
+    .bank-cell.ac-no {
+      background: #fff;
+      border: 2px solid #e85d04;
+      color: var(--green-deep);
+    }
+    .bank-cell.ac-no span { color: var(--orange); }
+    .bank-cell.ac-no b {
+      font-size: 22pt; letter-spacing: .08em; font-family: Fraunces, serif; color: var(--green-deep);
+    }
+
+    .cta-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm;
+    }
+    .cta { background: var(--cream); border-radius: 8px; padding: 3.5mm 4.5mm; }
+    .cta h3 { font-family: Fraunces, serif; font-size: 13.5pt; color: var(--green); margin-bottom: 1mm; }
+    .cta p { font-size: 10pt; color: var(--muted); margin-bottom: 1.5mm; line-height: 1.3; }
+    .cta a { display: block; color: var(--green); font-weight: 650; text-decoration: none; font-size: 11pt; margin-bottom: .6mm; }
+
+    .page.booking .brand-bar { padding: 7mm 12mm 5mm; }
+    .page.booking .section { padding-bottom: 2mm; }
+    .page.booking h2 { font-size: 22pt; margin: 1mm 0 1.5mm; }
+    .page.booking .lead { font-size: 11.5pt; margin-bottom: 4mm; }
+    .page.booking .inner { padding-bottom: 18mm; }
+
+    @media screen {
+      html, body { background: #d9d2c6; }
+      body { padding: 18px 0 40px; }
+      .page { margin: 0 auto 18px; box-shadow: 0 18px 50px rgba(20,30,20,.22); }
+    }
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; width: 210mm; }
+      .page { box-shadow: none !important; margin: 0 !important; width: 210mm; height: 297mm; max-height: 297mm; }
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="page cover">
+    <img class="hero" src="cover.jpg" alt="Group at McLeodganj with Dhauladhar views" />
+    <div class="veil"></div>
+    <div class="cover-top">
+      <div class="logo-card"><img src="logo.png" alt="India Holiday Destinations" /></div>
+      <div class="cover-contact">
+        24x7 Support · +91 89887 69444<br />
+        indiaholidaydestinations.in@gmail.com<br />
+        treks.indiaholidaydestination.com
+      </div>
+    </div>
+    <div class="cover-body">
+      <div class="badge-row">
+        <span class="badge">2 Nights / 3 Days</span>
+        <span class="badge">Ex Delhi / Chandigarh</span>
+        <span class="badge">Hotel stay</span>
+      </div>
+      <h1>McLeodganj<br /><em>Hotel Trip</em></h1>
+      <p class="sub">Overnight from Delhi or Chandigarh. Two hotel nights in McLeodganj, local sightseeing, Dharamshala highlights, then the ride home.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><span>Transport</span><strong>Delhi / Chandigarh</strong></div>
+      <div class="stat"><span>Stay</span><strong>2 nights hotel</strong></div>
+      <div class="stat"><span>Location</span><strong>Himachal Pradesh</strong></div>
+      <div class="stat"><span>Meals</span><strong>2 Dinner &amp; 2 Breakfast</strong></div>
+    </div>
+  </section>
+
+  <section class="page inner">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>+91 89887 69444</strong>
+        indiaholidaydestinations.in@gmail.com
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">Brief itinerary</div>
+      <h2>Leave the city at night. Wake up in McLeodganj.</h2>
+      <p class="lead">Board from Delhi or Chandigarh, hotel stay with McLeodganj sightseeing, then Dharamshala highlights before the morning return.</p>
+
+      <div class="brief">
+        <div class="brief-item">
+          <div class="n">01</div>
+          <div><small>Day one</small><b>Overnight departure from Delhi / Chandigarh</b></div>
+        </div>
+        <div class="brief-item">
+          <div class="n">02</div>
+          <div><small>Day two</small><b>McLeodganj sightseeing &amp; hotel stay</b></div>
+        </div>
+        <div class="brief-item">
+          <div class="n">03</div>
+          <div><small>Day three</small><b>Dharamshala sightseeing &amp; hotel stay</b></div>
+        </div>
+        <div class="brief-item">
+          <div class="n">04</div>
+          <div><small>Day four</small><b>Morning departure · reach Delhi / Chandigarh</b></div>
+        </div>
+      </div>
+
+      <article class="day-row">
+        <img src="overnight.jpg" alt="AC tempo traveller seating" />
+        <div class="day-body">
+          <span class="day-tag">Day 01</span>
+          <h3>Overnight departure from Delhi / Chandigarh</h3>
+          <ol>
+            <li>Meet our representative at the boarding point.</li>
+            <li>Board an evening AC tempo traveller / bus from Delhi or Chandigarh.</li>
+            <li>Meet your fellow travellers. The trip captain helps with seating and luggage.</li>
+            <li>Once everyone is settled, the vehicle departs for an overnight journey.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="day-row">
+        <img src="waterfall.jpg" alt="Bhagsunag waterfall trail" />
+        <div class="day-body">
+          <span class="day-tag">Day 02</span>
+          <h3>McLeodganj sightseeing and hotel stay</h3>
+          <ol>
+            <li>Reach Dharamshala / McLeodganj in the morning and check in to the hotel.</li>
+            <li>Rest, freshen up, then head out for local sightseeing.</li>
+            <li>Visit Bhagsunag Temple, Bhagsunag Waterfall, Shiva Café, Dalai Lama Temple, St. John Church and Mall Road.</li>
+            <li>Evening local market. Dinner with bonfire and light music. Overnight at the hotel.</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+    <div class="footer-strip">
+      <span>India Holiday Destinations · Himalayan trips with expert local guides</span>
+      <span>treks.indiaholidaydestination.com</span>
+    </div>
+  </section>
+
+  <section class="page inner">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>24x7 Support · +91 89887 69444</strong>
+        indiaholidaydestinations.in@gmail.com
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">Days three and four</div>
+      <h2>Dharamshala views, then the road home.</h2>
+      <p class="lead">Stadium, war memorial and tea garden — then an early departure so you reach Delhi / Chandigarh by morning.</p>
+
+      <article class="day-row">
+        <img src="stadium.jpg" alt="Dharamshala cricket stadium" />
+        <div class="day-body">
+          <span class="day-tag">Day 03</span>
+          <h3>Dharamshala sightseeing and hotel stay</h3>
+          <ol>
+            <li>Wake up early and have breakfast at the hotel.</li>
+            <li>Cab for Dharamshala sightseeing: Cricket Stadium, War Memorial and Tea Garden.</li>
+            <li>Head back to the hotel for leisure time.</li>
+            <li>Dinner and overnight stay at the hotel.</li>
+          </ol>
+        </div>
+      </article>
+
+      <article class="day-row" style="margin-bottom:5mm">
+        <img src="tea.png" alt="Dharamshala tea gardens" />
+        <div class="day-body">
+          <span class="day-tag">Day 04</span>
+          <h3>Departure to Delhi / Chandigarh</h3>
+          <ol>
+            <li>Wake up early and have breakfast.</li>
+            <li>Check out and board the vehicle for the return journey.</li>
+            <li>Reach Delhi / Chandigarh by morning with mountain memories packed in.</li>
+          </ol>
+        </div>
+      </article>
+
+      <div class="sights">
+        <div>
+          <span>Pickup &amp; drop</span>
+          <p>Delhi — Kashmiri Gate / Majnu Ka Tilla. Chandigarh — Suhana Gurudwara Road.</p>
+        </div>
+        <div>
+          <span>Stay</span>
+          <p>2 nights hotel in McLeodganj. Sharing: quad, triple or double.</p>
+        </div>
+        <div>
+          <span>Carry</span>
+          <p>Original ID proof, warm layer, torch, water bottle and comfortable walking shoes.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer-strip">
+      <span>Package · McLeodganj Hotel 2N/3D · Ex Delhi / Chandigarh</span>
+      <span>Bhagsu · Dalai Lama Temple · Stadium · Tea Garden</span>
+    </div>
+  </section>
+
+  <section class="page inner">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>24x7 Support · +91 89887 69444</strong>
+        indiaholidaydestinations.in@gmail.com
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">Sharing options</div>
+      <h2>Hotel sharing for your group.</h2>
+      <p class="lead">GST included. Delhi / Chandigarh transport, 2 nights hotel, local sightseeing and meals as listed. Parking and monument entry are extra. Ask us for the latest package rate.</p>
+
+      <div class="tiers">
+        <div class="tier hot">
+          <small>Quad sharing</small>
+          <b>4 people</b>
+          <p>1 room</p>
+        </div>
+        <div class="tier">
+          <small>Triple sharing</small>
+          <b>3 people</b>
+          <p>1 room</p>
+        </div>
+        <div class="tier">
+          <small>Double sharing</small>
+          <b>2 people</b>
+          <p>1 room</p>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="card inc">
+          <h3>Inclusions</h3>
+          <div class="item"><span class="tick"></span>Transportation — Delhi / Chandigarh to Delhi / Chandigarh</div>
+          <div class="item"><span class="tick"></span>Local sightseeing and transportation</div>
+          <div class="item"><span class="tick"></span>Hotel accommodation for 2 nights</div>
+          <div class="item"><span class="tick"></span>Tempo traveller / bus with trip captain</div>
+          <div class="item"><span class="tick"></span>Meals: 2 breakfasts and 2 dinners</div>
+          <div class="item"><span class="tick"></span>GST included</div>
+        </div>
+        <div class="card">
+          <h3>Exclusions</h3>
+          <div class="item"><span class="cross"></span>Parking and monument / sightseeing entry fees</div>
+          <div class="item"><span class="cross"></span>Travel or medical insurance, rescue, evacuation or hospitalisation</div>
+          <div class="item"><span class="cross"></span>Any lunch and meals not listed in inclusions</div>
+          <div class="item"><span class="cross"></span>Airfare / rail fare other than listed transport</div>
+          <div class="item"><span class="cross"></span>Anything not mentioned in inclusions</div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-strip">
+      <div class="bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <span>Pay advance per person to confirm your seat</span>
+      <span>Clear inclusions · Contact for rates</span>
+    </div>
+  </section>
+
+  <section class="page inner booking">
+    <div class="brand-bar">
+      <img src="logo.png" alt="India Holiday Destinations" />
+      <div class="brand-meta">
+        <strong>Book on WhatsApp / Call</strong>
+        +91 89887 69444
+      </div>
+    </div>
+    <div class="section">
+      <div class="kicker">How to book</div>
+      <h2>Confirm your seat in four steps.</h2>
+      <p class="lead">Pay the advance per person, share the screenshot, fill the form — confirmation mail follows.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="num">1</div>
+          <div>
+            <h4>Pay advance</h4>
+            <p>Pay the advance per person by NEFT / IMPS / UPI to the SBI account below.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">2</div>
+          <div>
+            <h4>Share the screenshot</h4>
+            <p>Send the payment screenshot to the India Holiday Destinations representative on WhatsApp.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">3</div>
+          <div>
+            <h4>Fill the form</h4>
+            <p>Complete the booking form with traveller names. Carry original ID for the journey.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">4</div>
+          <div>
+            <h4>Get confirmation</h4>
+            <p>Booking confirmation email with receipt is issued after form and payment are verified.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="pay-block">
+        <div class="pay-head">
+          <h3>Bank account details</h3>
+          <p class="pay-note">Transfer the advance per person here.<br />Then share the payment screenshot on WhatsApp.</p>
+        </div>
+        <div class="bank-grid">
+          <div class="bank-cell">
+            <span>Bank</span>
+            <b>State Bank of India (SBI)</b>
+          </div>
+          <div class="bank-cell">
+            <span>A/C type</span>
+            <b>Current account</b>
+          </div>
+          <div class="bank-cell wide">
+            <span>Account name</span>
+            <b>INDIA HOLIDAY DESTINATIONS</b>
+          </div>
+          <div class="bank-cell wide ac-no">
+            <span>Account number</span>
+            <b>45474143274</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="cta-row" style="margin-bottom:3.5mm">
+        <div class="cta">
+          <h3>Talk to a trip expert</h3>
+          <p>Boarding point, sharing or dates — call or WhatsApp.</p>
+          <a href="tel:+918988769444">Call +91 89887 69444</a>
+          <a href="mailto:indiaholidaydestinations.in@gmail.com">indiaholidaydestinations.in@gmail.com</a>
+        </div>
+        <div class="cta">
+          <h3>Book online</h3>
+          <p>Same package style as our other Himalayan trips.</p>
+          <a href="https://treks.indiaholidaydestination.com/">treks.indiaholidaydestination.com</a>
+        </div>
+      </div>
+
+      <div class="policy">
+        <h3>Cancellation &amp; terms</h3>
+        <ul class="terms">
+          <li>No refund on the initial booking / advance amount for any cancellation.</li>
+          <li>Cancellations 1 week before start: 50% of trip cost as cancellation fee.</li>
+          <li>Cancellations on the day of departure: 75% of trip cost charged.</li>
+          <li>Weather or government restrictions may cancel activities; alternate where possible, no refund.</li>
+          <li>Carry original identity proof. Seats are non-transferable.</li>
+          <li>Itinerary may change for guest safety and weather. Travel insurance not included.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-strip">
+      <span>© 2026 India Holiday Destinations. All rights reserved.</span>
+      <span>24x7 Support · Expert local guides · Safety first</span>
+    </div>
+  </section>
+
+</body>
+</html>

@@ -393,10 +393,22 @@ export default function SimplifiedHotelSection({
   onCatalogHotelsChange,
 }) {
   const update = (patch) => onChange({ ...builderUi, ...patch });
-  const hotelMode = builderUi.hotelMode || 'same';
   // Duration is days (e.g. 4D/3N) → hotel nights = days - 1
   const defaultNights = Math.max(1, (Number(durationDays) || 0) > 1 ? Number(durationDays) - 1 : Number(durationDays) || 0);
   const defaultCheckIn = travelDate ? String(travelDate).slice(0, 10) : '';
+
+  // Legacy same-hotel mode removed — fold into destination list
+  const destinationHotels = (() => {
+    if (builderUi.destinationHotels?.length) return builderUi.destinationHotels;
+    if (builderUi.sameHotel?.name?.trim()) {
+      return [{
+        ...emptyDestinationHotel(destinations[0]?.name || builderUi.sameHotel.location || ''),
+        ...builderUi.sameHotel,
+        destination: builderUi.sameHotel.location || destinations[0]?.name || '',
+      }];
+    }
+    return [emptyDestinationHotel(destinations[0]?.name || '')];
+  })();
 
   const handleCatalogSaved = (hotel) => {
     if (!hotel?._id) return;
@@ -430,13 +442,13 @@ export default function SimplifiedHotelSection({
   };
 
   const updateDestinationHotel = (index, hotelPatch) => {
-    const list = [...(builderUi.destinationHotels || [])];
+    const list = [...destinationHotels];
     list[index] = hotelPatch;
-    update({ destinationHotels: chainFromIndex(list, index) });
+    update({ hotelMode: 'per_destination', destinationHotels: chainFromIndex(list, index) });
   };
 
   const addDestinationHotel = () => {
-    const list = [...(builderUi.destinationHotels || [])];
+    const list = [...destinationHotels];
     const prev = list[list.length - 1];
     const prevOut = String(prev?.checkOut || '').slice(0, 10);
     const checkIn = prevOut || defaultCheckIn;
@@ -447,7 +459,7 @@ export default function SimplifiedHotelSection({
       checkOut: checkIn ? addDays(checkIn, nights) : '',
       nights,
     };
-    update({ destinationHotels: [...list, fresh] });
+    update({ hotelMode: 'per_destination', destinationHotels: [...list, fresh] });
   };
 
   return (
@@ -485,100 +497,67 @@ export default function SimplifiedHotelSection({
         </div>
       ) : (
         <>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <ModeCard
-              active={hotelMode === 'same'}
-              onClick={() => update({ hotelMode: 'same' })}
-              icon={Hotel}
-              title="Same Hotel for Entire Trip"
-              description="One hotel for all nights"
-            />
-            <ModeCard
-              active={hotelMode === 'per_destination'}
-              onClick={() => update({
-                hotelMode: 'per_destination',
-                destinationHotels: builderUi.destinationHotels?.length
-                  ? builderUi.destinationHotels
-                  : [emptyDestinationHotel(destinations[0]?.name || 'Shimla')],
-              })}
-              icon={MapPin}
-              title="Different Hotel Every Destination"
-              description="Separate stay per city"
-            />
-          </div>
-
-          {hotelMode === 'same' ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm">
-              <HotelFields
-                hotel={builderUi.sameHotel || {}}
-                defaultNights={defaultNights}
-                defaultCheckIn={defaultCheckIn}
-                catalogHotels={catalogHotels}
-                destinationHint={destinations[0]?.name || ''}
-                onCatalogSaved={handleCatalogSaved}
-                onChange={(sameHotel) => update({ sameHotel })}
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {(builderUi.destinationHotels || []).map((hotel, index) => {
-                const prevOut = index > 0
-                  ? String(builderUi.destinationHotels[index - 1]?.checkOut || '').slice(0, 10)
-                  : '';
-                const chainedCheckIn = prevOut || defaultCheckIn;
-                return (
-                  <div key={hotel.id} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm relative">
-                    <div className="flex items-center justify-between gap-2 mb-4">
-                      <div className="flex items-center gap-2 text-sm font-bold text-violet-700">
-                        <MapPin className="w-4 h-4" />
-                        <input
-                          value={hotel.destination}
-                          onChange={(e) => {
-                            const next = [...builderUi.destinationHotels];
-                            next[index] = { ...hotel, destination: e.target.value };
-                            update({ destinationHotels: next });
-                          }}
-                          className={cn(inputCls('h-10 max-w-[220px]'), 'font-semibold')}
-                          placeholder="Destination"
-                        />
-                      </div>
+          <div className="space-y-4">
+            {destinationHotels.map((hotel, index) => {
+              const prevOut = index > 0
+                ? String(destinationHotels[index - 1]?.checkOut || '').slice(0, 10)
+                : '';
+              const chainedCheckIn = prevOut || defaultCheckIn;
+              return (
+                <div key={hotel.id || `dh-${index}`} className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm relative">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-2 text-sm font-bold text-violet-700">
+                      <MapPin className="w-4 h-4" />
+                      <input
+                        value={hotel.destination || ''}
+                        onChange={(e) => {
+                          const next = [...destinationHotels];
+                          next[index] = { ...hotel, destination: e.target.value };
+                          update({ hotelMode: 'per_destination', destinationHotels: next });
+                        }}
+                        className={cn(inputCls('h-10 max-w-[220px]'), 'font-semibold')}
+                        placeholder="Destination"
+                      />
+                    </div>
+                    {destinationHotels.length > 1 && (
                       <button
                         type="button"
                         onClick={() => update({
-                          destinationHotels: builderUi.destinationHotels.filter((_, i) => i !== index),
+                          hotelMode: 'per_destination',
+                          destinationHotels: destinationHotels.filter((_, i) => i !== index),
                         })}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
-                    {index > 0 && prevOut && (
-                      <p className="text-[11px] text-slate-500 mb-3">
-                        Check-in auto-chained from previous hotel check-out ({prevOut})
-                      </p>
                     )}
-                    <HotelFields
-                      hotel={hotel}
-                      defaultNights={index === 0 ? defaultNights : 1}
-                      defaultCheckIn={chainedCheckIn}
-                      catalogHotels={catalogHotels}
-                      destinationHint={hotel.destination || destinations[index]?.name || ''}
-                      onCatalogSaved={handleCatalogSaved}
-                      onChange={(next) => updateDestinationHotel(index, next)}
-                    />
                   </div>
-                );
-              })}
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl gap-2 border-slate-200"
-                onClick={addDestinationHotel}
-              >
-                <Plus className="w-4 h-4" /> Add Destination Hotel
-              </Button>
-            </div>
-          )}
+                  {index > 0 && prevOut && (
+                    <p className="text-[11px] text-slate-500 mb-3">
+                      Check-in auto-chained from previous hotel check-out ({prevOut})
+                    </p>
+                  )}
+                  <HotelFields
+                    hotel={hotel}
+                    defaultNights={index === 0 ? defaultNights : 1}
+                    defaultCheckIn={chainedCheckIn}
+                    catalogHotels={catalogHotels}
+                    destinationHint={hotel.destination || destinations[index]?.name || ''}
+                    onCatalogSaved={handleCatalogSaved}
+                    onChange={(next) => updateDestinationHotel(index, next)}
+                  />
+                </div>
+              );
+            })}
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl gap-2 border-slate-200"
+              onClick={addDestinationHotel}
+            >
+              <Plus className="w-4 h-4" /> Add Destination Hotel
+            </Button>
+          </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 pt-1">
             {TRUST_BADGES.map(({ icon: Icon, label }) => (
@@ -596,37 +575,5 @@ export default function SimplifiedHotelSection({
         </>
       )}
     </div>
-  );
-}
-
-function ModeCard({ active, onClick, icon: Icon, title, description }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'text-left rounded-2xl border-2 p-4 transition-all',
-        active
-          ? 'border-violet-500 bg-violet-50 shadow-sm shadow-violet-500/10'
-          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
-      )}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
-            active ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-500',
-          )}
-        >
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <p className={cn('text-sm font-bold', active ? 'text-violet-800' : 'text-slate-800')}>
-            {title}
-          </p>
-          <p className="text-xs text-slate-500 mt-0.5">{description}</p>
-        </div>
-      </div>
-    </button>
   );
 }

@@ -11,18 +11,33 @@ export const FLEET_CATEGORIES = [
 
 export const FLEET_CATALOG = {
   Sedan: ['Swift Dzire', 'Honda Amaze', 'Toyota Etios', 'Hyundai Aura'],
-  SUV: ['Ertiga', 'Innova', 'Innova Crysta', 'Scorpio', 'Xylo', 'Fortuner'],
+  SUV: [
+    'Ertiga',
+    'Innova',
+    'Innova Crysta',
+    'Innova Crysta Captain Seat (6 Seater)',
+    'Scorpio',
+    'Xylo',
+    'Fortuner',
+  ],
   'Tempo Traveller': [
     '12 Seater',
     '17 Seater',
+    '20 Seater',
     '26 Seater',
     'Tempo Traveller 1x1 (10 Seater)',
     'Tempo Traveller 1x1 (12 Seater)',
   ],
   Luxury: ['Mercedes E-Class', 'BMW 5 Series', 'Audi A6'],
-  Urbania: ['Urbania 12 Seater', 'Urbania 17 Seater'],
+  Urbania: [
+    'Urbania 12 Seater',
+    'Urbania 17 Seater',
+    'Urbania 1x1 (10 Seater)',
+    'Urbania 1x1 (12 Seater)',
+    'Urbania 1x1 (20 Seater)',
+  ],
   'Mini Bus': ['20 Seater Mini Bus', '25 Seater Mini Bus'],
-  Bus: ['35 Seater Bus', '45 Seater Bus', '52 Seater Bus'],
+  Bus: ['35 Seater Bus', '45 Seater Bus', '52 Seater Bus', '55 Seater Bus', '60 Seater Bus'],
 };
 
 /** Seats / bags for fleet cards */
@@ -34,16 +49,21 @@ export const VEHICLE_META = {
   Ertiga: { seats: 6, bags: 3 },
   Innova: { seats: 7, bags: 4 },
   'Innova Crysta': { seats: 7, bags: 4 },
+  'Innova Crysta Captain Seat (6 Seater)': { seats: 6, bags: 4 },
   Scorpio: { seats: 7, bags: 3 },
   Xylo: { seats: 7, bags: 3 },
   Fortuner: { seats: 7, bags: 4 },
   '12 Seater': { seats: 12, bags: 8 },
   '17 Seater': { seats: 17, bags: 10 },
+  '20 Seater': { seats: 20, bags: 12 },
   '26 Seater': { seats: 26, bags: 14 },
   'Tempo Traveller 1x1 (10 Seater)': { seats: 10, bags: 6 },
   'Tempo Traveller 1x1 (12 Seater)': { seats: 12, bags: 8 },
   'Urbania 12 Seater': { seats: 12, bags: 8 },
   'Urbania 17 Seater': { seats: 17, bags: 10 },
+  'Urbania 1x1 (10 Seater)': { seats: 10, bags: 6 },
+  'Urbania 1x1 (12 Seater)': { seats: 12, bags: 8 },
+  'Urbania 1x1 (20 Seater)': { seats: 20, bags: 12 },
   'Mercedes E-Class': { seats: 4, bags: 3 },
   'BMW 5 Series': { seats: 4, bags: 3 },
   'Audi A6': { seats: 4, bags: 3 },
@@ -52,6 +72,8 @@ export const VEHICLE_META = {
   '35 Seater Bus': { seats: 35, bags: 20 },
   '45 Seater Bus': { seats: 45, bags: 25 },
   '52 Seater Bus': { seats: 52, bags: 30 },
+  '55 Seater Bus': { seats: 55, bags: 32 },
+  '60 Seater Bus': { seats: 60, bags: 35 },
 };
 
 export const ROOM_TYPES = ['Standard', 'Deluxe', 'Super Deluxe', 'Luxury', 'Premium', 'Suite'];
