@@ -75,8 +75,12 @@ function prepareForCapture(root, widthPx) {
     .qp-inc-exc-premium, .qp-vehicle-list, .qp-overview-grid,
     .quote-ht-pdf-v2 .qp-timeline, .quote-ht-pdf-v2 .qp-trust-bar,
     .quote-ht-pdf-v2 .qp-welcome, .quote-ht-pdf-v2 .qp-vehicle-banner,
-    .quote-ht-pdf-v2 .qp-pay-flow-wrap {
+    .quote-ht-pdf-v2 .qp-pay-schedule {
       margin-bottom: 4px !important;
+    }
+    .quote-ht-pdf-v2 .qp-pay-step-card {
+      min-height: 0 !important;
+      padding: 14px 10px !important;
     }
     .quote-ht-pdf-v2 .qp-timeline-row {
       margin-bottom: 6px !important;

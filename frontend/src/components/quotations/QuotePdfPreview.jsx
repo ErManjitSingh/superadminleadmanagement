@@ -305,31 +305,35 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         ))}
       </div>
 
-      {/* Payment schedule — horizontal flow */}
-      <section className="qp-section-block">
+      {/* Payment schedule — full width */}
+      <section className="qp-section-block qp-pay-section">
         <SectionHead icon="💳" title="Payment Schedule" />
-        <div className="qp-pay-flow-wrap">
-          <div className="qp-pay-flow">
+        <div
+          className="qp-pay-schedule"
+          style={{ '--qp-pay-cols': paymentPlan.length }}
+        >
+          <div className="qp-pay-steps-grid">
             {paymentPlan.map((row, index) => (
-              <span key={row.label} style={{ display: 'contents' }}>
-                <div className="qp-pay-step">
+              <div key={row.label} className="qp-pay-step-card">
+                <div className="qp-pay-step-head">
                   <span className="qp-pay-step-num">{index + 1}</span>
-                  <span className="qp-pay-step-title">{row.label}</span>
                   <span className="qp-pay-step-pct">{row.percent}%</span>
-                  {displayTotal > 0 && (
-                    <span className="qp-pay-step-amt">{formatINR(row.amount)}</span>
-                  )}
                 </div>
-                {index < paymentPlan.length - 1 && (
-                  <span className="qp-pay-arrow" aria-hidden="true">→</span>
+                <div className="qp-pay-step-title">{row.label}</div>
+                {displayTotal > 0 && (
+                  <div className="qp-pay-step-amt">{formatINR(row.amount)}</div>
                 )}
-              </span>
+                {index < paymentPlan.length - 1 && (
+                  <span className="qp-pay-step-arrow" aria-hidden="true">→</span>
+                )}
+              </div>
             ))}
           </div>
-          <div className="qp-pay-secure">
-            <div className="qp-pay-secure-icon" aria-hidden="true">🛡</div>
-            <div className="qp-pay-secure-title">Flexible Payments</div>
-            <div className="qp-pay-secure-sub">100% Secure Transactions</div>
+          <div className="qp-pay-secure-bar">
+            <span className="qp-pay-secure-icon" aria-hidden="true">🛡</span>
+            <strong className="qp-pay-secure-title">Flexible Payments</strong>
+            <span className="qp-pay-secure-dot" aria-hidden="true">·</span>
+            <span className="qp-pay-secure-sub">100% Secure Transactions</span>
           </div>
         </div>
       </section>

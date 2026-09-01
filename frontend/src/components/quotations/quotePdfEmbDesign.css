@@ -461,39 +461,64 @@
   color: #c5d4e8;
 }
 
-/* ── Payment flow ── */
-.quote-ht-pdf-v2 .qp-pay-grid {
+/* ── Payment schedule (full width) ── */
+.quote-ht-pdf-v2 .qp-pay-grid,
+.quote-ht-pdf-v2 .qp-pay-flow-wrap,
+.quote-ht-pdf-v2 .qp-pay-flow,
+.quote-ht-pdf-v2 .qp-pay-step,
+.quote-ht-pdf-v2 .qp-pay-arrow,
+.quote-ht-pdf-v2 .qp-pay-secure {
   display: none;
 }
 
-.quote-ht-pdf-v2 .qp-pay-flow-wrap {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 16px;
-  align-items: center;
-  margin: 0 24px 8px;
+.quote-ht-pdf-v2 .qp-pay-section .qp-section-head {
   padding-bottom: 8px;
 }
 
-.quote-ht-pdf-v2 .qp-pay-flow {
-  display: flex;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 4px;
+.quote-ht-pdf-v2 .qp-pay-schedule {
+  --qp-pay-cols: 3;
+  width: 100%;
+  margin: 0;
+  border-top: 1px solid #dce4ec;
+  border-bottom: 1px solid #dce4ec;
+  background: linear-gradient(180deg, #f7fafc 0%, #eef4fa 100%);
 }
 
-.quote-ht-pdf-v2 .qp-pay-step {
+.quote-ht-pdf-v2 .qp-pay-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--qp-pay-cols, 3), minmax(0, 1fr));
+  width: 100%;
+  gap: 0;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  min-height: 148px;
+  padding: 22px 18px;
   text-align: center;
-  min-width: 100px;
-  max-width: 120px;
+  background: #fff;
+  border-right: 1px solid #dce4ec;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-card:last-child {
+  border-right: none;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .quote-ht-pdf-v2 .qp-pay-step-num {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: var(--qp-orange);
   color: #fff;
@@ -502,61 +527,89 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
-}
-
-.quote-ht-pdf-v2 .qp-pay-step-title {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--qp-navy);
-  line-height: 1.3;
+  flex-shrink: 0;
 }
 
 .quote-ht-pdf-v2 .qp-pay-step-pct {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--qp-muted);
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--qp-navy);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--qp-navy);
+  line-height: 1.35;
+  max-width: 100%;
 }
 
 .quote-ht-pdf-v2 .qp-pay-step-amt {
-  margin-top: 2px;
-  font-size: 10px;
-  color: var(--qp-navy);
-  font-weight: 700;
-}
-
-.quote-ht-pdf-v2 .qp-pay-arrow {
-  color: #c5d0dc;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--qp-orange-soft);
+  border: 1px solid #ffd4b3;
   font-size: 18px;
-  padding: 8px 2px 0;
-  font-weight: 300;
+  font-weight: 800;
+  color: var(--qp-orange);
+  line-height: 1.2;
 }
 
-.quote-ht-pdf-v2 .qp-pay-secure {
-  min-width: 140px;
-  padding: 14px 16px;
-  border-radius: 10px;
+.quote-ht-pdf-v2 .qp-pay-step-arrow {
+  position: absolute;
+  right: -11px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #dce4ec;
+  color: var(--qp-orange);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 32, 74, 0.08);
+}
+
+.quote-ht-pdf-v2 .qp-pay-secure-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
   background: var(--qp-navy);
   color: #fff;
-  text-align: center;
 }
 
 .quote-ht-pdf-v2 .qp-pay-secure-icon {
   font-size: 22px;
-  margin-bottom: 6px;
+  line-height: 1;
 }
 
 .quote-ht-pdf-v2 .qp-pay-secure-title {
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 1.35;
+  color: #fff;
+}
+
+.quote-ht-pdf-v2 .qp-pay-secure-dot {
+  color: #7a94b8;
+  font-size: 18px;
+  line-height: 1;
 }
 
 .quote-ht-pdf-v2 .qp-pay-secure-sub {
-  margin-top: 4px;
-  font-size: 10px;
-  color: #b8c9de;
+  font-size: 15px;
+  color: #c5d4e8;
+  font-weight: 600;
 }
 
 /* ── Accent tweaks for rest of doc ── */
@@ -586,8 +639,9 @@
   .quote-ht-pdf-v2 .qp-trust-item,
   .quote-ht-pdf-v2 .qp-vehicle-banner,
   .quote-ht-pdf-v2 .qp-welcome,
-  .quote-ht-pdf-v2 .qp-pay-flow-wrap,
-  .quote-ht-pdf-v2 .qp-pay-step,
+  .quote-ht-pdf-v2 .qp-pay-schedule,
+  .quote-ht-pdf-v2 .qp-pay-step-card,
+  .quote-ht-pdf-v2 .qp-pay-secure-bar,
   .quote-ht-pdf-v2 .qp-overview-grid,
   .quote-ht-pdf-v2 .qp-inc-exc-premium {
     page-break-inside: auto !important;
@@ -625,7 +679,12 @@
 
   .quote-ht-pdf-v2 .qp-welcome,
   .quote-ht-pdf-v2 .qp-vehicle-banner,
-  .quote-ht-pdf-v2 .qp-pay-flow-wrap {
+  .quote-ht-pdf-v2 .qp-pay-schedule {
     margin-bottom: 4px !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-pay-step-card {
+    min-height: 0 !important;
+    padding: 14px 10px !important;
   }
 }

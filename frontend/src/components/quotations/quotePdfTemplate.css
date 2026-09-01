@@ -2242,7 +2242,7 @@
   .quote-ht-pdf-v2 .qp-trust-item,
   .quote-ht-pdf-v2 .qp-vehicle-banner,
   .quote-ht-pdf-v2 .qp-welcome,
-  .quote-ht-pdf-v2 .qp-pay-flow-wrap {
+  .quote-ht-pdf-v2 .qp-pay-schedule {
     page-break-inside: auto !important;
     break-inside: auto !important;
     page-break-before: auto !important;
