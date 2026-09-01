@@ -72,8 +72,16 @@ function prepareForCapture(root, widthPx) {
       break-after: auto !important;
     }
     .qp-section-block, .qp-day, .qp-policies, .qp-bank-wrap,
-    .qp-inc-exc-premium, .qp-vehicle-list, .qp-overview-grid {
+    .qp-inc-exc-premium, .qp-vehicle-list, .qp-overview-grid,
+    .quote-ht-pdf-v2 .qp-timeline, .quote-ht-pdf-v2 .qp-trust-bar,
+    .quote-ht-pdf-v2 .qp-welcome, .quote-ht-pdf-v2 .qp-vehicle-banner,
+    .quote-ht-pdf-v2 .qp-pay-flow-wrap {
       margin-bottom: 4px !important;
+    }
+    .quote-ht-pdf-v2 .qp-timeline-row {
+      margin-bottom: 6px !important;
+      padding: 8px 10px !important;
+      box-shadow: none !important;
     }
   `;
   root.prepend(style);

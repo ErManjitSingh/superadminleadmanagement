@@ -30,6 +30,20 @@ ${quotePdfEmbCss}
       -webkit-print-color-adjust: exact !important;
       print-color-adjust: exact !important;
     }
+    @media print {
+      .quote-ht-pdf-v2 .qp-section-block,
+      .quote-ht-pdf-v2 .qp-timeline-row,
+      .quote-ht-pdf-v2 .qp-timeline-body,
+      .quote-ht-pdf-v2 .qp-trust-bar {
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      .quote-ht-pdf-v2 .qp-timeline-row {
+        margin-bottom: 6px !important;
+        padding: 8px 10px !important;
+        box-shadow: none !important;
+      }
+    }
   </style>
 </head>
 <body>

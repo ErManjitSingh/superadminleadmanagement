@@ -574,9 +574,58 @@
 }
 
 @media print {
+  /* Continuous pages — never push whole blocks down (prevents large white gaps) */
+  .quote-ht-pdf-v2 .qp-section-block,
+  .quote-ht-pdf-v2 .qp-timeline,
+  .quote-ht-pdf-v2 .qp-timeline-row,
+  .quote-ht-pdf-v2 .qp-timeline-rail,
+  .quote-ht-pdf-v2 .qp-timeline-body,
+  .quote-ht-pdf-v2 .qp-timeline-desc,
+  .quote-ht-pdf-v2 .qp-timeline-stay,
   .quote-ht-pdf-v2 .qp-trust-bar,
+  .quote-ht-pdf-v2 .qp-trust-item,
+  .quote-ht-pdf-v2 .qp-vehicle-banner,
+  .quote-ht-pdf-v2 .qp-welcome,
+  .quote-ht-pdf-v2 .qp-pay-flow-wrap,
+  .quote-ht-pdf-v2 .qp-pay-step,
+  .quote-ht-pdf-v2 .qp-overview-grid,
+  .quote-ht-pdf-v2 .qp-inc-exc-premium {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    page-break-before: auto !important;
+    break-before: auto !important;
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-section-head {
+    padding-top: 8px !important;
+    padding-bottom: 4px !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-timeline {
+    margin-bottom: 4px !important;
+  }
+
   .quote-ht-pdf-v2 .qp-timeline-row {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    margin-bottom: 6px !important;
+    padding: 8px 10px !important;
+    box-shadow: none !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-timeline-line {
+    min-height: 10px !important;
+    margin: 4px 0 !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-trust-bar {
+    margin-top: 4px !important;
+    padding: 10px 12px !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-welcome,
+  .quote-ht-pdf-v2 .qp-vehicle-banner,
+  .quote-ht-pdf-v2 .qp-pay-flow-wrap {
+    margin-bottom: 4px !important;
   }
 }

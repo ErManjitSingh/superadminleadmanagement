@@ -2233,7 +2233,16 @@
   .quote-ht-policy,
   .quote-ht-inc-exc,
   .quote-ht-hotel-day-card,
-  .quote-ht-dest-section {
+  .quote-ht-dest-section,
+  .quote-ht-pdf-v2 .qp-timeline,
+  .quote-ht-pdf-v2 .qp-timeline-row,
+  .quote-ht-pdf-v2 .qp-timeline-body,
+  .quote-ht-pdf-v2 .qp-timeline-rail,
+  .quote-ht-pdf-v2 .qp-trust-bar,
+  .quote-ht-pdf-v2 .qp-trust-item,
+  .quote-ht-pdf-v2 .qp-vehicle-banner,
+  .quote-ht-pdf-v2 .qp-welcome,
+  .quote-ht-pdf-v2 .qp-pay-flow-wrap {
     page-break-inside: auto !important;
     break-inside: auto !important;
     page-break-before: auto !important;
@@ -2270,6 +2279,17 @@
   .qp-bank-wrap,
   .qp-contact {
     margin-bottom: 4px !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-timeline-row {
+    margin-bottom: 6px !important;
+    padding: 8px 10px !important;
+    box-shadow: none !important;
+  }
+
+  .quote-ht-pdf-v2 .qp-trust-bar {
+    margin-top: 4px !important;
+    padding: 10px 12px !important;
   }
 
   .qp-inc-exc-list li {
