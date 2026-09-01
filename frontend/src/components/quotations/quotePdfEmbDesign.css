@@ -320,16 +320,21 @@
 
 /* ── Timeline itinerary ── */
 .quote-ht-pdf-v2 .qp-timeline {
-  margin: 0 24px 8px;
-  padding: 8px 0;
+  margin: 0 20px 12px;
+  padding: 4px 0;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-row {
   display: grid;
-  grid-template-columns: 72px 1fr 88px;
-  gap: 12px;
+  grid-template-columns: 76px 1fr;
+  gap: 16px;
   align-items: stretch;
-  margin-bottom: 4px;
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border: 1px solid #dce4ec;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 32, 74, 0.05);
 }
 
 .quote-ht-pdf-v2 .qp-timeline-rail {
@@ -341,18 +346,18 @@
 
 .quote-ht-pdf-v2 .qp-timeline-dot {
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: var(--qp-navy-mid);
   color: #fff;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1.2;
   z-index: 1;
 }
 
@@ -363,68 +368,63 @@
 .quote-ht-pdf-v2 .qp-timeline-line {
   flex: 1;
   width: 0;
-  border-left: 2px dashed #c5d0dc;
-  min-height: 24px;
-  margin: 4px 0;
+  border-left: 2px dashed #b8c5d4;
+  min-height: 28px;
+  margin: 8px 0;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-body {
-  padding: 8px 0 16px;
+  padding: 2px 0 4px;
+  min-width: 0;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-body h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--qp-navy);
+  line-height: 1.35;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--qp-muted);
-  font-weight: 600;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 15px;
+  color: #4a6078;
+  font-weight: 700;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-meta span {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #f0f4f8;
+  border: 1px solid #dce4ec;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-desc {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: #4a5568;
-  line-height: 1.55;
+  margin: 14px 0 0;
+  font-size: 18px;
+  color: #1a2332;
+  line-height: 1.65;
   white-space: pre-wrap;
+  font-weight: 500;
 }
 
 .quote-ht-pdf-v2 .qp-timeline-stay {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
   background: #f0faf5;
-  border: 1px solid #c8ead8;
-  font-size: 11px;
+  border: 1px solid #b8e6cf;
+  font-size: 16px;
   color: #0d5c3a;
-  font-weight: 600;
-}
-
-.quote-ht-pdf-v2 .qp-timeline-art {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 0;
-}
-
-.quote-ht-pdf-v2 .qp-timeline-art svg {
-  width: 72px;
-  height: 72px;
-  opacity: 0.85;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 /* Hide old day cards when timeline is used */

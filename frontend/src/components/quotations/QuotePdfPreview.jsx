@@ -48,43 +48,6 @@ function SectionHead({ icon, title }) {
   );
 }
 
-function TimelineArt({ index, total, title }) {
-  const isLast = index === total - 1;
-  const t = String(title || '').toLowerCase();
-  if (isLast) {
-    return (
-      <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
-        <path d="M40 12 L58 52 H22 Z" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
-        <circle cx="58" cy="28" r="10" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
-      </svg>
-    );
-  }
-  if (/taj|agra|monument|fort|palace|temple|delhi/.test(t)) {
-    return (
-      <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
-        <rect x="18" y="38" width="44" height="28" rx="2" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
-        <path d="M40 14 L52 38 H28 Z" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
-        <circle cx="40" cy="22" r="4" fill="#7eb8e8" />
-      </svg>
-    );
-  }
-  if (/mountain|manali|shimla|hill|trek|camp/.test(t)) {
-    return (
-      <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
-        <path d="M8 58 L28 24 L44 42 L58 18 L72 58 Z" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
-        <circle cx="62" cy="20" r="8" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
-      <rect x="16" y="22" width="48" height="36" rx="6" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
-      <path d="M24 58 V42 H56 V58" stroke="#7eb8e8" strokeWidth="2" />
-      <circle cx="40" cy="34" r="8" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
-    </svg>
-  );
-}
-
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
   return (
@@ -324,9 +287,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                         {stayDestination ? ` · ${stayDestination}` : ''}
                       </div>
                     )}
-                  </div>
-                  <div className="qp-timeline-art">
-                    <TimelineArt index={index} total={itinerary.length} title={dayTitle} />
                   </div>
                 </div>
               );
