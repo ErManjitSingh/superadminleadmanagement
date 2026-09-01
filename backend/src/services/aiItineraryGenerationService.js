@@ -81,7 +81,11 @@ function parseJsonFromText(raw = '') {
   const text = String(raw).trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidate = fenced?.[1]?.trim() || text;
-  return JSON.parse(candidate);
+  try {
+    return JSON.parse(candidate);
+  } catch (err) {
+    throw new ApiError(`AI returned invalid JSON: ${err.message}`, 502);
+  }
 }
 
 function getAiProvider() {
@@ -98,7 +102,7 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
   if (!apiKey) return null;
 
   // Prefer a strong model; allow override via env.
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
@@ -123,8 +127,8 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
     throw new ApiError(
-      `Gemini API error (${res.status})${errText ? `: ${errText.slice(0, 300)}` : ''}`,
       res.status >= 500 ? 502 : 400,
+      `Gemini API error (${res.status})${errText ? `: ${errText.slice(0, 300)}` : ''}`,
     );
   }
 
@@ -133,7 +137,7 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
     data.candidates?.[0]?.content?.parts?.map((p) => p.text).filter(Boolean).join('\n') || '';
   if (!raw) {
     const blockReason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason;
-    throw new ApiError(`Gemini returned empty response${blockReason ? `: ${blockReason}` : ''}`, 502);
+    throw new ApiError(502, `Gemini returned empty response${blockReason ? `: ${blockReason}` : ''}`);
   }
 
   return parseJsonFromText(raw);
@@ -170,8 +174,8 @@ async function callOpenAI({ prompt, destination, days, nights, variationSeed }) 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
     throw new ApiError(
-      `OpenAI error (${res.status})${errText ? `: ${errText.slice(0, 200)}` : ''}`,
       res.status >= 500 ? 502 : 400,
+      `OpenAI error (${res.status})${errText ? `: ${errText.slice(0, 200)}` : ''}`,
     );
   }
 
@@ -221,7 +225,7 @@ async function generateItineraryFromPrompt({
   variationSeed = 0,
 }) {
   const text = String(prompt || '').trim();
-  if (!text) throw new ApiError('Prompt is required', 400);
+  if (!text) throw new ApiError(400, 'Prompt is required');
 
   const provider = getAiProvider();
   if (!provider) {
@@ -252,12 +256,12 @@ async function generateItineraryFromPrompt({
     if (!hasOther) throw err;
     parsed = other === 'gemini' ? await callGemini(params) : await callOpenAI(params);
     const result = normalizeDays(parsed, variationSeed);
-    if (!result) throw new ApiError('AI returned empty itinerary', 502);
+    if (!result) throw new ApiError(502, 'AI returned empty itinerary');
     return { source: other, ...result };
   }
 
   const result = normalizeDays(parsed, variationSeed);
-  if (!result) throw new ApiError('AI returned empty itinerary', 502);
+  if (!result) throw new ApiError(502, 'AI returned empty itinerary');
 
   return { source: provider, ...result };
 }

@@ -6,7 +6,7 @@ const generateItinerary = asyncHandler(async (req, res) => {
   const { prompt, destination, days, nights, variationSeed } = req.body || {};
 
   if (!prompt?.trim()) {
-    throw new ApiError('prompt is required', 400);
+    throw new ApiError(400, 'prompt is required');
   }
 
   const result = await generateItineraryFromPrompt({
