@@ -26,6 +26,7 @@ const userSchema = new mongoose.Schema(
     avatar: { type: String, default: null },
     inviteToken: String,
     inviteExpiresAt: Date,
+    expoPushToken: { type: String, default: null, trim: true },
   },
   { timestamps: true }
 );

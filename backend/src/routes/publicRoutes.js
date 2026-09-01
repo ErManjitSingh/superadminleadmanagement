@@ -16,7 +16,8 @@ const {
   getVendorConfirm,
   postVendorConfirm,
 } = require("../controllers/vendorConfirmationController");
-const { authLimiter } = require("../middleware/rateLimiter");
+const { submitPublicLead } = require("../controllers/publicLeadController");
+const { authLimiter, leadIngestLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
@@ -29,5 +30,6 @@ router.post("/resend-verification", authLimiter, resendVerification);
 router.post("/signup", authLimiter, publicSignup);
 router.get("/vendor-confirm/:token", getVendorConfirm);
 router.post("/vendor-confirm/:token", postVendorConfirm);
+router.post("/leads", leadIngestLimiter, submitPublicLead);
 
 module.exports = router;

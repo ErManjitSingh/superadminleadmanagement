@@ -26,4 +26,13 @@ const authLimiter = rateLimit({
   message: { message: 'Too many login attempts, please try again later.' },
 });
 
-module.exports = { apiLimiter, authLimiter };
+/** Website quote forms → CRM lead ingest */
+const leadIngestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many quote requests. Please try again later.' },
+});
+
+module.exports = { apiLimiter, authLimiter, leadIngestLimiter };

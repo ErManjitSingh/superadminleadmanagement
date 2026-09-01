@@ -84,6 +84,21 @@ const getMe = asyncHandler(async (req, res) => {
   res.json(formatUserResponse(req.user, permissions));
 });
 
+const registerPushToken = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token || typeof token !== 'string') {
+    throw new ApiError(400, 'Push token is required');
+  }
+  if (!token.startsWith('ExponentPushToken[')) {
+    throw new ApiError(400, 'Invalid Expo push token');
+  }
+
+  req.user.expoPushToken = token.trim();
+  await req.user.save();
+
+  res.json({ message: 'Push token registered', expoPushToken: req.user.expoPushToken });
+});
+
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
   if (!name || !email || !password) throw new ApiError(400, 'Name, email and password required');
@@ -107,4 +122,4 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { login, logout, getMe, register };
+module.exports = { login, logout, getMe, register, registerPushToken };

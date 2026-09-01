@@ -181,6 +181,13 @@ const companySchema = new mongoose.Schema(
       brandFaviconUrl: { type: String, default: "" },
     },
     adminUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    /** Public website → CRM lead intake (forms on marketing sites). */
+    websiteLeadIngest: {
+      enabled: { type: Boolean, default: false },
+      apiKey: { type: String, default: "", select: false },
+      sourceLabel: { type: String, trim: true, default: "Website Form" },
+      allowedOrigins: [{ type: String, trim: true }],
+    },
     billingNotices: {
       trialReminder7dAt: { type: Date, default: null },
       trialReminder3dAt: { type: Date, default: null },

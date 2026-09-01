@@ -1,0 +1,122 @@
+export type UserRole =
+  | 'admin'
+  | 'sales_manager'
+  | 'sales_executive'
+  | 'team_leader'
+  | 'accountant'
+  | 'operations_manager';
+
+export interface User {
+  _id: string;
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+  roleName?: string;
+  companyId?: string | null;
+  permissions?: Record<string, unknown>;
+}
+
+export interface AuthSession extends User {
+  token: string;
+  sessionExpiresAt?: string;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages?: number;
+}
+
+export interface Lead {
+  _id: string;
+  leadId?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  destination?: string;
+  budget?: number;
+  status: string;
+  isHot?: boolean;
+  source?: string;
+  assignedTo?: { _id: string; name: string };
+  createdAt?: string;
+  updatedAt?: string;
+  notes?: LeadNote[];
+  followUps?: FollowUp[];
+}
+
+export interface LeadNote {
+  _id: string;
+  content: string;
+  createdAt: string;
+  createdBy?: { name: string };
+}
+
+export interface FollowUp {
+  _id: string;
+  lead?: Lead | { _id: string; name: string; destination?: string; phone?: string };
+  scheduledAt: string;
+  status?: string;
+  priority?: 'low' | 'medium' | 'high';
+  notes?: string;
+  type?: string;
+}
+
+export interface DashboardKpis {
+  myLeads?: number;
+  todayFollowups?: number;
+  hotLeads?: number;
+  quotationsSent?: number;
+  convertedLeads?: number;
+  monthlyRevenue?: number;
+  totalBudget?: number;
+  totalTeamLeads?: number;
+  pendingFollowups?: number;
+}
+
+export interface DashboardData {
+  kpis: DashboardKpis;
+  recentLeads?: Lead[];
+  todayTasks?: Array<{
+    _id: string;
+    title: string;
+    time: string;
+    priority?: string;
+    destination?: string;
+  }>;
+  upcomingFollowups?: Array<{
+    _id: string;
+    customer?: string;
+    destination?: string;
+    scheduledAt: string;
+    priority?: string;
+  }>;
+  target?: {
+    progress?: number;
+    target?: number;
+    achieved?: number;
+  };
+}
+
+export interface NotificationItem {
+  _id: string;
+  title: string;
+  message?: string;
+  read?: boolean;
+  createdAt: string;
+  type?: string;
+}
+
+export type LeadFilterKey =
+  | 'all'
+  | 'new'
+  | 'contacted'
+  | 'follow-up'
+  | 'hot'
+  | 'converted'
+  | 'lost'
+  | 'reactivated';

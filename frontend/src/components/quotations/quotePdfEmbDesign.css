@@ -1,0 +1,582 @@
+/* Explore My Bharat–style quotation layout (structure only — content from CRM data) */
+
+.quote-ht-pdf-v2 {
+  --qp-navy: #00204a;
+  --qp-navy-mid: #003366;
+  --qp-orange: #ff6b00;
+  --qp-orange-soft: #fff4eb;
+  --qp-sky: #e8f4fc;
+  --qp-sky-border: #b8daf0;
+  --qp-muted: #6c757d;
+  --qp-text: #1a2332;
+  font-family: 'Segoe UI', Montserrat, 'Lato', system-ui, Arial, sans-serif;
+}
+
+/* ── Header ── */
+.quote-ht-pdf-v2 .qp-header {
+  padding: 16px 24px;
+  box-shadow: none;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.quote-ht-pdf-v2 .qp-logo {
+  width: 56px;
+  height: 56px;
+}
+
+.quote-ht-pdf-v2 .qp-brand {
+  color: var(--qp-navy);
+  font-size: 18px;
+}
+
+.quote-ht-pdf-v2 .qp-tagline {
+  color: var(--qp-muted);
+}
+
+.quote-ht-pdf-v2 .qp-header-right {
+  color: var(--qp-muted);
+  font-size: 12px;
+}
+
+.quote-ht-pdf-v2 .qp-quote-no {
+  color: var(--qp-navy);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ── Hero ── */
+.quote-ht-pdf-v2 .qp-hero-with-image {
+  min-height: 240px;
+}
+
+.quote-ht-pdf-v2 .qp-hero-overlay {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 32, 74, 0.88) 0%,
+    rgba(0, 32, 74, 0.55) 45%,
+    rgba(0, 32, 74, 0.25) 100%
+  );
+}
+
+.quote-ht-pdf-v2 .qp-hero-content {
+  padding: 28px 24px;
+  align-items: flex-end;
+}
+
+.quote-ht-pdf-v2 .qp-eyebrow {
+  display: inline-block;
+  margin: 0 0 10px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  background: var(--qp-navy-mid);
+  color: #fff;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.quote-ht-pdf-v2 .qp-title {
+  font-size: 30px;
+  font-weight: 800;
+  max-width: 420px;
+}
+
+.quote-ht-pdf-v2 .qp-dest {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #e8eef5;
+}
+
+.quote-ht-pdf-v2 .qp-dest::before {
+  content: '📍';
+  font-size: 13px;
+}
+
+.quote-ht-pdf-v2 .qp-chips {
+  margin-top: 12px;
+}
+
+.quote-ht-pdf-v2 .qp-chips span {
+  background: rgba(0, 32, 74, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 6px 12px;
+}
+
+.quote-ht-pdf-v2 .qp-customer-pill {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: rgba(0, 32, 74, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.quote-ht-pdf-v2 .qp-hero-price {
+  min-width: 210px;
+  padding: 18px 20px;
+  border-radius: 10px;
+  background: rgba(0, 32, 74, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+  backdrop-filter: blur(4px);
+}
+
+.quote-ht-pdf-v2 .qp-price-lbl {
+  color: #c5d4e8;
+  font-size: 10px;
+}
+
+.quote-ht-pdf-v2 .qp-price-amt {
+  color: var(--qp-orange);
+  font-size: 34px;
+  font-weight: 900;
+}
+
+.quote-ht-pdf-v2 .qp-price-sub {
+  color: #b8c9de;
+}
+
+/* ── Welcome ── */
+.quote-ht-pdf-v2 .qp-welcome {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px 24px;
+  background: #fff;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.quote-ht-pdf-v2 .qp-welcome-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--qp-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.quote-ht-pdf-v2 .qp-welcome-body p {
+  margin: 0 0 8px;
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.quote-ht-pdf-v2 .qp-welcome-body strong {
+  color: var(--qp-navy);
+  font-size: 15px;
+}
+
+.quote-ht-pdf-v2 .qp-welcome-highlight {
+  color: var(--qp-orange);
+  font-weight: 700;
+}
+
+/* ── Section headings ── */
+.quote-ht-pdf-v2 .qp-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 18px 24px 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--qp-navy);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.quote-ht-pdf-v2 .qp-section-head::after {
+  display: none;
+}
+
+.quote-ht-pdf-v2 .qp-section-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--qp-sky);
+  border: 1px solid var(--qp-sky-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.quote-ht-pdf-v2 .qp-section {
+  display: none;
+}
+
+/* ── Package overview ── */
+.quote-ht-pdf-v2 .qp-overview-grid {
+  margin: 0 24px 8px;
+  border: 1px solid #e5eaf0;
+  border-radius: 10px;
+  background: #fafbfc;
+  gap: 0;
+}
+
+.quote-ht-pdf-v2 .qp-overview-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-color: #eef1f5;
+  background: #fff;
+}
+
+.quote-ht-pdf-v2 .qp-overview-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.quote-ht-pdf-v2 .qp-overview-icon.qp-ico-blue { background: #e8f0fe; color: #2563eb; }
+.quote-ht-pdf-v2 .qp-overview-icon.qp-ico-green { background: #e8f8ef; color: #059669; }
+.quote-ht-pdf-v2 .qp-overview-icon.qp-ico-orange { background: var(--qp-orange-soft); color: var(--qp-orange); }
+.quote-ht-pdf-v2 .qp-overview-icon.qp-ico-purple { background: #f3e8ff; color: #7c3aed; }
+
+.quote-ht-pdf-v2 .qp-overview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.quote-ht-pdf-v2 .qp-overview-lbl {
+  font-size: 10px;
+  color: var(--qp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quote-ht-pdf-v2 .qp-overview-val {
+  font-size: 13px;
+  color: var(--qp-text);
+  font-weight: 700;
+}
+
+/* ── Vehicle banner ── */
+.quote-ht-pdf-v2 .qp-vehicle-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 24px 8px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: var(--qp-sky);
+  border: 1px solid var(--qp-sky-border);
+}
+
+.quote-ht-pdf-v2 .qp-vehicle-thumb {
+  width: 120px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #fff;
+  border: 1px solid #d0e4f2;
+  flex-shrink: 0;
+}
+
+.quote-ht-pdf-v2 .qp-vehicle-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  background: #fff;
+}
+
+.quote-ht-pdf-v2 .qp-vehicle-name {
+  font-size: 16px;
+  color: var(--qp-navy);
+}
+
+.quote-ht-pdf-v2 .qp-vehicle-meta {
+  color: #4a6078;
+}
+
+.quote-ht-pdf-v2 .qp-vehicle-dates {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--qp-muted);
+  font-size: 11px;
+}
+
+/* ── Timeline itinerary ── */
+.quote-ht-pdf-v2 .qp-timeline {
+  margin: 0 24px 8px;
+  padding: 8px 0;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-row {
+  display: grid;
+  grid-template-columns: 72px 1fr 88px;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 4px;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-dot {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--qp-navy-mid);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.15;
+  z-index: 1;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-dot.is-last {
+  background: var(--qp-orange);
+}
+
+.quote-ht-pdf-v2 .qp-timeline-line {
+  flex: 1;
+  width: 0;
+  border-left: 2px dashed #c5d0dc;
+  min-height: 24px;
+  margin: 4px 0;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-body {
+  padding: 8px 0 16px;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-body h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--qp-navy);
+}
+
+.quote-ht-pdf-v2 .qp-timeline-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--qp-muted);
+  font-weight: 600;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-desc {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #4a5568;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-stay {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f0faf5;
+  border: 1px solid #c8ead8;
+  font-size: 11px;
+  color: #0d5c3a;
+  font-weight: 600;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.quote-ht-pdf-v2 .qp-timeline-art svg {
+  width: 72px;
+  height: 72px;
+  opacity: 0.85;
+}
+
+/* Hide old day cards when timeline is used */
+.quote-ht-pdf-v2 .qp-day {
+  display: none;
+}
+
+/* ── Trust bar ── */
+.quote-ht-pdf-v2 .qp-trust-bar {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 18px 20px;
+  background: var(--qp-navy);
+  color: #fff;
+}
+
+.quote-ht-pdf-v2 .qp-trust-item {
+  text-align: center;
+  padding: 0 6px;
+}
+
+.quote-ht-pdf-v2 .qp-trust-icon {
+  font-size: 22px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.quote-ht-pdf-v2 .qp-trust-label {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #c5d4e8;
+}
+
+/* ── Payment flow ── */
+.quote-ht-pdf-v2 .qp-pay-grid {
+  display: none;
+}
+
+.quote-ht-pdf-v2 .qp-pay-flow-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  margin: 0 24px 8px;
+  padding-bottom: 8px;
+}
+
+.quote-ht-pdf-v2 .qp-pay-flow {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 100px;
+  max-width: 120px;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--qp-orange);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--qp-navy);
+  line-height: 1.3;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-pct {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--qp-muted);
+  font-weight: 600;
+}
+
+.quote-ht-pdf-v2 .qp-pay-step-amt {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--qp-navy);
+  font-weight: 700;
+}
+
+.quote-ht-pdf-v2 .qp-pay-arrow {
+  color: #c5d0dc;
+  font-size: 18px;
+  padding: 8px 2px 0;
+  font-weight: 300;
+}
+
+.quote-ht-pdf-v2 .qp-pay-secure {
+  min-width: 140px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--qp-navy);
+  color: #fff;
+  text-align: center;
+}
+
+.quote-ht-pdf-v2 .qp-pay-secure-icon {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.quote-ht-pdf-v2 .qp-pay-secure-title {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.quote-ht-pdf-v2 .qp-pay-secure-sub {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #b8c9de;
+}
+
+/* ── Accent tweaks for rest of doc ── */
+.quote-ht-pdf-v2 .qp-inc-head {
+  background: linear-gradient(135deg, #e8f8ef 0%, #f4fcf7 100%);
+}
+
+.quote-ht-pdf-v2 .qp-bank-name {
+  border-bottom-color: var(--qp-orange);
+}
+
+.quote-ht-pdf-v2 .qp-footer {
+  background: var(--qp-navy);
+  color: #c5d4e8;
+}
+
+@media print {
+  .quote-ht-pdf-v2 .qp-trust-bar,
+  .quote-ht-pdf-v2 .qp-timeline-row {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

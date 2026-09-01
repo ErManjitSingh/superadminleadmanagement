@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import './quotePdfTemplate.css';
+import './quotePdfEmbDesign.css';
 import { COMPANY_INFO, quoteHasHotels } from './constants';
 import { useTenant } from '../../context/TenantContext';
 import { formatINR } from './quotationUtils';
@@ -27,6 +28,62 @@ import travelAgentCertificate from '../../assets/hp-travel-agent-certificate.png
 
 const DEFAULT_COVER =
   'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1200&q=80';
+
+const OVERVIEW_ICONS = ['📦', '📋', '📍', '📅', '🏁', '⏱', '👥', '🍽', '🏨', '👤', '📞', '💼'];
+const OVERVIEW_ICON_COLORS = ['qp-ico-blue', 'qp-ico-green', 'qp-ico-orange', 'qp-ico-purple'];
+const TRUST_ITEMS = [
+  { icon: '🏍', label: 'Premium Fleet' },
+  { icon: '🚗', label: 'Private Cabs' },
+  { icon: '😊', label: 'Happy Travellers' },
+  { icon: '🛡', label: 'Safe & Secure' },
+  { icon: '🎧', label: '24/7 Support' },
+];
+
+function SectionHead({ icon, title }) {
+  return (
+    <h2 className="qp-section-head">
+      <span className="qp-section-icon" aria-hidden="true">{icon}</span>
+      {title}
+    </h2>
+  );
+}
+
+function TimelineArt({ index, total, title }) {
+  const isLast = index === total - 1;
+  const t = String(title || '').toLowerCase();
+  if (isLast) {
+    return (
+      <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
+        <path d="M40 12 L58 52 H22 Z" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
+        <circle cx="58" cy="28" r="10" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
+      </svg>
+    );
+  }
+  if (/taj|agra|monument|fort|palace|temple|delhi/.test(t)) {
+    return (
+      <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
+        <rect x="18" y="38" width="44" height="28" rx="2" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
+        <path d="M40 14 L52 38 H28 Z" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
+        <circle cx="40" cy="22" r="4" fill="#7eb8e8" />
+      </svg>
+    );
+  }
+  if (/mountain|manali|shimla|hill|trek|camp/.test(t)) {
+    return (
+      <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
+        <path d="M8 58 L28 24 L44 42 L58 18 L72 58 Z" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
+        <circle cx="62" cy="20" r="8" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 80 80" fill="none" aria-hidden="true">
+      <rect x="16" y="22" width="48" height="36" rx="6" stroke="#7eb8e8" strokeWidth="2" fill="#e8f4fc" />
+      <path d="M24 58 V42 H56 V58" stroke="#7eb8e8" strokeWidth="2" />
+      <circle cx="40" cy="34" r="8" stroke="#7eb8e8" strokeWidth="2" fill="#fff" />
+    </svg>
+  );
+}
 
 function PolicyBlock({ title, items }) {
   if (!items?.length) return null;
@@ -139,29 +196,34 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
                   {tourEndDate ? ` → ${formatQuoteDateShort(tourEndDate)}` : ''}
                 </span>
               )}
-              {lead.name && <span>For {lead.name}</span>}
             </div>
+            {lead.name && <span className="qp-customer-pill">For {lead.name}</span>}
           </div>
           <div className="qp-hero-price">
             <span className="qp-price-lbl">Total Package Cost</span>
             <span className="qp-price-amt">{formatINR(displayTotal)}</span>
-            <span className="qp-price-sub">All inclusive</span>
+            <span className="qp-price-sub">All Inclusive</span>
           </div>
         </div>
       </section>
 
       {/* Welcome */}
       <section className="qp-welcome">
-        <p><strong>Hello {lead.name || 'Guest'},</strong></p>
-        <p>Welcome to {brand.name}.</p>
-        {welcomeText.split('\n\n').slice(0, 2).map((para) => (
-          <p key={para.slice(0, 20)}>{para}</p>
-        ))}
+        <div className="qp-welcome-icon" aria-hidden="true">⛰</div>
+        <div className="qp-welcome-body">
+          <p><strong>Hello {lead.name || 'Guest'},</strong></p>
+          <p>
+            Welcome to <span className="qp-welcome-highlight">{brand.name}</span>.
+          </p>
+          {welcomeText.split('\n\n').slice(0, 2).map((para) => (
+            <p key={para.slice(0, 20)}>{para}</p>
+          ))}
+        </div>
       </section>
 
       {/* Package Overview */}
       <section className="qp-section-block">
-        <h2 className="qp-section">Package Overview</h2>
+        <SectionHead icon="📄" title="Package Overview" />
         <div className="qp-overview-grid">
           {[
             ['Package', packageName],
@@ -179,10 +241,18 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             ...(lead.phone ? [['Customer Phone', lead.phone]] : []),
             ...(planner.name ? [['Sales Executive', planner.name]] : []),
             ...(executivePhone ? [['Executive Phone', executivePhone]] : []),
-          ].map(([label, value]) => (
+          ].map(([label, value], index) => (
             <div key={label} className="qp-overview-item">
-              <span className="qp-overview-lbl">{label}</span>
-              <span className="qp-overview-val">{value}</span>
+              <span
+                className={`qp-overview-icon ${OVERVIEW_ICON_COLORS[index % OVERVIEW_ICON_COLORS.length]}`}
+                aria-hidden="true"
+              >
+                {OVERVIEW_ICONS[index % OVERVIEW_ICONS.length]}
+              </span>
+              <div className="qp-overview-text">
+                <span className="qp-overview-lbl">{label}</span>
+                <span className="qp-overview-val">{value}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -191,104 +261,122 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
       {/* Vehicles */}
       {vehicles.length > 0 && (
         <section className="qp-section-block">
-          <h2 className="qp-section">Vehicle Details</h2>
-          <div className="qp-vehicle-list">
-            {vehicles.map((v) => (
-              <div key={`${v.name}-${v.type}`} className="qp-vehicle-row">
-                <span className="qp-vehicle-icon" aria-hidden="true">🚐</span>
-                <div className="qp-vehicle-body">
-                  <p className="qp-vehicle-name">{v.name}</p>
-                  <p className="qp-vehicle-meta">
-                    {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                  <p className="qp-vehicle-dates">
-                    {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
-                    {' → '}
-                    {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
-                  </p>
-                </div>
+          <SectionHead icon="🚗" title="Vehicle Details" />
+          {vehicles.map((v) => (
+            <div key={`${v.name}-${v.type}`} className="qp-vehicle-banner">
+              <div className="qp-vehicle-thumb qp-vehicle-thumb-placeholder" aria-hidden="true">🚐</div>
+              <div className="qp-vehicle-body">
+                <p className="qp-vehicle-name">{v.name}</p>
+                <p className="qp-vehicle-meta">
+                  {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+                <p className="qp-vehicle-dates">
+                  <span aria-hidden="true">📅</span>
+                  {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
+                  {' → '}
+                  {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
+                </p>
               </div>
-            ))}
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* Day-wise itinerary — timeline layout */}
+      {itinerary.length > 0 && (
+        <section className="qp-section-block">
+          <SectionHead icon="🗺" title="Day Wise Itinerary" />
+          <div className="qp-timeline">
+            {itinerary.map((day, index) => {
+              const dayNum = day.day || index + 1;
+              const dayDate = getDayDate(travelDate, dayNum);
+              const dayHotel = includesHotel ? resolveDayHotelForItinerary(quote, dayNum) : null;
+              const dayTitle = sanitizeItineraryDayTitle(
+                day.title || `Day ${dayNum}`,
+                destination,
+              );
+              const isLast = index === itinerary.length - 1;
+              const stayDestination = dayHotel?.city && dayHotel.city !== '—' && dayHotel.city !== '-'
+                ? dayHotel.city
+                : '';
+              return (
+                <div key={day.id || `day-${dayNum}`} className="qp-timeline-row">
+                  <div className="qp-timeline-rail">
+                    <span className={`qp-timeline-dot${isLast ? ' is-last' : ''}`}>
+                      Day {dayNum}
+                    </span>
+                    {!isLast && <span className="qp-timeline-line" aria-hidden="true" />}
+                  </div>
+                  <div className="qp-timeline-body">
+                    <h3>{dayTitle}</h3>
+                    <div className="qp-timeline-meta">
+                      {dayDate && <span>📅 {formatQuoteDate(dayDate)}</span>}
+                      {(day.transport || vehicles[0]?.name) && (
+                        <span>🚗 {sanitizeTransportLabel(day.transport || vehicles[0]?.name)}</span>
+                      )}
+                    </div>
+                    {day.description && <p className="qp-timeline-desc">{day.description}</p>}
+                    {includesHotel && dayHotel?.name && (
+                      <div className="qp-timeline-stay">
+                        Stay: <strong>{dayHotel.name}</strong>
+                        {stayDestination ? ` · ${stayDestination}` : ''}
+                      </div>
+                    )}
+                  </div>
+                  <div className="qp-timeline-art">
+                    <TimelineArt index={index} total={itinerary.length} title={dayTitle} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
 
-      {/* Day-wise itinerary + hotel */}
-      {itinerary.length > 0 && (
-        <section className="qp-section-block">
-          <h2 className="qp-section">Day Wise Itinerary</h2>
-          {itinerary.map((day, index) => {
-            const dayNum = day.day || index + 1;
-            const dayDate = getDayDate(travelDate, dayNum);
-            const dayHotel = includesHotel ? resolveDayHotelForItinerary(quote, dayNum) : null;
-            const dayTitle = sanitizeItineraryDayTitle(
-              day.title || `Day ${dayNum}`,
-              destination,
-            );
-            const stayDestination = dayHotel?.city && dayHotel.city !== '—' && dayHotel.city !== '-'
-              ? dayHotel.city
-              : '';
-            return (
-              <article key={day.id || `day-${dayNum}`} className="qp-day">
-                <div className="qp-day-head">
-                  <span className="qp-day-num">Day {dayNum}</span>
-                  <div className="qp-day-title-wrap">
-                    <h3>{dayTitle}</h3>
-                    <div className="qp-day-pills">
-                      {dayDate && <span>{formatQuoteDate(dayDate)}</span>}
-                      {(day.transport || vehicles[0]?.name) && (
-                        <span>{sanitizeTransportLabel(day.transport || vehicles[0]?.name)}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {day.description && <p className="qp-day-desc">{day.description}</p>}
-                {includesHotel && dayHotel?.name && (
-                  <div className="qp-day-stay">
-                    <span className="qp-day-stay-lbl">Stay</span>
-                    <div className="qp-day-stay-body">
-                      {(dayHotel.hotelImages?.[0] || dayHotel.thumbnailUrl || dayHotel.roomImage) && (
-                        <img
-                          src={dayHotel.hotelImages?.[0] || dayHotel.thumbnailUrl || dayHotel.roomImage}
-                          alt={dayHotel.name}
-                          className="qp-day-stay-img"
-                          crossOrigin="anonymous"
-                        />
-                      )}
-                      <p>
-                        <strong>{dayHotel.name}</strong>
-                        {stayDestination ? ` · ${stayDestination}` : ''}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </section>
-      )}
+      {/* Trust bar */}
+      <div className="qp-trust-bar">
+        {TRUST_ITEMS.map((item) => (
+          <div key={item.label} className="qp-trust-item">
+            <div className="qp-trust-icon" aria-hidden="true">{item.icon}</div>
+            <div className="qp-trust-label">{item.label}</div>
+          </div>
+        ))}
+      </div>
 
-      {/* Payment schedule */}
+      {/* Payment schedule — horizontal flow */}
       <section className="qp-section-block">
-        <h2 className="qp-section">Payment Schedule</h2>
-        <div className="qp-pay-grid">
-          {paymentPlan.map((row) => (
-            <div key={row.label} className="qp-pay-card">
-              <span className="qp-pay-pct">{row.percent}%</span>
-              <span className="qp-pay-lbl">{row.label}</span>
-              {displayTotal > 0 && (
-                <span className="qp-pay-amt">{formatINR(row.amount)}</span>
-              )}
-            </div>
-          ))}
+        <SectionHead icon="💳" title="Payment Schedule" />
+        <div className="qp-pay-flow-wrap">
+          <div className="qp-pay-flow">
+            {paymentPlan.map((row, index) => (
+              <span key={row.label} style={{ display: 'contents' }}>
+                <div className="qp-pay-step">
+                  <span className="qp-pay-step-num">{index + 1}</span>
+                  <span className="qp-pay-step-title">{row.label}</span>
+                  <span className="qp-pay-step-pct">{row.percent}%</span>
+                  {displayTotal > 0 && (
+                    <span className="qp-pay-step-amt">{formatINR(row.amount)}</span>
+                  )}
+                </div>
+                {index < paymentPlan.length - 1 && (
+                  <span className="qp-pay-arrow" aria-hidden="true">→</span>
+                )}
+              </span>
+            ))}
+          </div>
+          <div className="qp-pay-secure">
+            <div className="qp-pay-secure-icon" aria-hidden="true">🛡</div>
+            <div className="qp-pay-secure-title">Flexible Payments</div>
+            <div className="qp-pay-secure-sub">100% Secure Transactions</div>
+          </div>
         </div>
       </section>
 
       {/* Inclusions & Exclusions — premium side-by-side */}
       <section className="qp-section-block">
-        <h2 className="qp-section">Inclusions &amp; Exclusions</h2>
+        <SectionHead icon="✓" title="Inclusions & Exclusions" />
         <div className="qp-inc-exc-premium">
         <div className="qp-inc-panel">
           <div className="qp-inc-exc-head qp-inc-head">
@@ -323,7 +411,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
       {/* Payment details text */}
       <section className="qp-section-block">
-        <h2 className="qp-section">Payment Details</h2>
+        <SectionHead icon="💰" title="Payment Details" />
         <div className="qp-policies">
           <PolicyBlock title="Payment Instructions" items={policies.paymentDetails} />
         </div>
@@ -331,7 +419,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
       {/* Terms & Conditions */}
       <section className="qp-section-block">
-        <h2 className="qp-section">Terms &amp; Conditions</h2>
+        <SectionHead icon="📜" title="Terms & Conditions" />
         <div className="qp-policies">
           {policies.termsAndConditions.map((section) => (
             <PolicyBlock key={section.title} title={section.title} items={section.items} />
@@ -344,7 +432,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
 
       {/* Bank details — card layout, one account + QR */}
       <section className="qp-section-block">
-        <h2 className="qp-section">Bank Details</h2>
+        <SectionHead icon="🏦" title="Bank Details" />
         <div className="qp-bank-wrap">
         {bank ? (
           <div className="qp-bank-card">
