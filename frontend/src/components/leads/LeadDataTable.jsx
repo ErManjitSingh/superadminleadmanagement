@@ -192,7 +192,7 @@ export default function LeadDataTable({
   const rowVirtualizer = useVirtualizer({
     count: tableRows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 64,
+    estimateSize: () => 72,
     overscan: 6,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();

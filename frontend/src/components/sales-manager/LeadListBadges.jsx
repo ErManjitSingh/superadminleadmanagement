@@ -132,13 +132,36 @@ export function ManagerStatusBadge({ status, lead }) {
   );
 }
 
+function formatLeadCreatedAt(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
 export function CustomerCell({ name, lead }) {
   const isReturning = lead?.isRepeatCustomer || lead?.isVip;
+  const createdLabel = formatLeadCreatedAt(lead?.createdAt);
   return (
-    <div className="flex items-center gap-2.5 min-w-0 max-w-[180px]">
+    <div className="flex items-center gap-2.5 min-w-0 max-w-[200px]">
       <Avatar name={name} size="sm" className="!w-8 !h-8 !text-[11px] shrink-0" />
       <div className="min-w-0">
         <p className="font-semibold text-sm text-content-primary truncate">{name}</p>
+        {createdLabel ? (
+          <p
+            className="text-[10px] text-content-muted truncate leading-tight"
+            title={new Date(lead.createdAt).toLocaleString('en-IN')}
+          >
+            {createdLabel}
+          </p>
+        ) : null}
         <span className={cn('text-[11px] font-medium', isReturning ? 'text-emerald-600' : 'text-blue-600')}>
           {isReturning ? 'Returning' : 'New'}
         </span>
