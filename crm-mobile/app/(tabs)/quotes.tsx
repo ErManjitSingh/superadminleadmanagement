@@ -13,7 +13,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EmptyState } from '@/src/components/EmptyState';
 import { LoadingView } from '@/src/components/LoadingView';
-import { getQuoteEditorPath } from '@/src/constants/crmMenu';
 import { useAuth } from '@/src/context/AuthContext';
 import {
   getQuotationPackageName,
@@ -46,10 +45,10 @@ export default function QuotesScreen() {
 
   const openBuilder = (opts?: { leadId?: string; quoteId?: string }) => {
     router.push({
-      pathname: '/crm-web',
+      pathname: '/quotation/builder',
       params: {
-        path: getQuoteEditorPath(role, opts),
-        title: 'Quotation Builder',
+        ...(opts?.leadId ? { leadId: opts.leadId } : {}),
+        ...(opts?.quoteId ? { quoteId: opts.quoteId } : {}),
       },
     });
   };
@@ -59,7 +58,7 @@ export default function QuotesScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Quotations</Text>
-          <Text style={styles.sub}>Same builder & PDF as website</Text>
+          <Text style={styles.sub}>Native 6-step builder · same CRM APIs</Text>
         </View>
         <Pressable onPress={() => openBuilder()} style={styles.primaryBtn}>
           <Ionicons name="add" size={18} color="#fff" />
@@ -122,8 +121,8 @@ function QuoteCard({ item, onPress }: { item: Quotation; onPress: () => void }) 
         </Text>
       </View>
       <View style={styles.viewRow}>
-        <Ionicons name="globe-outline" size={14} color={PURPLE} />
-        <Text style={styles.viewText}>Open website builder / PDF</Text>
+        <Ionicons name="document-text-outline" size={14} color={PURPLE} />
+        <Text style={styles.viewText}>Open builder / PDF</Text>
       </View>
     </Pressable>
   );

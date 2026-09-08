@@ -45,7 +45,7 @@ import {
   type Quotation,
 } from '@/src/services/quotations';
 import { createFollowUp } from '@/src/services/followups';
-import { getLeadWebPath, getQuoteEditorPath } from '@/src/constants/crmMenu';
+import { getLeadWebPath } from '@/src/constants/crmMenu';
 import { DateTimeField } from '@/src/components/DateTimeField';
 import type { Lead, LeadNote, UserRole } from '@/src/types';
 
@@ -302,11 +302,8 @@ export default function LeadDetailScreen() {
 
   const openFullQuoteBuilder = () => {
     router.push({
-      pathname: '/crm-web',
-      params: {
-        path: getQuoteEditorPath(role, { leadId: id }),
-        title: 'Quotation Builder',
-      },
+      pathname: '/quotation/builder',
+      params: { leadId: id },
     });
   };
 
@@ -550,8 +547,8 @@ export default function LeadDetailScreen() {
             </View>
 
             <Pressable onPress={openFullQuoteBuilder} style={styles.fullBuilderBtn}>
-              <AppIcon name="globe-outline" size={16} color={PURPLE} />
-              <Text style={styles.fullBuilderText}>Open website quotation builder</Text>
+              <AppIcon name="document-text-outline" size={16} color={PURPLE} />
+              <Text style={styles.fullBuilderText}>Open quotation builder</Text>
             </Pressable>
 
             {quotations.length ? (
@@ -564,11 +561,8 @@ export default function LeadDetailScreen() {
                     style={styles.quoteRow}
                     onPress={() =>
                       router.push({
-                        pathname: '/crm-web',
-                        params: {
-                          path: getQuoteEditorPath(role, { leadId: id, quoteId: q._id }),
-                          title: q.quoteNumber || 'Quotation Builder',
-                        },
+                        pathname: '/quotation/builder',
+                        params: { leadId: id, quoteId: q._id },
                       })
                     }
                   >

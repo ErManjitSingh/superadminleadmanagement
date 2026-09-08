@@ -186,6 +186,160 @@ export async function createLeadQuotation(
   return data.quotation || data;
 }
 
+export type QuotationSavePayload = {
+  leadId: string;
+  quoteId?: string;
+  status?: string;
+  asDraft?: boolean;
+  packageName: string;
+  destination: string;
+  duration: number;
+  adults: number;
+  children: number;
+  mealPlan?: string;
+  hotelCategory?: string;
+  travelDate?: string;
+  amount: number;
+  notes?: string;
+  inclusions?: string[];
+  exclusions?: string[];
+  itinerary?: Array<{ day: number; title: string; description: string }>;
+  hotels?: Array<{ name: string; nights: number; roomType?: string; mealPlan?: string }>;
+  cabs?: Array<{ vehicleName: string; vehicleType?: string; cost: number; vehicleCount?: number }>;
+};
+
+export async function saveQuotationBuilder(
+  role: UserRole,
+  payload: QuotationSavePayload
+): Promise<Quotation> {
+  const amount = Number(payload.amount) || 0;
+  const packageName = payload.packageName.trim() || 'Custom Package';
+  const destination = (payload.destination || packageName).trim();
+  const duration = Number(payload.duration) || Math.max(1, payload.itinerary?.length || 0);
+
+  const status =
+    payload.status ||
+    (role === 'sales_executive'
+      ? payload.asDraft
+        ? 'draft'
+        : 'pending_approval'
+      : role === 'admin'
+        ? payload.asDraft
+          ? 'draft'
+          : 'sent'
+        : payload.asDraft
+          ? 'draft'
+          : 'approved');
+
+  const itinerary = (payload.itinerary || []).map((d, i) => ({
+    day: d.day || i + 1,
+    title: d.title || `Day ${i + 1}`,
+    description: d.description || '',
+    activities: d.description || '',
+  }));
+
+  const snapshot = {
+    name: packageName,
+    destination,
+    duration,
+    itinerary,
+    inclusions: payload.inclusions || [],
+    exclusions: payload.exclusions || [],
+  };
+
+  const selectedHotels = (payload.hotels || [])
+    .filter((h) => h.name?.trim())
+    .map((h, i) => ({
+      day: i + 1,
+      name: h.name.trim(),
+      nights: Number(h.nights) || 1,
+      roomType: h.roomType || '',
+      mealPlan: h.mealPlan || payload.mealPlan || '',
+    }));
+
+  const selectedCabs = (payload.cabs || [])
+    .filter((c) => c.vehicleName?.trim())
+    .map((c) => ({
+      vehicleName: c.vehicleName.trim(),
+      vehicleType: c.vehicleType || c.vehicleName,
+      cost: Number(c.cost) || 0,
+      vehicleCount: Number(c.vehicleCount) || 1,
+    }));
+
+  const body: Record<string, unknown> = {
+    leadId: payload.leadId,
+    status,
+    packageSnapshot: snapshot,
+    packageInfo: {
+      packageName,
+      destination,
+      duration,
+      adults: payload.adults || 2,
+      children: payload.children || 0,
+      infants: 0,
+      mealPlan: payload.mealPlan || '',
+      hotelCategory: payload.hotelCategory || '',
+      travelDate: payload.travelDate || undefined,
+      totalCost: amount,
+    },
+    pricing: {
+      baseCost: amount,
+      hotelCost: 0,
+      cabCost: selectedCabs.reduce((s, c) => s + (c.cost || 0), 0),
+      flightCost: 0,
+      activityCost: 0,
+      taxes: 0,
+      markup: 0,
+      discount: 0,
+      gst: 0,
+      total: amount,
+      grandTotal: amount,
+    },
+    costing: {
+      lineItems: [],
+      subtotal: amount,
+      taxes: 0,
+      markup: 0,
+      discount: 0,
+      grandTotal: amount,
+    },
+    paymentPlan: [
+      { label: 'Booking Confirmation (Advance)', percent: 30, amount: Math.round(amount * 0.3) },
+      { label: 'Before Tour Begins', percent: 50, amount: Math.round(amount * 0.5) },
+      { label: 'On Arrival (Balance)', percent: 20, amount: Math.round(amount * 0.2) },
+    ],
+    importantNotes: {
+      cancellationPolicy: '',
+      termsAndConditions: '',
+      travelGuidelines: payload.notes?.trim() || '',
+      weather: '',
+      packingTips: '',
+    },
+    customizations: payload.notes?.trim() || '',
+    selectedHotels,
+    selectedCabs,
+    selectedFlights: [],
+    selectedActivities: [],
+  };
+
+  if (role === 'sales_executive') {
+    body.package = snapshot;
+  }
+
+  const base = quotationsBase(role);
+  if (payload.quoteId) {
+    const { data } = await apiClient.post(`${base}/${payload.quoteId}/autosave`, body);
+    return (data.quotation || data) as Quotation;
+  }
+  try {
+    const { data } = await apiClient.post(`${base}/autosave`, body);
+    return (data.quotation || data) as Quotation;
+  } catch {
+    const { data } = await apiClient.post(base, body);
+    return (data.quotation || data) as Quotation;
+  }
+}
+
 export async function listMyQuotations(
   role: UserRole,
   params: { page?: number; limit?: number; status?: string; segment?: string } = {}

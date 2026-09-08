@@ -120,6 +120,15 @@ export function buildDesktopViewportScript() {
           document.head.appendChild(m);
         }
         m.setAttribute('content','width=1280, initial-scale=0.28, maximum-scale=3, user-scalable=yes');
+        var style = document.createElement('style');
+        style.id = 'crm-mobile-embed';
+        style.textContent = [
+          'aside.sidebar-dark, [class*="AppSidebar"], nav[class*="MobileNav"], .SalesExecutiveMobileNav { display:none !important; }',
+          'header, [class*="TopBar"] { display:none !important; }',
+          'main[data-workspace-main] { padding-bottom: 0 !important; }',
+          'body { overflow: auto !important; }'
+        ].join('\\n');
+        if (!document.getElementById('crm-mobile-embed')) document.head.appendChild(style);
       } catch (e) {}
       true;
     })();

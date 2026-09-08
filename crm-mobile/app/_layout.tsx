@@ -156,6 +156,7 @@ export default function RootLayout() {
                 <Stack.Screen name="crm-web" options={{ headerShown: false }} />
                 <Stack.Screen name="quotation/[id]" options={{ headerShown: false }} />
                 <Stack.Screen name="quotation/create" options={{ headerShown: false }} />
+                <Stack.Screen name="quotation/builder" options={{ headerShown: false }} />
                 <Stack.Screen name="lead/convert" options={{ headerShown: false }} />
               </Stack>
             </AuthGate>
