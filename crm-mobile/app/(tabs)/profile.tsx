@@ -1,23 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'expo-router';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ROLE_LABELS } from '@/src/constants/roles';
 import { colors, radius, shadows, spacing } from '@/src/constants/theme';
 import { useAuth } from '@/src/context/AuthContext';
+import { useBranding } from '@/src/context/BrandingContext';
 import { fetchProfile } from '@/src/services/leads';
 import { fetchUnreadCount } from '@/src/services/notifications';
 import type { UserRole } from '@/src/types';
 
 export default function ProfileScreen() {
   const { user, logout, apiUrl, tenantSubdomain } = useAuth();
-  const role = user!.role as UserRole;
+  const { branding } = useBranding();
+  const role = user?.role as UserRole | undefined;
 
   const { data: profile } = useQuery({
     queryKey: ['profile', role],
-    queryFn: () => fetchProfile(role),
-    enabled: !!user,
+    queryFn: () => fetchProfile(role!),
+    enabled: !!role,
   });
 
   const unreadQuery = useQuery({
@@ -35,10 +37,33 @@ export default function ProfileScreen() {
     ]);
   };
 
+  if (!role) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ color: colors.textMuted }}>Loading profile…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.card, shadows.card]}>
+          <View style={styles.companyRow}>
+            <View style={styles.companyLogoWrap}>
+              {branding.logo ? (
+                <Image source={{ uri: branding.logo }} style={styles.companyLogo} resizeMode="contain" />
+              ) : (
+                <Ionicons name="airplane" size={22} color={colors.primary} />
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.companyName}>{branding.appTitle}</Text>
+              <Text style={styles.companyTag}>{branding.tagline || 'CRM Workspace'}</Text>
+            </View>
+          </View>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
               {(displayUser?.name || 'U').charAt(0).toUpperCase()}
@@ -88,7 +113,7 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.version}>LeadMang CRM Mobile v1.0.0</Text>
+        <Text style={styles.version}>CRM Mobile v1.0.0</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -125,6 +150,28 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  companyRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  companyLogoWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  companyLogo: { width: 40, height: 40 },
+  companyName: { fontSize: 16, fontWeight: '800', color: colors.text },
+  companyTag: { marginTop: 2, fontSize: 12, color: colors.textMuted, fontWeight: '600' },
   avatar: {
     width: 72,
     height: 72,

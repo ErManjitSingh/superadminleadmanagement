@@ -53,7 +53,7 @@ export interface LeadNote {
   _id: string;
   content: string;
   createdAt: string;
-  createdBy?: { name: string };
+  createdBy?: { name?: string } | string;
 }
 
 export interface FollowUp {
@@ -68,14 +68,42 @@ export interface FollowUp {
 
 export interface DashboardKpis {
   myLeads?: number;
+  totalLeads?: number;
   todayFollowups?: number;
+  followUpsToday?: number;
   hotLeads?: number;
   quotationsSent?: number;
   convertedLeads?: number;
   monthlyRevenue?: number;
+  revenue?: number;
   totalBudget?: number;
   totalTeamLeads?: number;
   pendingFollowups?: number;
+  overdueFollowups?: number;
+  conversionRate?: number;
+  newLeadsToday?: number;
+  unassignedLeads?: number;
+  avgResponseTime?: string;
+}
+
+export interface DashboardAlert {
+  key: string;
+  label: string;
+  count: number;
+  tone: 'rose' | 'amber' | 'violet' | 'sky';
+}
+
+export interface PipelineStage {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface SourceSlice {
+  name: string;
+  value: number;
+  pct?: number;
+  color?: string;
 }
 
 export interface DashboardData {
@@ -87,6 +115,7 @@ export interface DashboardData {
     time: string;
     priority?: string;
     destination?: string;
+    leadId?: string;
   }>;
   upcomingFollowups?: Array<{
     _id: string;
@@ -94,11 +123,25 @@ export interface DashboardData {
     destination?: string;
     scheduledAt: string;
     priority?: string;
+    leadId?: string;
   }>;
   target?: {
     progress?: number;
     target?: number;
     achieved?: number;
+    conversionRate?: number;
+  };
+  pipelineOverview?: PipelineStage[];
+  conversionProgress?: Array<{ stage: string; count: number; color: string }>;
+  leadSources?: SourceSlice[];
+  leadSourceAnalytics?: SourceSlice[];
+  alerts?: DashboardAlert[];
+  qualificationWidgets?: {
+    leadsWithoutBudget?: number;
+    leadsWithoutFollowup?: number;
+    hotLeads?: number;
+    highBudgetLeads?: number;
+    unassignedLeads?: number;
   };
 }
 

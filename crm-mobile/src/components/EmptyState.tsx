@@ -1,5 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
+import { AppIcon } from '@/src/components/AppIcon';
 import { colors, spacing } from '@/src/constants/theme';
 
 export function EmptyState({
@@ -7,14 +7,14 @@ export function EmptyState({
   title,
   subtitle,
 }: {
-  icon?: keyof typeof Ionicons.glyphMap;
+  icon?: string;
   title: string;
   subtitle?: string;
 }) {
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
-        <Ionicons name={icon} size={32} color={colors.primary} />
+        <AppIcon name={icon} size={32} color={colors.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}

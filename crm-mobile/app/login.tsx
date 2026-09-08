@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,10 +15,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getErrorMessage, useAuth } from '@/src/context/AuthContext';
-import { colors, radius, spacing } from '@/src/constants/theme';
+import { useBranding } from '@/src/context/BrandingContext';
+import { colors, spacing } from '@/src/constants/theme';
 
 export default function LoginScreen() {
   const { login, setApiUrl, setTenantSubdomain, apiUrl, tenantSubdomain } = useAuth();
+  const { branding, refreshBranding } = useBranding();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tenant, setTenant] = useState(tenantSubdomain);
@@ -35,6 +38,7 @@ export default function LoginScreen() {
       if (showAdvanced) {
         await setApiUrl(serverUrl);
         await setTenantSubdomain(tenant);
+        await refreshBranding();
       }
       await login(email.trim(), password, tenant.trim() || undefined);
     } catch (error) {
@@ -44,6 +48,9 @@ export default function LoginScreen() {
     }
   };
 
+  const title = branding.appTitle || 'CRM';
+  const primary = branding.primaryColor || '#7C3AED';
+
   return (
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
@@ -51,12 +58,18 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <LinearGradient colors={['#7C3AED', '#4F46E5']} style={styles.hero}>
+          <LinearGradient colors={['#1E1B4B', primary, '#7C3AED']} style={styles.hero}>
             <View style={styles.logoCircle}>
-              <Ionicons name="briefcase" size={34} color="#fff" />
+              {branding.logo ? (
+                <Image source={{ uri: branding.logo }} style={styles.logoImg} resizeMode="contain" />
+              ) : (
+                <Ionicons name="airplane" size={30} color={primary} />
+              )}
             </View>
-            <Text style={styles.heroTitle}>LeadMang CRM</Text>
-            <Text style={styles.heroSubtitle}>Manage leads, follow-ups & pipeline on the go</Text>
+            <Text style={styles.heroTitle}>{title}</Text>
+            <Text style={styles.heroSubtitle}>
+              {branding.tagline || 'Manage leads, quotes and follow-ups on the go'}
+            </Text>
           </LinearGradient>
 
           <View style={styles.form}>
@@ -108,7 +121,7 @@ export default function LoginScreen() {
                   value={serverUrl}
                   onChangeText={setServerUrl}
                   autoCapitalize="none"
-                  placeholder="https://yourdomain.com/api"
+                  placeholder="https://your-crm-domain.com/api"
                   placeholderTextColor={colors.textMuted}
                   style={styles.input}
                 />
@@ -141,13 +154,18 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 28,
   },
   logoCircle: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 78,
+    height: 78,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
+    overflow: 'hidden',
+  },
+  logoImg: {
+    width: 64,
+    height: 64,
   },
   heroTitle: {
     fontSize: 28,
@@ -167,24 +185,25 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.textSecondary,
+    color: colors.text,
     marginTop: spacing.sm,
   },
   input: {
-    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: Platform.OS === 'ios' ? 14 : 12,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 15,
     color: colors.text,
   },
   advancedToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
   advancedText: {
     color: colors.primary,
@@ -192,19 +211,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   advancedBox: {
-    marginTop: spacing.sm,
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
   },
   button: {
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: 16,
+    borderRadius: 14,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   buttonPressed: { opacity: 0.85 },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: '800',
+    fontSize: 16,
   },
 });

@@ -42,7 +42,15 @@
           "color": "#7C3AED",
           "sounds": []
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow LeadMang CRM to attach Aadhaar and payment screenshots.",
+          "cameraPermission": "Allow LeadMang CRM to capture Aadhaar and payment photos."
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

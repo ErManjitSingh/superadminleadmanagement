@@ -51,9 +51,9 @@ if (-not (Test-Path (Join-Path $appDir "android"))) {
 $localProps = Join-Path $appDir "android\local.properties"
 "sdk.dir=$($sdkRoot -replace '\\','/')" | Set-Content -Path $localProps -Encoding ASCII
 
-Write-Output "Building debug APK (first build may take 10+ minutes)..."
+Write-Output "Building slim APK (arm64-v8a only)..."
 Set-Location (Join-Path $appDir "android")
-.\gradlew.bat assembleDebug --no-daemon
+.\gradlew.bat assembleDebug --no-daemon "-PreactNativeArchitectures=arm64-v8a"
 
 $apkSrc = Join-Path $appDir "android\app\build\outputs\apk\debug\app-debug.apk"
 if (-not (Test-Path $apkSrc)) { throw "APK not found at $apkSrc" }
@@ -63,6 +63,10 @@ New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 $apkDest = Join-Path $distDir "LeadMang-CRM.apk"
 Copy-Item $apkSrc $apkDest -Force
 
+$desk = Join-Path $env:USERPROFILE "Desktop\LeadMang-CRM.apk"
+Copy-Item $apkDest $desk -Force
+
 Write-Output ""
 Write-Output "APK READY: $apkDest"
+Write-Output "Desktop:  $desk"
 Write-Output "Size: $([math]::Round((Get-Item $apkDest).Length / 1MB, 2)) MB"

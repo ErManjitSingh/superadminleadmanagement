@@ -19,9 +19,13 @@ export function LeadCard({ lead }: { lead: Lead }) {
         <View style={styles.topRow}>
           <View style={styles.titleBlock}>
             <Text style={styles.name} numberOfLines={1}>
-              {lead.name}
+              {typeof lead.name === 'string' ? lead.name : 'Lead'}
             </Text>
-            {lead.leadId ? <Text style={styles.leadId}>#{lead.leadId}</Text> : null}
+            {lead.leadId ? (
+              <Text style={styles.leadId}>
+                #{typeof lead.leadId === 'string' || typeof lead.leadId === 'number' ? lead.leadId : ''}
+              </Text>
+            ) : null}
           </View>
           {lead.isHot ? <HotBadge /> : null}
         </View>
@@ -31,7 +35,7 @@ export function LeadCard({ lead }: { lead: Lead }) {
             <View style={styles.metaItem}>
               <Ionicons name="location-outline" size={14} color={colors.textMuted} />
               <Text style={styles.metaText} numberOfLines={1}>
-                {lead.destination}
+                {typeof lead.destination === 'string' ? lead.destination : '—'}
               </Text>
             </View>
           ) : null}

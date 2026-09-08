@@ -10,6 +10,8 @@ import { fetchCurrentUser, loginRequest, logoutRequest } from '@/src/services/au
 import { isMobileRoleSupported } from '@/src/constants/roles';
 import type { AuthSession, User, UserRole } from '@/src/types';
 import { getErrorMessage } from '@/src/lib/apiClient';
+import { useBranding } from '@/src/context/BrandingContext';
+import { clearCrmQueryCache } from '@/src/lib/queryClient';
 
 interface AuthContextValue {
   user: User | null;
@@ -27,6 +29,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { refreshBranding, clearBranding } = useBranding();
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authStorage.clearSession();
     setUser(null);
     setToken(null);
+    clearCrmQueryCache();
   }, []);
 
   const bootstrap = useCallback(async () => {
@@ -80,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string, tenant?: string) => {
+      clearCrmQueryCache();
       const session: AuthSession = await loginRequest(email, password, tenant || tenantSubdomain);
       if (!isMobileRoleSupported(session.role as UserRole)) {
         throw new Error('This role is not supported on mobile yet. Use Sales Executive, Manager, Team Leader, or Admin.');
@@ -87,9 +92,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await authStorage.saveSession(session, tenant ?? tenantSubdomain);
       setToken(session.token);
       setUser(session);
+      await refreshBranding();
       router.replace('/(tabs)');
     },
-    [tenantSubdomain]
+    [tenantSubdomain, refreshBranding]
   );
 
   const logout = useCallback(async () => {
@@ -103,7 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authStorage.setApiUrl(trimmed);
     setApiBaseUrl(trimmed);
     setApiUrlState(trimmed);
-  }, []);
+    clearCrmQueryCache();
+    await clearBranding();
+    await refreshBranding();
+  }, [clearBranding, refreshBranding]);
 
   const setTenantSubdomain = useCallback(async (subdomain: string) => {
     const trimmed = subdomain.trim().toLowerCase();
@@ -112,7 +121,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       { ...(user as AuthSession), token: token || '' },
       trimmed
     );
-  }, [token, user]);
+    clearCrmQueryCache();
+    await refreshBranding();
+  }, [token, user, refreshBranding]);
 
   const value = useMemo(
     () => ({

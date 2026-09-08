@@ -13,9 +13,11 @@ const priorityColors = {
 export function FollowUpCard({
   item,
   onPress,
+  onComplete,
 }: {
   item: FollowUp;
   onPress?: () => void;
+  onComplete?: () => void;
 }) {
   const leadName =
     typeof item.lead === 'object' && item.lead && 'name' in item.lead
@@ -27,6 +29,7 @@ export function FollowUpCard({
       : undefined;
   const priority = (item.priority || 'medium') as keyof typeof priorityColors;
   const scheduled = item.scheduledAt ? format(parseISO(item.scheduledAt), 'dd MMM · h:mm a') : '—';
+  const canComplete = item.status !== 'completed' && !!onComplete;
 
   return (
     <Pressable
@@ -56,6 +59,18 @@ export function FollowUpCard({
             <Text style={styles.notes} numberOfLines={2}>
               {item.notes}
             </Text>
+          ) : null}
+          {canComplete ? (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation?.();
+                onComplete();
+              }}
+              style={styles.completeBtn}
+            >
+              <Ionicons name="checkmark-circle" size={16} color="#059669" />
+              <Text style={styles.completeText}>Mark complete</Text>
+            </Pressable>
           ) : null}
         </View>
       </View>
@@ -107,4 +122,16 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 18,
   },
+  completeBtn: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#ECFDF5',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  completeText: { fontSize: 12, fontWeight: '700', color: '#059669' },
 });
