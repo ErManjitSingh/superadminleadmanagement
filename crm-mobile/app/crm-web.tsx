@@ -4,9 +4,14 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppIcon } from '@/src/components/AppIcon';
-import { CRM_WEB_ORIGIN } from '@/src/constants/crmMenu';
+import { resolveCrmWebOrigin } from '@/src/constants/crmMenu';
 import { useAuth } from '@/src/context/AuthContext';
-import { buildAuthBridgeHtml, buildAuthReinjectScript, buildCrmUrl } from '@/src/lib/crmWeb';
+import {
+  buildAuthBridgeHtml,
+  buildAuthReinjectScript,
+  buildCrmUrl,
+  buildDesktopViewportScript,
+} from '@/src/lib/crmWeb';
 
 const PURPLE = '#7C3AED';
 
@@ -21,6 +26,7 @@ export default function CrmWebScreen() {
   const [error, setError] = useState<string | null>(null);
   const [bridgeKey, setBridgeKey] = useState(0);
 
+  const isQuoteBuilder = /quotation/i.test(String(path || ''));
   const targetUrl = useMemo(() => buildCrmUrl(path || '/'), [path]);
   const bridgeHtml = useMemo(() => {
     if (!token || !user) return '';
@@ -29,8 +35,10 @@ export default function CrmWebScreen() {
 
   const reinject = useMemo(() => {
     if (!token || !user) return 'true;';
-    return buildAuthReinjectScript(token, user, tenantSubdomain || undefined);
-  }, [token, user, tenantSubdomain]);
+    const auth = buildAuthReinjectScript(token, user, tenantSubdomain || undefined);
+    const desktop = isQuoteBuilder ? buildDesktopViewportScript() : 'true;';
+    return `${auth}\n${desktop}`;
+  }, [token, user, tenantSubdomain, isQuoteBuilder]);
 
   useEffect(() => {
     setLoading(true);
@@ -60,7 +68,7 @@ export default function CrmWebScreen() {
           <AppIcon name="arrow-back" size={22} color="#0F172A" />
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>
-          {title || 'CRM'}
+          {title || (isQuoteBuilder ? 'Quotation Builder' : 'CRM')}
         </Text>
         <Pressable
           onPress={() => {
@@ -95,7 +103,12 @@ export default function CrmWebScreen() {
         {loading ? (
           <View style={styles.loader}>
             <ActivityIndicator color={PURPLE} size="large" />
-            <Text style={styles.loaderText}>Opening CRM menu…</Text>
+            <Text style={styles.loaderText}>
+              {isQuoteBuilder ? 'Opening quotation builder…' : 'Opening CRM…'}
+            </Text>
+            {isQuoteBuilder ? (
+              <Text style={styles.loaderHint}>Same builder & PDF as website</Text>
+            ) : null}
           </View>
         ) : null}
         <WebView
@@ -103,7 +116,7 @@ export default function CrmWebScreen() {
           ref={webRef}
           source={{
             html: bridgeHtml,
-            baseUrl: `${CRM_WEB_ORIGIN}/`,
+            baseUrl: `${resolveCrmWebOrigin()}/`,
           }}
           style={styles.web}
           onLoadStart={() => setLoading(true)}
@@ -119,6 +132,7 @@ export default function CrmWebScreen() {
           onNavigationStateChange={(nav) => {
             setCanGoBack(nav.canGoBack);
           }}
+          injectedJavaScriptBeforeContentLoaded={isQuoteBuilder ? buildDesktopViewportScript() : undefined}
           injectedJavaScript={reinject}
           sharedCookiesEnabled
           thirdPartyCookiesEnabled
@@ -129,6 +143,7 @@ export default function CrmWebScreen() {
           setSupportMultipleWindows={false}
           originWhitelist={['*']}
           mixedContentMode="always"
+          allowsInlineMediaPlayback
         />
       </View>
     </SafeAreaView>
@@ -165,6 +180,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   loaderText: { color: '#64748B', fontWeight: '600' },
+  loaderHint: { color: '#94A3B8', fontSize: 12, fontWeight: '600' },
   error: { margin: 24, textAlign: 'center', color: '#64748B' },
   errorBox: { padding: 16, alignItems: 'center' },
   retryBtn: {

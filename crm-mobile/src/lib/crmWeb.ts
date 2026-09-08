@@ -1,11 +1,15 @@
 import type { User } from '@/src/types';
-import { CRM_WEB_ORIGIN } from '@/src/constants/crmMenu';
+import { resolveCrmWebOrigin } from '@/src/constants/crmMenu';
 
 export function buildCrmUrl(path: string) {
+  const origin = resolveCrmWebOrigin();
   const raw = Array.isArray(path) ? path[0] : path;
   const decoded = decodeURIComponent(String(raw || '/'));
-  const clean = decoded.startsWith('/') ? decoded : `/${decoded}`;
-  return `${CRM_WEB_ORIGIN.replace(/\/$/, '')}${clean}`;
+  let clean = decoded.startsWith('/') ? decoded : `/${decoded}`;
+  // Paths in the app are router paths without /app; strip if caller already included it.
+  if (clean === '/app') clean = '/';
+  if (clean.startsWith('/app/')) clean = clean.slice(4);
+  return `${origin}${clean}`;
 }
 
 export function buildAuthBridgeHtml(
@@ -98,6 +102,24 @@ export function buildAuthReinjectScript(token: string, user: User, tenantSubdoma
               : ''
           }
         }
+      } catch (e) {}
+      true;
+    })();
+  `;
+}
+
+/** Desktop-width viewport so quotation builder + PDF match the website layout. */
+export function buildDesktopViewportScript() {
+  return `
+    (function(){
+      try {
+        var m = document.querySelector('meta[name="viewport"]');
+        if (!m) {
+          m = document.createElement('meta');
+          m.setAttribute('name','viewport');
+          document.head.appendChild(m);
+        }
+        m.setAttribute('content','width=1280, initial-scale=0.28, maximum-scale=3, user-scalable=yes');
       } catch (e) {}
       true;
     })();

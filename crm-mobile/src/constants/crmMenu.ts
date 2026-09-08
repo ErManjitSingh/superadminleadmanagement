@@ -1,7 +1,18 @@
 import type { UserRole } from '@/src/types';
 
 export const CRM_WEB_ORIGIN =
-  process.env.EXPO_PUBLIC_CRM_WEB_URL || 'https://crm.exploremybharat.info';
+  process.env.EXPO_PUBLIC_CRM_WEB_URL || 'https://crm.exploremybharat.info/app';
+
+/** Ensure production CRM URLs include the /app Vite basename. */
+export function resolveCrmWebOrigin() {
+  const raw = (CRM_WEB_ORIGIN || '').replace(/\/$/, '');
+  if (!raw) return 'https://crm.exploremybharat.info/app';
+  if (/\/app$/i.test(raw)) return raw;
+  if (/exploremybharat\.info$/i.test(raw) || /indiaholidaydestination\.com$/i.test(raw)) {
+    return `${raw}/app`;
+  }
+  return raw;
+}
 
 export type MenuItem = {
   id: string;
@@ -32,7 +43,12 @@ const executiveMenu: MenuItem[] = [
     ],
   },
   { id: 'quotations', label: 'Quotations', icon: 'document-text', native: '/(tabs)/quotes' },
-  { id: 'quote-new', label: 'Create Quotation', icon: 'add-circle', native: '/quotation/create' },
+  {
+    id: 'quote-new',
+    label: 'Create Quotation',
+    icon: 'add-circle',
+    webPath: '/sales-executive/quotations/new',
+  },
   { id: 'followups', label: 'Follow-ups', icon: 'calendar', native: '/(tabs)/followups' },
   { id: 'customers', label: 'Customers', icon: 'person-circle', webPath: '/sales-executive/customers' },
   { id: 'calendar', label: 'Calendar', icon: 'calendar-outline', webPath: '/sales-executive/calendar' },
@@ -72,7 +88,7 @@ const managerMenu: MenuItem[] = [
       { id: 'q-approved', label: 'Approved Quotes', icon: 'checkmark-circle', webPath: '/sales-manager/quotations/approved' },
       { id: 'q-rejected', label: 'Rejected Quotes', icon: 'close-circle', webPath: '/sales-manager/quotations/rejected' },
       { id: 'q-native', label: 'All Quotes (App)', icon: 'list', native: '/(tabs)/quotes' },
-      { id: 'q-new', label: 'Create Quotation', icon: 'add-circle', native: '/quotation/create' },
+      { id: 'q-new', label: 'Create Quotation', icon: 'add-circle', webPath: '/sales-manager/quotations/new' },
     ],
   },
   { id: 'reports', label: 'Reports', icon: 'bar-chart', webPath: '/sales-manager/reports' },
@@ -107,7 +123,7 @@ const leaderMenu: MenuItem[] = [
       { id: 'q-approved', label: 'Approved', icon: 'checkmark-circle', webPath: '/team-leader/quotations/approved' },
       { id: 'q-rejected', label: 'Rejected', icon: 'close-circle', webPath: '/team-leader/quotations/rejected' },
       { id: 'q-native', label: 'All Quotes (App)', icon: 'list', native: '/(tabs)/quotes' },
-      { id: 'q-new', label: 'Create Quotation', icon: 'add-circle', native: '/quotation/create' },
+      { id: 'q-new', label: 'Create Quotation', icon: 'add-circle', webPath: '/team-leader/quotations/new' },
     ],
   },
   { id: 'reports', label: 'Reports', icon: 'bar-chart', webPath: '/team-leader/reports' },
@@ -142,7 +158,7 @@ const adminMenu: MenuItem[] = [
     ],
   },
   { id: 'quotations', label: 'Quotations', icon: 'document-text', native: '/(tabs)/quotes' },
-  { id: 'quote-new', label: 'Create Quotation', icon: 'add-circle', native: '/quotation/create' },
+  { id: 'quote-new', label: 'Create Quotation', icon: 'add-circle', webPath: '/quotations/new' },
   { id: 'packages', label: 'Packages', icon: 'briefcase', webPath: '/packages' },
   { id: 'bookings', label: 'Bookings', icon: 'airplane', webPath: '/operations-manager/bookings/pending' },
   { id: 'payments', label: 'Payments', icon: 'card', webPath: '/payments' },
@@ -181,6 +197,32 @@ export function getQuoteBuilderPath(role?: UserRole | null, leadId?: string): st
     case 'sales_executive':
     default:
       return `/sales-executive/quotations/new${qs}`;
+  }
+}
+
+/** Full website builder URL path (create or edit existing quote). Same PDF as CRM web. */
+export function getQuoteEditorPath(
+  role?: UserRole | null,
+  opts?: { leadId?: string; quoteId?: string }
+): string {
+  let path = getQuoteBuilderPath(role, opts?.leadId);
+  if (opts?.quoteId) {
+    path += `${path.includes('?') ? '&' : '?'}quoteId=${encodeURIComponent(opts.quoteId)}`;
+  }
+  return path;
+}
+
+export function getQuotationsListPath(role?: UserRole | null): string {
+  switch (role) {
+    case 'sales_manager':
+      return '/sales-manager/quotations/pending';
+    case 'team_leader':
+      return '/team-leader/quotations/pending';
+    case 'admin':
+      return '/quotations';
+    case 'sales_executive':
+    default:
+      return '/sales-executive/quotations';
   }
 }
 

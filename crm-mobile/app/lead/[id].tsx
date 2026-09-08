@@ -45,7 +45,7 @@ import {
   type Quotation,
 } from '@/src/services/quotations';
 import { createFollowUp } from '@/src/services/followups';
-import { getLeadWebPath, getQuoteBuilderPath } from '@/src/constants/crmMenu';
+import { getLeadWebPath, getQuoteEditorPath } from '@/src/constants/crmMenu';
 import { DateTimeField } from '@/src/components/DateTimeField';
 import type { Lead, LeadNote, UserRole } from '@/src/types';
 
@@ -302,8 +302,11 @@ export default function LeadDetailScreen() {
 
   const openFullQuoteBuilder = () => {
     router.push({
-      pathname: '/quotation/create',
-      params: { leadId: id },
+      pathname: '/crm-web',
+      params: {
+        path: getQuoteEditorPath(role, { leadId: id }),
+        title: 'Quotation Builder',
+      },
     });
   };
 
@@ -547,8 +550,8 @@ export default function LeadDetailScreen() {
             </View>
 
             <Pressable onPress={openFullQuoteBuilder} style={styles.fullBuilderBtn}>
-              <AppIcon name="document-text-outline" size={16} color={PURPLE} />
-              <Text style={styles.fullBuilderText}>Create quotation in app</Text>
+              <AppIcon name="globe-outline" size={16} color={PURPLE} />
+              <Text style={styles.fullBuilderText}>Open website quotation builder</Text>
             </Pressable>
 
             {quotations.length ? (
@@ -559,7 +562,15 @@ export default function LeadDetailScreen() {
                   <Pressable
                     key={q._id}
                     style={styles.quoteRow}
-                    onPress={() => router.push(`/quotation/${q._id}`)}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/crm-web',
+                        params: {
+                          path: getQuoteEditorPath(role, { leadId: id, quoteId: q._id }),
+                          title: q.quoteNumber || 'Quotation Builder',
+                        },
+                      })
+                    }
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={styles.quoteTitle} numberOfLines={1}>
@@ -726,7 +737,7 @@ export default function LeadDetailScreen() {
               label="Create Quotation"
               onPress={() => {
                 setShowMore(false);
-                openQuote();
+                openFullQuoteBuilder();
               }}
             />
             <SheetItem

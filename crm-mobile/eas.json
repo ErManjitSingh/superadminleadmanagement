@@ -17,7 +17,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://crm.exploremybharat.info/api"
+        "EXPO_PUBLIC_API_URL": "https://crm.exploremybharat.info/api",
+        "EXPO_PUBLIC_CRM_WEB_URL": "https://crm.exploremybharat.info/app"
       }
     },
     "production": {
