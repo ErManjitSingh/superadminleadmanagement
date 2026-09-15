@@ -114,6 +114,7 @@ export async function sendVoucherWhatsApp(voucherId, phone = '', options = {}) {
     pdfBase64: data.pdfBase64,
     fileName: data.fileName || 'voucher.pdf',
     message: data.message,
+    phone: data.phone || phone,
   });
   return data;
 }

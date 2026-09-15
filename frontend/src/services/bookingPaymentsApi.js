@@ -32,15 +32,31 @@ export async function addBookingPayment(bookingId, payload) {
 export async function resendPaymentReceipt(bookingId, paymentId, channel = 'both') {
   const { data } = await API.post(`/booking-payments/bookings/${bookingId}/payments/${paymentId}/resend`, { channel });
   const wa = data?.results?.whatsapp;
-  if ((channel === 'whatsapp' || channel === 'both') && wa?.waMeUrl) {
+
+  if (channel === 'whatsapp' || channel === 'both') {
+    if (!wa?.prepared || !wa?.waMeUrl) {
+      const reason = wa?.reason || 'unknown';
+      const messages = {
+        no_phone: 'Customer phone number missing — pehle phone update karein.',
+        no_pdf: 'Payment voucher PDF ready nahi hai. Thodi der baad dubara try karein.',
+      };
+      throw new Error(messages[reason] || `WhatsApp voucher prepare nahi hua (${reason}).`);
+    }
+
     const { openWhatsAppWithPdf } = await import('../lib/shareWhatsAppPdf');
-    await openWhatsAppWithPdf({
+    const opened = await openWhatsAppWithPdf({
       waMeUrl: wa.waMeUrl,
       pdfBase64: wa.pdfBase64,
       fileName: wa.fileName || 'receipt.pdf',
       message: wa.message,
+      phone: wa.phone,
     });
+    if (!opened?.ok) {
+      throw new Error(opened?.reason || 'WhatsApp open nahi ho paya.');
+    }
+    data.whatsappShareMode = opened.mode;
   }
+
   return data;
 }
 

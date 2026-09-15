@@ -54,11 +54,15 @@ export default function PaymentReceiptReviewModal({
     }
     setSending(true);
     try {
-      await resendPaymentReceipt(bookingId, paymentId, 'whatsapp');
+      const data = await resendPaymentReceipt(bookingId, paymentId, 'whatsapp');
       setSent(true);
-      toast.success('WhatsApp open ho gaya — voucher review karke client ko send karein.');
-    } catch {
-      toast.error('WhatsApp par voucher bhej nahi paye.');
+      if (data?.whatsappShareMode === 'download-manual') {
+        toast.success('PDF download ho gaya + WhatsApp open — voucher attach karke send karein.');
+      } else {
+        toast.success('WhatsApp open ho gaya — voucher review karke client ko send karein.');
+      }
+    } catch (err) {
+      toast.error(err?.message || 'WhatsApp par voucher bhej nahi paye.');
     } finally {
       setSending(false);
     }

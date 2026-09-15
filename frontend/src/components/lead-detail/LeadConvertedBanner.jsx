@@ -91,8 +91,8 @@ export default function LeadConvertedBanner({ status, leadId }) {
         ...(channel === 'email' || channel === 'both' ? { emailSentAt: new Date().toISOString() } : {}),
       }));
       toast.success(channel === 'email' ? 'Voucher email bhej diya.' : 'WhatsApp open ho gaya — voucher client ko bhejein.');
-    } catch {
-      toast.error('Voucher bhej nahi paye.');
+    } catch (err) {
+      toast.error(err?.message || 'Voucher bhej nahi paye.');
     } finally {
       setResending(null);
     }

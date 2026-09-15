@@ -121,7 +121,9 @@ async function sendPaymentReceiptWhatsApp(payment, booking, actor) {
   ].filter((line) => line !== null).join('\n');
 
   const waMeUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  const pdfBase64 = buffer.toString('base64');
 
+  // Never store PDF base64 in activity meta — it can fail/timeout and block WhatsApp handoff.
   if (booking.lead) {
     await logLeadActivity({
       leadId: booking.lead,
@@ -133,16 +135,19 @@ async function sendPaymentReceiptWhatsApp(payment, booking, actor) {
         paymentId: payment._id,
         receiptNumber: payment.receiptNumber,
         waMeUrl,
-        pdfBase64: buffer.toString('base64'),
+        phone,
       },
+    }).catch((err) => {
+      console.error('[PaymentWhatsApp] activity log failed', err.message);
     });
   }
 
   return {
     sent: false,
     prepared: true,
+    phone,
     waMeUrl,
-    pdfBase64: buffer.toString('base64'),
+    pdfBase64,
     fileName: payment.receiptFileName || `${payment.receiptNumber}.pdf`,
     message,
   };
