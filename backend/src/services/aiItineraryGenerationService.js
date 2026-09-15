@@ -97,12 +97,43 @@ function getAiProvider() {
   return null;
 }
 
-async function callGemini({ prompt, destination, days, nights, variationSeed }) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  // Prefer a strong model; allow override via env.
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+function isTransientGeminiStatus(status) {
+  return status === 429 || status === 503 || status === 500;
+}
+
+function friendlyAiBusyMessage(status, detail = '') {
+  const overloaded =
+    /high demand|overloaded|unavailable|try again later/i.test(detail) || status === 503;
+  if (overloaded) {
+    return 'AI is temporarily busy (high demand). Please tap Generate again in a few seconds.';
+  }
+  if (status === 429) {
+    return 'AI rate limit hit. Please wait ~30 seconds and try again.';
+  }
+  return `AI service error (${status}). Please try again.`;
+}
+
+/** Primary + fallbacks — 2.5-flash often returns 503 under load. */
+function getGeminiModelCandidates() {
+  const primary = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const extras = String(process.env.GEMINI_FALLBACK_MODELS || '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean);
+  const defaults = [
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-flash-latest',
+  ];
+  return [...new Set([primary, ...extras, ...defaults])];
+}
+
+async function callGeminiOnce({ apiKey, model, prompt, destination, days, nights, variationSeed }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
@@ -126,10 +157,10 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
-    throw new ApiError(
-      res.status >= 500 ? 502 : 400,
-      `Gemini API error (${res.status})${errText ? `: ${errText.slice(0, 300)}` : ''}`,
-    );
+    const err = new Error(errText || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.detail = errText.slice(0, 400);
+    throw err;
   }
 
   const data = await res.json();
@@ -141,6 +172,47 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
   }
 
   return parseJsonFromText(raw);
+}
+
+async function callGemini({ prompt, destination, days, nights, variationSeed }) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const models = getGeminiModelCandidates();
+  const maxAttemptsPerModel = Math.max(1, Number(process.env.GEMINI_RETRY_ATTEMPTS) || 2);
+  let lastErr;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < maxAttemptsPerModel; attempt += 1) {
+      try {
+        return await callGeminiOnce({
+          apiKey,
+          model,
+          prompt,
+          destination,
+          days,
+          nights,
+          variationSeed,
+        });
+      } catch (err) {
+        lastErr = err;
+        const status = err?.status || err?.statusCode;
+        // Non-transient (bad key, invalid model) — try next model, don't burn retries.
+        if (status && !isTransientGeminiStatus(status)) {
+          break;
+        }
+        if (attempt < maxAttemptsPerModel - 1) {
+          await sleep(800 * 2 ** attempt + Math.floor(Math.random() * 400));
+        }
+      }
+    }
+  }
+
+  const status = lastErr?.status || 503;
+  throw new ApiError(
+    status >= 500 ? 502 : 400,
+    friendlyAiBusyMessage(status, lastErr?.detail || lastErr?.message || ''),
+  );
 }
 
 async function callOpenAI({ prompt, destination, days, nights, variationSeed }) {
@@ -248,13 +320,17 @@ async function generateItineraryFromPrompt({
   try {
     parsed = provider === 'gemini' ? await callGemini(params) : await callOpenAI(params);
   } catch (err) {
-    // One retry with the other provider if both keys exist.
+    // Auto-failover to the other provider when both keys exist (covers Gemini 503 spikes).
     const other = provider === 'gemini' ? 'openai' : 'gemini';
     const hasOther =
       (other === 'openai' && process.env.OPENAI_API_KEY) ||
       (other === 'gemini' && process.env.GEMINI_API_KEY);
     if (!hasOther) throw err;
-    parsed = other === 'gemini' ? await callGemini(params) : await callOpenAI(params);
+    try {
+      parsed = other === 'gemini' ? await callGemini(params) : await callOpenAI(params);
+    } catch (err2) {
+      throw err; // surface the original (usually clearer) busy message
+    }
     const result = normalizeDays(parsed, variationSeed);
     if (!result) throw new ApiError(502, 'AI returned empty itinerary');
     return { source: other, ...result };
