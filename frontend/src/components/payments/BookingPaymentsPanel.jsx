@@ -8,17 +8,16 @@ import { formatINR, formatDate } from '../operations-manager/operationsUtils';
 import PaymentSummaryCard from './PaymentSummaryCard';
 import PaymentTimeline from './PaymentTimeline';
 import AddBookingPaymentModal from './AddBookingPaymentModal';
+import AdvanceVoucherEditModal from './AdvanceVoucherEditModal';
 import {
   getBookingPayments,
   downloadReceiptPdf,
   previewReceiptPdf,
   resendPaymentReceipt,
   sendPaymentReminder,
-  regenerateReceiptPdf,
 } from '../../services/bookingPaymentsApi';
 import { useAuth } from '../../context/AuthContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
-import { toast } from '../../context/ToastContext';
 
 const MODE_LABELS = {
   cash: 'Cash', upi: 'UPI', bank_transfer: 'Bank Transfer',
@@ -43,13 +42,14 @@ export default function BookingPaymentsPanel({
   const [addOpenInternal, setAddOpenInternal] = useState(false);
   const [resending, setResending] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [regeneratingId, setRegeneratingId] = useState(null);
+  const [editPayment, setEditPayment] = useState(null);
 
   const addOpen = addOpenProp ?? addOpenInternal;
   const setAddOpen = onAddOpenChange ?? setAddOpenInternal;
 
   const canAddPayment = ['operations_manager', 'admin', 'accountant'].includes(user?.role);
   const canSendReminder = ['operations_manager', 'admin'].includes(user?.role);
+  const canEditAdvance = ['sales_executive', 'sales_manager', 'team_leader', 'admin', 'operations_manager'].includes(user?.role);
   const isSalesExec = user?.role === 'sales_executive';
 
   const load = () => {
@@ -86,18 +86,6 @@ export default function BookingPaymentsPanel({
     }
   };
 
-  const handleRegenerate = async (paymentId) => {
-    setRegeneratingId(paymentId);
-    try {
-      await regenerateReceiptPdf(bookingId, paymentId);
-      toast.success('Advance voucher regenerated');
-    } catch (err) {
-      toast.error(err?.message || 'Advance voucher regenerate nahi ho paya.');
-    } finally {
-      setRegeneratingId(null);
-    }
-  };
-
   const handleSendReminder = async () => {
     setSendingReminder(true);
     try {
@@ -120,7 +108,7 @@ export default function BookingPaymentsPanel({
     return <div className="h-48 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />;
   }
 
-  const { payments = [], timeline = [], summary: fetchedSummary } = data || {};
+  const { payments = [], timeline = [], summary: fetchedSummary, booking: bookingSnippet } = data || {};
   const summary = summaryProp || fetchedSummary;
 
   if (variant === 'sidebar') {
@@ -213,15 +201,14 @@ export default function BookingPaymentsPanel({
                       <button type="button" onClick={() => previewReceiptPdf(bookingId, p._id)} className="p-2 rounded-lg hover:bg-violet-100 text-violet-600" title="Preview">
                         <Eye className="w-4 h-4" />
                       </button>
-                      {(p.isFirstAdvance || p.paymentType === 'advance') && (
+                      {(p.isFirstAdvance || p.paymentType === 'advance') && canEditAdvance && (
                         <button
                           type="button"
-                          onClick={() => handleRegenerate(p._id)}
-                          disabled={regeneratingId === p._id}
+                          onClick={() => setEditPayment(p)}
                           className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 text-emerald-700"
-                          title="Regenerate advance voucher"
+                          title="Edit & regenerate advance voucher"
                         >
-                          {regeneratingId === p._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          <RefreshCw className="w-3.5 h-3.5" />
                           Regenerate
                         </button>
                       )}
@@ -249,7 +236,23 @@ export default function BookingPaymentsPanel({
   );
 
   if (variant === 'history') {
-    return historyBlock;
+    return (
+      <>
+        {historyBlock}
+        <AdvanceVoucherEditModal
+          open={!!editPayment}
+          onClose={() => setEditPayment(null)}
+          bookingId={bookingId}
+          payment={editPayment}
+          booking={bookingSnippet}
+          onSaved={(result) => {
+            setEditPayment(null);
+            load();
+            onUpdated?.(result?.booking);
+          }}
+        />
+      </>
+    );
   }
 
   return (
@@ -286,6 +289,18 @@ export default function BookingPaymentsPanel({
         onClose={() => setAddOpen(false)}
         bookingId={bookingId}
         onSuccess={handlePaymentAdded}
+      />
+      <AdvanceVoucherEditModal
+        open={!!editPayment}
+        onClose={() => setEditPayment(null)}
+        bookingId={bookingId}
+        payment={editPayment}
+        booking={bookingSnippet}
+        onSaved={(result) => {
+          setEditPayment(null);
+          load();
+          onUpdated?.(result?.booking);
+        }}
       />
     </div>
   );

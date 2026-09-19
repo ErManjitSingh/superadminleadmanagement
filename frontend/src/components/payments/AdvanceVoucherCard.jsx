@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Eye, Download, ExternalLink, FileText, Loader2, MessageCircle, Mail, Wallet, Pencil, RefreshCw,
+  Eye, Download, ExternalLink, FileText, Loader2, MessageCircle, Mail, Wallet, RefreshCw,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatINR, formatDate } from '../operations-manager/operationsUtils';
@@ -8,7 +8,6 @@ import {
   previewReceiptPdf,
   downloadReceiptPdf,
   resendPaymentReceipt,
-  regenerateReceiptPdf,
 } from '../../services/bookingPaymentsApi';
 import AdvanceVoucherEditModal from './AdvanceVoucherEditModal';
 import { toast } from '../../context/ToastContext';
@@ -24,6 +23,7 @@ export default function AdvanceVoucherCard({
   className,
   compact = false,
   canEdit = true,
+  onUpdated,
 }) {
   const [busy, setBusy] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
@@ -64,6 +64,14 @@ export default function AdvanceVoucherCard({
     } finally {
       setBusy(null);
     }
+  };
+
+  const openRegenerateEditor = () => {
+    if (!advancePayment?._id) {
+      toast.error('Advance voucher abhi available nahi hai.');
+      return;
+    }
+    setEditOpen(true);
   };
 
   return (
@@ -123,28 +131,13 @@ export default function AdvanceVoucherCard({
               size="sm"
               className="h-9"
               disabled={!!busy || !advancePayment?._id}
-              onClick={() => setEditOpen(true)}
+              title="Edit details and regenerate PDF"
+              onClick={openRegenerateEditor}
             >
-              <Pencil className="w-3.5 h-3.5 mr-1.5" />
-              Edit
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              Regenerate
             </Button>
           )}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-9"
-            disabled={!!busy || !advancePayment?._id}
-            title="Latest booking details se PDF dubara banao"
-            onClick={() => run(
-              'regen',
-              () => regenerateReceiptPdf(bookingId, advancePayment._id),
-              { successMessage: 'Advance voucher regenerated' },
-            )}
-          >
-            {busy === 'regen' ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
-            Regenerate
-          </Button>
           <Button
             type="button"
             variant="outline"
@@ -202,6 +195,7 @@ export default function AdvanceVoucherCard({
         bookingId={bookingId}
         payment={advancePayment}
         booking={booking}
+        onSaved={(result) => onUpdated?.(result)}
       />
     </div>
   );

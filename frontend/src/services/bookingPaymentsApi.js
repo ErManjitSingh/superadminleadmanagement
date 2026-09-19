@@ -29,6 +29,15 @@ export async function addBookingPayment(bookingId, payload) {
   return data;
 }
 
+export async function updateAdvanceVoucher(bookingId, paymentId, payload) {
+  const { data } = await API.patch(
+    `/booking-payments/bookings/${bookingId}/payments/${paymentId}/advance-voucher`,
+    payload,
+    { skipSuccessToast: true },
+  );
+  return data;
+}
+
 export async function resendPaymentReceipt(bookingId, paymentId, channel = 'both') {
   const { data } = await API.post(`/booking-payments/bookings/${bookingId}/payments/${paymentId}/resend`, { channel });
   const wa = data?.results?.whatsapp;

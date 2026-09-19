@@ -436,6 +436,10 @@ export default function BookingDetailPage() {
               bookingId={id}
               booking={booking}
               payments={paymentData?.payments || []}
+              onUpdated={(result) => {
+                if (result?.booking) setBooking((b) => ({ ...b, ...result.booking }));
+                refreshBookingData(true);
+              }}
             />
             <VoucherCenter
               bookingId={id}

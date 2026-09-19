@@ -15,6 +15,7 @@ const {
   acknowledgeNewBooking,
   getLeadBooking,
   updateBookingContact,
+  updateAdvanceVoucherHandler,
   sendPaymentReminderHandler,
   getCustomerPayments,
 } = require('../controllers/bookingPaymentController');
@@ -38,6 +39,11 @@ router.patch(
   '/bookings/:bookingId/contact',
   authorize('sales_executive', 'sales_manager', 'team_leader', 'admin', 'operations_manager'),
   updateBookingContact
+);
+router.patch(
+  '/bookings/:bookingId/payments/:paymentId/advance-voucher',
+  authorize('sales_executive', 'sales_manager', 'team_leader', 'admin', 'operations_manager'),
+  updateAdvanceVoucherHandler
 );
 router.post(
   '/bookings/:bookingId/payments',

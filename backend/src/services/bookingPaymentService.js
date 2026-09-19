@@ -709,6 +709,121 @@ async function resendReceipt(paymentId, actor, { channel = 'both' } = {}) {
   return results;
 }
 
+/**
+ * Edit advance voucher fields on booking + payment, then force-rebuild PDF.
+ */
+async function updateAdvanceVoucher(bookingId, paymentId, payload = {}, actor = null) {
+  const booking = await Booking.findById(bookingId);
+  if (!booking) throw new Error('Booking not found');
+
+  const payment = await BookingPayment.findById(paymentId);
+  if (!payment) throw new Error('Payment not found');
+  if (String(payment.booking) !== String(bookingId)) {
+    throw new Error('Payment not found for this booking');
+  }
+
+  const str = (v) => (v == null ? undefined : String(v).trim());
+  const phone = str(payload.customerPhone ?? payload.phone);
+  const name = str(payload.customerName);
+  const email = str(payload.customerEmail);
+  const destination = str(payload.destination);
+  const pickup = str(payload.pickup);
+  const drop = str(payload.drop);
+  const packageName = str(payload.packageName);
+  const aadhaarRaw = payload.aadhaarNumber != null
+    ? String(payload.aadhaarNumber).replace(/\D/g, '').slice(0, 12)
+    : undefined;
+
+  if (name !== undefined) {
+    if (!name) throw new Error('Customer name is required');
+    booking.customerName = name;
+    payment.customerName = name;
+  }
+  if (phone !== undefined) {
+    if (!phone) throw new Error('Phone number is required');
+    booking.customerPhone = phone;
+  }
+  if (email !== undefined) booking.customerEmail = email;
+  if (destination !== undefined) {
+    if (destination) booking.destination = destination;
+  }
+  if (pickup !== undefined) booking.pickup = pickup;
+  if (drop !== undefined) booking.drop = drop;
+  if (packageName !== undefined) booking.packageName = packageName;
+  if (aadhaarRaw !== undefined) booking.aadhaarNumber = aadhaarRaw;
+
+  if (payload.totalAmount != null && payload.totalAmount !== '') {
+    const total = Number(payload.totalAmount);
+    if (!Number.isFinite(total) || total < 0) throw new Error('Invalid package cost');
+    booking.totalAmount = total;
+  }
+
+  if (payload.amount != null && payload.amount !== '') {
+    const amount = Number(payload.amount);
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('Advance amount must be greater than 0');
+    payment.amount = amount;
+  }
+  if (payload.mode) {
+    const { PAYMENT_MODES } = require('../models/BookingPayment');
+    if (!PAYMENT_MODES.includes(payload.mode)) throw new Error('Invalid payment mode');
+    payment.mode = payload.mode;
+  }
+  if (payload.paymentDate) {
+    const d = new Date(payload.paymentDate);
+    if (Number.isNaN(d.getTime())) throw new Error('Invalid payment date');
+    payment.paymentDate = d;
+  }
+  if (payload.transactionId != null) payment.transactionId = str(payload.transactionId) || '';
+  if (payload.referenceNumber != null) payment.referenceNumber = str(payload.referenceNumber) || '';
+  if (payload.remarks != null) payment.remarks = str(payload.remarks) || '';
+
+  await payment.save();
+  await booking.save();
+
+  if (booking.lead && (phone !== undefined || name !== undefined)) {
+    const leadPatch = {};
+    if (phone !== undefined) {
+      leadPatch.phone = phone;
+      leadPatch.whatsapp = phone;
+    }
+    if (name !== undefined) leadPatch.name = name;
+    await Lead.findByIdAndUpdate(booking.lead, { $set: leadPatch }).catch(() => null);
+  }
+
+  const syncedBooking = await syncBookingPaymentTotals(bookingId);
+  const paymentPlain = (await BookingPayment.findById(paymentId).lean()) || payment.toObject();
+  const receipt = await generateReceiptPdf(paymentPlain, syncedBooking || booking.toObject());
+  const updatedPayment = await BookingPayment.findByIdAndUpdate(
+    paymentId,
+    {
+      receiptNumber: receipt.receiptNumber || paymentPlain.receiptNumber,
+      receiptPdfUrl: receipt.pdfUrl,
+      receiptPdfPath: receipt.filePath,
+      receiptFileName: receipt.fileName,
+    },
+    { new: true },
+  ).lean();
+
+  await logPaymentEvent({
+    bookingId,
+    leadId: booking.lead,
+    branchId: booking.branchId,
+    paymentId,
+    type: 'receipt_generated',
+    title: 'Advance Voucher Regenerated',
+    description: `Advance voucher ${updatedPayment?.receiptNumber || ''} updated and regenerated`,
+    actor,
+    amount: updatedPayment?.amount,
+    paymentMode: updatedPayment?.mode,
+  }).catch(() => {});
+
+  return {
+    booking: syncedBooking || booking.toObject(),
+    payment: updatedPayment,
+    receipt,
+  };
+}
+
 async function getReceiptPdfBuffer(payment, { forceRegenerate = false } = {}) {
   // Always regenerate advance vouchers so cached PDFs (built with broken mongoose spreads) heal.
   const shouldRegen =
@@ -1114,6 +1229,7 @@ module.exports = {
   listBookingPayments,
   getPaymentTimeline,
   resendReceipt,
+  updateAdvanceVoucher,
   getReceiptPdfBuffer,
   buildPaymentDashboardStats,
   listCustomerPayments,

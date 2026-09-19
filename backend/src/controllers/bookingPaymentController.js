@@ -13,6 +13,7 @@ const {
   getReceiptPdfBuffer,
   buildPaymentDashboardStats,
   listCustomerPayments,
+  updateAdvanceVoucher,
 } = require('../services/bookingPaymentService');
 const { pickQuotationForLead } = require('../services/leadConversionService');
 const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
@@ -121,6 +122,19 @@ const listPaymentsForBooking = asyncHandler(async (req, res) => {
       remainingBalance: booking.remainingBalance ?? booking.pendingAmount ?? 0,
       paymentProgress: booking.paymentProgress || 0,
       paymentStatus: booking.paymentStatus || 'pending',
+    },
+    booking: {
+      _id: booking._id,
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      customerEmail: booking.customerEmail,
+      destination: booking.destination,
+      packageName: booking.packageName,
+      pickup: booking.pickup,
+      drop: booking.drop,
+      aadhaarNumber: booking.aadhaarNumber,
+      totalAmount: booking.totalAmount,
+      advanceReceived: booking.advanceReceived,
     },
   });
 });
@@ -288,6 +302,30 @@ const updateBookingContact = asyncHandler(async (req, res) => {
   });
 });
 
+/** Edit advance voucher details and regenerate PDF */
+const updateAdvanceVoucherHandler = asyncHandler(async (req, res) => {
+  const booking = await Booking.findOne(companyScopedIdFilter(req.params.bookingId, req)).lean();
+  assertTenantDocument(booking, req, 'Booking');
+
+  const payment = await BookingPayment.findOne(companyScopedIdFilter(req.params.paymentId, req)).lean();
+  assertTenantDocument(payment, req, 'Payment');
+  if (String(payment.booking) !== String(req.params.bookingId)) {
+    throw new ApiError(404, 'Payment not found for this booking');
+  }
+
+  try {
+    const result = await updateAdvanceVoucher(
+      req.params.bookingId,
+      req.params.paymentId,
+      req.body || {},
+      req.user,
+    );
+    res.json({ success: true, ...result });
+  } catch (err) {
+    throw new ApiError(400, err.message || 'Could not update advance voucher');
+  }
+});
+
 const sendPaymentReminderHandler = asyncHandler(async (req, res) => {
   if (!['operations_manager', 'admin'].includes(req.user.role)) {
     throw new ApiError(403, 'Only operations managers can send payment reminders');
@@ -317,5 +355,6 @@ module.exports = {
   acknowledgeNewBooking,
   getLeadBooking,
   updateBookingContact,
+  updateAdvanceVoucherHandler,
   sendPaymentReminderHandler,
 };
