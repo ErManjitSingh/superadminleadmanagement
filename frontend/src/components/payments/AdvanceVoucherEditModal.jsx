@@ -72,7 +72,7 @@ export default function AdvanceVoucherEditModal({
         <div className="flex justify-end gap-2 mt-6">
           <Button variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
           <Button onClick={handleSave} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save & View PDF'}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save & Regenerate'}
           </Button>
         </div>
       </div>

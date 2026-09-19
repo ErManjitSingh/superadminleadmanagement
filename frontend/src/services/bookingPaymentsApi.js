@@ -119,6 +119,11 @@ export async function previewReceiptPdf(bookingId, paymentId) {
   }
 }
 
+/** Force-rebuild advance/payment receipt PDF from latest booking data, then open it. */
+export async function regenerateReceiptPdf(bookingId, paymentId) {
+  await previewReceiptPdf(bookingId, paymentId);
+}
+
 export async function getPaymentsDashboard() {
   const { data } = await API.get('/booking-payments/dashboard', { skipSuccessToast: true });
   return data;

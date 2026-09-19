@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Download, Eye, Loader2, Plus, IndianRupee, Bell, Mail, FileText, StickyNote, MessageCircle,
+  Download, Eye, Loader2, Plus, IndianRupee, Bell, Mail, FileText, StickyNote, MessageCircle, RefreshCw,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
@@ -14,9 +14,11 @@ import {
   previewReceiptPdf,
   resendPaymentReceipt,
   sendPaymentReminder,
+  regenerateReceiptPdf,
 } from '../../services/bookingPaymentsApi';
 import { useAuth } from '../../context/AuthContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
+import { toast } from '../../context/ToastContext';
 
 const MODE_LABELS = {
   cash: 'Cash', upi: 'UPI', bank_transfer: 'Bank Transfer',
@@ -41,6 +43,7 @@ export default function BookingPaymentsPanel({
   const [addOpenInternal, setAddOpenInternal] = useState(false);
   const [resending, setResending] = useState(null);
   const [sendingReminder, setSendingReminder] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState(null);
 
   const addOpen = addOpenProp ?? addOpenInternal;
   const setAddOpen = onAddOpenChange ?? setAddOpenInternal;
@@ -80,6 +83,18 @@ export default function BookingPaymentsPanel({
       await resendPaymentReceipt(bookingId, paymentId, channel);
     } finally {
       setResending(null);
+    }
+  };
+
+  const handleRegenerate = async (paymentId) => {
+    setRegeneratingId(paymentId);
+    try {
+      await regenerateReceiptPdf(bookingId, paymentId);
+      toast.success('Advance voucher regenerated');
+    } catch (err) {
+      toast.error(err?.message || 'Advance voucher regenerate nahi ho paya.');
+    } finally {
+      setRegeneratingId(null);
     }
   };
 
@@ -198,6 +213,18 @@ export default function BookingPaymentsPanel({
                       <button type="button" onClick={() => previewReceiptPdf(bookingId, p._id)} className="p-2 rounded-lg hover:bg-violet-100 text-violet-600" title="Preview">
                         <Eye className="w-4 h-4" />
                       </button>
+                      {(p.isFirstAdvance || p.paymentType === 'advance') && (
+                        <button
+                          type="button"
+                          onClick={() => handleRegenerate(p._id)}
+                          disabled={regeneratingId === p._id}
+                          className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-100 text-emerald-700"
+                          title="Regenerate advance voucher"
+                        >
+                          {regeneratingId === p._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                          Regenerate
+                        </button>
+                      )}
                       <button type="button" onClick={() => downloadReceiptPdf(bookingId, p._id, p.receiptFileName || `${p.receiptNumber}.pdf`)} className="p-2 rounded-lg hover:bg-slate-100 text-content-secondary" title="Download">
                         <Download className="w-4 h-4" />
                       </button>

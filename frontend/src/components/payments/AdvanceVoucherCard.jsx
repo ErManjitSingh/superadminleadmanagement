@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
-  Eye, Download, ExternalLink, FileText, Loader2, MessageCircle, Mail, Wallet, Pencil,
+  Eye, Download, ExternalLink, FileText, Loader2, MessageCircle, Mail, Wallet, Pencil, RefreshCw,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { formatINR, formatDate } from '../operations-manager/operationsUtils';
@@ -8,6 +8,7 @@ import {
   previewReceiptPdf,
   downloadReceiptPdf,
   resendPaymentReceipt,
+  regenerateReceiptPdf,
 } from '../../services/bookingPaymentsApi';
 import AdvanceVoucherEditModal from './AdvanceVoucherEditModal';
 import { toast } from '../../context/ToastContext';
@@ -49,7 +50,7 @@ export default function AdvanceVoucherCard({
   const voucherSent = !!(advancePayment?.whatsappSentAt || advancePayment?.emailSentAt);
   const fileName = advancePayment?.receiptFileName || `${receiptNo}.pdf`;
 
-  const run = async (key, fn) => {
+  const run = async (key, fn, { successMessage } = {}) => {
     if (!advancePayment?._id) {
       toast.error('Advance voucher abhi available nahi hai.');
       return;
@@ -57,6 +58,7 @@ export default function AdvanceVoucherCard({
     setBusy(key);
     try {
       await fn();
+      if (successMessage) toast.success(successMessage);
     } catch (err) {
       toast.error(err?.message || 'Advance voucher open nahi ho paya.');
     } finally {
@@ -127,6 +129,22 @@ export default function AdvanceVoucherCard({
               Edit
             </Button>
           )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-9"
+            disabled={!!busy || !advancePayment?._id}
+            title="Latest booking details se PDF dubara banao"
+            onClick={() => run(
+              'regen',
+              () => regenerateReceiptPdf(bookingId, advancePayment._id),
+              { successMessage: 'Advance voucher regenerated' },
+            )}
+          >
+            {busy === 'regen' ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+            Regenerate
+          </Button>
           <Button
             type="button"
             variant="outline"

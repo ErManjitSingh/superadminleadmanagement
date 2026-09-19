@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Trophy, ExternalLink, Loader2, Calendar, Wallet, FileText, Eye, Download, MessageCircle, Mail, Pencil,
+  Trophy, ExternalLink, Loader2, Calendar, Wallet, FileText, Eye, Download, MessageCircle, Mail, Pencil, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -10,6 +10,7 @@ import {
   previewReceiptPdf,
   resendPaymentReceipt,
   fetchReceiptPdfBlob,
+  regenerateReceiptPdf,
 } from '../../services/bookingPaymentsApi';
 import AdvanceVoucherEditModal from '../payments/AdvanceVoucherEditModal';
 import { formatINR, formatDate } from '../operations-manager/operationsUtils';
@@ -29,6 +30,8 @@ export default function LeadConvertedBanner({ status, leadId }) {
   const [showPdf, setShowPdf] = useState(false);
   const [resending, setResending] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [pdfRefreshKey, setPdfRefreshKey] = useState(0);
 
   useEffect(() => {
     if (status !== 'converted' || !leadId) {
@@ -71,7 +74,7 @@ export default function LeadConvertedBanner({ status, leadId }) {
     return () => {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [showPdf, booking?._id, advancePayment?._id]);
+  }, [showPdf, booking?._id, advancePayment?._id, pdfRefreshKey]);
 
   if (status !== 'converted') return null;
 
@@ -95,6 +98,20 @@ export default function LeadConvertedBanner({ status, leadId }) {
       toast.error(err?.message || 'Voucher bhej nahi paye.');
     } finally {
       setResending(null);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!booking?._id || !advancePayment?._id) return;
+    setRegenerating(true);
+    try {
+      await regenerateReceiptPdf(booking._id, advancePayment._id);
+      toast.success('Advance voucher regenerated');
+      if (showPdf) setPdfRefreshKey((k) => k + 1);
+    } catch (err) {
+      toast.error(err?.message || 'Advance voucher regenerate nahi ho paya.');
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -206,6 +223,18 @@ export default function LeadConvertedBanner({ status, leadId }) {
                   <Pencil className="w-3.5 h-3.5 mr-1.5" /> Edit
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                disabled={regenerating}
+                title="Latest booking details se PDF dubara banao"
+                onClick={handleRegenerate}
+              >
+                {regenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+                Regenerate
+              </Button>
               <Button
                 type="button"
                 variant="outline"
