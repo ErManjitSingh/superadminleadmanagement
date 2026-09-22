@@ -84,7 +84,7 @@ function parseJsonFromText(raw = '') {
   try {
     return JSON.parse(candidate);
   } catch (err) {
-    throw new ApiError(`AI returned invalid JSON: ${err.message}`, 502);
+    throw new ApiError(502, `AI returned invalid JSON: ${err.message}`);
   }
 }
 
@@ -117,17 +117,20 @@ function friendlyAiBusyMessage(status, detail = '') {
   return `AI service error (${status}). Please try again.`;
 }
 
-/** Primary + fallbacks — 2.5-flash often returns 503 under load. */
+/** Primary + fallbacks — flash family often returns 503 under load. */
 function getGeminiModelCandidates() {
   const primary = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const extras = String(process.env.GEMINI_FALLBACK_MODELS || '')
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean);
+  // Prefer models that still accept generateContent for this API key.
+  // Skip retired 2.0 / gated lite ids that return 404 for new projects.
   const defaults = [
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.5-flash-lite',
+    'gemini-3.5-flash',
     'gemini-flash-latest',
   ];
   return [...new Set([primary, ...extras, ...defaults])];
@@ -179,13 +182,13 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
   if (!apiKey) return null;
 
   const models = getGeminiModelCandidates();
-  const maxAttemptsPerModel = Math.max(1, Number(process.env.GEMINI_RETRY_ATTEMPTS) || 2);
+  const maxAttemptsPerModel = Math.max(1, Number(process.env.GEMINI_RETRY_ATTEMPTS) || 3);
   let lastErr;
 
   for (const model of models) {
     for (let attempt = 0; attempt < maxAttemptsPerModel; attempt += 1) {
       try {
-        return await callGeminiOnce({
+        const parsed = await callGeminiOnce({
           apiKey,
           model,
           prompt,
@@ -194,15 +197,24 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
           nights,
           variationSeed,
         });
+        if (attempt > 0 || model !== models[0]) {
+          console.info(`[AI itinerary] OK via ${model} (attempt ${attempt + 1})`);
+        }
+        return parsed;
       } catch (err) {
         lastErr = err;
         const status = err?.status || err?.statusCode;
-        // Non-transient (bad key, invalid model) — try next model, don't burn retries.
+        console.warn(
+          `[AI itinerary] ${model} failed status=${status || 'n/a'} attempt=${attempt + 1}:`,
+          String(err?.detail || err?.message || '').slice(0, 160),
+        );
+        // Non-transient (bad key, invalid/retired model) — try next model, don't burn retries.
         if (status && !isTransientGeminiStatus(status)) {
           break;
         }
         if (attempt < maxAttemptsPerModel - 1) {
-          await sleep(800 * 2 ** attempt + Math.floor(Math.random() * 400));
+          // Longer backoff helps Gemini "high demand" 503 spikes settle.
+          await sleep(1200 * 2 ** attempt + Math.floor(Math.random() * 600));
         }
       }
     }
