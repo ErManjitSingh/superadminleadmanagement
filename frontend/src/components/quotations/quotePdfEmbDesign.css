@@ -10,6 +10,9 @@
   --qp-muted: #6c757d;
   --qp-text: #1a2332;
   font-family: 'Segoe UI', Montserrat, 'Lato', system-ui, Arial, sans-serif;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
 }
 
 /* ── Header ── */

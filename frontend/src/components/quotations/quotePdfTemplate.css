@@ -55,6 +55,9 @@
   font-family: 'Lato', 'Segoe UI', system-ui, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.65;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
 }
 
 /* ── Cover page ── */
@@ -1701,7 +1704,8 @@
   font-size: 13px;
   font-weight: 700;
   color: #0b2239;
-  word-break: break-word;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .qp-vehicle-list {
@@ -2064,7 +2068,8 @@
   font-size: 13px;
   font-weight: 700;
   color: #0b2239;
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .qp-qr-card {

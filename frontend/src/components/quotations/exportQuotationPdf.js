@@ -70,6 +70,12 @@ function prepareForCapture(root, widthPx) {
       page-break-after: auto !important;
       break-before: auto !important;
       break-after: auto !important;
+      word-break: normal !important;
+      hyphens: none !important;
+    }
+    .quote-ht-pdf-v2 .qp-bank-rows strong,
+    .quote-ht-pdf-v2 .qp-overview-val {
+      overflow-wrap: anywhere !important;
     }
     .qp-section-block, .qp-day, .qp-policies, .qp-bank-wrap,
     .qp-inc-exc-premium, .qp-vehicle-list, .qp-overview-grid,
@@ -271,6 +277,87 @@ async function captureFullContent(viewport, widthPx, scale) {
   });
 }
 
+/** Near-white / light-gray row (safe gap between text lines / sections). */
+function isBlankCanvasRow(data, width, rowY, step = 4) {
+  const rowOffset = rowY * width * 4;
+  let nonWhite = 0;
+  const maxNonWhite = Math.max(2, Math.floor(width / (step * 28)));
+  for (let x = 0; x < width; x += step) {
+    const i = rowOffset + x * 4;
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    // Paper, soft section fills (#f5–#faf) count as blank; ink / strong UI does not.
+    if (r < 238 || g < 238 || b < 238) {
+      nonWhite += 1;
+      if (nonWhite > maxNonWhite) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Prefer cutting on a blank gap so text is not sliced mid-line across PDF pages.
+ * Searches upward from the ideal A4 height for a white band; falls back to ideal.
+ */
+function findSafeSliceHeight(canvas, startY, pageHeightPx) {
+  const remaining = canvas.height - startY;
+  if (remaining <= pageHeightPx) return remaining;
+
+  const idealEnd = startY + pageHeightPx;
+  // Keep at least ~70% of a page filled; avoid huge empty bottoms.
+  const minEnd = startY + Math.floor(pageHeightPx * 0.7);
+  const gapNeeded = Math.max(3, Math.round(pageHeightPx * 0.004));
+
+  let ctx;
+  try {
+    ctx = canvas.getContext('2d', { willReadFrequently: true });
+  } catch {
+    ctx = canvas.getContext('2d');
+  }
+  if (!ctx) return pageHeightPx;
+
+  let strip;
+  try {
+    strip = ctx.getImageData(0, minEnd, canvas.width, idealEnd - minEnd + 1);
+  } catch {
+    return pageHeightPx;
+  }
+
+  const { data, width } = strip;
+  const stripH = idealEnd - minEnd + 1;
+
+  // Walk from bottom of ideal page upward; pick the widest blank band.
+  let bestCut = null;
+  let bestGap = 0;
+  let run = 0;
+  let runEnd = -1;
+
+  for (let localY = stripH - 1; localY >= 0; localY -= 1) {
+    const blank = isBlankCanvasRow(data, width, localY);
+    if (blank) {
+      if (run === 0) runEnd = localY;
+      run += 1;
+      if (run >= gapNeeded && run > bestGap) {
+        bestGap = run;
+        // Cut in the middle of the blank band
+        const midLocal = runEnd - Math.floor(run / 2);
+        bestCut = minEnd + midLocal - startY;
+      }
+    } else {
+      run = 0;
+      runEnd = -1;
+      // Already found a solid gap near the bottom — good enough
+      if (bestCut != null && bestGap >= gapNeeded) break;
+    }
+  }
+
+  if (bestCut != null && bestCut >= Math.floor(pageHeightPx * 0.7)) {
+    return bestCut;
+  }
+  return pageHeightPx;
+}
+
 async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, certificateDataUrl = null) {
   const pdf = new jsPDF({
     orientation: 'p',
@@ -280,14 +367,16 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression,
   });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  // Exact pixel height of one A4 page at this canvas width — no leftover blank band
+  // Exact pixel height of one A4 page at this canvas width
   const pageHeightPx = Math.max(1, Math.floor((canvas.width * pageHeight) / pageWidth));
 
   let y = 0;
   let page = 0;
   while (y < canvas.height) {
     const remaining = canvas.height - y;
-    const sliceH = Math.min(pageHeightPx, remaining);
+    const sliceH = remaining <= pageHeightPx
+      ? remaining
+      : findSafeSliceHeight(canvas, y, pageHeightPx);
     const pageCanvas = document.createElement('canvas');
     pageCanvas.width = canvas.width;
     pageCanvas.height = sliceH;
