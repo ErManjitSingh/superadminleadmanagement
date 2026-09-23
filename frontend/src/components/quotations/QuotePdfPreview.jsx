@@ -3,7 +3,7 @@ import './quotePdfTemplate.css';
 import './quotePdfEmbDesign.css';
 import { COMPANY_INFO, quoteHasHotels } from './constants';
 import { useTenant } from '../../context/TenantContext';
-import { formatINR, activePricingOptions } from './quotationUtils';
+import { formatINR, activePricingOptions, normalizePricingOptions } from './quotationUtils';
 import { resolveQuoteWelcomeText } from './quoteTemplateDefaults';
 import {
   resolveQuotePackage,
@@ -102,8 +102,12 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const travelDate = packageInfo.travelDate || lead.travelDate;
   const tourEndDate = duration > 0 ? getDayDate(travelDate, Math.max(1, duration)) : null;
   const displayTotal = resolveQuoteTotal(quote);
+  const normalizedOptions = normalizePricingOptions(quote?.pricing?.pricingOptions, displayTotal);
   const priceOptions = activePricingOptions(quote?.pricing);
   const showDualPrice = priceOptions.length > 1;
+  const primaryLabel = showDualPrice
+    ? null
+    : (Array.isArray(quote?.pricing?.pricingOptions) ? (normalizedOptions[0]?.label || 'Price 1') : 'Total Package Cost');
   const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
   const itinerary = pkg.itinerary || [];
@@ -182,9 +186,22 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               ))
             ) : (
               <>
-                <span className="qp-price-lbl">Total Package Cost</span>
+                <span className="qp-price-lbl">{primaryLabel}</span>
                 <span className="qp-price-amt">{formatINR(displayTotal)}</span>
-                <span className="qp-price-sub">All Inclusive</span>
+                <span className="qp-price-sub">
+                  {normalizedOptions[0]?.hotelCost > 0 || normalizedOptions[0]?.cabCost > 0
+                    ? [
+                        normalizedOptions[0].hotelCost > 0
+                          ? `Hotel ${formatINR(normalizedOptions[0].hotelCost)}`
+                          : null,
+                        normalizedOptions[0].cabCost > 0
+                          ? `Cab ${formatINR(normalizedOptions[0].cabCost)}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')
+                    : 'All Inclusive'}
+                </span>
               </>
             )}
           </div>

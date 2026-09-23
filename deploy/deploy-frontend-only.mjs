@@ -33,6 +33,9 @@ const remoteCmd = [
   "echo '==> Publish CRM to /app/...'",
   `mkdir -p ${WEB}/app`,
   `rsync -a --delete ${APP}/frontend/dist/ ${WEB}/app/`,
+  // Bust browsers that cache index.html aggressively
+  `printf '\\n<!-- deploy %s -->\\n' "$(date -u +%Y%m%d%H%M%S)" >> ${WEB}/app/index.html`,
+  `find ${WEB}/app -name 'index.html' -exec touch {} \\;`,
   `ls -la ${WEB}/app/index.html`,
   'echo DEPLOY_FRONTEND_OK',
 ].join('\n');

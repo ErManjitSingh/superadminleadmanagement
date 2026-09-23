@@ -232,6 +232,7 @@ export function StepTransportSimplified({ b }) {
 export function StepPricingSimplified({ b }) {
   return (
     <SimplifiedPricingSection
+      pricingOptions={b.state.pricing?.pricingOptions}
       totalCost={b.state.pricing?.finalPrice || 0}
       internalNotes={b.builderUi.internalNotes}
       onTotalChange={b.updatePricing}

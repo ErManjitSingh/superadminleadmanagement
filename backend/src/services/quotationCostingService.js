@@ -103,11 +103,25 @@ function calculateQuotationPricing({
   const profitAmount = total - (categoryTotals.subtotal + taxes);
   const profitMargin = total > 0 ? Math.round((profitAmount / total) * 1000) / 10 : 0;
 
+  const pricingOptions = Array.isArray(pricingInput.pricingOptions)
+    ? pricingInput.pricingOptions
+    : undefined;
+  const option1Total =
+    pricingOptions && pricingOptions[0]
+      ? Math.max(
+          0,
+          Number(pricingOptions[0].total) ||
+            (Number(pricingOptions[0].hotelCost) || 0) + (Number(pricingOptions[0].cabCost) || 0),
+        )
+      : 0;
+  const explicitTotal = toNumber(pricingInput.total) || toNumber(pricingInput.grandTotal) || option1Total;
+  const resolvedTotal = explicitTotal > 0 ? explicitTotal : total;
+
   return {
     pricing: {
-      baseCost: categoryTotals.baseCost,
-      hotelCost: categoryTotals.hotelCost || toNumber(pricingInput.hotelCost),
-      cabCost: categoryTotals.cabCost || toNumber(pricingInput.cabCost),
+      baseCost: categoryTotals.baseCost || resolvedTotal,
+      hotelCost: toNumber(pricingInput.hotelCost) || categoryTotals.hotelCost,
+      cabCost: toNumber(pricingInput.cabCost) || categoryTotals.cabCost,
       flightCost: categoryTotals.flightCost,
       activityCost: categoryTotals.activityCost,
       taxes,
@@ -115,26 +129,21 @@ function calculateQuotationPricing({
       discount,
       coupon: pricingInput.coupon || '',
       gst: toNumber(pricingInput.gst),
-      total: toNumber(pricingInput.total) > 0 ? toNumber(pricingInput.total) : total,
-      grandTotal:
-        toNumber(pricingInput.grandTotal) > 0
-          ? toNumber(pricingInput.grandTotal)
-          : (toNumber(pricingInput.total) > 0 ? toNumber(pricingInput.total) : total),
+      total: resolvedTotal,
+      grandTotal: resolvedTotal,
       profitMargin,
-      ...(Array.isArray(pricingInput.pricingOptions)
-        ? { pricingOptions: pricingInput.pricingOptions }
-        : {}),
+      ...(pricingOptions ? { pricingOptions } : {}),
     },
     costing: {
       lineItems: lineItems.map((line) => ({
         ...line,
         lineTotal: toNumber(line.quantity) * toNumber(line.unitPrice),
       })),
-      subtotal: categoryTotals.subtotal,
+      subtotal: categoryTotals.subtotal || resolvedTotal,
       taxes,
       markup,
       discount,
-      grandTotal: toNumber(pricingInput.total) > 0 ? toNumber(pricingInput.total) : total,
+      grandTotal: resolvedTotal,
       profitMargin,
     },
   };

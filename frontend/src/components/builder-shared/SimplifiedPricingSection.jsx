@@ -22,11 +22,9 @@ function PriceOptionCard({ option, index, onChange }) {
     const value = Math.max(0, Number(raw) || 0);
     const next = { ...option, [field]: value };
     if (field === 'hotelCost' || field === 'cabCost') {
-      const prevSum = (Number(option.hotelCost) || 0) + (Number(option.cabCost) || 0);
-      const wasAuto = !option.total || Number(option.total) === prevSum;
-      if (wasAuto) {
-        next.total = (field === 'hotelCost' ? value : hotel) + (field === 'cabCost' ? value : cab);
-      }
+      const nextHotel = field === 'hotelCost' ? value : hotel;
+      const nextCab = field === 'cabCost' ? value : cab;
+      next.total = nextHotel + nextCab;
     }
     onChange(next);
   };
@@ -149,13 +147,21 @@ export default function SimplifiedPricingSection({
   totalCost,
   internalNotes,
   onOptionsChange,
+  onTotalChange,
   onNotesChange,
 }) {
   const options = normalizePricingOptions(pricingOptions, totalCost);
 
   const updateOption = (index, nextOption) => {
     const next = options.map((o, i) => (i === index ? { ...nextOption, label: o.label } : o));
-    onOptionsChange(next);
+    if (typeof onOptionsChange === 'function') {
+      onOptionsChange(next);
+      return;
+    }
+    // Package builder legacy: single total field
+    if (typeof onTotalChange === 'function') {
+      onTotalChange(Number(next[0]?.total) || 0);
+    }
   };
 
   return (
@@ -163,14 +169,15 @@ export default function SimplifiedPricingSection({
       <div>
         <h2 className="text-xl font-bold text-slate-900">Pricing</h2>
         <p className="text-sm text-slate-500">
-          Client ko do quote chahiye? Price 1 aur Price 2 dono bharo — PDF & WhatsApp pe dono jayenge
+          Client ko do quote chahiye? <strong className="text-slate-700">Price 1</strong> aur{' '}
+          <strong className="text-slate-700">Price 2</strong> dono bharo — PDF & WhatsApp pe dono jayenge
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
         {options.map((option, i) => (
           <PriceOptionCard
-            key={option.label}
+            key={option.label || `price-${i}`}
             option={option}
             index={i}
             onChange={(next) => updateOption(i, next)}
@@ -185,7 +192,7 @@ export default function SimplifiedPricingSection({
         </label>
         <textarea
           value={internalNotes || ''}
-          onChange={(e) => onNotesChange(e.target.value)}
+          onChange={(e) => onNotesChange?.(e.target.value)}
           rows={4}
           className={inputCls('h-auto py-3 resize-none')}
           placeholder="Agent-only notes — not shown on customer PDF"
