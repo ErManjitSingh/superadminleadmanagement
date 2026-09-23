@@ -13,7 +13,7 @@ export const BUILDER_STEPS = [
   { id: 2, title: 'Itinerary', subtitle: 'AI Itinerary', key: 'ai-itinerary', icon: Bot },
   { id: 3, title: 'Hotels', subtitle: 'Stay Options', key: 'hotels', icon: Building2 },
   { id: 4, title: 'Transport', subtitle: 'Travel Options', key: 'transport', icon: Car },
-  { id: 5, title: 'Pricing', subtitle: 'Total Cost', key: 'pricing', icon: IndianRupee },
+  { id: 5, title: 'Pricing', subtitle: 'Price 1 & 2', key: 'pricing', icon: IndianRupee },
   { id: 6, title: 'Preview', subtitle: 'Review & Save', key: 'preview', icon: Eye },
 ];
 

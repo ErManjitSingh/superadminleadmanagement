@@ -3,7 +3,7 @@ import './quotePdfTemplate.css';
 import './quotePdfEmbDesign.css';
 import { COMPANY_INFO, quoteHasHotels } from './constants';
 import { useTenant } from '../../context/TenantContext';
-import { formatINR } from './quotationUtils';
+import { formatINR, activePricingOptions } from './quotationUtils';
 import { resolveQuoteWelcomeText } from './quoteTemplateDefaults';
 import {
   resolveQuotePackage,
@@ -102,6 +102,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const travelDate = packageInfo.travelDate || lead.travelDate;
   const tourEndDate = duration > 0 ? getDayDate(travelDate, Math.max(1, duration)) : null;
   const displayTotal = resolveQuoteTotal(quote);
+  const priceOptions = activePricingOptions(quote?.pricing);
+  const showDualPrice = priceOptions.length > 1;
   const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
   const itinerary = pkg.itinerary || [];
@@ -162,10 +164,29 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             </div>
             {lead.name && <span className="qp-customer-pill">For {lead.name}</span>}
           </div>
-          <div className="qp-hero-price">
-            <span className="qp-price-lbl">Total Package Cost</span>
-            <span className="qp-price-amt">{formatINR(displayTotal)}</span>
-            <span className="qp-price-sub">All Inclusive</span>
+          <div className={showDualPrice ? 'qp-hero-prices' : 'qp-hero-price'}>
+            {showDualPrice ? (
+              priceOptions.map((opt, i) => (
+                <div key={opt.label || i} className="qp-hero-price qp-hero-price-opt">
+                  <span className="qp-price-lbl">{opt.label || `Price ${i + 1}`}</span>
+                  <span className="qp-price-amt">{formatINR(opt.total)}</span>
+                  <span className="qp-price-sub">
+                    {[
+                      opt.hotelCost > 0 ? `Hotel ${formatINR(opt.hotelCost)}` : null,
+                      opt.cabCost > 0 ? `Cab ${formatINR(opt.cabCost)}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || 'All Inclusive'}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <>
+                <span className="qp-price-lbl">Total Package Cost</span>
+                <span className="qp-price-amt">{formatINR(displayTotal)}</span>
+                <span className="qp-price-sub">All Inclusive</span>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -304,6 +325,42 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           </div>
         ))}
       </div>
+
+      {/* Dual price options for client */}
+      {showDualPrice && (
+        <section className="qp-section-block">
+          <SectionHead icon="₹" title="Pricing Options" />
+          <div className="qp-price-options">
+            {priceOptions.map((opt, i) => (
+              <div key={opt.label || i} className="qp-price-option-card">
+                <div className="qp-price-option-badge">{opt.label || `Price ${i + 1}`}</div>
+                <div className="qp-price-option-total">{formatINR(opt.total)}</div>
+                <div className="qp-price-option-rows">
+                  {opt.hotelCost > 0 && (
+                    <div className="qp-price-option-row">
+                      <span>Hotel</span>
+                      <strong>{formatINR(opt.hotelCost)}</strong>
+                    </div>
+                  )}
+                  {opt.cabCost > 0 && (
+                    <div className="qp-price-option-row">
+                      <span>Cab / Transport</span>
+                      <strong>{formatINR(opt.cabCost)}</strong>
+                    </div>
+                  )}
+                  <div className="qp-price-option-row qp-price-option-row-total">
+                    <span>Package Total</span>
+                    <strong>{formatINR(opt.total)}</strong>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="qp-price-options-note">
+            Two package options are offered. Choose Price 1 or Price 2 as per your preference.
+          </p>
+        </section>
+      )}
 
       {/* Payment schedule — full width */}
       <section className="qp-section-block qp-pay-section">

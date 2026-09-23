@@ -81,6 +81,40 @@ export function defaultItineraryDay(day, destination) {
   };
 }
 
+export function defaultPricingOption(label = 'Price 1') {
+  return { label, hotelCost: 0, cabCost: 0, total: 0 };
+}
+
+export function defaultPricingOptions() {
+  return [defaultPricingOption('Price 1'), defaultPricingOption('Price 2')];
+}
+
+/** Normalize pricingOptions; fill missing slots so UI always has Price 1 + Price 2. */
+export function normalizePricingOptions(raw, fallbackTotal = 0) {
+  const list = Array.isArray(raw) ? raw : [];
+  const optionAt = (i, label) => {
+    const row = list[i] || {};
+    const hotelCost = Math.max(0, Number(row.hotelCost) || 0);
+    const cabCost = Math.max(0, Number(row.cabCost) || 0);
+    let total = Math.max(0, Number(row.total) || 0);
+    if (!total && (hotelCost || cabCost)) total = hotelCost + cabCost;
+    if (i === 0 && !total && fallbackTotal > 0) total = fallbackTotal;
+    return {
+      label: row.label || label,
+      hotelCost,
+      cabCost,
+      total,
+    };
+  };
+  return [optionAt(0, 'Price 1'), optionAt(1, 'Price 2')];
+}
+
+/** Options with a positive total — what the client should see. */
+export function activePricingOptions(pricing = {}) {
+  const fallback = Number(pricing.grandTotal) || Number(pricing.total) || 0;
+  return normalizePricingOptions(pricing.pricingOptions, fallback).filter((o) => o.total > 0);
+}
+
 export const defaultPricing = {
   baseCost: 0,
   hotelCost: 0,
@@ -95,6 +129,7 @@ export const defaultPricing = {
   total: 0,
   grandTotal: 0,
   profitMargin: 0,
+  pricingOptions: defaultPricingOptions(),
 };
 
 export const defaultPackageInfo = {

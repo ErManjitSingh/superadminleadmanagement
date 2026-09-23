@@ -69,6 +69,7 @@ export async function shareQuotationWithPdf({
   destination,
   duration,
   total,
+  pricingOptions,
   quoteNumber,
   executiveName,
   prebuiltBlob = null,
@@ -89,6 +90,7 @@ export async function shareQuotationWithPdf({
     destination,
     duration,
     total,
+    pricingOptions,
     quoteNumber,
     executiveName,
   });
@@ -193,6 +195,7 @@ export async function shareQuoteObjectOnWhatsApp({
     destination: lead.destination || quote.packageInfo?.destination,
     duration: quote.packageInfo?.duration || quote.packageSnapshot?.duration,
     total: quote.pricing?.total,
+    pricingOptions: quote.pricing?.pricingOptions,
     quoteNumber: quote.quoteNumber,
     executiveName,
   });

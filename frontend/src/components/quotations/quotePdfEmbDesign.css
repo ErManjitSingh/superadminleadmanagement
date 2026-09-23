@@ -131,6 +131,24 @@
   backdrop-filter: blur(4px);
 }
 
+.quote-ht-pdf-v2 .qp-hero-prices {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-self: center;
+  justify-content: flex-end;
+}
+
+.quote-ht-pdf-v2 .qp-hero-prices .qp-hero-price-opt {
+  min-width: 150px;
+  padding: 14px 16px;
+}
+
+.quote-ht-pdf-v2 .qp-hero-prices .qp-price-amt {
+  font-size: 24px;
+}
+
 .quote-ht-pdf-v2 .qp-price-lbl {
   color: #c5d4e8;
   font-size: 10px;

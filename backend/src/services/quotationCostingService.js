@@ -106,15 +106,24 @@ function calculateQuotationPricing({
   return {
     pricing: {
       baseCost: categoryTotals.baseCost,
-      hotelCost: categoryTotals.hotelCost,
-      cabCost: categoryTotals.cabCost,
+      hotelCost: categoryTotals.hotelCost || toNumber(pricingInput.hotelCost),
+      cabCost: categoryTotals.cabCost || toNumber(pricingInput.cabCost),
       flightCost: categoryTotals.flightCost,
       activityCost: categoryTotals.activityCost,
       taxes,
       markup,
       discount,
-      total,
+      coupon: pricingInput.coupon || '',
+      gst: toNumber(pricingInput.gst),
+      total: toNumber(pricingInput.total) > 0 ? toNumber(pricingInput.total) : total,
+      grandTotal:
+        toNumber(pricingInput.grandTotal) > 0
+          ? toNumber(pricingInput.grandTotal)
+          : (toNumber(pricingInput.total) > 0 ? toNumber(pricingInput.total) : total),
       profitMargin,
+      ...(Array.isArray(pricingInput.pricingOptions)
+        ? { pricingOptions: pricingInput.pricingOptions }
+        : {}),
     },
     costing: {
       lineItems: lineItems.map((line) => ({
@@ -125,7 +134,7 @@ function calculateQuotationPricing({
       taxes,
       markup,
       discount,
-      grandTotal: total,
+      grandTotal: toNumber(pricingInput.total) > 0 ? toNumber(pricingInput.total) : total,
       profitMargin,
     },
   };

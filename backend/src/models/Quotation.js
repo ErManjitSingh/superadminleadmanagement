@@ -91,7 +91,16 @@ const quotationSchema = new mongoose.Schema(
       coupon: { type: String, default: '' },
       gst: { type: Number, default: 0 },
       total: { type: Number, default: 0 },
+      grandTotal: { type: Number, default: 0 },
       profitMargin: { type: Number, default: 0 },
+      pricingOptions: [
+        {
+          label: { type: String, default: '' },
+          hotelCost: { type: Number, default: 0 },
+          cabCost: { type: Number, default: 0 },
+          total: { type: Number, default: 0 },
+        },
+      ],
     },
     costing: {
       lineItems: [{ type: mongoose.Schema.Types.Mixed }],

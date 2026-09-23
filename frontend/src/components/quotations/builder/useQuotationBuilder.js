@@ -11,6 +11,7 @@ import {
   defaultWizardState,
   DEFAULT_PAYMENT_PLAN,
   matchesResourceDestination,
+  normalizePricingOptions,
 } from '../quotationUtils';
 import { normalizePackageForQuotation } from '../../packages/builder/packageBuilderUtils';
 import {
@@ -276,6 +277,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
       const priced = Number(state.pricing.total) || Number(state.pricing.grandTotal) || 0;
       const leadBudget = Number(selectedLead?.budget) || 0;
       const total = priced > 0 ? priced : leadBudget;
+      const pricingOptions = normalizePricingOptions(state.pricing?.pricingOptions, total);
       const destList = hotelDestination ? [{ name: hotelDestination }] : [];
       return {
         leadId: state.leadId || selectedLead?._id,
@@ -283,6 +285,9 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
         status: statusOverride,
         pricing: {
           ...state.pricing,
+          pricingOptions,
+          hotelCost: pricingOptions[0].hotelCost,
+          cabCost: pricingOptions[0].cabCost,
           total,
           grandTotal: total,
           baseCost: total || Number(state.pricing.baseCost) || 0,
@@ -343,6 +348,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
       package: buildPackageSnapshot(activePkg || {}),
       pricing: {
         ...state.pricing,
+        pricingOptions: normalizePricingOptions(state.pricing?.pricingOptions, total),
         total,
         grandTotal: total,
         baseCost: total,
@@ -550,6 +556,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
       pricing: {
         ...s.pricing,
         ...(quote.pricing || {}),
+        pricingOptions: normalizePricingOptions(quote.pricing?.pricingOptions, priced),
         total: priced,
         grandTotal: priced,
         baseCost: Number(quote.pricing?.baseCost) || priced || 0,
@@ -890,10 +897,37 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
 
   const updatePricingTotal = useCallback((total) => {
     const amount = Math.max(0, Number(total) || 0);
+    setState((s) => {
+      const options = normalizePricingOptions(s.pricing?.pricingOptions, amount).map((opt, i) =>
+        i === 0 ? { ...opt, total: amount } : opt,
+      );
+      return {
+        ...s,
+        pricing: {
+          ...s.pricing,
+          total: amount,
+          grandTotal: amount,
+          baseCost: amount,
+          hotelCost: options[0].hotelCost,
+          cabCost: options[0].cabCost,
+          pricingOptions: options,
+        },
+        paymentPlan: syncPaymentAmounts(s.paymentPlan, amount),
+      };
+    });
+  }, []);
+
+  const updatePricingOptions = useCallback((nextOptions) => {
+    const options = normalizePricingOptions(nextOptions);
+    const primary = options[0];
+    const amount = Math.max(0, Number(primary.total) || 0);
     setState((s) => ({
       ...s,
       pricing: {
         ...s.pricing,
+        pricingOptions: options,
+        hotelCost: primary.hotelCost,
+        cabCost: primary.cabCost,
         total: amount,
         grandTotal: amount,
         baseCost: amount,
@@ -1017,6 +1051,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     builderUi,
     updateBuilderUi,
     updatePricingTotal,
+    updatePricingOptions,
     cabs,
     catalogHotels,
     setCatalogHotels,

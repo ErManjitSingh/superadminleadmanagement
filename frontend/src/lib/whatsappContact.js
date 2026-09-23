@@ -37,6 +37,7 @@ export function buildQuotationWhatsAppMessage({
   destination = '',
   duration = '',
   total = 0,
+  pricingOptions = [],
   quoteNumber = '',
   executiveName = '',
 } = {}) {
@@ -44,8 +45,6 @@ export function buildQuotationWhatsAppMessage({
   const dest = destination || lead.destination || 'your trip';
   const pkg = packageName || 'travel package';
   const dur = duration ? `${duration} Days` : '';
-  const price =
-    total > 0 ? `Rs.${Number(total).toLocaleString('en-IN')}` : '';
 
   const lines = [
     `Hello ${name},`,
@@ -56,7 +55,31 @@ export function buildQuotationWhatsAppMessage({
     `Package: ${pkg}`,
   ];
   if (dur) lines.push(`Duration: ${dur}`);
-  if (price) lines.push(`Total: ${price}`);
+
+  const activeOptions = (Array.isArray(pricingOptions) ? pricingOptions : [])
+    .map((o, i) => ({
+      label: o?.label || `Price ${i + 1}`,
+      hotelCost: Number(o?.hotelCost) || 0,
+      cabCost: Number(o?.cabCost) || 0,
+      total: Number(o?.total) || 0,
+    }))
+    .filter((o) => o.total > 0);
+
+  if (activeOptions.length > 1) {
+    lines.push('');
+    activeOptions.forEach((o) => {
+      const parts = [`${o.label}: Rs.${o.total.toLocaleString('en-IN')}`];
+      if (o.hotelCost > 0) parts.push(`Hotel Rs.${o.hotelCost.toLocaleString('en-IN')}`);
+      if (o.cabCost > 0) parts.push(`Cab Rs.${o.cabCost.toLocaleString('en-IN')}`);
+      lines.push(parts.join(' | '));
+    });
+  } else {
+    const singleTotal = activeOptions[0]?.total || Number(total) || 0;
+    if (singleTotal > 0) {
+      lines.push(`Total: Rs.${singleTotal.toLocaleString('en-IN')}`);
+    }
+  }
+
   if (quoteNumber && quoteNumber !== 'DRAFT' && quoteNumber !== 'PREVIEW') {
     lines.push(`Quote #: ${quoteNumber}`);
   }
