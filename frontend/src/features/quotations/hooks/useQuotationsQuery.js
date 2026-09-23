@@ -26,6 +26,7 @@ export function useQuotationsQuery({
             dateFrom: filters.dateFrom || undefined,
             dateTo: filters.dateTo || undefined,
             sentOnly: filters.sentOnly || undefined,
+            includeAdvanceVoucher: filters.includeAdvanceVoucher || undefined,
           },
         },
         endpoint

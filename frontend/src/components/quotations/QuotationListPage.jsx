@@ -14,7 +14,7 @@ import QuotationFiltersPanel from './QuotationFiltersPanel';
 import QuotationDetailDrawer from './QuotationDetailDrawer';
 import QuotationPdfOverlay from './QuotationPdfOverlay';
 import { QUOTE_STATUSES } from './constants';
-import { formatINR } from './quotationUtils';
+import { formatINR, getQuotationDisplayTotal } from './quotationUtils';
 import {
   emptyQuotationFilters,
   countQuotationActiveFilters,
@@ -197,7 +197,7 @@ export default function QuotationListPage() {
                       </td>
                     )}
                     <td className="px-4 py-3.5 text-sm text-content-secondary whitespace-nowrap">{q.package?.name || q.packageSnapshot?.name || q.packageInfo?.packageName || '—'}</td>
-                    <td className="px-4 py-3.5 text-sm font-semibold metric-tabular whitespace-nowrap">{formatINR(q.pricing?.total)}</td>
+                    <td className="px-4 py-3.5 text-sm font-semibold metric-tabular whitespace-nowrap">{formatINR(getQuotationDisplayTotal(q))}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap"><QuoteStatusBadge status={q.status} /></td>
                     <td className="px-4 py-3.5 text-xs text-content-muted whitespace-nowrap">{new Date(q.createdAt).toLocaleDateString('en-IN')}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">

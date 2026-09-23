@@ -12,6 +12,42 @@ export function formatINR(n) {
   return `₹${Number(n || 0).toLocaleString('en-IN')}`;
 }
 
+export function formatINROrDash(n) {
+  const num = Number(n);
+  if (!Number.isFinite(num) || num <= 0) return '—';
+  return `₹${num.toLocaleString('en-IN')}`;
+}
+
+/** Resolve display total across legacy pricing field variants. */
+export function getQuotationDisplayTotal(quote) {
+  const p = quote?.pricing || {};
+  const c = quote?.costing || {};
+  const lead = quote?.lead && typeof quote.lead === 'object' ? quote.lead : {};
+  const candidates = [
+    p.grandTotal,
+    p.total,
+    p.baseCost,
+    c.grandTotal,
+    c.subtotal,
+    quote?.totalPrice,
+    quote?.amount,
+    quote?.packageInfo?.totalCost,
+    lead.budget,
+    lead.packageCost,
+    quote?.budget,
+  ];
+  for (const value of candidates) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const planSum = (quote?.paymentPlan || []).reduce(
+    (sum, row) => sum + (Number(row.amount) || 0),
+    0,
+  );
+  if (planSum > 0) return planSum;
+  return 0;
+}
+
 export function getPackageTypeConfig(type) {
   const types = {
     honeymoon: { label: 'Honeymoon', color: 'rose' },

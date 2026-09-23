@@ -15,7 +15,7 @@ const {
 } = require('../utils/queryHelpers');
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
 const { withCompany } = require('../utils/branchScope');
-const { applyQuotationQueryFilters } = require('./quotationRepository');
+const { applyQuotationQueryFilters, enrichQuotationsWithAdvanceVouchers, wantsAdvanceEnrichment } = require('./quotationRepository');
 
 function applyReactivationQueryFilters(mongoFilter, query = {}) {
   const stage = query.reactivationStage || query.stage;
@@ -201,7 +201,8 @@ async function findScopedQuotationsPaginated(baseFilter, query = {}, { mapRow, c
     Quotation.countDocuments(filter),
   ]);
 
-  const data = mapRow ? rows.map(mapRow) : rows;
+  const enriched = wantsAdvanceEnrichment(query) ? await enrichQuotationsWithAdvanceVouchers(rows) : rows;
+  const data = mapRow ? enriched.map(mapRow) : enriched;
   return paginatedResponse(data, { page, limit, total });
 }
 
