@@ -36,11 +36,12 @@ import {
 } from './quotationFilterUtils';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useQuotationsQuery } from '../../features/quotations/hooks/useQuotationsQuery';
-import { DEFAULT_PAGE_SIZE } from '../ui/TablePagination';
 import { useAuth } from '../../context/AuthContext';
 import { useDataRefresh } from '../../hooks/useDataRefresh';
 import { buildWhatsAppUrl } from '../../lib/whatsappContact';
 import { cn } from '../../lib/utils';
+
+const SENT_PAGE_SIZE = 10;
 
 function formatSentAt(value) {
   if (!value) return '—';
@@ -199,7 +200,7 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
   const [executives, setExecutives] = useState([]);
   const [draftFilters, setDraftFilters] = useState(emptyQuotationFilters);
   const [appliedFilters, setAppliedFilters] = useState(emptyQuotationFilters);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: DEFAULT_PAGE_SIZE });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: SENT_PAGE_SIZE });
   const [selected, setSelected] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
