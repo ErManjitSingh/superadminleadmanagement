@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { usePermissions } from '../hooks/usePermissions';
@@ -25,8 +25,18 @@ import BulkStatusModal from '../components/leads/BulkStatusModal';
 import { bulkUpdateLeadStatus, bulkExportLeads } from '../services/leadEnterpriseApi';
 import { invalidateLeadLists } from '../lib/queryInvalidation';
 
+const QUERY_FILTER_TITLES = {
+  no_budget: { title: 'Leads Without Budget', subtitle: 'Budget not set or zero' },
+  no_followup: { title: 'Leads Without Follow-up', subtitle: 'No next follow-up scheduled' },
+  high_budget: { title: 'High Budget Leads', subtitle: 'Budget ₹60,000 and above' },
+  unassigned: { title: 'Unassigned Leads', subtitle: 'Not yet assigned to any executive' },
+  assigned: { title: 'Assigned Leads', subtitle: 'Leads assigned to team members' },
+  hot: { title: 'Hot Leads', subtitle: 'High-priority leads requiring immediate attention' },
+};
+
 export default function Leads() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { can } = usePermissions();
@@ -40,6 +50,7 @@ export default function Leads() {
     ? { view: true, edit: false, assign: false, delete: false }
     : { view: true, edit: isManagerRole, assign: isManagerRole, delete: isManagerRole };
   const config = pageConfig[location.pathname] || pageConfig['/leads'];
+  const queryFilter = searchParams.get('filter') || '';
 
   const [filters, setFilters] = useState({ ...emptyFilters, status: config.status || '' });
   const [appliedFilters, setAppliedFilters] = useState({ ...emptyFilters, status: config.status || '' });
@@ -53,19 +64,23 @@ export default function Leads() {
   const isAllLeadsPage = location.pathname === '/leads';
   const DEEP_PAGE_INDEX = 9;
 
+  const pageTitle = QUERY_FILTER_TITLES[queryFilter]?.title || config.title;
+  const pageSubtitle = QUERY_FILTER_TITLES[queryFilter]?.subtitle || config.subtitle;
+
   const apiFilters = useMemo(() => {
     const base = { ...appliedFilters };
     if (config.status && !base.status) base.status = config.status;
     if (config.assignee === 'unassigned') base.filter = 'unassigned';
     else if (config.assignee === 'assigned') base.filter = 'assigned';
     else if (config.listFilter) base.filter = config.listFilter;
+    else if (queryFilter) base.filter = queryFilter;
     if (config.todayOnly) {
       const { dateFrom, dateTo } = getTodayDateRange();
       base.dateFrom = dateFrom;
       base.dateTo = dateTo;
     }
     return base;
-  }, [appliedFilters, config.status, config.assignee, config.todayOnly, config.listFilter]);
+  }, [appliedFilters, config.status, config.assignee, config.todayOnly, config.listFilter, queryFilter]);
 
   const activeCursor = pagination.pageIndex > DEEP_PAGE_INDEX ? pageCursors[pagination.pageIndex] : null;
 
@@ -87,7 +102,7 @@ export default function Leads() {
     setAppliedFilters((f) => ({ ...f, status: config.status || '' }));
     setPagination((p) => ({ ...p, pageIndex: 0 }));
     setPageCursors({});
-  }, [config.status, config.assignee, location.pathname]);
+  }, [config.status, config.assignee, location.pathname, queryFilter]);
 
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
@@ -210,7 +225,8 @@ export default function Leads() {
   return (
     <div className="animate-fade-up">
       <LeadPageHeader
-        title={config.title}
+        title={pageTitle}
+        subtitle={pageSubtitle}
         total={totalLeads ?? undefined}
         onSeedDemo={isAdmin && location.pathname === '/leads/new-leads' ? handleSeedDemoLeads : undefined}
         seedingDemo={seedingDemo}

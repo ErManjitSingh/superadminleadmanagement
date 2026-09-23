@@ -1,14 +1,15 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Users, CalendarClock, Flame, FileText, Trophy, IndianRupee, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { formatCurrency } from '../executiveUtils';
 
 const cards = [
-  { key: 'myLeads', label: 'My Leads', sub: 'Total leads', icon: Users, iconBg: 'bg-blue-500', sparkColor: '#3B82F6' },
-  { key: 'todayFollowups', label: "Today's Follow-ups", sub: 'No follow-ups', subWhenZero: true, icon: CalendarClock, iconBg: 'bg-violet-500', sparkColor: '#8B5CF6' },
-  { key: 'hotLeads', label: 'Hot Leads', sub: 'High priority', icon: Flame, iconBg: 'bg-orange-500', sparkColor: '#F97316' },
-  { key: 'quotationsSent', label: 'Quotations Sent', sub: 'This month', icon: FileText, iconBg: 'bg-indigo-500', sparkColor: '#6366F1' },
-  { key: 'convertedLeads', label: 'Converted Leads', sub: 'This month', icon: Trophy, iconBg: 'bg-emerald-500', sparkColor: '#10B981' },
-  { key: 'monthlyRevenue', label: 'Monthly Revenue', sub: 'Won revenue', icon: IndianRupee, iconBg: 'bg-teal-500', sparkColor: '#14B8A6', format: formatCurrency },
+  { key: 'myLeads', label: 'My Leads', sub: 'Total leads', icon: Users, iconBg: 'bg-blue-500', sparkColor: '#3B82F6', href: '/sales-executive/leads/all' },
+  { key: 'todayFollowups', label: "Today's Follow-ups", sub: 'No follow-ups', subWhenZero: true, icon: CalendarClock, iconBg: 'bg-violet-500', sparkColor: '#8B5CF6', href: '/sales-executive/follow-ups' },
+  { key: 'hotLeads', label: 'Hot Leads', sub: 'High priority', icon: Flame, iconBg: 'bg-orange-500', sparkColor: '#F97316', href: '/sales-executive/leads/hot' },
+  { key: 'quotationsSent', label: 'Quotations Sent', sub: 'This month', icon: FileText, iconBg: 'bg-indigo-500', sparkColor: '#6366F1', href: '/sales-executive/quotations/sent' },
+  { key: 'convertedLeads', label: 'Converted Leads', sub: 'This month', icon: Trophy, iconBg: 'bg-emerald-500', sparkColor: '#10B981', href: '/sales-executive/leads/converted' },
+  { key: 'monthlyRevenue', label: 'Monthly Revenue', sub: 'Won revenue', icon: IndianRupee, iconBg: 'bg-teal-500', sparkColor: '#14B8A6', format: formatCurrency, href: '/sales-executive/customers' },
 ];
 
 function Sparkline({ color, seed = 1 }) {
@@ -58,7 +59,7 @@ export default function ExecutiveKpiCards({ kpis, trends }) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-      {cards.map(({ key, label, sub, subWhenZero, icon: Icon, iconBg, sparkColor, format }, i) => {
+      {cards.map(({ key, label, sub, subWhenZero, icon: Icon, iconBg, sparkColor, format, href }, i) => {
         const value = kpis[key];
         const displaySub = subWhenZero && !value ? 'No follow-ups' : sub;
 
@@ -68,22 +69,27 @@ export default function ExecutiveKpiCards({ kpis, trends }) {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="relative overflow-hidden rounded-2xl border border-subtle bg-white dark:bg-slate-900/80 shadow-sm p-4 min-h-[130px] flex flex-col"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className={`inline-flex p-2 rounded-xl ${iconBg} text-white shadow-sm`}>
-                <Icon className="w-4 h-4" />
+            <Link
+              to={href}
+              className="relative overflow-hidden rounded-2xl border border-subtle bg-white dark:bg-slate-900/80 shadow-sm p-4 min-h-[130px] flex flex-col no-underline text-inherit hover:shadow-md hover:-translate-y-0.5 hover:border-sky-300/60 transition-all"
+              aria-label={`Open ${label}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className={`inline-flex p-2 rounded-xl ${iconBg} text-white shadow-sm`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <Sparkline color={sparkColor} seed={i + (value || 1)} />
               </div>
-              <Sparkline color={sparkColor} seed={i + (value || 1)} />
-            </div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-content-muted mt-3 leading-tight">
-              {label}
-            </p>
-            <p className="text-2xl font-bold text-content-primary mt-0.5 tabular-nums">
-              {format ? format(value) : value}
-            </p>
-            <p className="text-[11px] text-content-muted">{displaySub}</p>
-            <TrendBadge trend={trends?.[key]} />
+              <p className="text-[10px] font-bold uppercase tracking-wider text-content-muted mt-3 leading-tight">
+                {label}
+              </p>
+              <p className="text-2xl font-bold text-content-primary mt-0.5 tabular-nums">
+                {format ? format(value) : value}
+              </p>
+              <p className="text-[11px] text-content-muted">{displaySub}</p>
+              <TrendBadge trend={trends?.[key]} />
+            </Link>
           </motion.div>
         );
       })}

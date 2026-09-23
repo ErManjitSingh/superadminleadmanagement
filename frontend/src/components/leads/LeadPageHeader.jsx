@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Upload, Download, Plus, Sparkles } from 'lucide-react';
 import { usePermissions } from '../../hooks/usePermissions';
 
-export default function LeadPageHeader({ title, total, onSeedDemo, seedingDemo }) {
+export default function LeadPageHeader({ title, subtitle, total, onSeedDemo, seedingDemo }) {
   const { can } = usePermissions();
   const canCreateLead = can('leads', 'create');
 
@@ -23,7 +23,7 @@ export default function LeadPageHeader({ title, total, onSeedDemo, seedingDemo }
           )}
         </div>
         <p className="text-sm text-content-secondary">
-          Manage, assign, and convert travel leads efficiently.
+          {subtitle || 'Manage, assign, and convert travel leads efficiently.'}
         </p>
       </div>
 

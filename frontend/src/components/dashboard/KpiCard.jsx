@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer } from 'recharts';
@@ -16,24 +17,16 @@ export default function KpiCard({
   sparkData = [],
   index = 0,
   compact = false,
+  to,
+  onClick,
 }) {
   const chartData = sparkData.map((v, i) => ({ i, v }));
   const isUp = changeType === 'up';
   const isNeutral = changeType === 'neutral';
+  const clickable = Boolean(to || onClick);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.03 }}
-      className={cn(
-        'group relative flex flex-col justify-between border border-subtle bg-surface shadow-sm',
-        'hover:shadow-md transition-all duration-300 min-w-0',
-        compact
-          ? 'rounded-xl p-2.5 sm:p-3 min-h-0'
-          : 'rounded-2xl p-5 min-h-[148px]',
-      )}
-    >
+  const body = (
+    <>
       <div className={cn('flex items-start justify-between gap-1.5', compact ? 'mb-1.5' : 'mb-3')}>
         <div
           className={cn(
@@ -91,6 +84,52 @@ export default function KpiCard({
           </ResponsiveContainer>
         </div>
       )}
+    </>
+  );
+
+  const className = cn(
+    'group relative flex flex-col justify-between border border-subtle bg-surface shadow-sm',
+    'hover:shadow-md transition-all duration-300 min-w-0',
+    clickable &&
+      'cursor-pointer hover:-translate-y-0.5 hover:border-sky-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/50',
+    compact ? 'rounded-xl p-2.5 sm:p-3 min-h-0' : 'rounded-2xl p-5 min-h-[148px]',
+  );
+
+  if (to) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, delay: index * 0.03 }}
+      >
+        <Link to={to} className={cn(className, 'block no-underline text-inherit')} aria-label={`Open ${label}`}>
+          {body}
+        </Link>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: index * 0.03 }}
+      className={className}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick(e);
+              }
+            }
+          : undefined
+      }
+    >
+      {body}
     </motion.div>
   );
 }

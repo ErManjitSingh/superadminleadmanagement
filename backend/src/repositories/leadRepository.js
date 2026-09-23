@@ -53,6 +53,14 @@ function buildLeadListFilter(query = {}) {
   else if (listFilter === 'hot') {
     mongoFilter.isHot = true;
     mongoFilter.status = { $nin: ['converted', 'lost', 'booked_from_another_company'] };
+  } else if (listFilter === 'no_budget') {
+    const budgetClause = { $or: [{ budget: { $exists: false } }, { budget: null }, { budget: { $lte: 0 } }] };
+    mongoFilter.$and = [...(mongoFilter.$and || []), budgetClause];
+  } else if (listFilter === 'no_followup') {
+    const followupClause = { $or: [{ nextFollowUp: { $exists: false } }, { nextFollowUp: null }] };
+    mongoFilter.$and = [...(mongoFilter.$and || []), followupClause];
+  } else if (listFilter === 'high_budget') {
+    mongoFilter.budget = { ...(mongoFilter.budget || {}), $gte: 60000 };
   }
   if (destination) mongoFilter.destination = destination;
   if (source) mongoFilter.source = source;

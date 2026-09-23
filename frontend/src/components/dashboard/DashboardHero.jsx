@@ -46,6 +46,7 @@ const KPI_CONFIG = [
     sparkKey: 'totalLeads',
     change: '+18.5%',
     changeType: 'up',
+    href: '/leads',
   },
   {
     key: 'revenue',
@@ -57,6 +58,7 @@ const KPI_CONFIG = [
     format: formatCurrency,
     change: '+18.5%',
     changeType: 'up',
+    href: '/reports',
   },
   {
     key: 'conversionRate',
@@ -68,6 +70,7 @@ const KPI_CONFIG = [
     suffix: '%',
     change: '-2.4%',
     changeType: 'down',
+    href: '/leads/analytics',
   },
   {
     key: 'convertedLeads',
@@ -78,6 +81,7 @@ const KPI_CONFIG = [
     sparkKey: 'converted',
     change: '+16.3%',
     changeType: 'up',
+    href: '/leads/converted',
   },
   {
     key: 'avgResponseTime',
@@ -88,6 +92,7 @@ const KPI_CONFIG = [
     sparkKey: 'avgResponse',
     change: '-8.5%',
     changeType: 'down',
+    href: '/leads/sla',
   },
   {
     key: 'hotLeads',
@@ -98,6 +103,7 @@ const KPI_CONFIG = [
     sparkKey: 'hotLeads',
     change: '+9.1%',
     changeType: 'up',
+    href: '/leads/hot',
   },
 ];
 
@@ -171,6 +177,7 @@ export default function DashboardHero({ stats }) {
               sparkData={sparkFromStats(stats, cfg.sparkKey, numericBase)}
               index={i}
               compact
+              to={cfg.href}
             />
           );
         })}
