@@ -204,9 +204,17 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
   const [selected, setSelected] = useState(null);
   const [showPdf, setShowPdf] = useState(false);
   const [autoPrint, setAutoPrint] = useState(false);
-  const [voucherFilter, setVoucherFilter] = useState('all'); // all | sent | pending | none
+  const [voucherFilter, setVoucherFilter] = useState('all'); // all | sent | pending | none | today | priced
   const pdfRef = useRef(null);
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
+
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
 
   const queryFilters = useMemo(
     () => ({
@@ -231,14 +239,24 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
   const pageCount = Math.max(1, Math.ceil(total / pagination.pageSize) || 1);
 
   const filteredQuotes = useMemo(() => {
-    if (voucherFilter === 'all') return quotes;
-    return quotes.filter((q) => {
-      const v = q.advanceVoucher;
-      if (voucherFilter === 'sent') return !!v?.sent;
-      if (voucherFilter === 'pending') return !!v?.exists && !v?.sent;
-      if (voucherFilter === 'none') return !v?.exists;
-      return true;
-    });
+    let rows = [...quotes];
+
+    if (voucherFilter === 'sent') {
+      rows = rows.filter((q) => !!q.advanceVoucher?.sent);
+    } else if (voucherFilter === 'pending') {
+      rows = rows.filter((q) => !!q.advanceVoucher?.exists && !q.advanceVoucher?.sent);
+    } else if (voucherFilter === 'none') {
+      rows = rows.filter((q) => !q.advanceVoucher?.exists);
+    } else if (voucherFilter === 'today') {
+      const now = new Date();
+      rows = rows.filter((q) => q.sentAt && isSameDay(new Date(q.sentAt), now));
+    } else if (voucherFilter === 'priced') {
+      rows = rows
+        .filter((q) => getQuotationDisplayTotal(q) > 0)
+        .sort((a, b) => getQuotationDisplayTotal(b) - getQuotationDisplayTotal(a));
+    }
+
+    return rows;
   }, [quotes, voucherFilter]);
 
   const pageStats = useMemo(() => {
@@ -247,17 +265,20 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
     let sentToday = 0;
     let voucherSent = 0;
     let advanceReceived = 0;
+    let pricedCount = 0;
     const customers = new Set();
 
     for (const q of quotes) {
-      pageValue += getQuotationDisplayTotal(q);
+      const amount = getQuotationDisplayTotal(q);
+      pageValue += amount;
+      if (amount > 0) pricedCount += 1;
       if (q.lead?._id || q.lead?.name) customers.add(String(q.lead?._id || q.lead?.name));
       if (q.sentAt && isSameDay(new Date(q.sentAt), now)) sentToday += 1;
       if (q.advanceVoucher?.sent) voucherSent += 1;
       else if (q.advanceVoucher?.exists) advanceReceived += 1;
     }
 
-    return { pageValue, sentToday, customers: customers.size, voucherSent, advanceReceived };
+    return { pageValue, sentToday, customers: customers.size, voucherSent, advanceReceived, pricedCount };
   }, [quotes]);
 
   const invalidate = useCallback(() => {
@@ -281,6 +302,7 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
     appliedFilters.dateFrom,
     appliedFilters.dateTo,
     appliedFilters.executiveId,
+    voucherFilter,
   ]);
 
   const creatorName = (q) => q.createdByExecutive?.name || q.createdBy?.name || '—';
@@ -291,6 +313,44 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
     setAutoPrint(true);
   };
 
+  const applyKpiFilter = useCallback(
+    (key) => {
+      if (key === 'total') {
+        const cleared = { ...emptyQuotationFilters, search: draftFilters.search };
+        setDraftFilters(cleared);
+        setAppliedFilters(cleared);
+        setVoucherFilter('all');
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+        return;
+      }
+
+      if (key === 'today') {
+        const next = {
+          ...draftFilters,
+          dateFrom: todayIso,
+          dateTo: todayIso,
+        };
+        setDraftFilters(next);
+        setAppliedFilters(next);
+        setVoucherFilter('today');
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+        return;
+      }
+
+      if (key === 'voucher') {
+        setVoucherFilter('sent');
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+        return;
+      }
+
+      if (key === 'value') {
+        setVoucherFilter('priced');
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
+      }
+    },
+    [draftFilters, todayIso]
+  );
+
   const kpis = [
     {
       key: 'total',
@@ -299,6 +359,9 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
       icon: Send,
       ring: 'from-[#4f46e5] to-[#7c3aed]',
       chip: 'bg-indigo-500/15 text-indigo-700',
+      activeRing: 'ring-indigo-500',
+      filterKey: 'all',
+      hint: 'View all',
     },
     {
       key: 'value',
@@ -307,6 +370,9 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
       icon: IndianRupee,
       ring: 'from-amber-500 to-orange-500',
       chip: 'bg-amber-500/15 text-amber-800',
+      activeRing: 'ring-amber-500',
+      filterKey: 'priced',
+      hint: 'Priced quotes',
     },
     {
       key: 'voucher',
@@ -315,7 +381,9 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
       icon: BadgeCheck,
       ring: 'from-emerald-500 to-teal-500',
       chip: 'bg-emerald-500/15 text-emerald-800',
-      hint: 'On this page',
+      activeRing: 'ring-emerald-500',
+      filterKey: 'sent',
+      hint: 'Voucher sent',
     },
     {
       key: 'today',
@@ -324,16 +392,46 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
       icon: CalendarClock,
       ring: 'from-sky-500 to-cyan-500',
       chip: 'bg-sky-500/15 text-sky-800',
-      hint: 'On this page',
+      activeRing: 'ring-sky-500',
+      filterKey: 'today',
+      hint: 'Today only',
     },
   ];
 
+  const isKpiActive = (k) => {
+    if (k.key === 'total') {
+      return voucherFilter === 'all' && !appliedFilters.dateFrom && !appliedFilters.dateTo;
+    }
+    if (k.key === 'today') {
+      return (
+        voucherFilter === 'today' ||
+        (appliedFilters.dateFrom === todayIso && appliedFilters.dateTo === todayIso)
+      );
+    }
+    return voucherFilter === k.filterKey;
+  };
+
   const voucherTabs = [
     { id: 'all', label: 'All sent' },
+    { id: 'today', label: 'Sent today', count: pageStats.sentToday },
     { id: 'sent', label: 'Voucher sent', count: pageStats.voucherSent },
     { id: 'pending', label: 'Advance pending voucher', count: pageStats.advanceReceived },
+    { id: 'priced', label: 'With price', count: pageStats.pricedCount },
     { id: 'none', label: 'Quote only' },
   ];
+
+  const viewLabel =
+    voucherFilter === 'today'
+      ? 'Sent today'
+      : voucherFilter === 'sent'
+        ? 'Advance voucher sent'
+        : voucherFilter === 'pending'
+          ? 'Advance pending voucher'
+          : voucherFilter === 'priced'
+            ? 'Quotes with price'
+            : voucherFilter === 'none'
+              ? 'Quote only'
+              : 'All sent quotations';
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pb-10">
@@ -382,30 +480,50 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — clickable filters */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {kpis.map((k, i) => {
           const Icon = k.icon;
+          const active = isKpiActive(k);
           return (
-            <motion.div
+            <motion.button
               key={k.key}
+              type="button"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="relative overflow-hidden rounded-2xl border border-white/70 bg-white/90 p-4 shadow-[0_10px_40px_-18px_rgba(79,70,229,0.45)]"
+              onClick={() => applyKpiFilter(k.key)}
+              aria-pressed={active}
+              className={cn(
+                'relative overflow-hidden rounded-2xl border bg-white/90 p-4 text-left shadow-[0_10px_40px_-18px_rgba(79,70,229,0.45)]',
+                'transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+                active
+                  ? cn('border-transparent ring-2 ring-offset-1 scale-[1.01]', k.activeRing)
+                  : 'border-white/70 hover:border-indigo-200'
+              )}
             >
               <div className={cn('absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gradient-to-br opacity-20', k.ring)} />
               <div className="relative flex items-start justify-between gap-2 mb-3">
                 <span className={cn('inline-flex h-10 w-10 items-center justify-center rounded-xl', k.chip)}>
                   <Icon className="w-4 h-4" />
                 </span>
-                {k.hint && <span className="text-[10px] font-medium text-slate-400">{k.hint}</span>}
+                <span
+                  className={cn(
+                    'text-[10px] font-bold uppercase tracking-wide',
+                    active ? 'text-indigo-600' : 'text-slate-400'
+                  )}
+                >
+                  {active ? 'Active' : k.hint}
+                </span>
               </div>
               <p className="relative text-2xl font-black metric-tabular text-slate-900 leading-none">
                 {isLoading ? '—' : k.value}
               </p>
               <p className="relative text-xs font-semibold text-slate-500 mt-2">{k.label}</p>
-            </motion.div>
+              <p className="relative mt-2 text-[10px] font-medium text-slate-400">
+                Click to view {k.hint?.toLowerCase() || 'list'}
+              </p>
+            </motion.button>
           );
         })}
       </div>
@@ -417,23 +535,43 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
         onClear={() => {
           setDraftFilters(emptyQuotationFilters);
           setAppliedFilters(emptyQuotationFilters);
+          setVoucherFilter('all');
         }}
         onRefresh={invalidate}
-        hasActiveFilters={hasActiveFilters}
+        hasActiveFilters={hasActiveFilters || voucherFilter !== 'all'}
         showStatusFilter={false}
         showExecutiveFilter={isAdmin}
         executives={executives}
-        segmentLabel="Sent only"
+        segmentLabel={viewLabel}
         className="mb-4"
       />
 
-      {/* Voucher quick filters */}
+      {/* Quick filters — stay in sync with KPI cards */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 mb-5 scrollbar-none">
         {voucherTabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
-            onClick={() => setVoucherFilter(tab.id)}
+            onClick={() => {
+              if (tab.id === 'today') {
+                applyKpiFilter('today');
+                return;
+              }
+              if (tab.id === 'all') {
+                applyKpiFilter('total');
+                return;
+              }
+              if (tab.id === 'sent') {
+                applyKpiFilter('voucher');
+                return;
+              }
+              if (tab.id === 'priced') {
+                applyKpiFilter('value');
+                return;
+              }
+              setVoucherFilter(tab.id);
+              setPagination((p) => ({ ...p, pageIndex: 0 }));
+            }}
             className={cn(
               'shrink-0 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition-all',
               voucherFilter === tab.id
@@ -455,7 +593,6 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
           </button>
         ))}
       </div>
-
       {/* List */}
       <div className="space-y-3.5">
         {isLoading ? (
@@ -470,12 +607,12 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
               <Inbox className="w-8 h-8" />
             </div>
             <h3 className="text-lg font-bold text-slate-900">
-              {voucherFilter === 'all' ? 'No sent quotations yet' : 'No matches for this filter'}
+              {voucherFilter === 'all' ? 'No sent quotations yet' : `No results · ${viewLabel}`}
             </h3>
             <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
               {voucherFilter === 'all'
                 ? 'Jab quotation customer ko send hogi, yahan price, contact aur advance voucher status dikhega.'
-                : 'Try another voucher filter or clear search.'}
+                : 'Try another KPI card or clear filters.'}
             </p>
           </div>
         ) : (
@@ -681,7 +818,7 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
             </span>{' '}
             of <span className="font-bold text-slate-800">{total}</span> sent quotations
             {voucherFilter !== 'all' && (
-              <span className="text-indigo-600 font-medium"> · filtered view</span>
+              <span className="text-indigo-600 font-medium"> · {viewLabel}</span>
             )}
           </p>
           <div className="flex items-center gap-2">
