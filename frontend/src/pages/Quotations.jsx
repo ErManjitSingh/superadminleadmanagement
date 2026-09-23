@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { QuotationListPage, QuotationBuilderWizard } from '../components/quotations';
+import { QuotationListPage, QuotationSentPage, QuotationBuilderWizard } from '../components/quotations';
 import PermissionRoute from '../components/PermissionRoute';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,6 +22,7 @@ export default function Quotations() {
   return (
     <Routes>
       <Route index element={<QuotationsIndex />} />
+      <Route path="sent" element={<QuotationSentPage />} />
       <Route path="new" element={<NewQuotationRoute />} />
       <Route path="*" element={<Navigate to="/quotations" replace />} />
     </Routes>

@@ -1,8 +1,13 @@
-export function isNavItemActive(pathname, path) {
+export function isNavItemActive(pathname, path, { exact = false } = {}) {
   if (path === '/' || path === '/admin/dashboard') {
     return pathname === '/' || pathname === '/admin/dashboard';
   }
   if (path === '/leads') return pathname === '/leads';
+  // Keep /quotations and /quotations/sent as separate menu highlights
+  if (path === '/quotations' || path === '/sales-executive/quotations') {
+    return pathname === path || pathname === `${path}/new` || pathname.startsWith(`${path}/new?`);
+  }
+  if (exact) return pathname === path;
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 

@@ -16,21 +16,32 @@ function intersectLeadIds(existing, next) {
 }
 
 async function applyQuotationQueryFilters(filter, query = {}, branchId) {
-  const { status, executiveId, dateFrom, dateTo, destination, search, lead, leadId } = query;
+  const { status, executiveId, dateFrom, dateTo, destination, search, lead, leadId, sentOnly } = query;
 
-  if (status && filter.status === undefined) filter.status = status;
+  const wantsSentOnly = sentOnly === true || sentOnly === 'true' || sentOnly === '1';
+  if (wantsSentOnly) {
+    filter.sentAt = { $exists: true, $ne: null };
+  } else if (status && filter.status === undefined) {
+    filter.status = status;
+  }
   if (executiveId) filter.createdByExecutive = executiveId;
 
   const scopedLeadId = leadId || lead;
   if (scopedLeadId) filter.lead = scopedLeadId;
 
   if (dateFrom || dateTo) {
-    filter.createdAt = {};
-    if (dateFrom) filter.createdAt.$gte = new Date(dateFrom);
+    const dateField = wantsSentOnly ? 'sentAt' : 'createdAt';
+    if (wantsSentOnly) {
+      filter.sentAt = { $exists: true, $ne: null };
+    } else {
+      filter.createdAt = {};
+    }
+    const range = filter[dateField];
+    if (dateFrom) range.$gte = new Date(dateFrom);
     if (dateTo) {
       const end = new Date(dateTo);
       end.setHours(23, 59, 59, 999);
-      filter.createdAt.$lte = end;
+      range.$lte = end;
     }
   }
 
@@ -69,7 +80,8 @@ async function applyQuotationQueryFilters(filter, query = {}, branchId) {
 
 async function findQuotationsPaginated(query = {}, { branchId } = {}) {
   const { page, limit, skip } = parsePagination(query);
-  const sort = parseSort(query, { createdAt: -1 });
+  const wantsSentOnly = query.sentOnly === true || query.sentOnly === 'true' || query.sentOnly === '1';
+  const sort = parseSort(query, wantsSentOnly ? { sentAt: -1 } : { createdAt: -1 });
   const filter = await applyQuotationQueryFilters(withBranch({}, branchId), query, branchId);
 
   const [rows, total] = await Promise.all([

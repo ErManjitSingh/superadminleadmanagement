@@ -45,6 +45,7 @@ function optionsAllowedSort(field) {
     'travelDate',
     'scheduledAt',
     'quoteNumber',
+    'sentAt',
   ];
   return safe.includes(field) ? field : null;
 }

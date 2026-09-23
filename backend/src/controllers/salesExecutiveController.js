@@ -383,7 +383,8 @@ const listQuotations = asyncHandler(async (req, res) => {
   const filter = {
     $or: [{ createdByExecutive: req.user._id }, { lead: { $in: leadIds } }],
   };
-  if (req.query.status) filter.status = req.query.status;
+  const wantsSentOnly = req.query.sentOnly === true || req.query.sentOnly === 'true' || req.query.sentOnly === '1';
+  if (!wantsSentOnly && req.query.status) filter.status = req.query.status;
 
   const result = await findScopedQuotationsPaginated(filter, req.query, { companyId: req.companyId });
   res.json(result);

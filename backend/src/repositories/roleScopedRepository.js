@@ -192,7 +192,8 @@ async function findScopedFollowUpsPaginated(baseFilter, query = {}, options = {}
 
 async function findScopedQuotationsPaginated(baseFilter, query = {}, { mapRow, companyId } = {}) {
   const { page, limit, skip } = parsePagination(query);
-  const sort = parseSort(query, { createdAt: -1 });
+  const wantsSentOnly = query.sentOnly === true || query.sentOnly === 'true' || query.sentOnly === '1';
+  const sort = parseSort(query, wantsSentOnly ? { sentAt: -1 } : { createdAt: -1 });
   const filter = await applyQuotationQueryFilters(withCompany(baseFilter, companyId), query);
 
   const [rows, total] = await Promise.all([

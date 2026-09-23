@@ -25,6 +25,7 @@ export function useQuotationsQuery({
             executiveId: filters.executiveId || undefined,
             dateFrom: filters.dateFrom || undefined,
             dateTo: filters.dateTo || undefined,
+            sentOnly: filters.sentOnly || undefined,
           },
         },
         endpoint
