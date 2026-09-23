@@ -371,6 +371,19 @@ function HotelFields({
             className={inputCls()}
           />
         </Field>
+        <Field label="Option 1 Price (₹)" className="sm:col-span-2">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">₹</span>
+            <input
+              type="number"
+              min={0}
+              value={hotel.price || ''}
+              onChange={(e) => onChange({ ...hotel, price: Math.max(0, Number(e.target.value) || 0) })}
+              className={inputCls('pl-7 font-semibold')}
+              placeholder="Hotel Option 1 price for these nights"
+            />
+          </div>
+        </Field>
       </div>
     </div>
   );
@@ -468,7 +481,7 @@ export default function SimplifiedHotelSection({
         <div>
           <h2 className="text-xl font-bold text-slate-900">Hotels</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Pick an existing company hotel or add a new one (saved hotels appear on all leads)
+            Har stay pe Hotel Option 1 + Option 2 (alag price) — client PDF pe dono dekh ke ek choose karega
           </p>
         </div>
         <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 bg-white cursor-pointer text-sm font-medium text-slate-700 hover:bg-slate-50">
@@ -546,6 +559,115 @@ export default function SimplifiedHotelSection({
                     onCatalogSaved={handleCatalogSaved}
                     onChange={(next) => updateDestinationHotel(index, next)}
                   />
+
+                  {/* Option 2 — same dates, different hotel + price; client chooses one */}
+                  <div className="mt-4 pt-4 border-t border-dashed border-slate-200">
+                    {!hotel.alternative ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateDestinationHotel(index, {
+                            ...hotel,
+                            alternative: {
+                              entryMode: 'new',
+                              hotelId: '',
+                              name: '',
+                              category: hotel.category || '4 Star',
+                              roomType: hotel.roomType || 'Deluxe',
+                              mealPlan: hotel.mealPlan || '',
+                              price: 0,
+                            },
+                          })
+                        }
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-sky-700 hover:text-sky-800"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Add Hotel Option 2 (same nights, different hotel + price)
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-sky-200 bg-sky-50/50 p-4 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-bold text-sky-800">Hotel Option 2 — client chooses one</p>
+                          <button
+                            type="button"
+                            onClick={() => updateDestinationHotel(index, { ...hotel, alternative: null })}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"
+                            title="Remove Option 2"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-3">
+                          <Field label="Option 2 Hotel Name">
+                            <input
+                              value={hotel.alternative.name || ''}
+                              onChange={(e) =>
+                                updateDestinationHotel(index, {
+                                  ...hotel,
+                                  alternative: { ...hotel.alternative, name: e.target.value },
+                                })
+                              }
+                              className={inputCls()}
+                              placeholder="Alternate hotel name"
+                            />
+                          </Field>
+                          <Field label="Option 2 Price (₹)">
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-semibold">₹</span>
+                              <input
+                                type="number"
+                                min={0}
+                                value={hotel.alternative.price || ''}
+                                onChange={(e) =>
+                                  updateDestinationHotel(index, {
+                                    ...hotel,
+                                    alternative: {
+                                      ...hotel.alternative,
+                                      price: Math.max(0, Number(e.target.value) || 0),
+                                    },
+                                  })
+                                }
+                                className={inputCls('pl-7 font-semibold')}
+                                placeholder="0"
+                              />
+                            </div>
+                          </Field>
+                          <Field label="Room Type">
+                            <select
+                              value={hotel.alternative.roomType || 'Deluxe'}
+                              onChange={(e) =>
+                                updateDestinationHotel(index, {
+                                  ...hotel,
+                                  alternative: { ...hotel.alternative, roomType: e.target.value },
+                                })
+                              }
+                              className={inputCls()}
+                            >
+                              {ROOM_TYPES.map((r) => (
+                                <option key={r} value={r}>{r}</option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="Meal Plan">
+                            <input
+                              value={hotel.alternative.mealPlan || ''}
+                              onChange={(e) =>
+                                updateDestinationHotel(index, {
+                                  ...hotel,
+                                  alternative: { ...hotel.alternative, mealPlan: e.target.value },
+                                })
+                              }
+                              className={inputCls()}
+                              placeholder="MAP / CP / EP"
+                            />
+                          </Field>
+                        </div>
+                        <p className="text-[11px] text-sky-700/80">
+                          Same check-in / check-out as Option 1. PDF pe dono dikhenge — client ek choose karega.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

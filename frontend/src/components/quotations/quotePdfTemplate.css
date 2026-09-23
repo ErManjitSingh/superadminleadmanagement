@@ -1675,6 +1675,83 @@
   font-style: italic;
 }
 
+.qp-choice-note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: #64748b;
+  font-style: italic;
+}
+
+.qp-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.qp-choice-card {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.qp-choice-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0f766e;
+  background: #ccfbf1;
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 8px;
+}
+
+.qp-choice-card:nth-child(2) .qp-choice-badge {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.qp-choice-name {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.qp-choice-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.qp-choice-price {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #0f766e;
+  letter-spacing: -0.02em;
+}
+
+.qp-stay-block {
+  margin-bottom: 14px;
+}
+
+.qp-stay-meta {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.qp-vehicle-banner.qp-choice-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
 .qp-price-lbl {
   display: block;
   font-size: 11px;

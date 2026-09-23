@@ -3,7 +3,7 @@ import './quotePdfTemplate.css';
 import './quotePdfEmbDesign.css';
 import { COMPANY_INFO, quoteHasHotels } from './constants';
 import { useTenant } from '../../context/TenantContext';
-import { formatINR, activePricingOptions, normalizePricingOptions } from './quotationUtils';
+import { formatINR } from './quotationUtils';
 import { resolveQuoteWelcomeText } from './quoteTemplateDefaults';
 import {
   resolveQuotePackage,
@@ -20,6 +20,7 @@ import {
   resolvePaymentPlan,
   resolveQuoteTotal,
   resolveQuoteDisplayNumber,
+  resolveHotelStayChoices,
   sanitizeTransportLabel,
   sanitizeItineraryDayTitle,
 } from './quotePdfHelpers';
@@ -86,6 +87,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const includesHotel = quoteHasHotels(quote);
   const welcomeText = resolveQuoteWelcomeText(quote);
   const vehicles = resolveQuoteVehicles(quote);
+  const hotelStays = includesHotel ? resolveHotelStayChoices(quote) : [];
   const planner = resolveTripPlanner(quote);
   const policies = resolvePolicies(quote);
   const companyBanks = (company?.bankAccounts || []).filter((b) => b && (b.bank || b.accountNo || b.upi));
@@ -102,12 +104,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const travelDate = packageInfo.travelDate || lead.travelDate;
   const tourEndDate = duration > 0 ? getDayDate(travelDate, Math.max(1, duration)) : null;
   const displayTotal = resolveQuoteTotal(quote);
-  const normalizedOptions = normalizePricingOptions(quote?.pricing?.pricingOptions, displayTotal);
-  const priceOptions = activePricingOptions(quote?.pricing);
-  const showDualPrice = priceOptions.length > 1;
-  const primaryLabel = showDualPrice
-    ? null
-    : (Array.isArray(quote?.pricing?.pricingOptions) ? (normalizedOptions[0]?.label || 'Price 1') : 'Total Package Cost');
   const paymentPlan = resolvePaymentPlan(quote, displayTotal);
   const importantNotes = quote.importantNotes || {};
   const itinerary = pkg.itinerary || [];
@@ -168,42 +164,10 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             </div>
             {lead.name && <span className="qp-customer-pill">For {lead.name}</span>}
           </div>
-          <div className={showDualPrice ? 'qp-hero-prices' : 'qp-hero-price'}>
-            {showDualPrice ? (
-              priceOptions.map((opt, i) => (
-                <div key={opt.label || i} className="qp-hero-price qp-hero-price-opt">
-                  <span className="qp-price-lbl">{opt.label || `Price ${i + 1}`}</span>
-                  <span className="qp-price-amt">{formatINR(opt.total)}</span>
-                  <span className="qp-price-sub">
-                    {[
-                      opt.hotelCost > 0 ? `Hotel ${formatINR(opt.hotelCost)}` : null,
-                      opt.cabCost > 0 ? `Cab ${formatINR(opt.cabCost)}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ') || 'All Inclusive'}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <>
-                <span className="qp-price-lbl">{primaryLabel}</span>
-                <span className="qp-price-amt">{formatINR(displayTotal)}</span>
-                <span className="qp-price-sub">
-                  {normalizedOptions[0]?.hotelCost > 0 || normalizedOptions[0]?.cabCost > 0
-                    ? [
-                        normalizedOptions[0].hotelCost > 0
-                          ? `Hotel ${formatINR(normalizedOptions[0].hotelCost)}`
-                          : null,
-                        normalizedOptions[0].cabCost > 0
-                          ? `Cab ${formatINR(normalizedOptions[0].cabCost)}`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')
-                    : 'All Inclusive'}
-                </span>
-              </>
-            )}
+          <div className="qp-hero-price">
+            <span className="qp-price-lbl">Total Package Cost</span>
+            <span className="qp-price-amt">{formatINR(displayTotal)}</span>
+            <span className="qp-price-sub">All Inclusive</span>
           </div>
         </div>
       </section>
@@ -259,29 +223,86 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         </div>
       </section>
 
-      {/* Vehicles */}
-      {vehicles.length > 0 && (
+      {/* Hotel stay choices — Option 1 / Option 2 */}
+      {hotelStays.length > 0 && (
         <section className="qp-section-block">
-          <SectionHead icon="🚗" title="Vehicle Details" />
-          {vehicles.map((v) => (
-            <div key={`${v.name}-${v.type}`} className="qp-vehicle-banner">
-              <div className="qp-vehicle-thumb qp-vehicle-thumb-placeholder" aria-hidden="true">🚐</div>
-              <div className="qp-vehicle-body">
-                <p className="qp-vehicle-name">{v.name}</p>
-                <p className="qp-vehicle-meta">
-                  {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
+          <SectionHead
+            icon="🏨"
+            title={hotelStays.some((s) => s.hasChoice) ? 'Hotel Options — Choose One' : 'Hotel Stay'}
+          />
+          {hotelStays.some((s) => s.hasChoice) && (
+            <p className="qp-choice-note">
+              Har stay ke liye do hotel options diye gaye hain. Apni pasand ka ek hotel choose karein.
+            </p>
+          )}
+          {hotelStays.map((stay) => (
+            <div key={`stay-${stay.index}`} className="qp-stay-block">
+              {(stay.location || stay.checkIn || stay.nights > 0) && (
+                <p className="qp-stay-meta">
+                  {[
+                    stay.location,
+                    stay.nights > 0 ? `${stay.nights} Night${stay.nights > 1 ? 's' : ''}` : null,
+                    stay.checkIn
+                      ? `${formatQuoteDateShort(stay.checkIn)}${stay.checkOut ? ` → ${formatQuoteDateShort(stay.checkOut)}` : ''}`
+                      : null,
+                  ]
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
-                <p className="qp-vehicle-dates">
-                  <span aria-hidden="true">📅</span>
-                  {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
-                  {' → '}
-                  {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
-                </p>
+              )}
+              <div className={stay.hasChoice ? 'qp-choice-grid' : undefined}>
+                {stay.options.map((opt) => (
+                  <div key={`${stay.index}-${opt.label}`} className="qp-choice-card">
+                    {stay.hasChoice && <span className="qp-choice-badge">{opt.label}</span>}
+                    <p className="qp-choice-name">{opt.name}</p>
+                    <p className="qp-choice-meta">
+                      {[opt.category, opt.roomType, opt.mealPlan].filter(Boolean).join(' · ')}
+                    </p>
+                    {Number(opt.price) > 0 && (
+                      <p className="qp-choice-price">{formatINR(opt.price)}</p>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           ))}
+        </section>
+      )}
+
+      {/* Vehicles — Option 1 / Option 2 with prices */}
+      {vehicles.length > 0 && (
+        <section className="qp-section-block">
+          <SectionHead icon="🚗" title={vehicles.length > 1 ? 'Cab Options — Choose One' : 'Vehicle Details'} />
+          {vehicles.length > 1 && (
+            <p className="qp-choice-note">Do cab options diye gaye hain. Apni pasand ki ek cab choose karein.</p>
+          )}
+          <div className={vehicles.length > 1 ? 'qp-choice-grid' : undefined}>
+            {vehicles.map((v, i) => (
+              <div key={`${v.optionLabel}-${v.name}-${i}`} className="qp-vehicle-banner qp-choice-card">
+                {vehicles.length > 1 && (
+                  <span className="qp-choice-badge">{v.optionLabel || `Option ${i + 1}`}</span>
+                )}
+                <div className="qp-vehicle-thumb qp-vehicle-thumb-placeholder" aria-hidden="true">🚐</div>
+                <div className="qp-vehicle-body">
+                  <p className="qp-vehicle-name">{v.name}</p>
+                  <p className="qp-vehicle-meta">
+                    {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                  {Number(v.cost) > 0 && (
+                    <p className="qp-choice-price">{formatINR(v.cost)}</p>
+                  )}
+                  <p className="qp-vehicle-dates">
+                    <span aria-hidden="true">📅</span>
+                    {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
+                    {' → '}
+                    {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
@@ -342,42 +363,6 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
           </div>
         ))}
       </div>
-
-      {/* Dual price options for client */}
-      {showDualPrice && (
-        <section className="qp-section-block">
-          <SectionHead icon="₹" title="Pricing Options" />
-          <div className="qp-price-options">
-            {priceOptions.map((opt, i) => (
-              <div key={opt.label || i} className="qp-price-option-card">
-                <div className="qp-price-option-badge">{opt.label || `Price ${i + 1}`}</div>
-                <div className="qp-price-option-total">{formatINR(opt.total)}</div>
-                <div className="qp-price-option-rows">
-                  {opt.hotelCost > 0 && (
-                    <div className="qp-price-option-row">
-                      <span>Hotel</span>
-                      <strong>{formatINR(opt.hotelCost)}</strong>
-                    </div>
-                  )}
-                  {opt.cabCost > 0 && (
-                    <div className="qp-price-option-row">
-                      <span>Cab / Transport</span>
-                      <strong>{formatINR(opt.cabCost)}</strong>
-                    </div>
-                  )}
-                  <div className="qp-price-option-row qp-price-option-row-total">
-                    <span>Package Total</span>
-                    <strong>{formatINR(opt.total)}</strong>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="qp-price-options-note">
-            Two package options are offered. Choose Price 1 or Price 2 as per your preference.
-          </p>
-        </section>
-      )}
 
       {/* Payment schedule — full width */}
       <section className="qp-section-block qp-pay-section">

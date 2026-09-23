@@ -332,10 +332,9 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
               )}
               {b.step === 5 && (
                 <SimplifiedPricingSection
-                  pricingOptions={b.state.pricing?.pricingOptions}
                   totalCost={b.state.pricing?.total || 0}
                   internalNotes={b.builderUi.internalNotes}
-                  onOptionsChange={b.updatePricingOptions}
+                  onTotalChange={b.updatePricingTotal}
                   onNotesChange={(internalNotes) => b.updateBuilderUi({ internalNotes })}
                 />
               )}
@@ -610,7 +609,6 @@ function StepPackage({ b, initialLeadId }) {
 
 function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp, onDownloadPdf, sharingPdf, pdfCacheReady }) {
   const total = b.state.pricing?.grandTotal || b.state.pricing?.total || 0;
-  const priceOpts = (b.state.pricing?.pricingOptions || []).filter((o) => Number(o?.total) > 0);
   const info = b.state.packageInfo || {};
   const noHotel = isNoHotelMealPlan(info.mealPlan);
   const destList = b.hotelDestination ? [{ name: b.hotelDestination }] : [];
@@ -654,44 +652,8 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
             {info.destination || b.hotelDestination || '—'} · {info.duration || '—'} days
             {b.selectedLead?.name ? ` · ${b.selectedLead.name}` : ''}
           </p>
-          {priceOpts.length > 1 ? (
-            <div className="mt-4 flex flex-wrap items-stretch justify-center gap-3">
-              {priceOpts.map((opt, i) => (
-                <div
-                  key={opt.label || i}
-                  className={cn(
-                    'min-w-[140px] rounded-xl border px-4 py-3',
-                    i === 0
-                      ? 'border-emerald-200 bg-emerald-50/80'
-                      : 'border-sky-200 bg-sky-50/80',
-                  )}
-                >
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-content-muted">
-                    {opt.label || `Price ${i + 1}`}
-                  </p>
-                  <p
-                    className={cn(
-                      'text-2xl font-black metric-tabular mt-1',
-                      i === 0 ? 'text-emerald-700' : 'text-sky-700',
-                    )}
-                  >
-                    {formatINR(opt.total)}
-                  </p>
-                  <p className="text-[11px] text-content-muted mt-1">
-                    {[
-                      Number(opt.hotelCost) > 0 ? `Hotel ${formatINR(opt.hotelCost)}` : null,
-                      Number(opt.cabCost) > 0 ? `Cab ${formatINR(opt.cabCost)}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ') || 'Package total'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            total > 0 && (
-              <p className="text-3xl font-black text-emerald-600 metric-tabular mt-4">{formatINR(total)}</p>
-            )
+          {total > 0 && (
+            <p className="text-3xl font-black text-emerald-600 metric-tabular mt-4">{formatINR(total)}</p>
           )}
         </div>
 

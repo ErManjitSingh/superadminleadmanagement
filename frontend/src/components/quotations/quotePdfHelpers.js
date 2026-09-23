@@ -107,6 +107,51 @@ export function resolveQuoteLead(quote) {
   return quote?.lead || {};
 }
 
+/** Hotel stays with Option 1 + Option 2 (alternatives) for client PDF. */
+export function resolveHotelStayChoices(quote) {
+  if (quotationOmitsHotels(quote) || !quoteHasHotels(quote)) return [];
+  const pkg = resolveQuotePackage(quote);
+  const selected = (quote.selectedHotels || []).filter((h) =>
+    String(h?.name || h?.hotelName || '').trim(),
+  );
+  const source = selected.length
+    ? selected
+    : (!Array.isArray(quote.selectedHotels) ? (pkg.hotels || []) : []).filter((h) =>
+      String(h?.name || h?.hotelName || '').trim(),
+    );
+
+  return source.map((h, index) => {
+    const alt = Array.isArray(h.alternatives) ? h.alternatives.filter((a) => a?.name) : [];
+    const options = [
+      {
+        label: 'Option 1',
+        name: h.name || h.hotelName || '',
+        roomType: h.room?.name || h.roomType || '',
+        mealPlan: h.mealPlan?.label || (typeof h.mealPlan === 'string' ? h.mealPlan : '') || h.meals || '',
+        category: h.category || '',
+        price: Number(h.price || h.total) || 0,
+      },
+      ...alt.map((a, i) => ({
+        label: a.label || `Option ${i + 2}`,
+        name: a.name || '',
+        roomType: a.roomType || '',
+        mealPlan: a.mealPlan || '',
+        category: a.category || '',
+        price: Number(a.price) || 0,
+      })),
+    ];
+    return {
+      index,
+      location: h.location || h.city || '',
+      checkIn: h.checkIn || '',
+      checkOut: h.checkOut || '',
+      nights: Number(h.nights) || 0,
+      options,
+      hasChoice: options.length > 1,
+    };
+  });
+}
+
 export function formatQuoteDate(value) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -418,13 +463,15 @@ export function resolveQuoteVehicles(quote) {
 
   const cabs = Array.isArray(quote.selectedCabs) ? quote.selectedCabs : [];
   if (cabs.length) {
-    return cabs.map((cab) => ({
+    return cabs.map((cab, i) => ({
       name: cab.vehicleName || cab.name || cab.vehicleType || 'Private Cab',
       type: cab.vehicleType || cab.type || pkg.cabCategory || '',
       count: cab.vehicleCount || cab.count || 1,
       cost: Number(cab.cost || cab.price || 0),
       seats: cab.seats || '',
       notes: cab.notes || '',
+      optionLabel: cab.optionLabel || (cab.isAlternative ? 'Option 2' : `Option ${i + 1}`),
+      isAlternative: Boolean(cab.isAlternative),
       startDate: start,
       endDate: end || start,
     }));

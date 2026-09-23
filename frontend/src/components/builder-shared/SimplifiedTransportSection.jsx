@@ -4,9 +4,11 @@ import {
   Car,
   Check,
   PenLine,
+  Plus,
   Save,
   Search,
   ShoppingCart,
+  Trash2,
   Truck,
   Users,
 } from 'lucide-react';
@@ -124,7 +126,9 @@ export default function SimplifiedTransportSection({
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold text-slate-900">Transport</h2>
-        <p className="text-sm text-slate-500 mt-0.5">Select from fleet or enter a custom vehicle</p>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Cab Option 1 select karo. Client ko do choice deni ho to Option 2 add karo — alag price ke saath
+        </p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
@@ -413,7 +417,7 @@ export default function SimplifiedTransportSection({
         <div className="grid sm:grid-cols-2 gap-4">
           {builderUi.transportMode !== 'manual' && (
             <div>
-              <label className="text-[11px] font-semibold text-slate-600">Per Vehicle Cost (₹)</label>
+              <label className="text-[11px] font-semibold text-slate-600">Cab Option 1 — Per Vehicle Cost (₹)</label>
               <input
                 type="number"
                 min={0}
@@ -425,7 +429,7 @@ export default function SimplifiedTransportSection({
             </div>
           )}
           <div>
-            <label className="text-[11px] font-semibold text-slate-600">Transport Total</label>
+            <label className="text-[11px] font-semibold text-slate-600">Cab Option 1 Total</label>
             <div className="mt-1.5 h-11 rounded-xl border border-violet-200 bg-violet-50 px-3 flex items-center justify-between">
               <span className="text-lg font-bold text-violet-800">{formatINR(total)}</span>
               <ShoppingCart className="w-5 h-5 text-violet-500" />
@@ -433,6 +437,112 @@ export default function SimplifiedTransportSection({
           </div>
         </div>
       </div>
+
+      {/* Cab Option 2 — client chooses one */}
+      {!builderUi.showCabOption2 ? (
+        <button
+          type="button"
+          onClick={() =>
+            update({
+              showCabOption2: true,
+              cabOption2: {
+                vehicleName: '',
+                vehicleType: builderUi.fleetCategory || 'Sedan',
+                price: 0,
+                vehicleCount: count,
+              },
+            })
+          }
+          className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-sky-300 bg-sky-50/50 px-4 py-3 text-sm font-semibold text-sky-800 hover:bg-sky-50"
+        >
+          <Plus className="w-4 h-4" />
+          Add Cab Option 2 (different vehicle + price — client chooses one)
+        </button>
+      ) : (
+        <div className="rounded-2xl border border-sky-200 bg-sky-50/40 p-5 space-y-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-sky-900">Cab Option 2</h3>
+              <p className="text-xs text-sky-700/80">Client PDF pe dono options dikhenge — ek choose karega</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => update({ showCabOption2: false, cabOption2: { vehicleName: '', vehicleType: 'Sedan', price: 0, vehicleCount: 1 } })}
+              className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+              title="Remove Option 2"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600">Vehicle Type</label>
+              <select
+                value={builderUi.cabOption2?.vehicleType || 'Sedan'}
+                onChange={(e) =>
+                  update({
+                    cabOption2: { ...builderUi.cabOption2, vehicleType: e.target.value },
+                  })
+                }
+                className={cn(inputCls(), 'mt-1.5')}
+              >
+                {FLEET_CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600">Vehicle Name</label>
+              <input
+                value={builderUi.cabOption2?.vehicleName || ''}
+                onChange={(e) =>
+                  update({
+                    cabOption2: { ...builderUi.cabOption2, vehicleName: e.target.value },
+                  })
+                }
+                className={cn(inputCls(), 'mt-1.5')}
+                placeholder="e.g. Innova Crysta"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600">Option 2 Price (₹)</label>
+              <input
+                type="number"
+                min={0}
+                value={builderUi.cabOption2?.price || ''}
+                onChange={(e) =>
+                  update({
+                    cabOption2: {
+                      ...builderUi.cabOption2,
+                      price: Math.max(0, Number(e.target.value) || 0),
+                    },
+                  })
+                }
+                className={cn(inputCls(), 'mt-1.5 font-semibold')}
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-600">No. of Vehicles</label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={builderUi.cabOption2?.vehicleCount || 1}
+                onChange={(e) =>
+                  update({
+                    cabOption2: {
+                      ...builderUi.cabOption2,
+                      vehicleCount: Math.max(1, Number(e.target.value) || 1),
+                    },
+                  })
+                }
+                className={cn(inputCls(), 'mt-1.5')}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
