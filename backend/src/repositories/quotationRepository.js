@@ -1,5 +1,7 @@
 const Lead = require('../models/Lead');
 const Quotation = require('../models/Quotation');
+const Booking = require('../models/Booking');
+const BookingPayment = require('../models/BookingPayment');
 const { QUOTATION_POPULATE, buildLeadSearchFilter } = require('../utils/queryHelpers');
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
 const { withBranch } = require('../utils/branchScope');
@@ -13,6 +15,104 @@ function intersectLeadIds(existing, next) {
   const allowed = new Set(next.map(String));
   const merged = existing.$in.filter((id) => allowed.has(String(id)));
   return { $in: merged };
+}
+
+function leadIdOf(row) {
+  const lead = row?.lead;
+  if (!lead) return null;
+  if (typeof lead === 'object') return lead._id || null;
+  return lead;
+}
+
+/**
+ * Attach advance voucher / booking summary onto quotation rows (by lead).
+ */
+async function enrichQuotationsWithAdvanceVouchers(rows = []) {
+  if (!rows.length) return rows;
+
+  const leadIds = [...new Set(rows.map(leadIdOf).filter(Boolean).map(String))];
+  if (!leadIds.length) {
+    return rows.map((row) => ({
+      ...row,
+      advanceVoucher: { exists: false, sent: false },
+    }));
+  }
+
+  const bookings = await Booking.find({ lead: { $in: leadIds } })
+    .select('_id lead firstAdvancePaymentId advanceReceived totalAmount remainingBalance status bookingNumber')
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const bookingByLead = new Map();
+  for (const b of bookings) {
+    const key = String(b.lead);
+    if (!bookingByLead.has(key)) bookingByLead.set(key, b);
+  }
+
+  const paymentIds = [...bookingByLead.values()]
+    .map((b) => b.firstAdvancePaymentId)
+    .filter(Boolean);
+
+  const payments = await BookingPayment.find({
+    $or: [
+      ...(paymentIds.length ? [{ _id: { $in: paymentIds } }] : []),
+      { lead: { $in: leadIds }, isFirstAdvance: true },
+    ],
+  })
+    .select(
+      '_id lead booking amount receiptNumber whatsappSentAt emailSentAt receiptPdfUrl isFirstAdvance paymentDate mode'
+    )
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const paymentById = new Map(payments.map((p) => [String(p._id), p]));
+  const paymentByLead = new Map();
+  for (const p of payments) {
+    const key = String(p.lead);
+    if (!paymentByLead.has(key)) paymentByLead.set(key, p);
+  }
+
+  return rows.map((row) => {
+    const lid = leadIdOf(row);
+    const key = lid ? String(lid) : '';
+    const booking = key ? bookingByLead.get(key) : null;
+    let payment = null;
+    if (booking?.firstAdvancePaymentId) {
+      payment = paymentById.get(String(booking.firstAdvancePaymentId)) || null;
+    }
+    if (!payment && key) payment = paymentByLead.get(key) || null;
+
+    const sent = !!(payment?.whatsappSentAt || payment?.emailSentAt);
+    return {
+      ...row,
+      advanceVoucher: {
+        exists: !!(booking || payment),
+        sent,
+        amount: payment?.amount ?? booking?.advanceReceived ?? 0,
+        receiptNumber: payment?.receiptNumber || '',
+        whatsappSentAt: payment?.whatsappSentAt || null,
+        emailSentAt: payment?.emailSentAt || null,
+        paymentDate: payment?.paymentDate || null,
+        mode: payment?.mode || '',
+        bookingId: booking?._id || payment?.booking || null,
+        paymentId: payment?._id || null,
+        bookingNumber: booking?.bookingNumber || '',
+        bookingStatus: booking?.status || '',
+        remainingBalance: booking?.remainingBalance ?? null,
+      },
+    };
+  });
+}
+
+function wantsAdvanceEnrichment(query = {}) {
+  return (
+    query.includeAdvanceVoucher === true ||
+    query.includeAdvanceVoucher === 'true' ||
+    query.includeAdvanceVoucher === '1' ||
+    query.sentOnly === true ||
+    query.sentOnly === 'true' ||
+    query.sentOnly === '1'
+  );
 }
 
 async function applyQuotationQueryFilters(filter, query = {}, branchId) {
@@ -89,10 +189,13 @@ async function findQuotationsPaginated(query = {}, { branchId } = {}) {
     Quotation.countDocuments(filter),
   ]);
 
-  return paginatedResponse(rows, { page, limit, total });
+  const data = wantsAdvanceEnrichment(query) ? await enrichQuotationsWithAdvanceVouchers(rows) : rows;
+  return paginatedResponse(data, { page, limit, total });
 }
 
 module.exports = {
   applyQuotationQueryFilters,
   findQuotationsPaginated,
+  enrichQuotationsWithAdvanceVouchers,
+  wantsAdvanceEnrichment,
 };
