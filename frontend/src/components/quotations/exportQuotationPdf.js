@@ -3,17 +3,19 @@ import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 import travelAgentCertificate from '../../assets/hp-travel-agent-certificate.png';
 
-/** HD for WhatsApp / download — sharp, ~800KB. */
+/** HD for WhatsApp / download — sharper text/photos, hard cap 800KB. */
 const HD_TARGET_MAX_BYTES = 800 * 1024;
 const HD_PROFILES = [
-  { width: 720, scale: 1.5, quality: 0.74 },
-  { width: 680, scale: 1.35, quality: 0.66 },
-  { width: 640, scale: 1.2, quality: 0.58 },
-  { width: 600, scale: 1.1, quality: 0.5 },
+  // Prefer sharp first; cascade only if over 800KB.
+  { width: 800, scale: 2, quality: 0.82 },
+  { width: 760, scale: 1.75, quality: 0.76 },
+  { width: 720, scale: 1.55, quality: 0.7 },
+  { width: 680, scale: 1.35, quality: 0.62 },
+  { width: 640, scale: 1.2, quality: 0.54 },
 ];
-const HD_IMAGE = { maxEdge: 780, quality: 0.72 };
-const HD_PAGE_MAX_WIDTH = 1240;
-const HD_PDF_COMPRESSION = 'MEDIUM';
+const HD_IMAGE = { maxEdge: 920, quality: 0.8 };
+const HD_PAGE_MAX_WIDTH = 1480;
+const HD_PDF_COMPRESSION = 'SLOW';
 
 /** Compact for server storage — previous optimizer, ~500KB. */
 const STORAGE_TARGET_MAX_BYTES = 500 * 1024;
@@ -153,6 +155,8 @@ function compressImagesInClone(root, maxEdge = 780, quality = 0.72) {
       if (!ctx) return;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, tw, th);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, tw, th);
       img.src = canvas.toDataURL('image/jpeg', quality);
       img.style.width = '';
@@ -216,6 +220,38 @@ async function loadCertificateDataUrl() {
   return certificateDataUrlPromise;
 }
 
+/** Compress certificate PNG → JPEG so main quote pages can stay sharper under 800KB. */
+async function certificateToJpegDataUrl(dataUrl, maxEdge = 1400, quality = 0.82) {
+  if (!dataUrl) return null;
+  if (String(dataUrl).startsWith('data:image/jpeg')) return dataUrl;
+  try {
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    const w0 = img.naturalWidth || img.width;
+    const h0 = img.naturalHeight || img.height;
+    if (!w0 || !h0) return dataUrl;
+    const longest = Math.max(w0, h0);
+    const ratio = longest > maxEdge ? maxEdge / longest : 1;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w0 * ratio));
+    canvas.height = Math.max(1, Math.round(h0 * ratio));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return dataUrl;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch {
+    return dataUrl;
+  }
+}
+
 function appendCertificatePage(pdf, dataUrl) {
   if (!pdf || !dataUrl) return;
   let props;
@@ -246,7 +282,7 @@ function appendCertificatePage(pdf, dataUrl) {
   const x = (pageWidth - w) / 2;
   const y = (pageHeight - h) / 2;
   const format = String(dataUrl).startsWith('data:image/png') ? 'PNG' : 'JPEG';
-  pdf.addImage(dataUrl, format, x, y, w, h, undefined, 'NONE');
+  pdf.addImage(dataUrl, format, x, y, w, h, undefined, 'MEDIUM');
 }
 
 function downscaleCanvas(source, maxWidth) {
@@ -258,6 +294,8 @@ function downscaleCanvas(source, maxWidth) {
   const ctx = canvas.getContext('2d');
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
   return canvas;
 }
@@ -398,7 +436,10 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression,
   }
 
   if (!page) throw new Error('PDF render failed');
-  appendCertificatePage(pdf, certificateDataUrl);
+  if (certificateDataUrl) {
+    const compressedCert = await certificateToJpegDataUrl(certificateDataUrl);
+    appendCertificatePage(pdf, compressedCert || certificateDataUrl);
+  }
   return pdf.output('blob');
 }
 
@@ -456,7 +497,7 @@ async function renderWithProfile(contentEl, profile, preset) {
 
 /**
  * Render quotation DOM to PDF.
- * @param {'hd'|'storage'} quality - hd for send/download (~800KB), storage for server (~500KB)
+ * @param {'hd'|'storage'} quality - hd for send/download (sharper, ≤800KB), storage for server (~500KB)
  */
 export async function exportQuotationPdfBlob(contentEl, quality = 'hd') {
   if (!contentEl) throw new Error('Quotation preview is not ready');

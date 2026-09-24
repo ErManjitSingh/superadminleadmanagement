@@ -17,7 +17,6 @@ import {
   Briefcase,
   Plane,
   CreditCard,
-  Send,
 } from 'lucide-react';
 import { operationsAdminMenuChildren } from '../operations-manager/operations-nav-config';
 import { paymentsMenuChildren } from '../payments/payments-nav-config';
@@ -115,12 +114,6 @@ export const mainNavItems = [
     label: 'Quotations',
     icon: FileText,
     badgeKey: 'quotations.pending',
-    permission: { module: 'quotations', action: 'view' },
-  },
-  {
-    path: '/quotations/sent',
-    label: 'Quotation Send',
-    icon: Send,
     permission: { module: 'quotations', action: 'view' },
   },
   {

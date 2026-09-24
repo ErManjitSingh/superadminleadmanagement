@@ -32,12 +32,12 @@ export const salesExecutiveNavItems = [
       { path: '/sales-executive/leads/reactivated', label: 'Reactivated Leads', icon: RefreshCw, badgeKey: 'leads.reactivated' },
       { path: '/sales-executive/leads/converted', label: 'Converted Leads', icon: Trophy, countKey: 'leads.converted' },
       { path: '/sales-executive/leads/lost', label: 'Lost Leads', icon: XCircle, countKey: 'leads.lost' },
+      { path: '/sales-executive/quotations/sent', label: 'Quotation Sent', icon: Send },
     ],
   },
   { path: '/sales-executive/email-activity', label: 'Email Activity', icon: Mail },
   { path: '/sales-executive/follow-ups', label: 'Follow-ups', icon: CalendarClock, badgeKey: 'followups.due' },
   { path: '/sales-executive/quotations', label: 'Quotations', icon: FileText, countKey: 'quotations.total' },
-  { path: '/sales-executive/quotations/sent', label: 'Quotation Send', icon: Send },
   { path: '/sales-executive/customers', label: 'Customers', icon: UserCircle, countKey: 'customers' },
   { path: '/sales-executive/calendar', label: 'Calendar', icon: Calendar },
 ];

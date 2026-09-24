@@ -1,5 +1,5 @@
 /** Company UPI payment QR (Explore My Bharat) — used on quotation PDFs. */
-export const PAYMENT_UPI_ID = 'exploremybharat01@okicici';
+export const PAYMENT_UPI_ID = 'exploremybharat@ucobank';
 
 /** Public asset path that works with Vite base (/app/ in production). */
 export function getPaymentQrSrc() {

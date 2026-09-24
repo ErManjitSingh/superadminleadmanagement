@@ -9,7 +9,7 @@ const QR_CANDIDATES = [
   path.join(process.cwd(), 'frontend/public/payment-qr.png'),
 ];
 
-const PAYMENT_UPI_ID = 'exploremybharat01@okicici';
+const PAYMENT_UPI_ID = 'exploremybharat@ucobank';
 
 let cachedPaymentQrDataUrl = null;
 

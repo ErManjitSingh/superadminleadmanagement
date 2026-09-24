@@ -15,9 +15,11 @@ import {
   Timer,
   Shield,
   Archive,
+  Send,
 } from 'lucide-react';
 
 const leadPerm = { module: 'leads', action: 'view' };
+const quotePerm = { module: 'quotations', action: 'view' };
 const analyticsRoles = ['admin', 'sales_manager', 'team_leader'];
 const systemRoles = ['admin', 'sales_manager'];
 
@@ -56,6 +58,12 @@ export const leadManagementSections = [
         label: 'Assigned Leads',
         icon: UserCheck,
         permission: leadPerm,
+      },
+      {
+        path: '/quotations/sent',
+        label: 'Quotation Sent',
+        icon: Send,
+        permission: quotePerm,
       },
     ],
   },

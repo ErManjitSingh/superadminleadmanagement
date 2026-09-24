@@ -68,7 +68,7 @@ function drawSectionTitle(doc, title) {
 
 function drawFooter(doc) {
   try {
-    const { getPaymentQrDataUrl } = require('./paymentQrAsset');
+    const { getPaymentQrDataUrl, PAYMENT_UPI_ID } = require('./paymentQrAsset');
     const qr = getPaymentQrDataUrl();
     if (qr && qr.startsWith('data:image/png;base64,')) {
       const b64 = qr.replace(/^data:image\/png;base64,/, '');
@@ -81,7 +81,7 @@ function drawFooter(doc) {
       doc.fontSize(8).fillColor(TEXT_MUTED).font('Helvetica-Bold')
         .text('Scan QR to Pay', x - 6, y - 14, { width: size + 12, align: 'center' });
       doc.fontSize(7).fillColor(TEXT_MUTED).font('Helvetica')
-        .text('exploremybharat01@okicici', x - 10, y + size + 2, { width: size + 20, align: 'center' });
+        .text(PAYMENT_UPI_ID, x - 10, y + size + 2, { width: size + 20, align: 'center' });
     }
   } catch {
     /* ignore */

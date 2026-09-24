@@ -39,7 +39,7 @@ async function urlToDataUrl(url) {
 }
 
 /** Convert a loaded img element to a data URL for reliable print/PDF. */
-export function imgElementToDataUrl(img, maxEdge = 780, quality = 0.72) {
+export function imgElementToDataUrl(img, maxEdge = 920, quality = 0.8) {
   if (!img?.naturalWidth) return null;
   try {
     const w = img.naturalWidth;
@@ -55,6 +55,8 @@ export function imgElementToDataUrl(img, maxEdge = 780, quality = 0.72) {
     if (!ctx) return null;
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, tw, th);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, tw, th);
     return canvas.toDataURL('image/jpeg', quality);
   } catch {
