@@ -277,31 +277,39 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
             <p className="qp-choice-note">Do cab options diye gaye hain. Apni pasand ki ek cab choose karein.</p>
           )}
           <div className={vehicles.length > 1 ? 'qp-choice-grid' : undefined}>
-            {vehicles.map((v, i) => (
-              <div key={`${v.optionLabel}-${v.name}-${i}`} className="qp-vehicle-banner qp-choice-card">
-                {vehicles.length > 1 && (
-                  <span className="qp-choice-badge">{v.optionLabel || `Option ${i + 1}`}</span>
-                )}
-                <div className="qp-vehicle-thumb qp-vehicle-thumb-placeholder" aria-hidden="true">🚐</div>
-                <div className="qp-vehicle-body">
-                  <p className="qp-vehicle-name">{v.name}</p>
-                  <p className="qp-vehicle-meta">
-                    {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </p>
-                  {Number(v.cost) > 0 && (
-                    <p className="qp-choice-price">{formatINR(v.cost)}</p>
+            {vehicles.map((v, i) => {
+              const multi = vehicles.length > 1;
+              return (
+                <div
+                  key={`${v.optionLabel}-${v.name}-${i}`}
+                  className={multi ? 'qp-choice-card qp-cab-option' : 'qp-vehicle-banner'}
+                >
+                  {multi && (
+                    <span className="qp-choice-badge">{v.optionLabel || `Option ${i + 1}`}</span>
                   )}
-                  <p className="qp-vehicle-dates">
-                    <span aria-hidden="true">📅</span>
-                    {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
-                    {' → '}
-                    {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
-                  </p>
+                  {!multi && (
+                    <div className="qp-vehicle-thumb qp-vehicle-thumb-placeholder" aria-hidden="true">🚐</div>
+                  )}
+                  <div className="qp-vehicle-body">
+                    <p className="qp-vehicle-name">{v.name}</p>
+                    <p className="qp-vehicle-meta">
+                      {[v.type, `${v.count || 1} Vehicle${(v.count || 1) > 1 ? 's' : ''}`]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                    {Number(v.cost) > 0 && (
+                      <p className="qp-choice-price">{formatINR(v.cost)}</p>
+                    )}
+                    <p className="qp-vehicle-dates">
+                      <span aria-hidden="true">📅</span>
+                      {v.startDate ? formatQuoteDateShort(v.startDate) : '—'}
+                      {' → '}
+                      {v.endDate ? formatQuoteDateShort(v.endDate) : '—'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
       )}

@@ -333,10 +333,59 @@
 .quote-ht-pdf-v2 .qp-vehicle-dates {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
   color: var(--qp-muted);
   font-size: 11px;
+}
+
+/* Two cab options sit side by side — stack text, never squeeze into a 120px banner */
+.quote-ht-pdf-v2 .qp-choice-note {
+  margin: 0 24px 10px;
+}
+.quote-ht-pdf-v2 .qp-choice-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin: 0 24px 12px;
+  width: auto;
+  max-width: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+.quote-ht-pdf-v2 .qp-cab-option {
+  display: block;
+  margin: 0;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.quote-ht-pdf-v2 .qp-cab-option .qp-vehicle-body,
+.quote-ht-pdf-v2 .qp-cab-option .qp-vehicle-name,
+.quote-ht-pdf-v2 .qp-cab-option .qp-vehicle-meta,
+.quote-ht-pdf-v2 .qp-cab-option .qp-choice-price {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.quote-ht-pdf-v2 .qp-cab-option .qp-vehicle-name {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.quote-ht-pdf-v2 .qp-cab-option .qp-vehicle-dates {
+  display: block;
+  margin-top: 8px;
+  line-height: 1.4;
+  white-space: normal;
+  word-break: normal;
 }
 
 /* ── Timeline itinerary ── */
