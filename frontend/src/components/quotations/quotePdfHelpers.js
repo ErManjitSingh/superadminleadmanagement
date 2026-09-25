@@ -492,6 +492,18 @@ export function resolveQuoteVehicles(quote) {
   return [];
 }
 
+/** Phones that must not be printed on customer quotations. */
+const HIDDEN_QUOTATION_PHONES = new Set(['8219440351']);
+
+export function quotationVisiblePhone(phone) {
+  const raw = String(phone || '').trim();
+  if (!raw) return '';
+  const digits = raw.replace(/\D/g, '');
+  const local = digits.length > 10 ? digits.slice(-10) : digits;
+  if (HIDDEN_QUOTATION_PHONES.has(local)) return '';
+  return raw;
+}
+
 export function resolveTripPlanner(quote) {
   const exec = quote.createdByExecutive || quote.createdBy;
   const leadExec = quote.lead?.assignedTo && typeof quote.lead.assignedTo === 'object'
@@ -500,7 +512,7 @@ export function resolveTripPlanner(quote) {
   const person = exec?.name ? exec : leadExec;
   return {
     name: quote.tripPlanner?.name || person?.name || 'Travel Desk',
-    phone: quote.tripPlanner?.phone || person?.phone || leadExec?.phone || '',
+    phone: quotationVisiblePhone(quote.tripPlanner?.phone || person?.phone || leadExec?.phone || ''),
   };
 }
 

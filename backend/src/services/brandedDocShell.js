@@ -475,10 +475,20 @@ function svgIcon(name) {
   return icons[name] || '';
 }
 
+/** Numbers that must not be printed on customer vouchers. */
+function omitBlockedDocPhone(value) {
+  const raw = String(value || '').trim();
+  if (!raw || raw === '-') return raw;
+  const digits = raw.replace(/\D/g, '');
+  const local = digits.length > 10 ? digits.slice(-10) : digits;
+  if (local === '8219440351') return '';
+  return raw;
+}
+
 function brandMeta(brand = {}) {
   const name = brand.name || branding.brandName || 'Travel Company';
   const tagline = brand.tagline || 'Explore the World. Experience India.';
-  const phone = brand.phone || branding.supportPhone || '-';
+  const phone = omitBlockedDocPhone(brand.phone) || omitBlockedDocPhone(branding.supportPhone) || '';
   const email = brand.email || branding.salesEmail || '-';
   const site = (brand.website || branding.publicWebsiteHost || branding.publicWebsiteUrl || branding.websiteUrl || '')
     .replace(/^https?:\/\//, '')
@@ -546,7 +556,7 @@ function brandedFooterHtml(brand, thanksText) {
       </div>
     </div>
     <div class="cv-contact">
-      <span>${svgIcon('phone')} ${esc(meta.phone)}</span>
+      ${meta.phone ? `<span>${svgIcon('phone')} ${esc(meta.phone)}</span>` : ''}
       <span>${svgIcon('mail')} ${esc(meta.email)}</span>
       <span>${svgIcon('globe')} ${esc(meta.site)}</span>
       <span>${svgIcon('map')} ${esc(meta.place)}</span>
@@ -557,11 +567,15 @@ function brandedFooterHtml(brand, thanksText) {
 function brandedHelpBox(rows = []) {
   return `<div class="cv-help">
     <div class="cv-help-title">Need Help?</div>
-    ${rows.map(([label, value]) => `
+    ${rows.map(([label, value]) => {
+      const shown = omitBlockedDocPhone(value);
+      if (!shown) return '';
+      return `
       <div class="cv-help-row">
         <span>${esc(label)}</span>
-        <span>${svgIcon('phone')} ${esc(value || '-')}</span>
-      </div>`).join('')}
+        <span>${svgIcon('phone')} ${esc(shown)}</span>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 

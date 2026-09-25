@@ -14,6 +14,7 @@ import {
   resolveQuoteVehicles,
   resolveDayHotelForItinerary,
   resolveTripPlanner,
+  quotationVisiblePhone,
   resolvePolicies,
   resolveBankAccounts,
   resolveTravelerCounts,
@@ -74,7 +75,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
     name: company?.name || COMPANY_INFO.name,
     tagline: company?.tagline || COMPANY_INFO.tagline,
     logoUrl: company?.logo || company?.branding?.logo || COMPANY_INFO.logoUrl,
-    phone: company?.phone || COMPANY_INFO.phone,
+    phone: quotationVisiblePhone(company?.phone || COMPANY_INFO.phone),
     email: company?.email || COMPANY_INFO.email,
     website: company?.website || COMPANY_INFO.website,
     address: companyAddress || COMPANY_INFO.address,
@@ -133,7 +134,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <div className="qp-header-right">
           <p className="qp-quote-no">Quote No: {quoteNo}</p>
           <p>{formatQuoteDate(quote.createdAt)}</p>
-          <p>{executivePhone || brand.phone}</p>
+          {(executivePhone || brand.phone) && <p>{executivePhone || brand.phone}</p>}
         </div>
       </header>
 
@@ -203,7 +204,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
               ? [['Hotel Category', packageInfo.hotelCategory]]
               : []),
             ['Customer', lead.name || 'Guest'],
-            ...(lead.phone ? [['Customer Phone', lead.phone]] : []),
+            ...(quotationVisiblePhone(lead.phone) ? [['Customer Phone', quotationVisiblePhone(lead.phone)]] : []),
             ...(planner.name ? [['Sales Executive', planner.name]] : []),
             ...(executivePhone ? [['Executive Phone', executivePhone]] : []),
           ].map(([label, value], index) => (
@@ -501,19 +502,19 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <div>
           <h4>Sales Executive</h4>
           <p>{planner.name}</p>
-          <p>{executivePhone || '—'}</p>
+          {executivePhone ? <p>{executivePhone}</p> : null}
         </div>
         <div>
           <h4>Contact Us</h4>
           <p>{brand.address}</p>
-          <p>{executivePhone || brand.phone}</p>
+          {(executivePhone || brand.phone) ? <p>{executivePhone || brand.phone}</p> : null}
           <p>{brand.email}</p>
         </div>
       </div>
 
       <footer className="qp-footer">
         <p>Thank you for choosing {brand.name}</p>
-        <p>{executivePhone || brand.phone} · {brand.email}</p>
+        <p>{[executivePhone || brand.phone, brand.email].filter(Boolean).join(' · ')}</p>
       </footer>
 
       <section className="qp-certificate-page" aria-label="Travel agent registration certificate">
