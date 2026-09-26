@@ -65,7 +65,7 @@ export function imgElementToDataUrl(img, maxEdge = 920, quality = 0.8) {
 }
 
 /** Clone quotation DOM and inline image data URLs so print/PDF always shows photos. */
-export async function cloneWithEmbeddedImages(contentEl) {
+export async function cloneWithEmbeddedImages(contentEl, { maxEdge = 920, quality = 0.8 } = {}) {
   if (!contentEl) return null;
 
   await waitForImages(contentEl);
@@ -81,7 +81,7 @@ export async function cloneWithEmbeddedImages(contentEl) {
     const keepOriginal = cloneImg.classList?.contains('qp-certificate-img')
       || cloneImg.classList?.contains('qp-qr-img');
     if (!keepOriginal) {
-      dataUrl = imgElementToDataUrl(srcImg);
+      dataUrl = imgElementToDataUrl(srcImg, maxEdge, quality);
     }
     if (!dataUrl && srcImg?.src && !srcImg.src.startsWith('data:')) {
       dataUrl = await urlToDataUrl(srcImg.src);

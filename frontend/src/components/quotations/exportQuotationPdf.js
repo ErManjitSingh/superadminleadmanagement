@@ -3,19 +3,15 @@ import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 import travelAgentCertificate from '../../assets/hp-travel-agent-certificate.png';
 
-/** HD for WhatsApp / download — sharper text/photos, hard cap 800KB. */
-const HD_TARGET_MAX_BYTES = 800 * 1024;
+/** HD for WhatsApp / download — ~230 DPI, no blur cascade. */
 const HD_PROFILES = [
-  // Prefer sharp first; cascade only if over 800KB.
-  { width: 800, scale: 2, quality: 0.82 },
-  { width: 760, scale: 1.75, quality: 0.76 },
-  { width: 720, scale: 1.55, quality: 0.7 },
-  { width: 680, scale: 1.35, quality: 0.62 },
-  { width: 640, scale: 1.2, quality: 0.54 },
+  { width: 960, scale: 2, quality: 0.92 },
+  { width: 800, scale: 2, quality: 0.88 },
 ];
-const HD_IMAGE = { maxEdge: 920, quality: 0.8 };
-const HD_PAGE_MAX_WIDTH = 1480;
+const HD_IMAGE = { maxEdge: 2000, quality: 0.92 };
+const HD_PAGE_MAX_WIDTH = 2000;
 const HD_PDF_COMPRESSION = 'SLOW';
+const HD_CERT = { maxEdge: 2200, quality: 0.92 };
 
 /** Compact for server storage — previous optimizer, ~500KB. */
 const STORAGE_TARGET_MAX_BYTES = 500 * 1024;
@@ -28,14 +24,16 @@ const STORAGE_PROFILES = [
 const STORAGE_IMAGE = { maxEdge: 320, quality: 0.42 };
 const STORAGE_PAGE_MAX_WIDTH = 900;
 const STORAGE_PDF_COMPRESSION = 'FAST';
+const STORAGE_CERT = { maxEdge: 1100, quality: 0.72 };
 
 const QUALITY_PRESETS = {
   hd: {
-    targetMaxBytes: HD_TARGET_MAX_BYTES,
     profiles: HD_PROFILES,
     image: HD_IMAGE,
     pageMaxWidth: HD_PAGE_MAX_WIDTH,
     pdfCompression: HD_PDF_COMPRESSION,
+    cert: HD_CERT,
+    keepSharpest: true,
   },
   storage: {
     targetMaxBytes: STORAGE_TARGET_MAX_BYTES,
@@ -43,6 +41,8 @@ const QUALITY_PRESETS = {
     image: STORAGE_IMAGE,
     pageMaxWidth: STORAGE_PAGE_MAX_WIDTH,
     pdfCompression: STORAGE_PDF_COMPRESSION,
+    cert: STORAGE_CERT,
+    keepSharpest: false,
   },
 };
 
@@ -396,7 +396,7 @@ function findSafeSliceHeight(canvas, startY, pageHeightPx) {
   return pageHeightPx;
 }
 
-async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, certificateDataUrl = null) {
+async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression, certificateDataUrl = null, cert = HD_CERT) {
   const pdf = new jsPDF({
     orientation: 'p',
     unit: 'mm',
@@ -437,14 +437,18 @@ async function buildPdfFromCanvas(canvas, quality, pageMaxWidth, pdfCompression,
 
   if (!page) throw new Error('PDF render failed');
   if (certificateDataUrl) {
-    const compressedCert = await certificateToJpegDataUrl(certificateDataUrl);
+    const compressedCert = await certificateToJpegDataUrl(
+      certificateDataUrl,
+      cert.maxEdge,
+      cert.quality,
+    );
     appendCertificatePage(pdf, compressedCert || certificateDataUrl);
   }
   return pdf.output('blob');
 }
 
 async function renderWithProfile(contentEl, profile, preset) {
-  const embedded = (await cloneWithEmbeddedImages(contentEl)) || contentEl.cloneNode(true);
+  const embedded = (await cloneWithEmbeddedImages(contentEl, preset.image)) || contentEl.cloneNode(true);
   prepareForCapture(embedded, profile.width);
   compressImagesInClone(embedded, preset.image.maxEdge, preset.image.quality);
 
@@ -489,6 +493,7 @@ async function renderWithProfile(contentEl, profile, preset) {
       preset.pageMaxWidth,
       preset.pdfCompression,
       certificateDataUrl,
+      preset.cert,
     );
   } finally {
     host.remove();
@@ -497,7 +502,7 @@ async function renderWithProfile(contentEl, profile, preset) {
 
 /**
  * Render quotation DOM to PDF.
- * @param {'hd'|'storage'} quality - hd for send/download (sharper, ≤800KB), storage for server (~500KB)
+ * @param {'hd'|'storage'} quality - hd for send/download (sharp), storage for server (~500KB)
  */
 export async function exportQuotationPdfBlob(contentEl, quality = 'hd') {
   if (!contentEl) throw new Error('Quotation preview is not ready');
@@ -509,7 +514,7 @@ export async function exportQuotationPdfBlob(contentEl, quality = 'hd') {
     try {
       const blob = await renderWithProfile(contentEl, profile, preset);
       bestBlob = blob;
-      if (blob.size <= preset.targetMaxBytes) {
+      if (preset.keepSharpest || blob.size <= preset.targetMaxBytes) {
         return blob;
       }
     } catch (err) {
