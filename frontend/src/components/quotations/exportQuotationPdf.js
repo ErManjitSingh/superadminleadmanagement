@@ -3,15 +3,16 @@ import { jsPDF } from 'jspdf';
 import { cloneWithEmbeddedImages, waitForImages } from './embedPrintImages';
 import travelAgentCertificate from '../../assets/hp-travel-agent-certificate.png';
 
-/** HD for WhatsApp / download — ~230 DPI, no blur cascade. */
+/** HD for WhatsApp / download. Width stays the A4 layout (794px) so the design does not stretch. */
 const HD_PROFILES = [
-  { width: 960, scale: 2, quality: 0.92 },
-  { width: 800, scale: 2, quality: 0.88 },
+  { width: 794, scale: 2, quality: 0.86 },
+  { width: 794, scale: 1.5, quality: 0.82 },
 ];
-const HD_IMAGE = { maxEdge: 2000, quality: 0.92 };
-const HD_PAGE_MAX_WIDTH = 2000;
+const HD_IMAGE = { maxEdge: 1200, quality: 0.86 };
+const HD_PAGE_MAX_WIDTH = 1600;
 const HD_PDF_COMPRESSION = 'SLOW';
-const HD_CERT = { maxEdge: 2200, quality: 0.92 };
+const HD_CERT = { maxEdge: 1600, quality: 0.86 };
+const MAX_CANVAS_EDGE = 12000;
 
 /** Compact for server storage — previous optimizer, ~500KB. */
 const STORAGE_TARGET_MAX_BYTES = 500 * 1024;
@@ -53,6 +54,7 @@ function resolvePreset(quality = 'hd') {
 function prepareForCapture(root, widthPx) {
   root.style.cssText = [
     `width:${widthPx}px`,
+    `max-width:${widthPx}px`,
     'visibility:visible',
     'opacity:1',
     'display:block',
@@ -300,6 +302,13 @@ function downscaleCanvas(source, maxWidth) {
   return canvas;
 }
 
+function safeCaptureScale(heightPx, widthPx, scale) {
+  const byHeight = MAX_CANVAS_EDGE / Math.max(heightPx, 1);
+  const byWidth = MAX_CANVAS_EDGE / Math.max(widthPx, 1);
+  const fitted = Math.min(scale, byHeight, byWidth);
+  return Math.max(1, Math.round(fitted * 100) / 100);
+}
+
 async function captureFullContent(viewport, widthPx, scale) {
   return html2canvas(viewport, {
     scale,
@@ -480,7 +489,9 @@ async function renderWithProfile(contentEl, profile, preset) {
     viewport.style.height = 'auto';
     viewport.style.overflow = 'visible';
 
-    const canvas = await captureFullContent(viewport, profile.width, profile.scale);
+    const contentHeight = viewport.scrollHeight || viewport.offsetHeight || 1;
+    const scale = safeCaptureScale(contentHeight, profile.width, profile.scale);
+    const canvas = await captureFullContent(viewport, profile.width, scale);
     if (!canvas?.width || !canvas?.height) {
       throw new Error('PDF render failed');
     }
