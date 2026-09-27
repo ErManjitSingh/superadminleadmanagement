@@ -39,7 +39,7 @@ async function urlToDataUrl(url) {
 }
 
 /** Convert a loaded img element to a data URL for reliable print/PDF. */
-export function imgElementToDataUrl(img, maxEdge = 920, quality = 0.8) {
+export function imgElementToDataUrl(img, maxEdge = 920, quality = 0.8, mime = 'image/jpeg') {
   if (!img?.naturalWidth) return null;
   try {
     const w = img.naturalWidth;
@@ -58,6 +58,7 @@ export function imgElementToDataUrl(img, maxEdge = 920, quality = 0.8) {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, tw, th);
+    if (mime === 'image/png') return canvas.toDataURL('image/png');
     return canvas.toDataURL('image/jpeg', quality);
   } catch {
     return null;
@@ -78,9 +79,19 @@ export async function cloneWithEmbeddedImages(contentEl, { maxEdge = 920, qualit
     const srcImg = srcImgs[i];
     const cloneImg = cloneImgs[i];
     let dataUrl = null;
-    const keepOriginal = cloneImg.classList?.contains('qp-certificate-img')
-      || cloneImg.classList?.contains('qp-qr-img');
-    if (!keepOriginal) {
+    const isCertificate = cloneImg.classList?.contains('qp-certificate-img');
+    const isPaymentQr =
+      cloneImg.classList?.contains('qp-qr-img')
+      || cloneImg.alt === 'Payment QR'
+      || cloneImg.alt === 'Scan to pay';
+
+    if (isPaymentQr) {
+      // Keep PNG fidelity so the same UCO scanner as advance vouchers remains scannable
+      dataUrl =
+        imgElementToDataUrl(srcImg, 900, 1, 'image/png')
+        || (srcImg?.src?.startsWith('data:') ? srcImg.src : null)
+        || (srcImg?.src ? await urlToDataUrl(srcImg.src) : null);
+    } else if (!isCertificate) {
       dataUrl = imgElementToDataUrl(srcImg, maxEdge, quality);
     }
     if (!dataUrl && srcImg?.src && !srcImg.src.startsWith('data:')) {

@@ -1,9 +1,10 @@
-/** Company UPI payment QR (Explore My Bharat) — used on quotation PDFs. */
-export const PAYMENT_UPI_ID = 'exploremybharat@ucobank';
+/** Same UCO BHIM QR used on advance payment vouchers — Explore My Bharat. */
+import paymentQrPng from '../../assets/payment-qr.png';
 
-/** Public asset path that works with Vite base (/app/ in production). */
+export const PAYMENT_UPI_ID = 'exploremybharat@ucobank';
+export const PAYMENT_UPI_NAME = 'Explore My Bharat';
+
+/** Bundled asset (same file as backend advance-payment QR) so PDF export always embeds it. */
 export function getPaymentQrSrc() {
-  const base = import.meta.env.BASE_URL || '/';
-  const normalized = base.endsWith('/') ? base : `${base}/`;
-  return `${normalized}payment-qr.png`;
+  return paymentQrPng;
 }

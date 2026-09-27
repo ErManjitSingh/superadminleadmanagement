@@ -2254,34 +2254,44 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1px solid #e3eaf0;
-  background: #fafbfd;
+  padding: 16px 14px;
+  border-radius: 16px;
+  border: 1px solid #dbe3ef;
+  background: #f8fafc;
   text-align: center;
 }
 
 .qp-qr-img {
-  width: 110px;
-  height: 110px;
+  width: 168px;
+  height: 168px;
   object-fit: contain;
   background: #fff;
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
 }
 
 .qp-qr-title {
-  margin: 8px 0 0;
-  font-size: 12px;
+  margin: 10px 0 0;
+  font-size: 11px;
   font-weight: 800;
-  color: #0b2239;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
 }
 
 .qp-qr-demo {
-  margin: 2px 0 0;
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.qp-qr-name {
+  margin: 4px 0 0;
   font-size: 10px;
   font-weight: 600;
-  color: #8a9bb0;
+  color: #64748b;
 }
 
 .qp-contact {

@@ -94,7 +94,8 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
   const companyBanks = (company?.bankAccounts || []).filter((b) => b && (b.bank || b.accountNo || b.upi));
   const banks = companyBanks.length ? companyBanks : resolveBankAccounts(quote);
   const bank = banks[0] || null;
-  const upiId = company?.upiId || bank?.upi || PAYMENT_UPI_ID;
+  // Same UPI as advance payment voucher QR (UCO BHIM poster)
+  const upiId = PAYMENT_UPI_ID;
   const qrUrl = getPaymentQrSrc();
   const pax = resolveTravelerCounts(quote);
   const duration = Number(packageInfo.duration || pkg.duration || 0);
@@ -487,12 +488,13 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
         <div className="qp-qr-card">
           <img
             src={qrUrl}
-            alt="Scan to pay"
+            alt="Payment QR"
             className="qp-qr-img"
             crossOrigin="anonymous"
           />
-          <p className="qp-qr-title">Scan to Pay</p>
-          <p className="qp-qr-demo">UPI ID: {upiId || PAYMENT_UPI_ID}</p>
+          <p className="qp-qr-title">Scan QR to Pay</p>
+          <p className="qp-qr-demo">UPI ID: {upiId}</p>
+          <p className="qp-qr-name">Explore My Bharat</p>
         </div>
       </div>
       </section>
