@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,6 +10,7 @@ import {
   Mail,
   MessageCircle,
   Eye,
+  Pencil,
   FileText,
   IndianRupee,
   Users,
@@ -42,6 +44,13 @@ import { buildWhatsAppUrl } from '../../lib/whatsappContact';
 import { cn } from '../../lib/utils';
 
 const SENT_PAGE_SIZE = 10;
+
+function quotationBuilderPath(role) {
+  if (role === 'sales_executive') return '/sales-executive/quotations/new';
+  if (role === 'sales_manager') return '/sales-manager/quotations/new';
+  if (role === 'team_leader') return '/team-leader/quotations/new';
+  return '/quotations/new';
+}
 
 function formatSentAt(value) {
   if (!value) return '—';
@@ -194,6 +203,7 @@ function SentRowSkeleton() {
  * @param {{ endpoint?: string }} props
  */
 export default function QuotationSentPage({ endpoint = '/quotations' }) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -207,6 +217,17 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
   const [voucherFilter, setVoucherFilter] = useState('all'); // all | sent | pending | none | today | priced
   const pdfRef = useRef(null);
   const debouncedSearch = useDebouncedValue(appliedFilters.search, 350);
+
+  const openQuoteEditor = useCallback(
+    (quote) => {
+      const leadId = quote?.lead?._id || quote?.lead;
+      const params = new URLSearchParams();
+      if (leadId) params.set('leadId', String(leadId));
+      if (quote?._id) params.set('quoteId', String(quote._id));
+      navigate(`${quotationBuilderPath(user?.role)}?${params.toString()}`);
+    },
+    [navigate, user?.role]
+  );
 
   const todayIso = useMemo(() => {
     const d = new Date();
@@ -775,6 +796,18 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-9 px-3.5 rounded-xl gap-1.5 text-xs font-semibold border-violet-200 text-violet-700 hover:bg-violet-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openQuoteEditor(q);
+                            }}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit & send again
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="h-9 px-3.5 rounded-xl gap-1.5 text-xs font-semibold border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -855,6 +888,7 @@ export default function QuotationSentPage({ endpoint = '/quotations' }) {
           setShowPdf(false);
         }}
         readOnly
+        onEdit={() => selected && openQuoteEditor(selected)}
         onDownloadPdf={handlePrint}
       />
 

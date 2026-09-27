@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Download, Mail, MapPin, Phone, User, Users, Calendar, Send, MessageCircle, Loader2 } from 'lucide-react';
+import { Download, Mail, MapPin, Phone, User, Users, Calendar, Send, MessageCircle, Loader2, Pencil } from 'lucide-react';
 import AppDrawer from '../ui/AppDrawer';
 import Avatar from '../ui/Avatar';
 import QuoteStatusBadge from './QuoteStatusBadge';
@@ -34,6 +34,7 @@ export default function QuotationDetailDrawer({
   open,
   onClose,
   readOnly = false,
+  onEdit,
   onDownloadPdf,
   savePath = '/quotations',
   actions,
@@ -140,6 +141,15 @@ export default function QuotationDetailDrawer({
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
+          {onEdit && (
+            <Button
+              type="button"
+              onClick={onEdit}
+              className="rounded-xl gap-2 flex-1 bg-violet-600 hover:bg-violet-500 text-white"
+            >
+              <Pencil className="w-4 h-4" /> Edit & send again
+            </Button>
+          )}
           {onDownloadPdf && (
             <Button onClick={onDownloadPdf} variant="sky" className="rounded-xl gap-2 flex-1">
               <Download className="w-4 h-4" /> View PDF

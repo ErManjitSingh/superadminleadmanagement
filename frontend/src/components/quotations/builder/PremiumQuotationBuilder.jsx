@@ -676,9 +676,19 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
             <section>
               <h4 className="text-xs font-bold uppercase text-content-muted mb-2">Hotels</h4>
               {hotels.map((h, i) => (
-                <p key={i} className="text-sm py-1">
-                  {h.name} · {h.roomType} · {h.mealPlan}
-                </p>
+                <div key={i} className="text-sm py-1.5 space-y-0.5">
+                  <p>
+                    <span className="font-semibold text-emerald-700">Option 1:</span> {h.name}
+                    {Number(h.price) > 0 ? ` · ${formatINR(h.price)}` : ''}
+                    {h.roomType ? ` · ${h.roomType}` : ''}
+                  </p>
+                  {h.alternatives?.[0]?.name && (
+                    <p>
+                      <span className="font-semibold text-sky-700">Option 2:</span> {h.alternatives[0].name}
+                      {Number(h.alternatives[0].price) > 0 ? ` · ${formatINR(h.alternatives[0].price)}` : ''}
+                    </p>
+                  )}
+                </div>
               ))}
             </section>
           )}
@@ -695,7 +705,10 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
             <section>
               <h4 className="text-xs font-bold uppercase text-content-muted mb-2">Transport</h4>
               {transport.map((t, i) => (
-                <p key={i} className="text-sm">
+                <p key={i} className="text-sm py-0.5">
+                  <span className={cn('font-semibold', t.optionLabel === 'Option 2' ? 'text-sky-700' : 'text-emerald-700')}>
+                    {t.optionLabel || `Option ${i + 1}`}:
+                  </span>{' '}
                   {t.vehicle} · {formatINR(t.cost)}
                   {t.vehicleCount > 1 ? ` · ${t.vehicleCount} vehicles` : ''}
                 </p>
@@ -787,7 +800,7 @@ function StepPreviewSend({ b, shareUrl, onFinish, onOpenPreview, onSendWhatsApp,
           disabled={b.saving}
           onClick={() => onFinish('submit')}
         >
-          <Sparkles className="w-4 h-4" /> {b.config.submitLabel}
+          <Sparkles className="w-4 h-4" /> {b.quoteStatus === 'sent' ? 'Save & send again' : b.config.submitLabel}
         </Button>
       </div>
     </div>

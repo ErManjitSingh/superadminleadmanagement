@@ -177,6 +177,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
   const [step, setStep] = useState(1);
   const [maxReached, setMaxReached] = useState(1);
   const [draftId, setDraftId] = useState(null);
+  const [quoteStatus, setQuoteStatus] = useState('');
   const [savedQuoteNumber, setSavedQuoteNumber] = useState('');
   const [autosaveStatus, setAutosaveStatus] = useState('idle');
   const [versions, setVersions] = useState([]);
@@ -513,6 +514,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
         }))
       : [];
     setDraftId(quote._id);
+    setQuoteStatus(quote.status || '');
     if (quote.quoteNumber) setSavedQuoteNumber(quote.quoteNumber);
     setShareToken(quote.shareToken || '');
     setVersions(quote.versions || []);
@@ -683,10 +685,12 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
 
   useEffect(() => {
     if (!canPersistDraft || debouncedRevision === 0) return;
+    // Wait until an existing quotation is loaded so autosave does not create a new draft.
+    if (initialQuoteId && !quoteStatus) return;
 
     let cancelled = false;
     setAutosaveStatus('saving');
-    const payload = buildSavePayload('draft');
+    const payload = buildSavePayload(quoteStatus === 'sent' ? 'sent' : 'draft');
     const url = draftId ? `${config.savePath}/${draftId}/autosave` : `${config.savePath}/autosave`;
 
     API.post(url, payload, { skipSuccessToast: true, skipErrorToast: true })
@@ -705,7 +709,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     return () => {
       cancelled = true;
     };
-  }, [canPersistDraft, debouncedRevision, draftId, config.savePath, buildSavePayload]);
+  }, [canPersistDraft, debouncedRevision, draftId, config.savePath, buildSavePayload, quoteStatus, initialQuoteId]);
 
   const selectLead = (lead) => {
     const leadNoHotel = isNoHotelLabel(lead?.hotelCategory);
@@ -974,14 +978,21 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
 
   const handleSubmit = async (saveAs) => {
     if (!canPersistDraft) return;
-    const status = saveAs === 'draft' ? config.draftStatus : config.submitStatus;
+    const alreadySent = quoteStatus === 'sent';
+    const status = alreadySent
+      ? 'sent'
+      : (saveAs === 'draft' ? config.draftStatus : config.submitStatus);
     setSaving(true);
     try {
-      const payload = { ...buildSavePayload(status), quoteNumber: `Q-${Date.now().toString().slice(-6)}` };
+      const payload = {
+        ...buildSavePayload(status),
+        ...(alreadySent && saveAs !== 'draft' ? { resend: true } : {}),
+      };
 
       if (draftId) {
         const res = await API.post(`${config.savePath}/${draftId}/autosave`, payload);
-        if (saveAs !== 'draft' && mode === 'executive') {
+        if (alreadySent) setQuoteStatus('sent');
+        if (saveAs !== 'draft' && mode === 'executive' && !alreadySent) {
           await API.put(`${config.savePath}/${draftId}`, { action: 'submit' });
         }
         return res.data;
@@ -1017,6 +1028,7 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     setStep,
     maxReached,
     draftId,
+    quoteStatus,
     autosaveStatus,
     versions,
     shareToken,

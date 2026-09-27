@@ -300,13 +300,24 @@ const autosaveQuotation = asyncHandler(async (req, res) => {
     computedPayload
   );
 
-  const becameSent = req.body.status === 'sent' && quotation.status !== 'sent';
-  if (req.body.status && req.body.status !== quotation.status) {
-    quotation.status = req.body.status;
-    if (req.body.status === 'sent') quotation.sentAt = new Date();
+  const alreadySent = quotation.status === 'sent';
+  const incomingStatus = req.body.status;
+  const resend = req.body.resend === true || req.body.resend === 'true';
+  // Autosave must not turn a sent quotation back into a draft.
+  const demoteSent = alreadySent && incomingStatus && incomingStatus !== 'sent';
+  const becameSent = incomingStatus === 'sent' && !alreadySent;
+  if (resend && alreadySent) {
+    quotation.sentAt = new Date();
     quotation.timeline = [
       ...(quotation.timeline || []),
-      { type: req.body.status, date: new Date(), user: req.user.name, notes: 'Status updated via builder' },
+      { type: 'sent', date: new Date(), user: req.user.name, notes: 'Updated and sent again to the customer' },
+    ];
+  } else if (incomingStatus && incomingStatus !== quotation.status && !demoteSent) {
+    quotation.status = incomingStatus;
+    if (incomingStatus === 'sent') quotation.sentAt = new Date();
+    quotation.timeline = [
+      ...(quotation.timeline || []),
+      { type: incomingStatus, date: new Date(), user: req.user.name, notes: 'Status updated via builder' },
     ];
   }
 
