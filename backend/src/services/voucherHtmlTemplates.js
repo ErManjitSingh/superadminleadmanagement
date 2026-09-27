@@ -1216,6 +1216,44 @@ async function buildHotelVoucherHtml(voucher, booking) {
   });
 }
 
+/** Cab-only leads hide the hotel block. Hotel packages keep it, even before the stay is named. */
+async function packageIncludesHotel(booking, hotels) {
+  const { quotationOmitsHotels, isNoHotelLabel } = require('../utils/noHotelUtils');
+  const Quotation = require('../models/Quotation');
+  const Lead = require('../models/Lead');
+
+  let quotation = null;
+  const quoteId = booking?.quotation?._id || booking?.quotation;
+  if (quoteId) {
+    quotation = await Quotation.findById(quoteId)
+      .select('packageInfo selectedHotels packageSnapshot lead')
+      .lean();
+  }
+  if (!quotation && booking?.lead) {
+    const leadRef = booking.lead._id || booking.lead;
+    quotation = await Quotation.findOne({ lead: leadRef })
+      .sort({ updatedAt: -1 })
+      .select('packageInfo selectedHotels packageSnapshot lead')
+      .lean();
+  }
+
+  let lead = null;
+  const leadId = booking?.lead?._id || booking?.lead || quotation?.lead;
+  if (leadId && typeof leadId === 'object' && leadId.hotelCategory) {
+    lead = leadId;
+  } else if (leadId) {
+    lead = await Lead.findById(leadId).select('hotelCategory').lean();
+  }
+
+  if (quotation && quotationOmitsHotels(quotation, lead)) return false;
+  if (!quotation && lead && isNoHotelLabel(lead.hotelCategory)) return false;
+
+  const named = (hotels || []).some((h) => String(h?.hotelName || h?.name || '').trim());
+  if (named) return true;
+  if (quotation) return !quotationOmitsHotels(quotation, lead);
+  return false;
+}
+
 async function buildClientVoucherHtml(voucher, booking) {
   const brand = await resolveBrand(booking);
   const p = voucher.payload || {};
@@ -1226,6 +1264,7 @@ async function buildClientVoucherHtml(voucher, booking) {
     const phone = h.hotelPhone || h.phone || fromBooking.hotelPhone || fromBooking.phone || '';
     return { ...fromBooking, ...h, phone, hotelPhone: phone };
   });
+  const includeHotel = await packageIncludesHotel(booking, hotels);
   const transport = Array.isArray(p.transport) ? p.transport : (booking.transport || []);
   const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
   const total = Number(p.amount ?? p.totalAmount ?? booking.totalAmount ?? 0);
@@ -1249,9 +1288,12 @@ async function buildClientVoucherHtml(voucher, booking) {
 
   const bookingTiles = [];
   const hotelHelpRows = [];
-  if (hotels.length) {
-    hotels.forEach((h, i) => {
-      const label = hotels.length > 1 ? `Hotel ${i + 1}` : 'Hotel';
+  const namedHotels = includeHotel
+    ? hotels.filter((h) => String(h?.hotelName || h?.name || '').trim())
+    : [];
+  if (includeHotel && namedHotels.length) {
+    namedHotels.forEach((h, i) => {
+      const label = namedHotels.length > 1 ? `Hotel ${i + 1}` : 'Hotel';
       const hotelName = h.hotelName || h.name || 'Confirmed';
       const line = [hotelName, h.roomType || h.category || '', h.destination || '']
         .filter(Boolean).join(' · ');
@@ -1260,12 +1302,12 @@ async function buildClientVoucherHtml(voucher, booking) {
       bookingTiles.push(brandedTile('phone', `${label} Contact`, hotelPhone || 'Shared on confirmation'));
       if (hotelPhone) {
         hotelHelpRows.push([
-          hotels.length > 1 ? `${hotelName} Contact` : 'Hotel Contact',
+          namedHotels.length > 1 ? `${hotelName} Contact` : 'Hotel Contact',
           hotelPhone,
         ]);
       }
     });
-  } else {
+  } else if (includeHotel) {
     bookingTiles.push(brandedTile('hotel', 'Hotel', 'Details will be shared once confirmed'));
   }
   if (transport.length) {
@@ -1295,7 +1337,9 @@ async function buildClientVoucherHtml(voucher, booking) {
       <div class="cv-grid">${bookingTiles.join('')}</div>
       <div class="cv-footnote" style="margin-top:6px">
         ${svgIcon('info')}
-        <span>Hotel &amp; cab are confirmed. Present this voucher when requested.</span>
+        <span>${includeHotel
+          ? 'Hotel &amp; cab are confirmed. Present this voucher when requested.'
+          : 'Cab is confirmed. Present this voucher when requested.'}</span>
       </div>
     </div>
     <div>
