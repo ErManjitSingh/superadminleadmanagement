@@ -24,6 +24,8 @@ import {
   Tag,
   Users,
   UtensilsCrossed,
+  Copy,
+  Plus,
 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import Avatar from '../../ui/Avatar';
@@ -295,7 +297,9 @@ export default function PremiumQuotationBuilder({ mode = 'executive' }) {
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18 }}
             >
-              {b.step === 1 && <StepPackage b={b} initialLeadId={initialLeadId} />}
+              {b.step === 1 && (
+                <StepPackage b={b} initialLeadId={initialLeadId} initialQuoteId={initialQuoteId} />
+              )}
               {b.step === 2 && (
                 <AiItineraryGenerator
                   prompt={b.builderUi.aiPrompt}
@@ -406,7 +410,7 @@ function AutosaveBadge({ status }) {
   return null;
 }
 
-function StepPackage({ b, initialLeadId }) {
+function StepPackage({ b, initialLeadId, initialQuoteId }) {
   const info = b.state.packageInfo;
   const [showCatalog, setShowCatalog] = useState(false);
 
@@ -465,6 +469,95 @@ function StepPackage({ b, initialLeadId }) {
           >
             View Lead <ExternalLink className="w-3.5 h-3.5" />
           </Link>
+        </div>
+      )}
+
+      {!initialQuoteId && b.selectedLead && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Copy className="w-4 h-4 text-violet-600" />
+                Related quotations
+              </p>
+              <p className="text-xs text-slate-500 mt-1">
+                {b.selectedLead.destination
+                  ? `Same destination (${b.selectedLead.destination}) — pehle se bani quotes yahan se choose karo, ya naya banao.`
+                  : 'Pehle se bani related quotes yahan se choose karo, ya naya banao.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => b.startFreshQuotation()}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-colors',
+                b.startMode === 'fresh'
+                  ? 'bg-violet-600 text-white border-violet-600'
+                  : 'bg-white text-violet-700 border-violet-200 hover:bg-violet-50',
+              )}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              New quotation
+            </button>
+          </div>
+
+          {b.loadingRelatedQuotes ? (
+            <p className="text-sm text-slate-500 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-violet-600" />
+              Loading related quotations…
+            </p>
+          ) : b.relatedQuotes.length > 0 ? (
+            <div className="grid sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+              {b.relatedQuotes.map((q) => {
+                const snap = q.packageSnapshot || q.package || {};
+                const title =
+                  q.packageInfo?.packageName
+                  || snap.name
+                  || q.quoteNumber
+                  || 'Quotation';
+                const dest = q.packageInfo?.destination || snap.destination || '—';
+                const days = q.packageInfo?.duration || snap.duration || '—';
+                const amount =
+                  Number(q.pricing?.grandTotal)
+                  || Number(q.pricing?.total)
+                  || Number(q.packageInfo?.totalCost)
+                  || 0;
+                const active = b.relatedSourceId === q._id;
+                const leadName = typeof q.lead === 'object' ? q.lead?.name : '';
+                return (
+                  <button
+                    key={q._id}
+                    type="button"
+                    onClick={() => b.applyQuotationAsTemplate(q)}
+                    className={cn(
+                      'p-3 rounded-xl border text-left transition-colors',
+                      active
+                        ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-200'
+                        : 'border-slate-200 bg-slate-50/60 hover:border-violet-300 hover:bg-white',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-bold text-sm text-slate-900 line-clamp-2">{title}</p>
+                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-600 shrink-0">
+                        {String(q.status || 'sent').replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      {dest} · {days} days · {formatINR(amount)}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1 truncate">
+                      {q.quoteNumber || 'Quote'}
+                      {leadName ? ` · was for ${leadName}` : ''}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">
+              Is destination ki koi pehli quotation nahi mili — Fresh package se naya banao, ya catalog se package choose karo.
+            </p>
+          )}
         </div>
       )}
 

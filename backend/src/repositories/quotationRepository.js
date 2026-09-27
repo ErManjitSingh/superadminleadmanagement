@@ -149,13 +149,31 @@ async function applyQuotationQueryFilters(filter, query = {}, branchId) {
   const searchTrim = search?.trim();
 
   if (destinationTrim) {
-    const leadQuery = {
-      destination: new RegExp(`^${escapeRegex(destinationTrim)}$`, 'i'),
+    const destRegex = new RegExp(escapeRegex(destinationTrim), 'i');
+    const leadIds = await Lead.find(
+      withBranch({ destination: destRegex }, branchId),
+    ).distinct('_id');
+    const destinationClause = {
+      $or: [
+        ...(leadIds.length ? [{ lead: { $in: leadIds } }] : []),
+        { 'packageInfo.destination': destRegex },
+        { 'packageSnapshot.destination': destRegex },
+      ],
     };
-    const leadIds = await Lead.find(withBranch(leadQuery, branchId)).distinct('_id');
-    filter.lead = filter.lead?.$in
-      ? intersectLeadIds(filter.lead, leadIds)
-      : { $in: leadIds };
+    if (!destinationClause.$or.length) {
+      // No matching leads and no package fields — force empty result
+      filter.lead = { $in: [] };
+    } else if (filter.$and) {
+      filter.$and.push(destinationClause);
+    } else if (filter.$or) {
+      filter.$and = [{ $or: filter.$or }, destinationClause];
+      delete filter.$or;
+    } else if (filter.lead) {
+      filter.$and = [{ lead: filter.lead }, destinationClause];
+      delete filter.lead;
+    } else {
+      Object.assign(filter, destinationClause);
+    }
   }
 
   if (searchTrim) {

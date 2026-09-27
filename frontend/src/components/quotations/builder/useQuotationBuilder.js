@@ -198,6 +198,10 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
   const [catalogVendors, setCatalogVendors] = useState([]);
   const [flights, setFlights] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [relatedQuotes, setRelatedQuotes] = useState([]);
+  const [loadingRelatedQuotes, setLoadingRelatedQuotes] = useState(false);
+  const [relatedSourceId, setRelatedSourceId] = useState('');
+  const [startMode, setStartMode] = useState(''); // '' | 'related' | 'fresh' | 'package'
 
   const [state, setState] = useState({ ...defaultWizardState, leadId: initialLeadId || '' });
   const [builderUi, setBuilderUi] = useState(defaultBuilderUi());
@@ -577,6 +581,113 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     setMaxReached(4);
   }, []);
 
+  /** Copy a past quotation's package/pricing into THIS lead as a new draft (does not edit the source). */
+  const applyQuotationAsTemplate = useCallback((quote) => {
+    if (!quote?._id) return;
+    const snap = quote.packageSnapshot || quote.package || {};
+    const itinerary = snap.itinerary?.length
+      ? snap.itinerary.map((d, i) => ({
+          ...d,
+          id: d.id || d._id || `day-${Date.now()}-${i + 1}`,
+        }))
+      : [];
+    setCustomItinerary(itinerary);
+    setCustomInclusions(snap.inclusions?.length ? [...snap.inclusions] : ['']);
+    setCustomExclusions(snap.exclusions?.length ? [...snap.exclusions] : ['']);
+    setSelectedPkgDetail(snap.name || snap.destination ? { ...snap, itinerary } : null);
+    setBuilderUi(builderUiFromQuotation(quote));
+    setRelatedSourceId(quote._id);
+    setStartMode('related');
+
+    const priced =
+      Number(quote.pricing?.grandTotal)
+      || Number(quote.pricing?.total)
+      || Number(quote.packageInfo?.totalCost)
+      || 0;
+
+    setState((s) => {
+      const leadAdults = Number(s.packageInfo?.adults) || 1;
+      const leadChildren = Number(s.packageInfo?.children) || 0;
+      const leadTravelDate = s.packageInfo?.travelDate || '';
+      return {
+        ...s,
+        // Keep current lead — never switch to the source quote's lead
+        packageId: quote.package?._id || quote.package || '',
+        templateKey: quote.templateKey || `from-quote:${quote._id}`,
+        packageInfo: {
+          ...s.packageInfo,
+          ...(quote.packageInfo || {}),
+          packageName: quote.packageInfo?.packageName || snap.name || s.packageInfo?.packageName,
+          destination:
+            quote.packageInfo?.destination
+            || snap.destination
+            || s.packageInfo?.destination,
+          duration: quote.packageInfo?.duration || snap.duration || s.packageInfo?.duration,
+          travelDate: leadTravelDate || toDateInputValue(quote.packageInfo?.travelDate),
+          totalCost: priced || s.packageInfo?.totalCost,
+          adults: leadAdults,
+          children: leadChildren,
+          mealPlan: quote.packageInfo?.mealPlan || s.packageInfo?.mealPlan,
+          hotelCategory: quote.packageInfo?.hotelCategory || s.packageInfo?.hotelCategory,
+          transportation: quote.packageInfo?.transportation || s.packageInfo?.transportation,
+          coverImage: quote.packageInfo?.coverImage || snap.coverImage || s.packageInfo?.coverImage,
+        },
+        pricing: {
+          ...s.pricing,
+          ...(quote.pricing || {}),
+          pricingOptions: normalizePricingOptions(quote.pricing?.pricingOptions, priced),
+          total: priced,
+          grandTotal: priced,
+          baseCost: Number(quote.pricing?.baseCost) || priced || 0,
+        },
+        paymentPlan: quote.paymentPlan?.length
+          ? syncPaymentAmounts(quote.paymentPlan, priced)
+          : syncPaymentAmounts(s.paymentPlan, priced),
+        importantNotes: quote.importantNotes || s.importantNotes,
+        customizations: quote.customizations || s.customizations,
+        selectedHotelIds: (quote.selectedHotels || []).map((h) => h.hotelId || h._id).filter(Boolean),
+        selectedCabIds: (quote.selectedCabs || []).map((c) => c._id || c.vendorId).filter(Boolean),
+        selectedFlightIds: (quote.selectedFlights || []).map((f) => f._id || f.id).filter(Boolean),
+        selectedActivityIds: (quote.selectedActivities || []).map((a) => a._id || a.id).filter(Boolean),
+      };
+    });
+    setStep(1);
+    setMaxReached(Math.max(2, 1));
+  }, []);
+
+  const startFreshQuotation = useCallback(() => {
+    setRelatedSourceId('');
+    setStartMode('fresh');
+    setCustomItinerary([]);
+    setCustomInclusions(['']);
+    setCustomExclusions(['']);
+    setSelectedPkgDetail(null);
+    setState((s) => ({
+      ...s,
+      packageId: '',
+      templateKey: '',
+      packageInfo: {
+        ...s.packageInfo,
+        packageName: '',
+        duration: s.packageInfo?.duration || '',
+        totalCost: Number(selectedLead?.budget) || s.packageInfo?.totalCost || 0,
+        coverImage: '',
+      },
+      pricing: {
+        ...defaultWizardState.pricing,
+        total: Number(selectedLead?.budget) || 0,
+        grandTotal: Number(selectedLead?.budget) || 0,
+        baseCost: Number(selectedLead?.budget) || 0,
+        pricingOptions: normalizePricingOptions([], Number(selectedLead?.budget) || 0),
+      },
+      paymentPlan: syncPaymentAmounts(DEFAULT_PAYMENT_PLAN, Number(selectedLead?.budget) || 0),
+      selectedHotelIds: [],
+      selectedCabIds: [],
+      selectedFlightIds: [],
+      selectedActivityIds: [],
+    }));
+  }, [selectedLead]);
+
   const fetchQuoteById = useCallback(
     async (id) => {
       if (!id) return null;
@@ -605,6 +716,56 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
   useEffect(() => {
     if (initialQuoteId) fetchQuoteById(initialQuoteId);
   }, [initialQuoteId, fetchQuoteById]);
+
+  // Past quotations for the same destination — pick one as a starting template for this lead
+  useEffect(() => {
+    if (initialQuoteId) {
+      setRelatedQuotes([]);
+      return undefined;
+    }
+    const destination = (
+      selectedLead?.destination
+      || state.packageInfo?.destination
+      || ''
+    ).trim();
+    if (!destination || destination.length < 2) {
+      setRelatedQuotes([]);
+      return undefined;
+    }
+    let cancelled = false;
+    setLoadingRelatedQuotes(true);
+    (async () => {
+      try {
+        const { data } = await API.get(config.savePath, {
+          params: {
+            page: 1,
+            limit: 16,
+            destination,
+          },
+          skipErrorToast: true,
+        });
+        const rows = unwrapList(data) || data?.data || [];
+        const filtered = rows
+          .filter((q) => q?._id && q.status !== 'draft')
+          .slice(0, 12);
+        if (!cancelled) setRelatedQuotes(filtered);
+      } catch {
+        if (!cancelled) setRelatedQuotes([]);
+      } finally {
+        if (!cancelled) setLoadingRelatedQuotes(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    initialQuoteId,
+    selectedLead?._id,
+    selectedLead?.destination,
+    state.packageInfo?.destination,
+    state.leadId,
+    config.savePath,
+  ]);
 
   useEffect(() => {
     if (debouncedLeadSearch.trim().length >= 2) fetchLeads(debouncedLeadSearch);
@@ -790,6 +951,8 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
   };
 
   const selectPackage = async (pkg) => {
+    setRelatedSourceId('');
+    setStartMode('package');
     setState((s) => ({ ...s, packageId: pkg._id, templateKey: '' }));
     setLoadingPackageDetail(true);
     try {
@@ -1047,6 +1210,12 @@ export function useQuotationBuilder({ mode = 'executive', initialLeadId = '', in
     loadingPackageDetail,
     selectPackage,
     applyTemplate,
+    relatedQuotes,
+    loadingRelatedQuotes,
+    relatedSourceId,
+    startMode,
+    applyQuotationAsTemplate,
+    startFreshQuotation,
     activePkg,
     packageNights,
     hotelDestination,
