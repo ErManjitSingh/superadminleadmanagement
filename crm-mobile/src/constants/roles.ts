@@ -14,6 +14,7 @@ export const MOBILE_SUPPORTED_ROLES: UserRole[] = [
   'sales_manager',
   'sales_executive',
   'team_leader',
+  'operations_manager',
 ];
 
 export function getRoleApiPrefix(role: UserRole): string {

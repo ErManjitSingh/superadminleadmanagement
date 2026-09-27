@@ -21,6 +21,9 @@ import {
   MapPin,
   Award,
   Mail,
+  Briefcase,
+  Plus,
+  Send,
 } from 'lucide-react';
 
 export const salesManagerNavItems = [
@@ -30,7 +33,7 @@ export const salesManagerNavItems = [
     label: 'Lead Management',
     icon: Users,
     children: [
-      { path: '/sales-manager/leads/all', label: 'All Team Leads', icon: Users, countKey: 'leads.all' },
+      { path: '/sales-manager/leads/all', label: 'All Leads', icon: Users, countKey: 'leads.all' },
       { path: '/sales-manager/leads/unassigned', label: 'Unassigned Leads', icon: Inbox, badgeKey: 'leads.unassigned' },
       { path: '/sales-manager/leads/assigned', label: 'Assigned Leads', icon: UserCheck, countKey: 'leads.assigned' },
       { path: '/sales-manager/leads/hot', label: 'Hot Leads', icon: Flame, badgeKey: 'leads.hot' },
@@ -50,9 +53,23 @@ export const salesManagerNavItems = [
     label: 'Quotations',
     icon: FileText,
     children: [
+      { path: '/sales-manager/quotations/new', label: 'Create Quotation', icon: Plus },
+      { path: '/sales-manager/quotations/sent', label: 'Quotation Sent', icon: Send },
       { path: '/sales-manager/quotations/pending', label: 'Pending Approval', icon: Clock, badgeKey: 'quotations.pending' },
       { path: '/sales-manager/quotations/approved', label: 'Approved Quotes', icon: CheckCircle2, countKey: 'quotations.approved' },
       { path: '/sales-manager/quotations/rejected', label: 'Rejected Quotes', icon: XOctagon, countKey: 'quotations.rejected' },
+    ],
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    icon: Briefcase,
+    children: [
+      { path: '/operations-manager/dashboard', label: 'Ops Dashboard', icon: LayoutDashboard },
+      { path: '/operations-manager/bookings/pending', label: 'Pending Bookings', icon: Clock },
+      { path: '/operations-manager/bookings/confirmed', label: 'Confirmed', icon: CheckCircle2 },
+      { path: '/operations-manager/vouchers', label: 'Vouchers', icon: FileText },
+      { path: '/operations-manager/tasks', label: 'Tasks', icon: CalendarClock },
     ],
   },
   { path: '/sales-manager/reports', label: 'Reports', icon: BarChart3 },

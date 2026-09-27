@@ -93,6 +93,34 @@ function activityMeta(item: LeadTimelineItem) {
   return conf;
 }
 
+function getQuoteStatusMeta(status?: string) {
+  const raw = String(status || 'draft');
+  const key = raw.toLowerCase();
+
+  if (key.includes('approved')) {
+    return { label: 'Approved', color: '#059669', icon: 'checkmark-done' as const, bg: '#D1FAE5' };
+  }
+  if (key.includes('rejected') || key.includes('reject')) {
+    return { label: 'Rejected', color: '#EF4444', icon: 'close-circle' as const, bg: '#FFE4E6' };
+  }
+  if (key.includes('negotiat')) {
+    return { label: 'Negotiation', color: '#EC4899', icon: 'chatbubbles' as const, bg: '#FCE7F3' };
+  }
+  if (key.includes('sent') || key.includes('quotation_sent')) {
+    return { label: 'Sent', color: '#0EA5E9', icon: 'send' as const, bg: '#E0F2FE' };
+  }
+  if (key.includes('created') || key.includes('draft') || key.includes('quotation_created')) {
+    return { label: 'Draft', color: PURPLE, icon: 'document-text' as const, bg: '#EDE9FE' };
+  }
+
+  // Fallback: "quotation_sent" -> "Quotation Sent"
+  const pretty = raw
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
+  return { label: pretty || 'Draft', color: PURPLE, icon: 'document-text' as const, bg: '#EDE9FE' };
+}
+
 export default function LeadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
@@ -554,7 +582,8 @@ export default function LeadDetailScreen() {
             {quotations.length ? (
               quotations.map((q: Quotation) => {
                 const total = getQuotationTotal(q);
-                const qStatus = (q.status || 'draft').replace(/_/g, ' ');
+                const meta = getQuoteStatusMeta(q.status);
+                const dateText = q.createdAt ? format(parseISO(q.createdAt), 'dd MMM yyyy') : '';
                 return (
                   <Pressable
                     key={q._id}
@@ -566,18 +595,40 @@ export default function LeadDetailScreen() {
                       })
                     }
                   >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.quoteTitle} numberOfLines={1}>
-                        {q.quoteNumber || getQuotationPackageName(q)}
-                      </Text>
-                      <Text style={styles.quoteMeta}>
-                        {getQuotationPackageName(q)} · {qStatus}
-                      </Text>
+                    <View style={styles.quoteLeft}>
+                      <View
+                        style={[
+                          styles.quoteIconCircle,
+                          { backgroundColor: meta.bg, borderColor: `${meta.color}33` },
+                        ]}
+                      >
+                        <Ionicons name={meta.icon} size={16} color={meta.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.quoteTitle} numberOfLines={1}>
+                          {q.quoteNumber || getQuotationPackageName(q)}
+                        </Text>
+                        <View style={styles.quoteStatusRow}>
+                          <View
+                            style={[
+                              styles.quoteStatusPill,
+                              { backgroundColor: `${meta.color}18`, borderColor: `${meta.color}33` },
+                            ]}
+                          >
+                            <View style={[styles.quoteStatusDot, { backgroundColor: meta.color }]} />
+                            <Text style={[styles.quoteStatusText, { color: meta.color }]}>{meta.label}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.quoteMeta} numberOfLines={1}>
+                          {getQuotationPackageName(q)}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <View style={styles.quoteRight}>
                       <Text style={styles.quoteAmount}>
                         {total > 0 ? `₹${total.toLocaleString('en-IN')}` : '—'}
                       </Text>
+                      {dateText ? <Text style={styles.quoteDate}>{dateText}</Text> : null}
                       <Text style={styles.pdfLink}>View PDF</Text>
                     </View>
                   </Pressable>
@@ -709,10 +760,12 @@ export default function LeadDetailScreen() {
 
           {/* Footer actions */}
           <View style={styles.footerRow}>
-            <Pressable onPress={confirmDelete} style={styles.deleteBtn}>
-              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-              <Text style={styles.deleteText}>Delete Lead</Text>
-            </Pressable>
+            {role === 'admin' ? (
+              <Pressable onPress={confirmDelete} style={styles.deleteBtn}>
+                <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                <Text style={styles.deleteText}>Delete Lead</Text>
+              </Pressable>
+            ) : null}
             <Pressable onPress={markConverted} style={styles.convertBtn}>
               <Ionicons name="checkmark" size={18} color="#fff" />
               <Text style={styles.convertText}>Mark as Converted</Text>
@@ -843,7 +896,17 @@ export default function LeadDetailScreen() {
       <Modal visible={showQuoteModal} transparent animationType="slide" onRequestClose={() => setShowQuoteModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.formSheet}>
-            <Text style={styles.sheetTitle}>Create Quotation</Text>
+            <View style={styles.quoteModalHeader}>
+              <View style={[styles.sectionIcon, { backgroundColor: '#FFEDD5' }]}>
+                <Ionicons name="document-text" size={16} color="#EA580C" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sheetTitle}>Create Quotation</Text>
+                <Text style={styles.sheetSub}>
+                  For {typeof lead.name === 'string' ? lead.name : 'Lead'}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.fieldLabel}>Package / Destination</Text>
             <TextInput
               value={quoteName}
@@ -853,14 +916,17 @@ export default function LeadDetailScreen() {
               style={styles.field}
             />
             <Text style={styles.fieldLabel}>Total Amount (₹)</Text>
-            <TextInput
-              value={quoteAmount}
-              onChangeText={setQuoteAmount}
-              placeholder="25000"
-              keyboardType="numeric"
-              placeholderTextColor="#94A3B8"
-              style={styles.field}
-            />
+            <View style={styles.amountFieldWrap}>
+              <Ionicons name="cash-outline" size={18} color={PURPLE} />
+              <TextInput
+                value={quoteAmount}
+                onChangeText={setQuoteAmount}
+                placeholder="25000"
+                keyboardType="numeric"
+                placeholderTextColor="#94A3B8"
+                style={styles.amountFieldInput}
+              />
+            </View>
             <Text style={styles.fieldLabel}>Notes (optional)</Text>
             <TextInput
               value={quoteNotes}
@@ -872,14 +938,14 @@ export default function LeadDetailScreen() {
             />
             <Pressable
               onPress={() => setQuoteDraft((v) => !v)}
-              style={styles.draftToggle}
+              style={[styles.draftToggle, quoteDraft && styles.draftToggleActive]}
             >
               <Ionicons
                 name={quoteDraft ? 'checkbox' : 'square-outline'}
                 size={20}
                 color={PURPLE}
               />
-              <Text style={styles.draftText}>Save as draft</Text>
+              <Text style={[styles.draftText, quoteDraft && { color: PURPLE }]}>Save as draft</Text>
             </Pressable>
             <View style={styles.formActions}>
               <Pressable onPress={() => setShowQuoteModal(false)} style={styles.cancelBtn}>
@@ -1230,15 +1296,39 @@ const styles = StyleSheet.create({
   quoteRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'space-between',
+    gap: 12,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
-  quoteTitle: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  quoteMeta: { marginTop: 2, fontSize: 12, color: '#94A3B8', fontWeight: '500' },
-  quoteAmount: { fontSize: 14, fontWeight: '800', color: PURPLE },
-  pdfLink: { fontSize: 11, fontWeight: '700', color: '#EA580C' },
+  quoteLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  quoteIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  quoteTitle: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  quoteStatusRow: { marginTop: 6, flexDirection: 'row', alignItems: 'center' },
+  quoteStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  quoteStatusDot: { width: 6, height: 6, borderRadius: 3 },
+  quoteStatusText: { fontSize: 11, fontWeight: '800' },
+  quoteMeta: { marginTop: 4, fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  quoteRight: { alignItems: 'flex-end', gap: 4 },
+  quoteAmount: { fontSize: 14, fontWeight: '900', color: PURPLE },
+  quoteDate: { fontSize: 11, fontWeight: '700', color: '#94A3B8' },
+  pdfLink: { fontSize: 11, fontWeight: '800', color: PURPLE },
   fullBuilderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1355,8 +1445,34 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     backgroundColor: '#F8FAFC',
   },
-  draftToggle: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14 },
+  draftToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#fff',
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  draftToggleActive: { backgroundColor: '#F5F3FF', borderColor: '#DDD6FE' },
   draftText: { fontSize: 14, fontWeight: '600', color: '#334155' },
+  quoteModalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 6 },
+  sheetSub: { marginTop: 2, fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+  amountFieldWrap: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  amountFieldInput: { flex: 1, color: '#0F172A', fontSize: 15, fontWeight: '700', paddingVertical: 0 },
   formActions: { flexDirection: 'row', gap: 10, marginTop: 18 },
   cancelBtn: {
     flex: 1,

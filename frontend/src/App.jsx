@@ -154,6 +154,7 @@ function App() {
               <Route path="team" element={<TeamPerformancePage />} />
               <Route path="email-activity" element={<EmailActivityPage />} />
               <Route path="quotations/new" element={<ManagerQuotationBuilder />} />
+              <Route path="quotations/sent" element={<QuotationSentPage endpoint="/sales-manager/quotations" />} />
               <Route path="quotations/:status" element={<QuotationApprovalPage />} />
               <Route path="reports" element={<ManagerReportsPage />} />
               <Route path="reactivated-leads" element={<ReactivatedLeadsPage />} />
@@ -218,7 +219,7 @@ function App() {
             <Route
               path="/operations-manager"
               element={
-                <ProtectedRoute allowedRoles={['operations_manager', 'admin']}>
+                <ProtectedRoute allowedRoles={['operations_manager', 'admin', 'sales_manager']}>
                   <OperationsManagerLayout />
                 </ProtectedRoute>
               }

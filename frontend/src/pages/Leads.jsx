@@ -46,9 +46,10 @@ export default function Leads() {
   const isLimitedRole = ['team_leader', 'sales_executive'].includes(user?.role);
   const userCanAssignLeads = canAssignLeads(user?.role);
   const canEditLead = can('leads', 'edit');
+  const canDeleteLead = can('leads', 'delete');
   const leadMenuActions = isLimitedRole
     ? { view: true, edit: false, assign: false, delete: false }
-    : { view: true, edit: isManagerRole, assign: isManagerRole, delete: isManagerRole };
+    : { view: true, edit: isManagerRole, assign: isManagerRole, delete: canDeleteLead };
   const config = pageConfig[location.pathname] || pageConfig['/leads'];
   const queryFilter = searchParams.get('filter') || '';
 
@@ -248,7 +249,7 @@ export default function Leads() {
         onAssign={isAdmin ? () => openBulkAssign(selectedLeadIds) : undefined}
         onStatusUpdate={isManagerRole ? () => setBulkStatusOpen(true) : undefined}
         onExport={handleBulkExport}
-        onDelete={handleBulkDelete}
+        onDelete={canDeleteLead ? handleBulkDelete : undefined}
       />
 
       {loading ? (
@@ -261,7 +262,7 @@ export default function Leads() {
           rowSelection={rowSelection}
           onRowSelectionChange={setRowSelection}
           onRowClick={setPreviewLead}
-          onDelete={isManagerRole ? handleDelete : undefined}
+          onDelete={canDeleteLead ? handleDelete : undefined}
           onAssign={isManagerRole && userCanAssignLeads ? openAssign : undefined}
           canEditLead={isManagerRole && canEditLead}
           menuActions={leadMenuActions}
@@ -281,7 +282,7 @@ export default function Leads() {
         lead={previewLead}
         onClose={() => setPreviewLead(null)}
         onAssign={userCanAssignLeads ? openAssign : undefined}
-        onDelete={isManagerRole ? handleDelete : undefined}
+        onDelete={canDeleteLead ? handleDelete : undefined}
         canEditLead={canEditLead}
       />
 

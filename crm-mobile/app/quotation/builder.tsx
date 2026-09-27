@@ -18,6 +18,7 @@ import { DateTimeField } from '@/src/components/DateTimeField';
 import { LeadPicker } from '@/src/components/LeadPicker';
 import { LoadingView } from '@/src/components/LoadingView';
 import { getQuoteEditorPath } from '@/src/constants/crmMenu';
+import { colors, radius, shadows, spacing } from '@/src/constants/theme';
 import { useAuth } from '@/src/context/AuthContext';
 import { getErrorMessage } from '@/src/lib/apiClient';
 import { fetchLeadDetail } from '@/src/services/leads';
@@ -28,16 +29,13 @@ import {
 } from '@/src/services/quotations';
 import type { Lead, UserRole } from '@/src/types';
 
-const PURPLE = '#7C3AED';
-const BG = '#F7F8FC';
-
 const STEPS = [
-  { id: 1, title: 'Package', subtitle: 'Basic details' },
-  { id: 2, title: 'Itinerary', subtitle: 'Day-wise plan' },
-  { id: 3, title: 'Hotels', subtitle: 'Stay options' },
-  { id: 4, title: 'Transport', subtitle: 'Travel options' },
-  { id: 5, title: 'Pricing', subtitle: 'Total cost' },
-  { id: 6, title: 'Preview', subtitle: 'Review & save' },
+  { id: 1, title: 'Package', subtitle: 'Basic details', icon: 'briefcase-outline' as const },
+  { id: 2, title: 'Itinerary', subtitle: 'Day-wise plan', icon: 'map-outline' as const },
+  { id: 3, title: 'Hotels', subtitle: 'Stay options', icon: 'bed-outline' as const },
+  { id: 4, title: 'Transport', subtitle: 'Travel options', icon: 'car-outline' as const },
+  { id: 5, title: 'Pricing', subtitle: 'Total cost', icon: 'cash-outline' as const },
+  { id: 6, title: 'Preview', subtitle: 'Review & save', icon: 'eye-outline' as const },
 ];
 
 const MEAL_PLANS = ['CP', 'MAP', 'AP', 'EP', 'No Hotel (Cab Only)'];
@@ -95,6 +93,9 @@ export default function NativeQuotationBuilderScreen() {
     () => STEPS.filter((s) => !(noHotel && s.id === 3)),
     [noHotel]
   );
+
+  const stepIndex = visibleSteps.findIndex((s) => s.id === step);
+  const progress = ((stepIndex + 1) / visibleSteps.length) * 100;
 
   const leadQuery = useQuery({
     queryKey: ['lead', role, leadId],
@@ -253,21 +254,30 @@ export default function NativeQuotationBuilderScreen() {
   if (loadingExisting) return <LoadingView />;
 
   const stepMeta = STEPS.find((s) => s.id === step)!;
+  const isFirst = step === visibleSteps[0].id;
+  const isLast = step === 6;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <Stack.Screen options={{ headerShown: false }} />
+
       <View style={styles.topBar}>
         <Pressable onPress={() => router.back()} style={styles.iconBtn}>
-          <AppIcon name="arrow-back" size={22} color="#0F172A" />
+          <AppIcon name="arrow-back" size={22} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Quotation Builder</Text>
+          <Text style={styles.title}>{quoteId ? 'Edit Quotation' : 'New Quotation'}</Text>
           <Text style={styles.sub}>
-            Step {visibleSteps.findIndex((s) => s.id === step) + 1}/{visibleSteps.length} ·{' '}
-            {stepMeta.title}
+            {stepMeta.title} · {stepIndex + 1} of {visibleSteps.length}
           </Text>
         </View>
+        <View style={styles.stepBadge}>
+          <Ionicons name={stepMeta.icon} size={16} color={colors.primary} />
+        </View>
+      </View>
+
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${progress}%` }]} />
       </View>
 
       <ScrollView
@@ -277,30 +287,60 @@ export default function NativeQuotationBuilderScreen() {
       >
         {visibleSteps.map((s, i) => {
           const active = s.id === step;
-          const done = visibleSteps.findIndex((x) => x.id === step) > i;
+          const done = stepIndex > i;
           return (
-            <Pressable
-              key={s.id}
-              onPress={() => setStep(s.id)}
-              style={[styles.stepChip, active && styles.stepChipActive, done && styles.stepChipDone]}
-            >
-              <Text style={[styles.stepChipText, (active || done) && { color: '#fff' }]}>
-                {i + 1}. {s.title}
+            <Pressable key={s.id} onPress={() => setStep(s.id)} style={styles.stepItem}>
+              <View
+                style={[
+                  styles.stepCircle,
+                  done && styles.stepCircleDone,
+                  active && styles.stepCircleActive,
+                ]}
+              >
+                {done && !active ? (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                ) : (
+                  <Text
+                    style={[
+                      styles.stepNum,
+                      (active || done) && styles.stepNumActive,
+                    ]}
+                  >
+                    {i + 1}
+                  </Text>
+                )}
+              </View>
+              <Text
+                style={[styles.stepLabel, active && styles.stepLabelActive]}
+                numberOfLines={1}
+              >
+                {s.title}
               </Text>
             </Pressable>
           );
         })}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {step === 1 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Package details</Text>
+          <View style={[styles.card, shadows.card]}>
+            <SectionHeader icon="briefcase" title="Package details" hint="Lead, destination & pax" />
+
             <Text style={styles.label}>Lead *</Text>
             <Pressable style={styles.picker} onPress={() => setPickerOpen(true)}>
-              <Text style={{ color: leadName ? '#0F172A' : '#94A3B8', fontWeight: '700' }}>
-                {leadName || 'Search & select lead'}
-              </Text>
+              <View style={styles.pickerLeft}>
+                <View style={styles.pickerIcon}>
+                  <Ionicons name="person" size={16} color={colors.primary} />
+                </View>
+                <Text style={{ color: leadName ? colors.text : colors.textMuted, fontWeight: '700', flex: 1 }}>
+                  {leadName || 'Search & select lead'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
             </Pressable>
 
             <Text style={styles.label}>Package name *</Text>
@@ -308,6 +348,7 @@ export default function NativeQuotationBuilderScreen() {
               value={packageName}
               onChangeText={setPackageName}
               placeholder="Shimla Manali 5N/6D"
+              placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <Text style={styles.label}>Destination</Text>
@@ -315,6 +356,7 @@ export default function NativeQuotationBuilderScreen() {
               value={destination}
               onChangeText={setDestination}
               placeholder="Shimla / Manali"
+              placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
 
@@ -322,7 +364,7 @@ export default function NativeQuotationBuilderScreen() {
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.label}>Duration (days)</Text>
+                <Text style={styles.label}>Days</Text>
                 <TextInput
                   value={duration}
                   onChangeText={(t) => syncDurationDays(Number(t) || 1)}
@@ -357,29 +399,42 @@ export default function NativeQuotationBuilderScreen() {
         )}
 
         {step === 2 && (
-          <View style={styles.card}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Day-wise itinerary</Text>
-              <Pressable
-                onPress={() =>
-                  setDays((d) => [
-                    ...d,
-                    { day: d.length + 1, title: `Day ${d.length + 1}`, description: '' },
-                  ])
-                }
-              >
-                <Text style={styles.link}>+ Add day</Text>
-              </Pressable>
-            </View>
+          <View style={[styles.card, shadows.card]}>
+            <SectionHeader
+              icon="map"
+              title="Day-wise itinerary"
+              hint={`${days.length} day${days.length === 1 ? '' : 's'}`}
+              actionLabel="+ Add day"
+              onAction={() =>
+                setDays((d) => [
+                  ...d,
+                  { day: d.length + 1, title: `Day ${d.length + 1}`, description: '' },
+                ])
+              }
+            />
             {days.map((d, idx) => (
-              <View key={`day-${idx}`} style={styles.dayCard}>
-                <Text style={styles.dayLabel}>Day {idx + 1}</Text>
+              <View key={`day-${idx}`} style={styles.itemCard}>
+                <View style={styles.itemHead}>
+                  <View style={styles.dayBadge}>
+                    <Text style={styles.dayBadgeText}>D{idx + 1}</Text>
+                  </View>
+                  <Text style={styles.itemTitle}>Day {idx + 1}</Text>
+                  {days.length > 1 ? (
+                    <Pressable
+                      onPress={() => setDays((arr) => arr.filter((_, i) => i !== idx).map((x, i) => ({ ...x, day: i + 1 })))}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                    </Pressable>
+                  ) : null}
+                </View>
                 <TextInput
                   value={d.title}
                   onChangeText={(t) =>
                     setDays((arr) => arr.map((x, i) => (i === idx ? { ...x, title: t } : x)))
                   }
-                  placeholder="Title"
+                  placeholder="Title (e.g. Arrival & local sightseeing)"
+                  placeholderTextColor={colors.textMuted}
                   style={styles.input}
                 />
                 <TextInput
@@ -388,7 +443,8 @@ export default function NativeQuotationBuilderScreen() {
                     setDays((arr) => arr.map((x, i) => (i === idx ? { ...x, description: t } : x)))
                   }
                   placeholder="Activities / description"
-                  style={[styles.input, { minHeight: 70, marginTop: 8 }]}
+                  placeholderTextColor={colors.textMuted}
+                  style={[styles.input, styles.multiline]}
                   multiline
                 />
               </View>
@@ -397,25 +453,39 @@ export default function NativeQuotationBuilderScreen() {
         )}
 
         {step === 3 && !noHotel && (
-          <View style={styles.card}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Hotels</Text>
-              <Pressable
-                onPress={() =>
-                  setHotels((h) => [...h, { name: '', nights: '1', roomType: 'Double' }])
-                }
-              >
-                <Text style={styles.link}>+ Add hotel</Text>
-              </Pressable>
-            </View>
+          <View style={[styles.card, shadows.card]}>
+            <SectionHeader
+              icon="bed"
+              title="Hotels"
+              hint={hotelCategory}
+              actionLabel="+ Add hotel"
+              onAction={() =>
+                setHotels((h) => [...h, { name: '', nights: '1', roomType: 'Double' }])
+              }
+            />
             {hotels.map((h, idx) => (
-              <View key={`hotel-${idx}`} style={styles.dayCard}>
+              <View key={`hotel-${idx}`} style={styles.itemCard}>
+                <View style={styles.itemHead}>
+                  <View style={[styles.dayBadge, { backgroundColor: '#DBEAFE' }]}>
+                    <Ionicons name="bed" size={14} color={colors.info} />
+                  </View>
+                  <Text style={styles.itemTitle}>Hotel {idx + 1}</Text>
+                  {hotels.length > 1 ? (
+                    <Pressable
+                      onPress={() => setHotels((arr) => arr.filter((_, i) => i !== idx))}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                    </Pressable>
+                  ) : null}
+                </View>
                 <TextInput
                   value={h.name}
                   onChangeText={(t) =>
                     setHotels((arr) => arr.map((x, i) => (i === idx ? { ...x, name: t } : x)))
                   }
                   placeholder="Hotel name"
+                  placeholderTextColor={colors.textMuted}
                   style={styles.input}
                 />
                 <View style={[styles.row, { marginTop: 8 }]}>
@@ -439,6 +509,7 @@ export default function NativeQuotationBuilderScreen() {
                           arr.map((x, i) => (i === idx ? { ...x, roomType: t } : x))
                         )
                       }
+                      placeholderTextColor={colors.textMuted}
                       style={styles.input}
                     />
                   </View>
@@ -449,23 +520,33 @@ export default function NativeQuotationBuilderScreen() {
         )}
 
         {step === 4 && (
-          <View style={styles.card}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Transport</Text>
-              <Pressable
-                onPress={() =>
-                  setCabs((c) => [
-                    ...c,
-                    { vehicleName: 'SUV', cost: '0', vehicleCount: '1' },
-                  ])
-                }
-              >
-                <Text style={styles.link}>+ Add vehicle</Text>
-              </Pressable>
-            </View>
+          <View style={[styles.card, shadows.card]}>
+            <SectionHeader
+              icon="car"
+              title="Transport"
+              hint={`${cabs.length} vehicle${cabs.length === 1 ? '' : 's'}`}
+              actionLabel="+ Add vehicle"
+              onAction={() =>
+                setCabs((c) => [...c, { vehicleName: 'SUV', cost: '0', vehicleCount: '1' }])
+              }
+            />
             {cabs.map((c, idx) => (
-              <View key={`cab-${idx}`} style={styles.dayCard}>
-                <Text style={styles.label}>Vehicle</Text>
+              <View key={`cab-${idx}`} style={styles.itemCard}>
+                <View style={styles.itemHead}>
+                  <View style={[styles.dayBadge, { backgroundColor: '#FEF3C7' }]}>
+                    <Ionicons name="car" size={14} color={colors.warning} />
+                  </View>
+                  <Text style={styles.itemTitle}>Vehicle {idx + 1}</Text>
+                  {cabs.length > 1 ? (
+                    <Pressable
+                      onPress={() => setCabs((arr) => arr.filter((_, i) => i !== idx))}
+                      hitSlop={8}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                    </Pressable>
+                  ) : null}
+                </View>
+                <Text style={styles.label}>Vehicle type</Text>
                 <ChipRow
                   options={VEHICLES}
                   value={c.vehicleName}
@@ -507,50 +588,73 @@ export default function NativeQuotationBuilderScreen() {
         )}
 
         {step === 5 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Pricing</Text>
+          <View style={[styles.card, shadows.card]}>
+            <SectionHeader icon="cash" title="Pricing" hint="Grand total & notes" />
             <Text style={styles.label}>Grand total (₹) *</Text>
-            <TextInput
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              placeholder="25000"
-              style={styles.input}
-            />
-            <Text style={styles.hint}>
-              Payment plan auto-splits 30% advance · 50% before tour · 20% on arrival (same as
-              website).
-            </Text>
+            <View style={styles.amountWrap}>
+              <Text style={styles.currency}>₹</Text>
+              <TextInput
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                placeholder="25,000"
+                placeholderTextColor={colors.textMuted}
+                style={styles.amountInput}
+              />
+            </View>
+            <View style={styles.hintBox}>
+              <Ionicons name="information-circle" size={16} color={colors.primary} />
+              <Text style={styles.hintBoxText}>
+                Payment plan auto-splits 30% advance · 50% before tour · 20% on arrival.
+              </Text>
+            </View>
             <Text style={styles.label}>Internal notes / guidelines</Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
               placeholder="Inclusions notes, guidelines…"
-              style={[styles.input, { minHeight: 90 }]}
+              placeholderTextColor={colors.textMuted}
+              style={[styles.input, styles.multiline, { minHeight: 100 }]}
               multiline
             />
           </View>
         )}
 
         {step === 6 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>Review & save</Text>
-            <InfoRow label="Lead" value={leadName || '—'} />
-            <InfoRow label="Package" value={packageName || destination || '—'} />
-            <InfoRow label="Duration" value={`${duration} days`} />
-            <InfoRow label="Pax" value={`${adults} adults · ${children} kids`} />
-            <InfoRow label="Meal" value={mealPlan} />
-            <InfoRow
-              label="Total"
-              value={Number(amount) ? `₹${Number(amount).toLocaleString('en-IN')}` : '—'}
-            />
-            <InfoRow label="Itinerary days" value={String(days.length)} />
-            {!noHotel ? <InfoRow label="Hotels" value={String(hotels.filter((h) => h.name).length)} /> : null}
-            <InfoRow label="Vehicles" value={String(cabs.length)} />
+          <View style={[styles.card, shadows.card]}>
+            <SectionHeader icon="eye" title="Review & save" hint="Check before submitting" />
+
+            <View style={styles.summaryHero}>
+              <Text style={styles.summaryPkg} numberOfLines={2}>
+                {packageName || destination || 'Custom Package'}
+              </Text>
+              <Text style={styles.summaryTotal}>
+                {Number(amount) ? `₹${Number(amount).toLocaleString('en-IN')}` : '—'}
+              </Text>
+              <Text style={styles.summaryLead}>{leadName || 'No lead selected'}</Text>
+            </View>
+
+            <View style={styles.summaryGrid}>
+              <SummaryTile icon="calendar" label="Duration" value={`${duration} days`} />
+              <SummaryTile icon="people" label="Pax" value={`${adults}A · ${children}C`} />
+              <SummaryTile icon="restaurant" label="Meal" value={mealPlan} />
+              <SummaryTile icon="map" label="Days" value={String(days.length)} />
+              {!noHotel ? (
+                <SummaryTile
+                  icon="bed"
+                  label="Hotels"
+                  value={String(hotels.filter((h) => h.name).length)}
+                />
+              ) : null}
+              <SummaryTile icon="car" label="Vehicles" value={String(cabs.length)} />
+            </View>
 
             {savedHtml ? (
               <View style={styles.pdfBox}>
-                <Text style={styles.pdfLabel}>PDF preview</Text>
+                <View style={styles.pdfHeader}>
+                  <Ionicons name="document-text" size={16} color={colors.primary} />
+                  <Text style={styles.pdfLabel}>PDF preview</Text>
+                </View>
                 <WebView
                   originWhitelist={['*']}
                   source={{ html: savedHtml }}
@@ -559,7 +663,12 @@ export default function NativeQuotationBuilderScreen() {
                 />
               </View>
             ) : (
-              <Text style={styles.hint}>Save draft / submit to generate PDF preview.</Text>
+              <View style={styles.hintBox}>
+                <Ionicons name="document-outline" size={16} color={colors.textMuted} />
+                <Text style={styles.hintBoxText}>
+                  Save draft or submit to generate PDF preview here.
+                </Text>
+              </View>
             )}
 
             <Pressable
@@ -577,7 +686,7 @@ export default function NativeQuotationBuilderScreen() {
                 })
               }
             >
-              <Ionicons name="globe-outline" size={16} color={PURPLE} />
+              <Ionicons name="globe-outline" size={18} color={colors.primary} />
               <Text style={styles.secondaryText}>Open exact website builder / PDF</Text>
             </Pressable>
           </View>
@@ -585,12 +694,18 @@ export default function NativeQuotationBuilderScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <Pressable style={styles.navBtn} onPress={goPrev} disabled={step === visibleSteps[0].id}>
-          <Text style={styles.navBtnText}>Back</Text>
+        <Pressable
+          style={[styles.navBtn, isFirst && styles.navBtnDisabled]}
+          onPress={goPrev}
+          disabled={isFirst}
+        >
+          <Ionicons name="arrow-back" size={16} color={isFirst ? colors.textMuted : colors.textSecondary} />
+          <Text style={[styles.navBtnText, isFirst && { color: colors.textMuted }]}>Back</Text>
         </Pressable>
-        {step < 6 ? (
+        {!isLast ? (
           <Pressable style={styles.primaryBtn} onPress={goNext}>
-            <Text style={styles.primaryText}>Next</Text>
+            <Text style={styles.primaryText}>Continue</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
           </Pressable>
         ) : (
           <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
@@ -599,18 +714,20 @@ export default function NativeQuotationBuilderScreen() {
               disabled={saveMutation.isPending}
               onPress={() => saveMutation.mutate(true)}
             >
+              <Ionicons name="save-outline" size={16} color={colors.textSecondary} />
               <Text style={styles.navBtnText}>
-                {saveMutation.isPending ? 'Saving…' : 'Save draft'}
+                {saveMutation.isPending ? 'Saving…' : 'Draft'}
               </Text>
             </Pressable>
             <Pressable
-              style={[styles.primaryBtn, { flex: 1.2 }]}
+              style={[styles.primaryBtn, { flex: 1.3 }]}
               disabled={saveMutation.isPending}
               onPress={() => saveMutation.mutate(false)}
             >
               <Text style={styles.primaryText}>
                 {saveMutation.isPending ? 'Saving…' : 'Submit'}
               </Text>
+              <Ionicons name="checkmark-circle" size={16} color="#fff" />
             </Pressable>
           </View>
         )}
@@ -625,6 +742,59 @@ export default function NativeQuotationBuilderScreen() {
         />
       ) : null}
     </SafeAreaView>
+  );
+}
+
+function SectionHeader({
+  icon,
+  title,
+  hint,
+  actionLabel,
+  onAction,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  hint?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <View style={styles.sectionHead}>
+      <View style={styles.sectionLeft}>
+        <View style={styles.sectionIcon}>
+          <Ionicons name={icon} size={16} color={colors.primary} />
+        </View>
+        <View>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {hint ? <Text style={styles.sectionHint}>{hint}</Text> : null}
+        </View>
+      </View>
+      {actionLabel && onAction ? (
+        <Pressable onPress={onAction} style={styles.addLink}>
+          <Text style={styles.link}>{actionLabel}</Text>
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
+function SummaryTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.summaryTile}>
+      <Ionicons name={icon} size={14} color={colors.primary} />
+      <Text style={styles.summaryTileLabel}>{label}</Text>
+      <Text style={styles.summaryTileValue} numberOfLines={1}>
+        {value}
+      </Text>
+    </View>
   );
 }
 
@@ -655,142 +825,296 @@ function ChipRow({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: BG },
+  safe: { flex: 1, backgroundColor: colors.background },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 8,
-    paddingVertical: 10,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm + 2,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
-  sub: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
-  stepRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  stepChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  title: { fontSize: 17, fontWeight: '800', color: colors.text },
+  sub: { marginTop: 1, fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  stepBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
   },
-  stepChipActive: { backgroundColor: PURPLE, borderColor: PURPLE },
-  stepChipDone: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
-  stepChipText: { fontSize: 12, fontWeight: '700', color: '#64748B' },
-  content: { padding: 16, paddingBottom: 24 },
+  progressTrack: {
+    height: 3,
+    backgroundColor: '#EDE9FE',
+  },
+  progressFill: {
+    height: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  stepRow: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    gap: spacing.lg,
+    backgroundColor: colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  stepItem: { alignItems: 'center', width: 56 },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  stepCircleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  stepCircleDone: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
+  },
+  stepNum: { fontSize: 12, fontWeight: '800', color: colors.textMuted },
+  stepNumActive: { color: '#fff' },
+  stepLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  stepLabelActive: { color: colors.primary },
+  content: { padding: spacing.lg, paddingBottom: 32 },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     borderWidth: 1,
-    borderColor: '#EEF2FF',
+    borderColor: colors.border,
   },
   sectionHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.md,
   },
-  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginBottom: 8 },
-  label: { marginTop: 10, marginBottom: 6, fontSize: 12, fontWeight: '700', color: '#64748B' },
+  sectionLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
+  sectionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: colors.text },
+  sectionHint: { marginTop: 1, fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+  addLink: {
+    backgroundColor: colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+  },
+  label: {
+    marginTop: spacing.md,
+    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    letterSpacing: 0.2,
+  },
   input: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderColor: colors.border,
+    borderRadius: radius.md,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#0F172A',
+    color: colors.text,
     fontSize: 15,
+    fontWeight: '600',
   },
+  multiline: { minHeight: 72, textAlignVertical: 'top', marginTop: 8 },
   picker: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pickerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  pickerIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   row: { flexDirection: 'row', gap: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
+    borderRadius: radius.full,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: colors.border,
   },
-  chipActive: { backgroundColor: PURPLE, borderColor: PURPLE },
-  chipText: { fontSize: 11, fontWeight: '700', color: '#64748B' },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
   chipTextActive: { color: '#fff' },
-  dayCard: {
+  itemCard: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 10,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: '#EEF2FF',
+  },
+  itemHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: 10,
   },
-  dayLabel: { fontWeight: '800', color: PURPLE, marginBottom: 6 },
-  link: { color: PURPLE, fontWeight: '800', fontSize: 13 },
-  hint: { marginTop: 8, color: '#94A3B8', fontSize: 12, lineHeight: 17 },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+  dayBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  infoLabel: { color: '#94A3B8', fontWeight: '600' },
-  infoValue: { color: '#0F172A', fontWeight: '800', maxWidth: '60%', textAlign: 'right' },
-  pdfBox: { marginTop: 14, height: 320, borderRadius: 12, overflow: 'hidden', backgroundColor: '#E2E8F0' },
-  pdfLabel: { padding: 8, fontWeight: '700', color: '#475569', backgroundColor: '#fff' },
+  dayBadgeText: { fontSize: 11, fontWeight: '800', color: colors.primary },
+  itemTitle: { flex: 1, fontWeight: '800', color: colors.text, fontSize: 14 },
+  link: { color: colors.primary, fontWeight: '800', fontSize: 12 },
+  amountWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 14,
+  },
+  currency: { fontSize: 22, fontWeight: '800', color: colors.primary, marginRight: 4 },
+  amountInput: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
+    paddingVertical: 14,
+  },
+  hintBox: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#F5F3FF',
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  hintBoxText: { flex: 1, color: colors.textSecondary, fontSize: 12, lineHeight: 17, fontWeight: '500' },
+  summaryHero: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  summaryPkg: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  summaryTotal: { marginTop: 8, fontSize: 28, fontWeight: '800', color: '#fff' },
+  summaryLead: { marginTop: 4, fontSize: 13, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: spacing.md,
+  },
+  summaryTile: {
+    width: '48%',
+    flexGrow: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: radius.md,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 4,
+  },
+  summaryTileLabel: { fontSize: 11, fontWeight: '600', color: colors.textMuted },
+  summaryTileValue: { fontSize: 14, fontWeight: '800', color: colors.text },
+  pdfBox: {
+    marginTop: 4,
+    height: 300,
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pdfHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 10,
+    backgroundColor: '#fff',
+  },
+  pdfLabel: { fontWeight: '700', color: colors.textSecondary, fontSize: 13 },
   pdfWeb: { flex: 1 },
   secondaryBtn: {
-    marginTop: 12,
+    marginTop: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#EDE9FE',
-    borderRadius: 12,
-    paddingVertical: 12,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    paddingVertical: 14,
   },
-  secondaryText: { color: PURPLE, fontWeight: '800', fontSize: 13 },
+  secondaryText: { color: colors.primary, fontWeight: '800', fontSize: 13 },
   footer: {
     flexDirection: 'row',
     gap: 10,
-    padding: 12,
-    backgroundColor: '#fff',
+    padding: spacing.md,
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   navBtn: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: radius.md,
     backgroundColor: '#F1F5F9',
   },
-  navBtnText: { fontWeight: '800', color: '#475569' },
+  navBtnDisabled: { opacity: 0.55 },
+  navBtnText: { fontWeight: '800', color: colors.textSecondary },
   primaryBtn: {
-    flex: 1.4,
+    flex: 1.5,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
     paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: PURPLE,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
   },
-  primaryText: { fontWeight: '800', color: '#fff' },
+  primaryText: { fontWeight: '800', color: '#fff', fontSize: 15 },
 });

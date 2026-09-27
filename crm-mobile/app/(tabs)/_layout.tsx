@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/src/context/AuthContext';
 
 const PURPLE = '#7C3AED';
 const MUTED = '#94A3B8';
@@ -24,6 +25,9 @@ function TabIcon({
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const isOps = user?.role === 'operations_manager';
+  const showOpsTab = user?.role === 'admin' || user?.role === 'sales_manager';
   const bottomPad = Math.max(insets.bottom, 8);
 
   return (
@@ -65,7 +69,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: isOps ? 'Operations' : 'Home',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
@@ -75,6 +79,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="leads"
         options={{
+          href: isOps ? null : undefined,
           title: 'Leads',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
@@ -85,6 +90,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="quotes"
         options={{
+          href: isOps ? null : undefined,
           title: 'Quotes',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
@@ -99,6 +105,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="followups"
         options={{
+          href: isOps ? null : undefined,
           title: 'Follow-ups',
           tabBarIcon: ({ color, focused }) => (
             <TabIcon
@@ -110,13 +117,22 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="menu"
+        name="operations"
         options={{
-          title: 'Menu',
+          href: showOpsTab ? undefined : null,
+          title: 'Ops',
           headerShown: false,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'grid' : 'grid-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'briefcase' : 'briefcase-outline'} color={color} focused={focused} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="menu"
+        options={{
+          href: null,
+          title: 'Menu',
+          headerShown: false,
         }}
       />
       <Tabs.Screen

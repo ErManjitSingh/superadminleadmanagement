@@ -36,6 +36,7 @@ export interface Quotation {
   paymentPlan?: Array<{ label?: string; percent?: number; amount?: number }>;
   lead?: { _id?: string; name?: string; phone?: string; destination?: string } | string;
   createdAt?: string;
+  sentAt?: string;
   pdfUrl?: string;
   customizations?: string;
 }
@@ -342,7 +343,7 @@ export async function saveQuotationBuilder(
 
 export async function listMyQuotations(
   role: UserRole,
-  params: { page?: number; limit?: number; status?: string; segment?: string } = {}
+  params: { page?: number; limit?: number; status?: string; segment?: string; sentOnly?: boolean } = {}
 ) {
   const base = quotationsBase(role);
   const path =
@@ -353,7 +354,8 @@ export async function listMyQuotations(
     params: {
       page: params.page ?? 1,
       limit: params.limit ?? 30,
-      status: params.status,
+      status: params.sentOnly ? undefined : params.status,
+      sentOnly: params.sentOnly ? 'true' : undefined,
     },
   });
   return unwrapPagination<Quotation>(data);

@@ -21,6 +21,7 @@ import { useBranding } from '@/src/context/BrandingContext';
 import { fetchDashboard } from '@/src/services/leads';
 import { fetchUnreadCount } from '@/src/services/notifications';
 import { useDashboardLocalAlerts } from '@/src/hooks/useDashboardLocalAlerts';
+import { OperationsHome } from '@/src/components/OperationsHome';
 import type { Lead, UserRole } from '@/src/types';
 
 const BG = '#F7F8FC';
@@ -171,6 +172,12 @@ function TaskRow({
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  if (user?.role === 'operations_manager') return <OperationsHome />;
+  return <SalesDashboard />;
+}
+
+function SalesDashboard() {
+  const { user } = useAuth();
   const { branding } = useBranding();
   const role = user?.role as UserRole | undefined;
   const firstName = user?.name?.split(' ')[0] || 'there';
@@ -234,9 +241,6 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <Pressable style={styles.iconBtn} onPress={() => router.push('/(tabs)/menu')}>
-            <Ionicons name="menu-outline" size={24} color="#0F172A" />
-          </Pressable>
           <View style={styles.topCenter}>
             <Text style={styles.topTitle} numberOfLines={1}>
               {branding.appTitle || 'Dashboard'}
@@ -272,7 +276,7 @@ export default function DashboardScreen() {
               Keep going! Great things happen when you follow up.
             </Text>
           </View>
-          <View style={[styles.journeyCard, { backgroundColor: `${primary}18` }]}>
+          <View style={[styles.journeyCard, { backgroundColor: '#fff', borderColor: `${primary}33` }]}>
             {branding.logo ? (
               <Image
                 source={{ uri: branding.logo }}
@@ -280,7 +284,7 @@ export default function DashboardScreen() {
                 resizeMode="contain"
               />
             ) : (
-              <Ionicons name="airplane" size={36} color={primary} />
+              <Ionicons name="airplane" size={22} color={primary} />
             )}
           </View>
         </View>
@@ -493,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  topCenter: { flex: 1, alignItems: 'center' },
+  topCenter: { flex: 1, alignItems: 'flex-start' },
   topTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   topSub: { marginTop: 1, fontSize: 11, color: '#94A3B8', fontWeight: '600' },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 2 },
@@ -532,14 +536,20 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 24, fontWeight: '800', color: '#0F172A', letterSpacing: -0.4 },
   welcomeSub: { marginTop: 6, fontSize: 13, lineHeight: 18, color: '#64748B', fontWeight: '500' },
   journeyCard: {
-    width: 92,
-    height: 92,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  journeyLogo: { width: 64, height: 64 },
+  journeyLogo: { width: 36, height: 36 },
 
   sectionHead: {
     flexDirection: 'row',

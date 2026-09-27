@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearCrmQueryCache();
       const session: AuthSession = await loginRequest(email, password, tenant || tenantSubdomain);
       if (!isMobileRoleSupported(session.role as UserRole)) {
-        throw new Error('This role is not supported on mobile yet. Use Sales Executive, Manager, Team Leader, or Admin.');
+        throw new Error('This role is not supported on mobile yet.');
       }
       await authStorage.saveSession(session, tenant ?? tenantSubdomain);
       setToken(session.token);

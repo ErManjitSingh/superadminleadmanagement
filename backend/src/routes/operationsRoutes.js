@@ -62,7 +62,7 @@ const {
   listVouchersEnhanced,
 } = require('../controllers/voucherExecutionController');
 
-router.use(protect, requireFeature('bookings'), authorize('operations_manager', 'admin'));
+router.use(protect, requireFeature('bookings'), authorize('operations_manager', 'admin', 'sales_manager'));
 
 router.get('/dashboard', requirePermission('operations', 'view'), getDashboard);
 router.get('/trip-tracker', requirePermission('operations', 'view'), getTripTracker);

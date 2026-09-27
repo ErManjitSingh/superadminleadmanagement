@@ -37,6 +37,14 @@ async function resolveUserPermissions(user) {
       approve: true,
     };
   }
+  // Sales manager: full lead/quote + operations access; never delete leads (even if Role doc is stale)
+  if (user.role === 'sales_manager') {
+    const sm = getPermissionsForRole('sales_manager');
+    perms.leads = { ...perms.leads, ...sm.leads, delete: false };
+    perms.quotations = { ...perms.quotations, ...sm.quotations, delete: false };
+    perms.operations = { ...sm.operations };
+    perms.payments = { ...perms.payments, ...sm.payments };
+  }
   return perms;
 }
 

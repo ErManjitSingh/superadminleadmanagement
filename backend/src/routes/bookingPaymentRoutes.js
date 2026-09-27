@@ -47,13 +47,13 @@ router.patch(
 );
 router.post(
   '/bookings/:bookingId/payments',
-  authorize('operations_manager', 'admin', 'accountant'),
+  authorize('operations_manager', 'admin', 'accountant', 'sales_manager'),
   addBookingPayment
 );
 router.get('/bookings/:bookingId/payments/:paymentId/receipt', getPaymentReceipt);
 router.post('/bookings/:bookingId/payments/:paymentId/resend', resendPaymentReceipt);
-router.post('/bookings/:bookingId/mark-fully-paid', authorize('operations_manager', 'admin'), markBookingFullyPaid);
-router.post('/bookings/:bookingId/acknowledge-new', authorize('operations_manager', 'admin'), acknowledgeNewBooking);
-router.post('/bookings/:bookingId/send-reminder', authorize('operations_manager', 'admin'), sendPaymentReminderHandler);
+router.post('/bookings/:bookingId/mark-fully-paid', authorize('operations_manager', 'admin', 'sales_manager'), markBookingFullyPaid);
+router.post('/bookings/:bookingId/acknowledge-new', authorize('operations_manager', 'admin', 'sales_manager'), acknowledgeNewBooking);
+router.post('/bookings/:bookingId/send-reminder', authorize('operations_manager', 'admin', 'sales_manager'), sendPaymentReminderHandler);
 
 module.exports = router;

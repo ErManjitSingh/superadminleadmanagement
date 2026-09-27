@@ -14,7 +14,7 @@ function OperationsManagerShell() {
     user,
     navItems: operationsManagerNavItems,
     quickActions: operationsQuickActions,
-    brandSubtitle: 'Operations Manager',
+    brandSubtitle: user?.role === 'sales_manager' ? 'Sales · Operations' : 'Operations Manager',
     accent: 'violet',
     profilePath: '/operations-manager/profile',
   };

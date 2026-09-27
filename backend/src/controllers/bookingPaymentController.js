@@ -201,7 +201,7 @@ const markBookingFullyPaid = asyncHandler(async (req, res) => {
   const booking = await Booking.findOne(companyScopedIdFilter(req.params.bookingId, req));
   assertTenantDocument(booking, req, 'Booking');
 
-  if (!['operations_manager', 'admin'].includes(req.user.role)) {
+  if (!['operations_manager', 'admin', 'sales_manager'].includes(req.user.role)) {
     throw new ApiError(403, 'Only operations managers can mark bookings as fully paid');
   }
 
@@ -327,7 +327,7 @@ const updateAdvanceVoucherHandler = asyncHandler(async (req, res) => {
 });
 
 const sendPaymentReminderHandler = asyncHandler(async (req, res) => {
-  if (!['operations_manager', 'admin'].includes(req.user.role)) {
+  if (!['operations_manager', 'admin', 'sales_manager'].includes(req.user.role)) {
     throw new ApiError(403, 'Only operations managers can send payment reminders');
   }
 
