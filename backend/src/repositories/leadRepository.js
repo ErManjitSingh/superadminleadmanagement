@@ -10,6 +10,7 @@ const {
   DEEP_PAGE_THRESHOLD,
 } = require('../utils/pagination');
 const { withCompany } = require('../utils/branchScope');
+const { attachConvertedBookingCards } = require('../services/convertedLeadCards');
 
 function buildLeadListFilter(query = {}) {
   const {
@@ -124,7 +125,9 @@ async function findLeadsPaginated(query = {}, { companyId } = {}) {
     nextCursor = encodeCursor(rows[rows.length - 1], sortField);
   }
 
-  return paginatedResponse(rows.map(enrichLead), {
+  const data = await attachConvertedBookingCards(rows.map(enrichLead));
+
+  return paginatedResponse(data, {
     page,
     limit,
     total,

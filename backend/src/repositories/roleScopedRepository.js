@@ -16,6 +16,19 @@ const {
 const { parsePagination, parseSort, paginatedResponse } = require('../utils/pagination');
 const { withCompany } = require('../utils/branchScope');
 const { applyQuotationQueryFilters, enrichQuotationsWithAdvanceVouchers, wantsAdvanceEnrichment } = require('./quotationRepository');
+const { attachConvertedBookingCards } = require('../services/convertedLeadCards');
+
+function applyCreatedDateRange(mongoFilter, query = {}) {
+  const { dateFrom, dateTo } = query;
+  if (!dateFrom && !dateTo) return;
+  mongoFilter.createdAt = mongoFilter.createdAt || {};
+  if (dateFrom) mongoFilter.createdAt.$gte = new Date(dateFrom);
+  if (dateTo) {
+    const end = new Date(dateTo);
+    if (String(dateTo).length <= 10) end.setHours(23, 59, 59, 999);
+    mongoFilter.createdAt.$lte = end;
+  }
+}
 
 function applyReactivationQueryFilters(mongoFilter, query = {}) {
   const stage = query.reactivationStage || query.stage;
@@ -35,21 +48,31 @@ function applyReactivationQueryFilters(mongoFilter, query = {}) {
   }
 }
 
+function applyPipelineLeadFilter(mongoFilter, filterKey, query = {}) {
+  if (!filterKey || filterKey === 'all') {
+    if (query.status) mongoFilter.status = query.status;
+    return;
+  }
+  if (filterKey === 'unassigned') mongoFilter.assignedTo = null;
+  else if (filterKey === 'assigned') mongoFilter.assignedTo = { $ne: null };
+  else if (filterKey === 'lost') mongoFilter.status = { $in: ['lost', 'booked_from_another_company'] };
+  else if (filterKey === 'reactivated') {
+    mongoFilter['reactivation.isReactivated'] = true;
+    applyReactivationQueryFilters(mongoFilter, query);
+  } else if (filterKey === 'hot') {
+    mongoFilter.isHot = true;
+    mongoFilter.status = { $nin: ['converted', 'lost', 'booked_from_another_company'] };
+  } else if (filterKey === 'new') mongoFilter.status = 'new';
+  else if (filterKey === 'contacted') mongoFilter.status = 'contacted';
+  else if (filterKey === 'follow-up') mongoFilter.status = { $in: ['follow_up', 'negotiation'] };
+  else if (filterKey === 'converted') mongoFilter.status = 'converted';
+  else if (query.status) mongoFilter.status = query.status;
+}
+
 function buildManagerLeadFilter(query = {}) {
   const { filter, search } = query;
   const mongoFilter = { ...buildLeadSearchFilter(search) };
-
-  if (filter === 'unassigned') mongoFilter.assignedTo = null;
-  else if (filter === 'assigned') mongoFilter.assignedTo = { $ne: null };
-  else if (filter === 'lost') mongoFilter.status = { $in: ['lost', 'booked_from_another_company'] };
-  else if (filter === 'reactivated') {
-    mongoFilter['reactivation.isReactivated'] = true;
-    applyReactivationQueryFilters(mongoFilter, query);
-  } else if (filter === 'hot') {
-    mongoFilter.isHot = true;
-    mongoFilter.status = { $nin: ['lost', 'booked_from_another_company'] };
-  }
-
+  applyPipelineLeadFilter(mongoFilter, filter, query);
   return mongoFilter;
 }
 
@@ -73,6 +96,7 @@ async function findManagerLeadsPaginated(query = {}, options = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
   const filter = withCompany(buildManagerLeadFilter(query), options.companyId);
+  applyCreatedDateRange(filter, query);
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
@@ -85,7 +109,7 @@ async function findManagerLeadsPaginated(query = {}, options = {}) {
     Lead.countDocuments(filter),
   ]);
 
-  return paginatedResponse(rows.map(enrichLead), { page, limit, total });
+  return paginatedResponse(await attachConvertedBookingCards(rows.map(enrichLead)), { page, limit, total });
 }
 
 async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
@@ -112,6 +136,8 @@ async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
     else if (query.priority) filter.priority = query.priority;
   }
 
+  applyCreatedDateRange(filter, query);
+
   const [rows, total] = await Promise.all([
     Lead.find(filter)
       .select(LEAD_LIST_SELECT)
@@ -123,25 +149,20 @@ async function findExecutiveLeadsPaginated(userId, query = {}, options = {}) {
     Lead.countDocuments(filter),
   ]);
 
-  return paginatedResponse(rows.map(enrichLead), { page, limit, total });
+  return paginatedResponse(await attachConvertedBookingCards(rows.map(enrichLead)), { page, limit, total });
 }
 
 async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {}) {
   const { page, limit, skip } = parsePagination(query);
   const sort = parseSort(query, { createdAt: -1 });
   const extra = {};
-  if (query.filter === 'reactivated') {
-    extra['reactivation.isReactivated'] = true;
-    applyReactivationQueryFilters(extra, query);
-  }
-  if (query.filter === 'lost') extra.status = { $in: ['lost', 'booked_from_another_company'] };
-  if (query.filter === 'assigned') extra.assignedTo = { $ne: null };
-  if (query.filter === 'unassigned') extra.assignedTo = null;
+  applyPipelineLeadFilter(extra, query.filter, query);
   if (query.filter === 'hot') {
     extra.$or = [{ isHot: true }, { leadScore: 'hot' }];
     extra.status = { $nin: ['converted', 'lost', 'booked_from_another_company'] };
   }
   const filter = withCompany({ ...squadFilter, ...extra, ...buildLeadSearchFilter(query.search) }, options.companyId);
+  applyCreatedDateRange(filter, query);
 
   const [rows, total] = await Promise.all([
     Lead.find(filter)
@@ -154,7 +175,7 @@ async function findTeamLeaderLeadsPaginated(squadFilter, query = {}, options = {
     Lead.countDocuments(filter),
   ]);
 
-  return paginatedResponse(rows.map(enrichLead), { page, limit, total });
+  return paginatedResponse(await attachConvertedBookingCards(rows.map(enrichLead)), { page, limit, total });
 }
 
 async function resolveLeadIdsForSearch(search, options = {}) {

@@ -29,6 +29,23 @@ function fmtINR(n) {
   return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 }
 
+function formatGuestsPdf(booking = {}) {
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const g = resolveGuestCounts({
+      booking,
+      lead: booking.lead && typeof booking.lead === 'object' ? booking.lead : null,
+      quotation: booking.quotation && typeof booking.quotation === 'object' ? booking.quotation : null,
+    });
+    const parts = [];
+    if (g.adults) parts.push(`${g.adults} Adult${g.adults > 1 ? 's' : ''}`);
+    if (g.children) parts.push(`${g.children} Child${g.children > 1 ? 'ren' : ''}`);
+    return parts.length ? parts.join(', ') : '—';
+  } catch (_) {
+    return `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  }
+}
+
 function writePdfToFile(doc, filePath) {
   return new Promise((resolve, reject) => {
     ensureDir(path.dirname(filePath));
@@ -140,7 +157,7 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
     drawField(doc, 'Room Type', h.roomType, 48 + colW + 16, rowY, colW);
     rowY += 44;
     drawField(doc, 'Meal Plan', h.mealPlan || '—', 48, rowY, colW);
-    drawField(doc, 'Guests', `${booking.adults || 0} Adults, ${booking.children || 0} Children`, 48 + colW + 16, rowY, colW);
+    drawField(doc, 'Guests', formatGuestsPdf(booking), 48 + colW + 16, rowY, colW);
     rowY += 44;
     drawField(doc, 'Check In', fmtDate(h.checkIn), 48, rowY, colW);
     drawField(doc, 'Check Out', fmtDate(h.checkOut), 48 + colW + 16, rowY, colW);
@@ -165,7 +182,7 @@ async function generateVoucherPdfFile(voucher, booking, payload = {}) {
     drawField(doc, 'PNR', f.pnr, 48 + colW + 16, rowY, colW);
     rowY += 44;
     drawField(doc, 'Flight Number', f.flightNumber, 48, rowY, colW);
-    drawField(doc, 'Passengers', f.passengers || `${booking.adults || 0} Adults`, 48 + colW + 16, rowY, colW);
+    drawField(doc, 'Passengers', f.passengers || formatGuestsPdf(booking), 48 + colW + 16, rowY, colW);
     rowY += 44;
     drawField(doc, 'Departure', `${fmtDate(f.departure)} ${f.departureTime || ''}`.trim(), 48, rowY, colW);
     drawField(doc, 'Arrival', `${fmtDate(f.arrival)} ${f.arrivalTime || ''}`.trim(), 48 + colW + 16, rowY, colW);
@@ -216,7 +233,7 @@ async function generateTravelKitPdf(voucher, booking) {
   doc.addPage();
   drawHeader(doc, 'Trip Summary', booking.packageName || booking.destination);
   let rowY = doc.y;
-  drawField(doc, 'Travelers', `${booking.adults || 0} Adults, ${booking.children || 0} Children`, 48, rowY, (w - 96) / 2);
+  drawField(doc, 'Travelers', formatGuestsPdf(booking), 48, rowY, (w - 96) / 2);
   drawField(doc, 'Total Value', fmtINR(booking.totalAmount), 48 + (w - 96) / 2 + 16, rowY, (w - 96) / 2);
   doc.y = rowY + 52;
 

@@ -198,6 +198,8 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
 
   const { mapQuoteHotels, mapQuoteTransport, mapQuoteActivities, mapQuoteItinerary } = require('./operationsQuotationSyncService');
   const { resolveHotelConfirmationStatus } = require('../utils/noHotelUtils');
+  const { resolveGuestCounts } = require('../utils/guestCounts');
+  const guests = resolveGuestCounts({ lead, quotation });
 
   const hotels = quotation ? mapQuoteHotels(quotation, travelDate) : [];
   const transport = (quotation ? mapQuoteTransport(quotation) : []).map((t) => ({
@@ -221,8 +223,8 @@ async function buildBookingPayloadFromLead(lead, quotation, paymentAmount) {
     packageName: snap.name || snap.title || lead.packageName || '',
     travelDate,
     returnDate,
-    adults: lead.adults || lead.travelers || lead.pax || 2,
-    children: lead.children || 0,
+    adults: guests.adults,
+    children: guests.children,
     status: 'booking_received',
     paymentStatus: paymentAmount >= totalAmount && totalAmount > 0 ? 'paid' : paymentAmount > 0 ? 'partial' : 'pending',
     totalAmount,
@@ -511,6 +513,7 @@ async function finalizeAdvancePayment(booking, lead, quotation, paymentData, act
     payment: result.payment,
     quotation,
     receipt: result.receipt,
+    delivery: result.delivery,
     summary: buildConversionSummary(result.booking, totalAmount, amount),
   };
 }

@@ -12,6 +12,7 @@ import LeadKpiStrip from '../components/leads/LeadKpiStrip';
 import LeadFilterBar from '../components/leads/LeadFilterBar';
 import LeadBulkActionsBar from '../components/leads/LeadBulkActionsBar';
 import LeadDataTable from '../components/leads/LeadDataTable';
+import ConvertedLeadCards from '../components/leads/ConvertedLeadCards';
 import LeadPreviewDrawer from '../components/leads/LeadPreviewDrawer';
 import { pageConfig, emptyFilters } from '../components/leads/constants';
 import { getTodayDateRange } from '../lib/todayDateRange';
@@ -256,6 +257,20 @@ export default function Leads() {
         <div className="rounded-2xl border border-subtle bg-white p-16 text-center text-content-muted shadow-sm">
           Loading leads...
         </div>
+      ) : config.status === 'converted' ? (
+        <ConvertedLeadCards
+          leads={tableLeads}
+          onOpen={setPreviewLead}
+          bookingTo={(lead) => `/operations-manager/booking/${lead.conversionCard?.bookingId}`}
+          pagination={{
+            pageIndex: pagination.pageIndex,
+            pageSize: pagination.pageSize,
+            pageCount,
+            total: totalLeads,
+            hasMore: hasMoreLeads,
+            onPaginationChange: setPagination,
+          }}
+        />
       ) : (
         <LeadDataTable
           leads={tableLeads}

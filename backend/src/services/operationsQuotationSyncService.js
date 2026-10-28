@@ -301,6 +301,17 @@ async function extractFulfillmentFromQuotation(quotation, booking = {}) {
     }
   }
 
+  let guestMeta = { adults: 0, children: 0 };
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    guestMeta = resolveGuestCounts({ booking, quotation: quote });
+  } catch (_) {
+    guestMeta = {
+      adults: Number(quote?.packageInfo?.adults || booking.adults || 0),
+      children: Number(quote?.packageInfo?.children || booking.children || 0),
+    };
+  }
+
   return {
     itinerary: mapQuoteItinerary(quote, travelDate),
     hotels: mapQuoteHotels(quote, travelDate),
@@ -319,6 +330,8 @@ async function extractFulfillmentFromQuotation(quotation, booking = {}) {
       packageName: snap.name || snap.title,
       inclusions: snap.inclusions || [],
       exclusions: snap.exclusions || [],
+      adults: guestMeta.adults,
+      children: guestMeta.children,
     },
   };
 }
@@ -336,6 +349,29 @@ async function syncBookingFromQuotation(bookingId, { force = false } = {}) {
 
   if (force || !booking.itinerary?.length) {
     if (extracted.itinerary.length) patch.itinerary = extracted.itinerary;
+  }
+
+  // Fix stuck adults=1 (Lead/Booking schema default) from quotation packageInfo
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const Lead = require('../models/Lead');
+    const leadDoc = booking.lead
+      ? await Lead.findById(booking.lead).select('adults children travelers pax').lean()
+      : null;
+    const guests = resolveGuestCounts({ booking, lead: leadDoc, quotation });
+    const quoteAdults = Number(quotation?.packageInfo?.adults || quotation?.packageSnapshot?.adults || 0);
+    if (quoteAdults > 0 && Number(booking.adults || 0) !== guests.adults) {
+      patch.adults = guests.adults;
+    }
+    if (Number(booking.children || 0) !== guests.children && (quoteAdults > 0 || guests.children > 0)) {
+      patch.children = guests.children;
+    }
+    // Also heal when booking is stuck at default 1 and lead/quote has more
+    if ((!booking.adults || booking.adults === 1) && guests.adults > 1) {
+      patch.adults = guests.adults;
+    }
+  } catch (_) {
+    /* non-fatal */
   }
   if (omitsHotels || !(extracted.hotels || []).length) {
     // Clear leaked package hotels / hotel confirmation when quote is cab-only / no hotel
@@ -382,10 +418,13 @@ async function enrichBookingWithQuotation(booking) {
   if (!quotation) return booking;
 
   const preview = await extractFulfillmentFromQuotation(quotation, booking);
+  const quoteAdults = Number(quotation?.packageInfo?.adults || quotation?.packageSnapshot?.adults || 0);
+  const needsGuestSync = quoteAdults > 0 && Number(booking.adults || 0) !== quoteAdults;
   const needsAutoSync =
     !booking.itinerary?.length ||
     !booking.hotels?.length ||
-    (!booking.transport?.length && preview.transport.length > 0);
+    (!booking.transport?.length && preview.transport.length > 0) ||
+    needsGuestSync;
 
   if (needsAutoSync) {
     const result = await syncBookingFromQuotation(booking._id, { force: false });

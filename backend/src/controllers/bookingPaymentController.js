@@ -17,6 +17,7 @@ const {
 } = require('../services/bookingPaymentService');
 const { pickQuotationForLead } = require('../services/leadConversionService');
 const { tenantFilter, companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
+const { resolveGuestCounts } = require('../utils/guestCounts');
 
 const getConvertPreview = asyncHandler(async (req, res) => {
   const lead = await Lead.findOne(tenantFilter({ _id: req.params.id }, req)).lean();
@@ -29,6 +30,7 @@ const getConvertPreview = asyncHandler(async (req, res) => {
   const totalAmount = [p.grandTotal, p.total, p.baseCost, quotation?.packageInfo?.totalCost, c.grandTotal, lead.budget]
     .map(Number)
     .find((n) => Number.isFinite(n) && n > 0) || 0;
+  const guests = resolveGuestCounts({ lead, quotation });
 
   res.json({
     customerName: lead.name,
@@ -41,9 +43,9 @@ const getConvertPreview = asyncHandler(async (req, res) => {
     destination: lead.destination || snap.destination || '',
     travelDate: lead.travelDate,
     returnDate: lead.returnDate,
-    travellers: (lead.adults || lead.travelers || lead.pax || 1) + (lead.children || 0),
-    adults: lead.adults || lead.travelers || lead.pax || 2,
-    children: lead.children || 0,
+    travellers: guests.adults + guests.children,
+    adults: guests.adults,
+    children: guests.children,
     totalPackageCost: totalAmount,
     quotationId: quotation?._id,
     quotationNumber: quotation?.quoteNumber,

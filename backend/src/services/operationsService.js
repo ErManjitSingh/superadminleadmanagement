@@ -1251,6 +1251,8 @@ async function buildBookingPayloadFromPayment(payment) {
   const transport = quotation ? mapQuoteTransport(quotation) : [];
   const activities = quotation ? mapQuoteActivities(quotation) : [];
   const itinerary = quotation ? mapQuoteItinerary(quotation, travelDate) : [];
+  const { resolveGuestCounts } = require('../utils/guestCounts');
+  const guests = resolveGuestCounts({ lead, quotation });
 
   return {
     branchId: payment.branchId || lead?.branchId,
@@ -1263,8 +1265,8 @@ async function buildBookingPayloadFromPayment(payment) {
     packageName: snap.name || snap.title || '',
     travelDate,
     returnDate,
-    adults: lead?.adults || lead?.travelers || lead?.pax || 2,
-    children: lead?.children || 0,
+    adults: guests.adults,
+    children: guests.children,
     status: payment.status === 'paid' ? 'confirmed' : 'booking_received',
     paymentStatus: payment.status === 'paid' ? 'paid' : payment.status === 'partial' ? 'partial' : 'pending',
     totalAmount,

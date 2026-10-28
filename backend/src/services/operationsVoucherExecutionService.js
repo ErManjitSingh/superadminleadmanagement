@@ -277,11 +277,29 @@ function extractPayload(booking, type, index = 0) {
 }
 
 async function generateVoucherForAssignment(bookingId, { type, assignmentIndex = 0, actor, force = false, payloadOverrides = null } = {}) {
-  const booking = await Booking.findById(bookingId).lean();
+  let booking = await Booking.findById(bookingId).lean();
   if (!booking) throw new Error('Booking not found');
 
   const normalizedType = type === 'cab' ? 'transport' : type;
   const key = assignmentKey(normalizedType, assignmentIndex);
+
+  // Heal missing day-wise itinerary / adults=1 from quotation before building voucher
+  if (
+    normalizedType === 'transport'
+    || normalizedType === 'client'
+    || normalizedType === 'hotel'
+    || !booking.itinerary?.length
+    || !booking.adults
+    || booking.adults === 1
+  ) {
+    try {
+      const { syncBookingFromQuotation } = require('./operationsQuotationSyncService');
+      const synced = await syncBookingFromQuotation(bookingId, { force: false });
+      if (synced?.booking) booking = synced.booking;
+    } catch (_) {
+      /* non-fatal — voucher can still generate */
+    }
+  }
 
   // Prefill pick/drop from lead when booking fields are empty
   if (booking.lead && (!booking.pickup || !booking.drop)) {
@@ -367,6 +385,11 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
       merged.dropLocation = String(payloadOverrides.dropLocation || '').trim()
         || String(payload?.dropLocation || '').trim()
         || '';
+      // Day-wise itinerary: keep explicit override, else prefer fresh booking days
+      const overrideItin = Array.isArray(payloadOverrides.itinerary) ? payloadOverrides.itinerary : null;
+      const freshItin = Array.isArray(payload?.itinerary) ? payload.itinerary : [];
+      if (overrideItin?.length) merged.itinerary = overrideItin;
+      else if (freshItin.length) merged.itinerary = freshItin;
     }
     payload = merged;
   } else if (existing?.payload && force) {
@@ -388,6 +411,14 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
       merged.dropLocation = String(existing.payload.dropLocation || '').trim()
         || String(payload?.dropLocation || '').trim()
         || '';
+      // Never let stale/empty saved itinerary wipe day-wise days from booking
+      const freshItin = Array.isArray(payload?.itinerary) ? payload.itinerary : [];
+      const savedItin = Array.isArray(existing.payload?.itinerary) ? existing.payload.itinerary : [];
+      if (freshItin.length && (!savedItin.length || freshItin.length >= savedItin.length)) {
+        merged.itinerary = freshItin;
+      } else if (!savedItin.length && freshItin.length) {
+        merged.itinerary = freshItin;
+      }
     }
     payload = merged;
   }

@@ -404,21 +404,30 @@ function truncateText(text = '', max = 220) {
 }
 
 function resolveCabItinerary(booking = {}, payload = {}) {
-  const days = Array.isArray(payload.itinerary) && payload.itinerary.length
-    ? payload.itinerary
-    : (booking.itinerary || []);
+  const fromPayload = Array.isArray(payload.itinerary) ? payload.itinerary : [];
+  const fromBooking = Array.isArray(booking.itinerary) ? booking.itinerary : [];
+  const fromPreview = Array.isArray(booking.quotationPreview?.itinerary)
+    ? booking.quotationPreview.itinerary
+    : [];
+  // Prefer the richest day list (payload/booking/quotation preview)
+  const days = [fromPayload, fromBooking, fromPreview]
+    .sort((a, b) => (b?.length || 0) - (a?.length || 0))[0] || [];
   return days.map((d, i) => {
     const dayNum = d.day || i + 1;
+    const activityRaw = d.activities || d.sightseeing || d.activityNotes || d.places || '';
     const places = String(
-      d.activities || d.sightseeing || d.activityNotes || d.places || '',
+      Array.isArray(activityRaw) ? activityRaw.filter(Boolean).join(', ') : activityRaw,
     ).trim();
-    const description = truncateText(d.description || '', 200);
+    const description = truncateText(d.description || d.details || d.summary || '', 200);
+    const transport = String(
+      d.transport || d.route || d.dayCab?.route || '',
+    ).trim();
     return {
       day: dayNum,
       date: d.date || null,
-      title: d.title || `Day ${dayNum}`,
+      title: d.title || d.name || `Day ${dayNum}`,
       places: places || description,
-      transport: String(d.transport || '').trim(),
+      transport,
     };
   }).filter((d) => d.title || d.places || d.transport);
 }
@@ -844,17 +853,36 @@ function embRow(icoClass, icon, label, value, valueHtml = null) {
   </div>`;
 }
 
+function formatGuestsLine(booking = {}) {
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const g = resolveGuestCounts({
+      booking,
+      lead: booking.lead && typeof booking.lead === 'object' ? booking.lead : null,
+      quotation: booking.quotation && typeof booking.quotation === 'object' ? booking.quotation : null,
+    });
+    const adults = g.adults;
+    const children = g.children;
+    return [
+      adults ? `${adults} Adult${adults > 1 ? 's' : ''}` : '',
+      children ? `${children} Child${children > 1 ? 'ren' : ''}` : '',
+    ].filter(Boolean).join(', ') || '—';
+  } catch (_) {
+    const adults = Number(booking.adults || 0);
+    const children = Number(booking.children || 0);
+    return [
+      adults ? `${adults} Adult${adults > 1 ? 's' : ''}` : '',
+      children ? `${children} Child${children > 1 ? 'ren' : ''}` : '',
+    ].filter(Boolean).join(', ') || '—';
+  }
+}
+
 async function buildCabVoucherHtml(voucher, booking) {
   const brand = await resolveBrand(booking);
   const transportIndex = Number(voucher.assignmentIndex ?? 0);
   const p = voucher.payload || booking.transport?.[transportIndex] || booking.transport?.[0] || {};
   const url = vendorUrl(voucher);
-  const adults = Number(booking.adults || 0);
-  const children = Number(booking.children || 0);
-  const guests = [
-    adults ? `${adults} Adult${adults > 1 ? 's' : ''}` : '',
-    children ? `${children} Child${children > 1 ? 'ren' : ''}` : '',
-  ].filter(Boolean).join(', ') || '—';
+  const guests = formatGuestsLine(booking);
   const showGuestPhone = voucher?.payload?.showGuestPhone !== false && booking?.showGuestPhone !== false;
   const customerPhone = showGuestPhone ? (booking.customerPhone || booking.phone || '-') : 'Hidden';
   const itineraryRows = resolveCabItinerary(booking, p);
@@ -1103,7 +1131,7 @@ async function buildHotelVoucherHtml(voucher, booking) {
   const url = vendorUrl(voucher);
   const hotelName = p.hotelName || p.name || 'Hotel';
   const stars = Number((String(p.starRating || p.category || '5').match(/\d/) || ['5'])[0]);
-  const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  const guests = formatGuestsLine(booking);
   const address = p.address || p.location || booking.destination || '-';
   const destCity = (booking.destination || '').split(',')[0] || 'Branch';
   const showGuestPhone = voucher?.payload?.showGuestPhone !== false && booking?.showGuestPhone !== false;
@@ -1266,7 +1294,7 @@ async function buildClientVoucherHtml(voucher, booking) {
   });
   const includeHotel = await packageIncludesHotel(booking, hotels);
   const transport = Array.isArray(p.transport) ? p.transport : (booking.transport || []);
-  const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  const guests = formatGuestsLine(booking);
   const total = Number(p.amount ?? p.totalAmount ?? booking.totalAmount ?? 0);
   const advancePaid = Number(p.advancePaid ?? booking.advanceReceived ?? booking.totalPaid ?? 0);
   const remainingBalance = p.remainingBalance != null && p.remainingBalance !== ''

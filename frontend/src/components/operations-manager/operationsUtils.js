@@ -10,8 +10,27 @@ export function formatDate(dateStr) {
 
 export function formatPax(booking) {
   if (!booking) return '—';
-  const adults = booking.adults ?? 0;
-  const children = booking.children ?? 0;
+  const quoteAdults = Number(
+    booking.quotationPreview?.meta?.adults
+      ?? booking.quotation?.packageInfo?.adults
+      ?? booking.packageInfo?.adults
+      ?? 0,
+  );
+  const quoteChildren = Number(
+    booking.quotationPreview?.meta?.children
+      ?? booking.quotation?.packageInfo?.children
+      ?? booking.packageInfo?.children
+      ?? 0,
+  );
+  // Prefer quotation counts when booking is stuck at schema default (1 adult)
+  let adults = Number(booking.adults ?? 0);
+  let children = Number(booking.children ?? 0);
+  if (quoteAdults > 0 && (adults <= 1 || adults !== quoteAdults)) {
+    adults = quoteAdults;
+  }
+  if (quoteChildren > 0 && children !== quoteChildren) {
+    children = quoteChildren;
+  }
   if (!adults && !children && booking.pax) return String(booking.pax);
   const parts = [];
   if (adults) parts.push(`${adults} Adult${adults > 1 ? 's' : ''}`);

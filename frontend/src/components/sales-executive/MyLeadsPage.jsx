@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import ConvertedLeadCards from '../leads/ConvertedLeadCards';
 import {
   Search,
   SlidersHorizontal,
@@ -63,6 +64,7 @@ const columnHelper = createColumnHelper();
 
 export default function MyLeadsPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { filter = 'new' } = useParams();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 500);
@@ -279,7 +281,20 @@ export default function MyLeadsPage() {
     </div>
   );
 
-  const tableBlock = (
+  const tableBlock = filter === 'converted' ? (
+    <ConvertedLeadCards
+      leads={leads}
+      loading={isLoading}
+      onOpen={(lead) => navigate(`/sales-executive/leads/${lead._id}/view`)}
+      pagination={{
+        pageIndex: pagination.pageIndex,
+        pageSize: pagination.pageSize,
+        pageCount,
+        total,
+        onPaginationChange: setPagination,
+      }}
+    />
+  ) : (
     <div className={`${executiveCard} overflow-hidden`}>
       <VirtualizedRoleTable
         data={leads}
