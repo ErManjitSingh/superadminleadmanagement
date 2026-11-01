@@ -25,7 +25,7 @@ const _vehicles = [
   'Sedan (Dzire/Etios)',
   'SUV',
   'Innova Crysta',
-  '4x4 Cab (Maruti Jimny / Hilux)',
+  '4x4 Cab',
   'Maruti Jimny',
   'Hilux',
   'Tempo Traveller (12 Seater)',

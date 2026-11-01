@@ -21,7 +21,7 @@ export const VEHICLE_TYPES = [
   'Sedan (Dzire/Etios)',
   'SUV',
   'Cab',
-  '4x4 Cab (Maruti Jimny / Hilux)',
+  '4x4 Cab',
   'Maruti Jimny',
   'Hilux',
   'Innova Crysta Captain Seat (6 Seater)',

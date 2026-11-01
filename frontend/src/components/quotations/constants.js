@@ -142,7 +142,7 @@ export function mapLeadCabTransportation(value) {
   const map = {
     Sedan: 'Sedan (Dzire/Etios)',
     SUV: 'SUV',
-    '4x4': '4x4 Cab (Maruti Jimny / Hilux)',
+    '4x4': '4x4 Cab',
     'Tempo Traveller': 'Tempo Traveller (12 Seater)',
     Urbania: 'Urbania',
     Luxury: 'Luxury Car',
