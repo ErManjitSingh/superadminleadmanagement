@@ -75,7 +75,7 @@ const QuotePdfPreview = forwardRef(function QuotePdfPreview({ quote }, ref) {
     name: company?.name || COMPANY_INFO.name,
     tagline: company?.tagline || COMPANY_INFO.tagline,
     logoUrl: company?.logo || company?.branding?.logo || COMPANY_INFO.logoUrl,
-    phone: quotationVisiblePhone(company?.phone || COMPANY_INFO.phone),
+    phone: quotationVisiblePhone(company?.phone || COMPANY_INFO.phone, { fallback: true }),
     email: company?.email || COMPANY_INFO.email,
     website: company?.website || COMPANY_INFO.website,
     address: companyAddress || COMPANY_INFO.address,

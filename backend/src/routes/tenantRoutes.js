@@ -3,6 +3,7 @@ const asyncHandler = require('../utils/asyncHandler');
 const { resolveCompanyFromRequest, assertCompanyAccessible } = require('../services/tenantResolveService');
 const { formatOnboardingResponse } = require('../services/onboardingService');
 const { platformDomain } = require('../config/branding');
+const { normalizePublicSupportPhone, PUBLIC_SUPPORT_PHONE } = require('../utils/publicSupportPhone');
 
 const router = express.Router();
 
@@ -54,7 +55,7 @@ router.get(
         whiteLabel: company.whiteLabel || {},
         // Public-facing profile used to brand quotation / invoice PDFs.
         tagline: company.tagline || '',
-        phone: company.phone || '',
+        phone: normalizePublicSupportPhone(company.phone, { fallback: true }) || PUBLIC_SUPPORT_PHONE,
         email: company.quotesEmail || company.ownerEmail || '',
         website: company.website || '',
         address: company.address || '',

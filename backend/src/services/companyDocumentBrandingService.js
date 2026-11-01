@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const platformBranding = require('../config/branding');
+const { normalizePublicSupportPhone, PUBLIC_SUPPORT_PHONE } = require('../utils/publicSupportPhone');
 
 const UPLOADS_ROOT = path.join(__dirname, '../../uploads');
 const PLATFORM_SITE_RE = /(^|\.)indiaholidaydestination\.com$/i;
@@ -111,7 +112,7 @@ async function resolveCompanyDocumentBranding(companyId) {
     tagline: '',
     logoSrc: '',
     initials: companyInitials(fallbackName),
-    phone: platformBranding.supportPhone || '',
+    phone: normalizePublicSupportPhone(platformBranding.supportPhone, { fallback: true }) || PUBLIC_SUPPORT_PHONE,
     email: platformBranding.salesEmail || platformBranding.quotesEmail || '',
     website: publicWebsiteHost,
     websiteUrl: publicWebsiteUrl,
@@ -146,7 +147,7 @@ async function resolveCompanyDocumentBranding(companyId) {
       tagline: company.tagline || company.whiteLabel?.appTitle || '',
       logoSrc: logoToEmbedSrc(logoRaw),
       initials: companyInitials(name),
-      phone: company.phone || base.phone,
+      phone: normalizePublicSupportPhone(company.phone || base.phone, { fallback: true }),
       email: company.quotesEmail || company.tenantSettings?.smtpFromEmail || base.email,
       website: normalizeDocumentWebsite(websiteUrl),
       websiteUrl,

@@ -1,5 +1,6 @@
 const QRCode = require('qrcode');
 const branding = require('../config/branding');
+const { normalizePublicSupportPhone, PUBLIC_SUPPORT_PHONE } = require('../utils/publicSupportPhone');
 const { SCENIC_HERO, HOTEL_HERO, esc: shellEsc, svgIcon, brandedTile, brandedHelpBox, wrapBrandedDocument } = require('./brandedDocShell');
 
 
@@ -266,9 +267,14 @@ function vendorUrl(voucher) {
 async function resolveBrand(booking) {
   const { resolveCompanyDocumentBranding } = require('./companyDocumentBrandingService');
   const brand = await resolveCompanyDocumentBranding(booking?.companyId);
-  // Prefer executive phone on vouchers when available
+  const supportPhone = normalizePublicSupportPhone(brand.phone || branding.supportPhone, { fallback: true })
+    || PUBLIC_SUPPORT_PHONE;
+  // Prefer executive phone on vouchers when available (still strip retired support line)
   if (booking?.executivePhone) {
-    return { ...brand, phone: booking.executivePhone || brand.phone };
+    return {
+      ...brand,
+      phone: normalizePublicSupportPhone(booking.executivePhone, { fallback: true }) || supportPhone,
+    };
   }
   if (!booking?.executivePhone && booking?.lead) {
     try {
@@ -280,18 +286,22 @@ async function resolveBrand(booking) {
         if (exec?.phone) {
           booking.executivePhone = exec.phone;
           booking.executiveName = booking.executiveName || exec.name;
-          return { ...brand, phone: exec.phone };
+          return {
+            ...brand,
+            phone: normalizePublicSupportPhone(exec.phone, { fallback: true }) || supportPhone,
+          };
         }
       }
     } catch {
       /* ignore */
     }
   }
-  return brand;
+  return { ...brand, phone: supportPhone };
 }
 
 function footerHtml(brand) {
-  const phone = brand?.phone || branding.supportPhone || '-';
+  const phone = normalizePublicSupportPhone(brand?.phone || branding.supportPhone, { fallback: true })
+    || PUBLIC_SUPPORT_PHONE;
   const email = brand?.email || branding.salesEmail || '-';
   const site = brand?.website || branding.publicWebsiteHost || (branding.publicWebsiteUrl || branding.websiteUrl || '').replace(/^https?:\/\//, '') || '-';
   const name = brand?.name || branding.brandName;
@@ -897,7 +907,8 @@ async function buildCabVoucherHtml(voucher, booking) {
 
   const brandName = brand?.name || branding.brandName || 'Explore My Bharat';
   const tagline = brand?.tagline || 'Discover Incredible India';
-  const phone = brand?.phone || branding.supportPhone || '-';
+  const phone = normalizePublicSupportPhone(brand?.phone || branding.supportPhone, { fallback: true })
+    || PUBLIC_SUPPORT_PHONE;
   const email = brand?.email || branding.salesEmail || '-';
   const site = (brand?.website || branding.publicWebsiteHost || branding.publicWebsiteUrl || branding.websiteUrl || '')
     .replace(/^https?:\/\//, '')
@@ -1311,8 +1322,14 @@ async function buildClientVoucherHtml(voucher, booking) {
   // Lead / booking pick-drop only — no destination fallback, no invented defaults
   const pickup = String(p.pickup || booking.pickup || transport[0]?.pickupLocation || '').trim() || '-';
   const drop = String(p.drop || booking.drop || transport[0]?.dropLocation || '').trim() || '-';
-  const execPhone = booking.executivePhone || brand.phone || '-';
-  const supportPhone = brand.phone || branding.supportPhone || execPhone || '-';
+  const execPhone = normalizePublicSupportPhone(
+    booking.executivePhone || brand.phone,
+    { fallback: true },
+  ) || PUBLIC_SUPPORT_PHONE;
+  const supportPhone = normalizePublicSupportPhone(
+    brand.phone || branding.supportPhone || execPhone,
+    { fallback: true },
+  ) || PUBLIC_SUPPORT_PHONE;
 
   const bookingTiles = [];
   const hotelHelpRows = [];

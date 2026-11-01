@@ -4,6 +4,7 @@ import {
   QUOTE_BANK_ACCOUNTS,
   QUOTE_PAYMENT_DETAILS,
   QUOTE_POLICIES,
+  QUOTE_SUPPORT_PHONE,
   resolveQuoteExclusions,
   resolveQuoteInclusions,
   resolveQuoteTermsAndConditions,
@@ -492,16 +493,16 @@ export function resolveQuoteVehicles(quote) {
   return [];
 }
 
-/** Phones that must not be printed on customer quotations. */
-const HIDDEN_QUOTATION_PHONES = new Set(['8219440351']);
+/** Retired support numbers — replaced with QUOTE_SUPPORT_PHONE on customer docs. */
+const RETIRED_QUOTATION_PHONES = new Set(['8219440351']);
 
-export function quotationVisiblePhone(phone) {
+export function quotationVisiblePhone(phone, { fallback = false } = {}) {
   const raw = String(phone || '').trim();
-  if (!raw) return '';
   const digits = raw.replace(/\D/g, '');
   const local = digits.length > 10 ? digits.slice(-10) : digits;
-  if (HIDDEN_QUOTATION_PHONES.has(local)) return '';
-  return raw;
+  if (local && RETIRED_QUOTATION_PHONES.has(local)) return QUOTE_SUPPORT_PHONE;
+  if (raw) return raw;
+  return fallback ? QUOTE_SUPPORT_PHONE : '';
 }
 
 export function resolveTripPlanner(quote) {

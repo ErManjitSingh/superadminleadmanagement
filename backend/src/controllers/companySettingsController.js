@@ -1,6 +1,7 @@
 const Company = require('../superadmin/models/Company');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { normalizePublicSupportPhone, PUBLIC_SUPPORT_PHONE } = require('../utils/publicSupportPhone');
 const { markOnboardingStep, formatOnboardingResponse, checkProfileCompleted } = require('../services/onboardingService');
 const { sendOwnerVerificationEmail } = require('../services/emailVerificationService');
 const {
@@ -54,7 +55,7 @@ function formatCompanyPublic(company) {
     features: company.features,
     additionalDomains: company.additionalDomains || [],
     // Public-facing company profile (used on quotation / invoice PDFs).
-    phone: company.phone || '',
+    phone: normalizePublicSupportPhone(company.phone, { fallback: true }) || PUBLIC_SUPPORT_PHONE,
     state: company.state || '',
     city: company.city || '',
     address: company.address || '',

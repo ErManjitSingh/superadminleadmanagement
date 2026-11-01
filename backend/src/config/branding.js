@@ -1,3 +1,5 @@
+const { PUBLIC_SUPPORT_PHONE, normalizePublicSupportPhone } = require('../utils/publicSupportPhone');
+
 const platformDomain = process.env.PLATFORM_DOMAIN || 'indiaholidaydestination.com';
 /** Public customer-facing site shown on vouchers / receipts / PDFs */
 const publicWebsiteHost = (process.env.BRAND_WEBSITE_HOST || 'exploremybharat.com')
@@ -16,5 +18,5 @@ module.exports = {
   /** Customer-facing brand site printed on vouchers & receipts */
   publicWebsiteUrl,
   publicWebsiteHost,
-  supportPhone: process.env.BRAND_SUPPORT_PHONE || '',
+  supportPhone: normalizePublicSupportPhone(process.env.BRAND_SUPPORT_PHONE, { fallback: true }) || PUBLIC_SUPPORT_PHONE,
 };

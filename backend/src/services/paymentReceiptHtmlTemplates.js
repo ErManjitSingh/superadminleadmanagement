@@ -1,4 +1,5 @@
 const branding = require('../config/branding');
+const { normalizePublicSupportPhone, PUBLIC_SUPPORT_PHONE } = require('../utils/publicSupportPhone');
 const {
   SCENIC_HERO,
   esc,
@@ -73,7 +74,7 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     tagline: '',
     logoSrc: '',
     initials: (branding.brandName || 'C').slice(0, 1).toUpperCase(),
-    phone: branding.supportPhone || '',
+    phone: normalizePublicSupportPhone(branding.supportPhone, { fallback: true }) || PUBLIC_SUPPORT_PHONE,
     email: branding.salesEmail || '',
     website: branding.publicWebsiteHost || (branding.publicWebsiteUrl || branding.websiteUrl || '').replace(/^https?:\/\//, ''),
     websiteUrl: branding.publicWebsiteUrl || branding.websiteUrl || '',
@@ -124,14 +125,18 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     || (payment.createdBy?.name ? `${payment.createdBy.name}` : '')
     || booking.executiveName
     || 'Accounts Team';
-  const executivePhone = booking.executivePhone || brand.phone || '';
+  const executivePhone = normalizePublicSupportPhone(
+    booking.executivePhone || brand.phone,
+    { fallback: true },
+  ) || PUBLIC_SUPPORT_PHONE;
   const executiveName = booking.executiveName || payment.createdByName || receivedBy;
   const roleLabel = payment.createdByRole === 'sales_executive' ? 'Sales Executive'
     : payment.createdByRole === 'operations_manager' ? 'Operations'
     : payment.department === 'sales' ? 'Sales Executive' : 'Accounts';
   const docTitle = isAdvance ? 'ADVANCE PAYMENT VOUCHER' : 'PAYMENT RECEIPT';
   const amountLabel = isAdvance ? 'Advance Received' : 'Amount Received';
-  const footPhone = brand.phone || executivePhone || '-';
+  const footPhone = normalizePublicSupportPhone(brand.phone || executivePhone, { fallback: true })
+    || PUBLIC_SUPPORT_PHONE;
   // Receipt confirms money already received — UPI QR only if balance still due
   const showPayQr = remaining > 0;
 

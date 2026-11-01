@@ -184,7 +184,7 @@ export const COMPANY_INFO = {
   name: '',
   tagline: '',
   logoUrl: '/homelogo.webp',
-  phone: '',
+  phone: '+91 62305 57851',
   email: '',
   website: '',
   address: '',
