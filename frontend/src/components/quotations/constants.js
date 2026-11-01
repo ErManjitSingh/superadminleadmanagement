@@ -113,6 +113,14 @@ export function mapLeadCabFleetCategory(value) {
     suv: 'SUV',
     innova: 'SUV',
     ertiga: 'SUV',
+    '4x4': '4x4',
+    '4*4': '4x4',
+    '4 x 4': '4x4',
+    '4x4 cab': '4x4',
+    jemeni: '4x4',
+    jimny: '4x4',
+    hilex: '4x4',
+    hilux: '4x4',
     'tempo traveller': 'Tempo Traveller',
     'tempo traveller (12 seater)': 'Tempo Traveller',
     'tempo traveller (17 seater)': 'Tempo Traveller',
@@ -123,7 +131,7 @@ export function mapLeadCabFleetCategory(value) {
     bus: 'Bus',
   };
   if (map[key]) return map[key];
-  const known = ['Sedan', 'SUV', 'Tempo Traveller', 'Urbania', 'Luxury', 'Mini Bus', 'Bus'];
+  const known = ['Sedan', 'SUV', '4x4', 'Tempo Traveller', 'Urbania', 'Luxury', 'Mini Bus', 'Bus'];
   const hit = known.find((c) => c.toLowerCase() === key);
   return hit || '';
 }
@@ -134,6 +142,7 @@ export function mapLeadCabTransportation(value) {
   const map = {
     Sedan: 'Sedan (Dzire/Etios)',
     SUV: 'SUV',
+    '4x4': '4x4 Cab (Maruti Jimny / Hilux)',
     'Tempo Traveller': 'Tempo Traveller (12 Seater)',
     Urbania: 'Urbania',
     Luxury: 'Luxury Car',

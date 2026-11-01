@@ -8,7 +8,7 @@ const {
   stripHotelsFromPackageSnapshot,
 } = require('../utils/noHotelUtils');
 
-const VEHICLE_TYPES = new Set(['sedan', 'suv', 'innova', 'tempo_traveller', 'bus', 'other']);
+const VEHICLE_TYPES = new Set(['sedan', 'suv', 'innova', '4x4', 'jemeni', 'hilex', 'tempo_traveller', 'bus', 'other']);
 
 function addDays(date, days) {
   if (!date) return null;
@@ -48,6 +48,9 @@ function asVehicleType(value) {
   const raw = String(value || 'suv').toLowerCase().replace(/\s+/g, '_');
   if (VEHICLE_TYPES.has(raw)) return raw;
   if (raw.includes('innova')) return 'innova';
+  if (raw.includes('jemeni') || raw.includes('jimny')) return 'jemeni';
+  if (raw.includes('hilex') || raw.includes('hilux')) return 'hilex';
+  if (raw.includes('4x4') || raw.includes('4*4')) return '4x4';
   if (raw.includes('tempo') || raw.includes('traveller')) return 'tempo_traveller';
   if (raw.includes('sedan') || raw.includes('dzire') || raw.includes('etios')) return 'sedan';
   if (raw.includes('bus') || raw.includes('coach')) return 'bus';
@@ -347,8 +350,20 @@ async function syncBookingFromQuotation(bookingId, { force = false } = {}) {
   const patch = {};
   const omitsHotels = quotationOmitsHotels(quotation);
 
-  if (force || !booking.itinerary?.length) {
-    if (extracted.itinerary.length) patch.itinerary = extracted.itinerary;
+  const existingItin = Array.isArray(booking.itinerary) ? booking.itinerary : [];
+  const richQuoteItin = Array.isArray(extracted.itinerary) ? extracted.itinerary : [];
+  const existingHasPlaces = existingItin.some((d) =>
+    String(d?.activities || d?.sightseeing || d?.activityNotes || d?.description || d?.places || '').trim(),
+  );
+  const quoteHasPlaces = richQuoteItin.some((d) =>
+    String(d?.activities || d?.sightseeing || d?.activityNotes || d?.description || d?.places || '').trim(),
+  );
+  if (
+    force
+    || !existingItin.length
+    || (quoteHasPlaces && (!existingHasPlaces || richQuoteItin.length > existingItin.length))
+  ) {
+    if (richQuoteItin.length) patch.itinerary = richQuoteItin;
   }
 
   // Fix stuck adults=1 (Lead/Booking schema default) from quotation packageInfo

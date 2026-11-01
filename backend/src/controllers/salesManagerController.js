@@ -42,6 +42,8 @@ const {
   findScopedFollowUpsPaginated,
   findScopedQuotationsPaginated,
 } = require('../repositories/roleScopedRepository');
+const { createFollowUpForLead, updateFollowUpRecord } = require('../services/followUpService');
+const { companyScopedIdFilter, assertTenantDocument } = require('../utils/tenantDocument');
 
 const getDashboard = asyncHandler(async (req, res) => {
   const stats = await getOrSetFresh(
@@ -235,6 +237,22 @@ const listExecutives = asyncHandler(async (req, res) => {
 const listFollowUps = asyncHandler(async (req, res) => {
   const result = await findScopedFollowUpsPaginated({}, req.query, { companyId: req.companyId });
   res.json(result);
+});
+
+const createFollowUp = asyncHandler(async (req, res) => {
+  const populated = await createFollowUpForLead({
+    body: req.body,
+    user: req.user,
+    leadFilter: req.companyId ? { companyId: req.companyId } : null,
+  });
+  res.status(201).json(populated);
+});
+
+const updateFollowUp = asyncHandler(async (req, res) => {
+  const followup = await FollowUp.findOne(companyScopedIdFilter(req.params.id, req));
+  assertTenantDocument(followup, req, 'Follow-up');
+  const populated = await updateFollowUpRecord({ followup, body: req.body, user: req.user });
+  res.json(populated);
 });
 
 const listQuotations = asyncHandler(async (req, res) => {
@@ -461,6 +479,8 @@ module.exports = {
   assignLeads,
   listExecutives,
   listFollowUps,
+  createFollowUp,
+  updateFollowUp,
   listQuotations,
   createQuotation,
   updateQuotation,

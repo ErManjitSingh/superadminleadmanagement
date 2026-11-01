@@ -46,6 +46,7 @@ export const DRAFT_STORAGE_KEY = 'uno-crm-lead-wizard-draft-v11';
 export const LEAD_CAB_TYPES = [
   'Sedan',
   'SUV',
+  '4x4',
   'Tempo Traveller',
   'Urbania',
   'Luxury',

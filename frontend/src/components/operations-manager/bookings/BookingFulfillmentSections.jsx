@@ -14,6 +14,9 @@ const VEHICLE_TYPES = [
   { value: 'sedan', label: 'Sedan' },
   { value: 'suv', label: 'SUV' },
   { value: 'innova', label: 'Innova' },
+  { value: '4x4', label: '4x4 Cab' },
+  { value: 'jemeni', label: 'Maruti Jimny' },
+  { value: 'hilex', label: 'Hilux' },
   { value: 'tempo_traveller', label: 'Tempo Traveller' },
   { value: 'bus', label: 'Bus' },
 ];

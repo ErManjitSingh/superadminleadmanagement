@@ -81,7 +81,13 @@ const logout = asyncHandler(async (req, res) => {
 
 const getMe = asyncHandler(async (req, res) => {
   const permissions = req.permissions || (await resolveUserPermissions(req.user));
-  res.json(formatUserResponse(req.user, permissions));
+  // Sliding session: re-issue JWT so the app stays logged in while in use
+  const token = generateToken(req.user._id, req.user.role, req.user.companyId);
+  res.json({
+    ...formatUserResponse(req.user, permissions),
+    token,
+    ...getRestrictedSessionMeta(req.user.role),
+  });
 });
 
 const registerPushToken = asyncHandler(async (req, res) => {

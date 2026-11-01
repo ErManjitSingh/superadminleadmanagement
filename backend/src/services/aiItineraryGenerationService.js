@@ -39,7 +39,7 @@ Return ONLY valid JSON (no markdown):
   "drop": "City or empty string"
 }`;
 
-function buildUserMessage({ prompt, destination, days, nights, variationSeed }) {
+function buildUserMessage({ prompt, destination, days, nights, variationSeed, includeMeals = true }) {
   const lines = [
     'Create a complete day-wise travel itinerary for the following customer request.',
     '',
@@ -54,6 +54,13 @@ function buildUserMessage({ prompt, destination, days, nights, variationSeed }) 
     '- Do NOT include pickup time, reporting time, or any clock time for departures — day/date wording only.',
     '- Titles should be specific (e.g. "Delhi → Shimla (Approx. 350 km | 8–9 hrs)").',
   ];
+
+  if (includeMeals === false) {
+    lines.push(
+      '- This is a CAB-ONLY / NO-HOTEL package. Do NOT mention breakfast, dinner, lunch, meals, or hotel meal plans anywhere (not in description, meals field, or titles).',
+      '- Set "meals" to an empty string for every day.',
+    );
+  }
 
   if (days) {
     lines.push(
@@ -136,7 +143,7 @@ function getGeminiModelCandidates() {
   return [...new Set([primary, ...extras, ...defaults])];
 }
 
-async function callGeminiOnce({ apiKey, model, prompt, destination, days, nights, variationSeed }) {
+async function callGeminiOnce({ apiKey, model, prompt, destination, days, nights, variationSeed, includeMeals = true }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const res = await fetch(url, {
@@ -147,7 +154,7 @@ async function callGeminiOnce({ apiKey, model, prompt, destination, days, nights
       contents: [
         {
           role: 'user',
-          parts: [{ text: buildUserMessage({ prompt, destination, days, nights, variationSeed }) }],
+          parts: [{ text: buildUserMessage({ prompt, destination, days, nights, variationSeed, includeMeals }) }],
         },
       ],
       generationConfig: {
@@ -177,7 +184,7 @@ async function callGeminiOnce({ apiKey, model, prompt, destination, days, nights
   return parseJsonFromText(raw);
 }
 
-async function callGemini({ prompt, destination, days, nights, variationSeed }) {
+async function callGemini({ prompt, destination, days, nights, variationSeed, includeMeals = true }) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
 
@@ -196,6 +203,7 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
           days,
           nights,
           variationSeed,
+          includeMeals,
         });
         if (attempt > 0 || model !== models[0]) {
           console.info(`[AI itinerary] OK via ${model} (attempt ${attempt + 1})`);
@@ -227,7 +235,7 @@ async function callGemini({ prompt, destination, days, nights, variationSeed }) 
   );
 }
 
-async function callOpenAI({ prompt, destination, days, nights, variationSeed }) {
+async function callOpenAI({ prompt, destination, days, nights, variationSeed, includeMeals = true }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
@@ -249,7 +257,7 @@ async function callOpenAI({ prompt, destination, days, nights, variationSeed }) 
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: buildUserMessage({ prompt, destination, days, nights, variationSeed }),
+          content: buildUserMessage({ prompt, destination, days, nights, variationSeed, includeMeals }),
         },
       ],
     }),
@@ -268,21 +276,54 @@ async function callOpenAI({ prompt, destination, days, nights, variationSeed }) 
   return parseJsonFromText(raw);
 }
 
-function normalizeDays(parsed, variationSeed) {
+function stripMealMentions(text = '') {
+  return String(text)
+    .split('\n')
+    .filter((line) => {
+      const l = line.trim().toLowerCase();
+      if (!l) return true;
+      if (l.startsWith('meals:') || l.startsWith('meal:')) return false;
+      if (/^(breakfast|dinner|lunch)(\s|&|and|,|\/)/.test(l) && l.length < 60) return false;
+      if (l === 'breakfast' || l === 'dinner' || l === 'lunch') return false;
+      if (l === 'breakfast & dinner' || l === 'breakfast and dinner') return false;
+      return true;
+    })
+    .join('\n')
+    .replace(/\n?Meals?:\s*[^\n]+/gi, '')
+    .replace(/\bafter\s+(a\s+hearty\s+)?breakfast(\s+at\s+the\s+hotel)?[,.]?\s*/gi, '')
+    .replace(/\benjoy\s+breakfast(\s+at\s+the\s+hotel)?[,.]?\s*/gi, '')
+    .replace(/\bbreakfast\s+at\s+(the\s+)?hotel[,.]?\s*/gi, '')
+    .replace(/\bBreakfast\s*(&|and|\+)\s*Dinner\b/gi, '')
+    .replace(/\bBreakfast\s*\/\s*Dinner\b/gi, '')
+    .replace(/\b(morning\s+)?breakfast(\s+&|\s+and)?\s*(dinner)?\b/gi, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function normalizeDays(parsed, variationSeed, includeMeals = true) {
   const list = parsed?.days || parsed?.itinerary;
   if (!Array.isArray(list) || !list.length) return null;
 
-  const days = list.map((d, i) => ({
-    day: Number(d.day) || i + 1,
-    title: String(d.title || `Day ${i + 1}`).trim(),
-    description: String(d.description || '').trim(),
-    meals: d.meals || 'Breakfast & Dinner',
-    activities: d.activities || '',
-    transport: d.transport || d.transportNotes || 'Private transfer',
-    accommodation: d.accommodation || d.hotel || '',
-    hotel: d.hotel || d.accommodation || '',
-    id: `ai-${Number(d.day) || i + 1}-v${variationSeed}-${Date.now()}-${i}`,
-  }));
+  const days = list.map((d, i) => {
+    let description = String(d.description || '').trim();
+    let meals = includeMeals ? d.meals || 'Breakfast & Dinner' : '';
+    if (!includeMeals) {
+      description = stripMealMentions(description);
+      meals = '';
+    }
+    return {
+      day: Number(d.day) || i + 1,
+      title: String(d.title || `Day ${i + 1}`).trim(),
+      description,
+      meals,
+      activities: d.activities || '',
+      transport: d.transport || d.transportNotes || 'Private transfer',
+      accommodation: includeMeals ? d.accommodation || d.hotel || '' : '',
+      hotel: includeMeals ? d.hotel || d.accommodation || '' : '',
+      id: `ai-${Number(d.day) || i + 1}-v${variationSeed}-${Date.now()}-${i}`,
+    };
+  });
 
   const totalDays = Number(parsed.totalDays) || days.length;
   const totalNights =
@@ -307,6 +348,7 @@ async function generateItineraryFromPrompt({
   days,
   nights,
   variationSeed = 0,
+  includeMeals = true,
 }) {
   const text = String(prompt || '').trim();
   if (!text) throw new ApiError(400, 'Prompt is required');
@@ -326,6 +368,7 @@ async function generateItineraryFromPrompt({
     days: days ? Number(days) : undefined,
     nights: nights != null ? Number(nights) : undefined,
     variationSeed,
+    includeMeals: includeMeals !== false,
   };
 
   let parsed;
@@ -343,12 +386,12 @@ async function generateItineraryFromPrompt({
     } catch (err2) {
       throw err; // surface the original (usually clearer) busy message
     }
-    const result = normalizeDays(parsed, variationSeed);
+    const result = normalizeDays(parsed, variationSeed, params.includeMeals);
     if (!result) throw new ApiError(502, 'AI returned empty itinerary');
     return { source: other, ...result };
   }
 
-  const result = normalizeDays(parsed, variationSeed);
+  const result = normalizeDays(parsed, variationSeed, params.includeMeals);
   if (!result) throw new ApiError(502, 'AI returned empty itinerary');
 
   return { source: provider, ...result };

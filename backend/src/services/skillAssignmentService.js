@@ -170,6 +170,7 @@ async function autoAssignLeadBySkill(lead, { triggeredBy } = {}) {
       leadIds: [lead._id],
       leadNames: [lead.name],
       assignedBy: triggeredBy || { name: 'Skill Auto Assignment' },
+      lead,
     }).catch(() => {});
 
     return { assigned: true, assignee: pick.executive, leadType, assignmentType: 'skill_match' };
@@ -218,6 +219,7 @@ async function autoAssignLeadBySkill(lead, { triggeredBy } = {}) {
     leadIds: [lead._id],
     leadNames: [lead.name],
     assignedBy: triggeredBy || { name: 'Skill Auto Assignment' },
+    lead,
   }).catch(() => {});
 
   return {

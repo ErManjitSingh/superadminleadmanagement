@@ -272,6 +272,7 @@ async function autoAssignLead(lead, { triggeredBy } = {}) {
     leadIds: [lead._id],
     leadNames: [lead.name],
     assignedBy: triggeredBy || { name: 'Auto Assignment' },
+    lead,
   }).catch(() => {});
 
   return {

@@ -83,10 +83,13 @@ async function generateReceiptPdf(payment, booking) {
   if (bookingForPdf.lead) {
     try {
       const Lead = require('../models/Lead');
-      const lead = await Lead.findById(bookingForPdf.lead).select('phone whatsapp email assignedTo pickup drop').lean();
+      const lead = await Lead.findById(bookingForPdf.lead)
+        .select('phone whatsapp email assignedTo pickup drop adults children travelers pax')
+        .lean();
       if (lead) {
         bookingForPdf = {
           ...bookingForPdf,
+          lead,
           customerPhone: bookingForPdf.customerPhone || lead.whatsapp || lead.phone || '',
           customerEmail: bookingForPdf.customerEmail || lead.email || '',
           pickup: bookingForPdf.pickup || lead.pickup || '',
@@ -97,6 +100,25 @@ async function generateReceiptPdf(payment, booking) {
     } catch {
       /* ignore */
     }
+  }
+  // Attach quotation so guest counts (adults) resolve correctly on advance vouchers
+  try {
+    const { resolveQuotationForBooking } = require('./operationsQuotationSyncService');
+    const quotation = await resolveQuotationForBooking(bookingForPdf);
+    if (quotation) {
+      bookingForPdf = { ...bookingForPdf, quotation };
+      const { resolveGuestCounts } = require('../utils/guestCounts');
+      const guests = resolveGuestCounts({
+        booking: bookingForPdf,
+        lead: typeof bookingForPdf.lead === 'object' ? bookingForPdf.lead : null,
+        quotation,
+      });
+      if (guests.adults) {
+        bookingForPdf = { ...bookingForPdf, adults: guests.adults, children: guests.children };
+      }
+    }
+  } catch {
+    /* ignore */
   }
 
   // Sales executive phone for voucher PDFs

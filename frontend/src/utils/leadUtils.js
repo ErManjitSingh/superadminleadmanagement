@@ -23,9 +23,19 @@ export function isLeadStatusLocked(status) {
   return LOCKED_LEAD_STATUSES.includes(normalizeLeadStatus(status));
 }
 
-/** Pipeline stages where lead can be converted with first advance payment */
-export const CONVERT_ELIGIBLE_STATUSES = ['quotation_sent', 'negotiation', 'follow_up'];
+/** Any open lead can be converted (advance payment). Hidden only after close. */
+export const CONVERT_ELIGIBLE_STATUSES = [
+  'new',
+  'contacted',
+  'working_progress',
+  'follow_up',
+  'quotation_sent',
+  'negotiation',
+  'reactivated',
+  'qualified',
+  'proposal',
+];
 
 export function canConvertLead(status) {
-  return !isLeadStatusLocked(status) && CONVERT_ELIGIBLE_STATUSES.includes(normalizeLeadStatus(status));
+  return !isLeadStatusLocked(status);
 }

@@ -11,7 +11,13 @@ const {
 const { protect } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
 
-const requireFollowUpWriteRole = authorize('sales_executive', 'admin');
+// Managers / team leaders also schedule follow-ups from the CRM app & website.
+const requireFollowUpWriteRole = authorize(
+  'sales_executive',
+  'sales_manager',
+  'team_leader',
+  'admin'
+);
 
 router.use(protect);
 

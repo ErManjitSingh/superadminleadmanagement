@@ -579,9 +579,13 @@ function brandedHelpBox(rows = []) {
   </div>`;
 }
 
-function wrapBrandedDocument({ title, bodyHtml, brand, heroSrc, pills, stripItems, stripCols = 5, thanksText, paymentQr = true }) {
+function wrapBrandedDocument({
+  title, bodyHtml, brand, heroSrc, pills, stripItems, stripCols = 5, thanksText,
+  paymentQr = true,
+  paymentQrLabel = 'Scan to Pay Remaining Balance',
+}) {
   const { paymentQrBlockHtml } = require('./paymentQrAsset');
-  const qrHtml = paymentQr ? paymentQrBlockHtml('Scan QR to Pay') : '';
+  const qrHtml = paymentQr ? paymentQrBlockHtml(paymentQrLabel) : '';
   return `<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="UTF-8"/>

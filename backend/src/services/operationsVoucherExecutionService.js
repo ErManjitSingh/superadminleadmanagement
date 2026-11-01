@@ -284,22 +284,42 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   const key = assignmentKey(normalizedType, assignmentIndex);
 
   // Heal missing day-wise itinerary / adults=1 from quotation before building voucher
-  if (
-    normalizedType === 'transport'
-    || normalizedType === 'client'
-    || normalizedType === 'hotel'
-    || !booking.itinerary?.length
-    || !booking.adults
-    || booking.adults === 1
-  ) {
-    try {
-      const { syncBookingFromQuotation } = require('./operationsQuotationSyncService');
-      const synced = await syncBookingFromQuotation(bookingId, { force: false });
-      if (synced?.booking) booking = synced.booking;
-    } catch (_) {
-      /* non-fatal — voucher can still generate */
-    }
+  let quotationDoc = null;
+  let leadDoc = null;
+  try {
+    const { syncBookingFromQuotation, resolveQuotationForBooking } = require('./operationsQuotationSyncService');
+    const synced = await syncBookingFromQuotation(bookingId, { force: false });
+    if (synced?.booking) booking = synced.booking;
+    quotationDoc = synced?.quotation || await resolveQuotationForBooking(booking);
+  } catch (_) {
+    /* non-fatal — voucher can still generate */
   }
+  try {
+    if (booking.lead) {
+      const Lead = require('../models/Lead');
+      leadDoc = await Lead.findById(booking.lead).select('adults children travelers pax pickup drop phone').lean();
+    }
+  } catch (_) { /* non-fatal */ }
+  // Attach populated quote/lead so guest counts resolve correctly in PDF templates
+  if (quotationDoc && typeof booking.quotation !== 'object') {
+    booking = { ...booking, quotation: quotationDoc };
+  } else if (quotationDoc) {
+    booking = { ...booking, quotation: quotationDoc };
+  }
+  if (leadDoc) {
+    booking = { ...booking, lead: leadDoc };
+  }
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const guests = resolveGuestCounts({ booking, lead: leadDoc, quotation: quotationDoc });
+    if (guests.adults && Number(booking.adults || 0) !== guests.adults) {
+      booking = { ...booking, adults: guests.adults, children: guests.children };
+      await Booking.findByIdAndUpdate(bookingId, {
+        adults: guests.adults,
+        children: guests.children,
+      }).catch(() => {});
+    }
+  } catch (_) { /* non-fatal */ }
 
   // Prefill pick/drop from lead when booking fields are empty
   if (booking.lead && (!booking.pickup || !booking.drop)) {

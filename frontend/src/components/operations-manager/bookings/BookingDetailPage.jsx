@@ -87,6 +87,7 @@ export default function BookingDetailPage() {
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [confirmingCab, setConfirmingCab] = useState(false);
   const [confirmingHotel, setConfirmingHotel] = useState(false);
+  const [renamingHotel, setRenamingHotel] = useState(false);
   const [activeSection, setActiveSection] = useState(SECTION_TABS[0].id);
   const pdfRef = useRef(null);
 
@@ -202,6 +203,31 @@ export default function BookingDetailPage() {
       await refreshBookingData(true);
     } finally {
       setSavingHotels(false);
+    }
+  };
+
+  const renameHotel = async (newName) => {
+    const name = String(newName || '').trim();
+    if (!name) {
+      toast.error('Hotel name required');
+      return;
+    }
+    setRenamingHotel(true);
+    try {
+      const nextHotels = (hotels?.length ? hotels : booking?.hotels || []).map((h, i) => (
+        i === 0 ? { ...h, hotelName: name, name } : h
+      ));
+      if (!nextHotels.length) {
+        nextHotels.push({ hotelName: name, name, status: 'pending' });
+      }
+      await API.put(`/operations-manager/bookings/${id}`, { hotels: nextHotels });
+      setHotels(nextHotels);
+      toast.success('Hotel name updated');
+      await refreshBookingData(true);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || err?.message || 'Hotel name update failed');
+    } finally {
+      setRenamingHotel(false);
     }
   };
 
@@ -417,6 +443,8 @@ export default function BookingDetailPage() {
               confirmingHotel={confirmingHotel}
               onConfirmCab={confirmCab}
               confirmingCab={confirmingCab}
+              onRenameHotel={renameHotel}
+              renamingHotel={renamingHotel}
               onCallHotel={() => {
                 const phone = booking.hotels?.[0]?.phone || booking.hotels?.[0]?.vendorPhone;
                 if (phone) window.open(`tel:${phone}`, '_self');

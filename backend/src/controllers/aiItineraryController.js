@@ -3,7 +3,7 @@ const ApiError = require('../utils/apiError');
 const { generateItineraryFromPrompt } = require('../services/aiItineraryGenerationService');
 
 const generateItinerary = asyncHandler(async (req, res) => {
-  const { prompt, destination, days, nights, variationSeed } = req.body || {};
+  const { prompt, destination, days, nights, variationSeed, includeMeals } = req.body || {};
 
   if (!prompt?.trim()) {
     throw new ApiError(400, 'prompt is required');
@@ -15,6 +15,7 @@ const generateItinerary = asyncHandler(async (req, res) => {
     days: days ? Number(days) : undefined,
     nights: nights != null ? Number(nights) : undefined,
     variationSeed: Number(variationSeed) || 0,
+    includeMeals: includeMeals !== false,
   });
 
   if (result.source === 'unavailable') {

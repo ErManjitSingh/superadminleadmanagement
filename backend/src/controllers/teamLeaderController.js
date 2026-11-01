@@ -46,6 +46,7 @@ const {
   formatNotification,
 } = require('../utils/queryHelpers');
 const { parsePagination, paginatedResponse } = require('../utils/pagination');
+const { createFollowUpForLead, updateFollowUpRecord } = require('../services/followUpService');
 
 const getMyTeam = asyncHandler(async (req, res) => {
   const team = await getTeamForLeader(req.user._id);
@@ -160,6 +161,7 @@ const updateLead = asyncHandler(async (req, res) => {
     leadIds: [lead._id],
     leadNames: [lead.name],
     assignedBy: req.user,
+    lead,
   }).catch(() => {});
 
   const populated = await Lead.findById(lead._id).populate(LEAD_POPULATE).lean();
@@ -194,6 +196,41 @@ const listFollowUps = asyncHandler(async (req, res) => {
     { companyId: req.companyId }
   );
   res.json(result);
+});
+
+const createFollowUp = asyncHandler(async (req, res) => {
+  const leadId = req.body.lead || req.body.leadId;
+  const squadFilter = await getLeaderLeadScopeFilter(req.user._id);
+  const lead = await Lead.findOne({
+    _id: leadId,
+    ...squadFilter,
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!lead) throw new ApiError(404, 'Lead not found in your team');
+
+  const populated = await createFollowUpForLead({
+    body: req.body,
+    user: req.user,
+    leadFilter: squadFilter,
+  });
+  res.status(201).json(populated);
+});
+
+const updateFollowUp = asyncHandler(async (req, res) => {
+  const execIds = await getExecutiveIdsForLeader(req.user._id);
+  const myLeadIds = await Lead.find({
+    assignedTo: { $in: execIds },
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  }).distinct('_id');
+  const followup = await FollowUp.findOne({
+    _id: req.params.id,
+    $or: [{ assignedTo: { $in: execIds } }, { lead: { $in: myLeadIds } }],
+    ...(req.branchId ? { branchId: req.branchId } : {}),
+  });
+  if (!followup) throw new ApiError(404, 'Follow-up not found');
+
+  const populated = await updateFollowUpRecord({ followup, body: req.body, user: req.user });
+  res.json(populated);
 });
 
 const listExecutives = asyncHandler(async (req, res) => {
@@ -617,6 +654,8 @@ module.exports = {
   updateLead,
   addLeadComment,
   listFollowUps,
+  createFollowUp,
+  updateFollowUp,
   listExecutives,
   listQuotations,
   createQuotation,

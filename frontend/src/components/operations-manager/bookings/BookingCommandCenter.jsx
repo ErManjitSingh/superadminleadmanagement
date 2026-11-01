@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -302,15 +303,24 @@ export function BookingDetailGrid({
   confirmingHotel,
   onConfirmCab,
   confirmingCab,
+  onRenameHotel,
+  renamingHotel,
 }) {
   const hasHotels = bookingHasHotels(booking);
   const hotel = booking.hotels?.[0] || {};
   const cab = booking.transport?.[0] || {};
   const hotelConfirmed = booking.hotelConfirmation === 'confirmed';
   const cabConfirmed = booking.cabConfirmation === 'confirmed';
+  const [editingHotel, setEditingHotel] = useState(false);
+  const [hotelNameDraft, setHotelNameDraft] = useState(hotel.hotelName || '');
   const cols = hasHotels
     ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-4'
     : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3';
+
+  useEffect(() => {
+    setHotelNameDraft(hotel.hotelName || '');
+    setEditingHotel(false);
+  }, [hotel.hotelName, booking?._id]);
 
   return (
     <div className={cn('grid gap-4', cols)}>
@@ -331,10 +341,46 @@ export function BookingDetailGrid({
               )}
               <GhostBtn onClick={onCallHotel}>Call Hotel</GhostBtn>
               <GhostBtn onClick={onHotelVoucher}>Voucher</GhostBtn>
+              {onRenameHotel && (
+                <GhostBtn
+                  onClick={() => {
+                    setHotelNameDraft(hotel.hotelName || '');
+                    setEditingHotel(true);
+                  }}
+                >
+                  Change Name
+                </GhostBtn>
+              )}
             </>
           )}
         >
-          <Row label="Hotel" value={hotel.hotelName || '—'} />
+          {editingHotel ? (
+            <div className="mb-2 space-y-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wide text-content-muted">Hotel Name</label>
+              <input
+                value={hotelNameDraft}
+                onChange={(e) => setHotelNameDraft(e.target.value)}
+                className="input-premium h-9 w-full rounded-xl text-sm"
+                placeholder="Hotel name"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <GhostBtn
+                  tone="success"
+                  disabled={renamingHotel || !hotelNameDraft.trim()}
+                  onClick={async () => {
+                    await onRenameHotel?.(hotelNameDraft.trim());
+                    setEditingHotel(false);
+                  }}
+                >
+                  {renamingHotel ? 'Saving…' : 'Save Name'}
+                </GhostBtn>
+                <GhostBtn onClick={() => setEditingHotel(false)}>Cancel</GhostBtn>
+              </div>
+            </div>
+          ) : (
+            <Row label="Hotel" value={hotel.hotelName || '—'} />
+          )}
           <Row label="Category" value={hotel.category || '—'} />
           <Row label="Check-in" value={formatDate(hotel.checkIn || booking.travelDate)} />
           <Row label="Check-out" value={formatDate(hotel.checkOut || booking.returnDate)} />

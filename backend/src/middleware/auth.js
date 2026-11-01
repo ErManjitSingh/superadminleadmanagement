@@ -52,23 +52,35 @@ function formatUserResponse(user, permissions) {
 
 const RESTRICTED_SESSION_ROLES = ['admin', 'sales_manager'];
 
+/** Parse durations like 30m / 12h / 7d into milliseconds (for session meta). */
+function durationToMs(value, fallbackMs) {
+  const raw = String(value || '').trim();
+  const m = raw.match(/^(\d+)\s*([smhd])$/i);
+  if (!m) return fallbackMs;
+  const n = Number(m[1]);
+  const unit = m[2].toLowerCase();
+  const mult = unit === 's' ? 1000 : unit === 'm' ? 60_000 : unit === 'h' ? 3_600_000 : 86_400_000;
+  return n * mult;
+}
+
 const generateToken = (id, role, companyId) => {
   const restricted = RESTRICTED_SESSION_ROLES.includes(role);
+  // Ops / SE mobile: long-lived (1y). Restricted web roles stay shorter.
   const expiresIn = restricted
-    ? process.env.JWT_EXPIRES_IN_RESTRICTED || '30m'
-    : process.env.JWT_EXPIRES_IN || '30d';
+    ? process.env.JWT_EXPIRES_IN_RESTRICTED || '7d'
+    : process.env.JWT_EXPIRES_IN || '365d';
   const payload = { id };
   if (companyId) payload.cid = String(companyId);
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
 };
 
-const RESTRICTED_SESSION_MS = 30 * 60 * 1000;
-
 function getRestrictedSessionMeta(role) {
   if (!RESTRICTED_SESSION_ROLES.includes(role)) return {};
+  const expiresIn = process.env.JWT_EXPIRES_IN_RESTRICTED || '7d';
+  const ms = durationToMs(expiresIn, 7 * 24 * 60 * 60 * 1000);
   return {
-    sessionExpiresAt: new Date(Date.now() + RESTRICTED_SESSION_MS).toISOString(),
-    sessionTimeoutMinutes: 30,
+    sessionExpiresAt: new Date(Date.now() + ms).toISOString(),
+    sessionTimeoutMinutes: Math.max(1, Math.round(ms / 60_000)),
   };
 }
 

@@ -9,6 +9,8 @@ const {
   assignLeads,
   listExecutives,
   listFollowUps,
+  createFollowUp,
+  updateFollowUp,
   listQuotations,
   createQuotation,
   updateQuotation,
@@ -42,6 +44,8 @@ router.get('/leads/:id', getLeadDetail);
 router.post('/assign', assignLeads);
 router.get('/executives', listExecutives);
 router.get('/followups', listFollowUps);
+router.post('/followups', createFollowUp);
+router.put('/followups/:id', updateFollowUp);
 const {
   getQuotation,
   getQuotationTemplates,

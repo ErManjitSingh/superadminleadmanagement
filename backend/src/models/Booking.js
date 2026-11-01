@@ -57,7 +57,7 @@ const transportAssignmentSchema = new mongoose.Schema(
     vendorName: String,
     vehicleType: {
       type: String,
-      enum: ['sedan', 'suv', 'innova', 'tempo_traveller', 'bus', 'other'],
+      enum: ['sedan', 'suv', 'innova', '4x4', 'jemeni', 'hilex', 'tempo_traveller', 'bus', 'other'],
       default: 'suv',
     },
     driverName: String,

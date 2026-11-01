@@ -103,7 +103,19 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
     Number(booking.remainingBalance ?? booking.pendingAmount ?? (totalAmount - totalPaid)) || 0,
   );
   const progress = totalAmount > 0 ? Math.min(100, Math.round((totalPaid / totalAmount) * 100)) : 0;
-  const guests = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  let guestsLine = `${booking.adults || 0} Adults, ${booking.children || 0} Children`;
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const g = resolveGuestCounts({
+      booking,
+      lead: booking.lead && typeof booking.lead === 'object' ? booking.lead : null,
+      quotation: booking.quotation && typeof booking.quotation === 'object' ? booking.quotation : null,
+    });
+    guestsLine = [
+      g.adults ? `${g.adults} Adult${g.adults > 1 ? 's' : ''}` : '',
+      g.children ? `${g.children} Child${g.children > 1 ? 'ren' : ''}` : '',
+    ].filter(Boolean).join(', ') || guestsLine;
+  } catch (_) { /* keep fallback */ }
   const customerPhone = booking.customerPhone || booking.phone || payment.customerPhone || '-';
   const aadhaarNumber = fmtAadhaar(booking.aadhaarNumber || payment.aadhaarNumber);
   const pickup = booking.pickup || booking.pickupLocation || '-';
@@ -120,6 +132,8 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
   const docTitle = isAdvance ? 'ADVANCE PAYMENT VOUCHER' : 'PAYMENT RECEIPT';
   const amountLabel = isAdvance ? 'Advance Received' : 'Amount Received';
   const footPhone = brand.phone || executivePhone || '-';
+  // Receipt confirms money already received — UPI QR only if balance still due
+  const showPayQr = remaining > 0;
 
   const detailTiles = [
     brandedTile('rupee', amountLabel, fmtINR(thisPayment)),
@@ -189,11 +203,12 @@ async function buildPaymentReceiptHtml(payment, booking, paymentHistory = [], co
       { icon: 'map', label: 'Destination', value: booking.destination },
       { icon: 'car', label: 'Pickup', value: pickup },
       { icon: 'map', label: 'Drop', value: drop },
-      { icon: 'users', label: 'Guests', value: guests },
+      { icon: 'users', label: 'Guests', value: guestsLine },
     ],
     stripCols: 6,
     bodyHtml,
     thanksText: `Thank you for choosing ${brand.name}. Please keep this voucher for your records.`,
+    paymentQr: showPayQr,
   });
 }
 

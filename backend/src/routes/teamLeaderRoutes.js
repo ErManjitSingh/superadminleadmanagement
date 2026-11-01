@@ -10,6 +10,8 @@ const {
   updateLead,
   addLeadComment,
   listFollowUps,
+  createFollowUp,
+  updateFollowUp,
   listExecutives,
   listQuotations,
   createQuotation,
@@ -35,6 +37,8 @@ router.get('/leads/:id', getLeadDetail);
 router.put('/leads/:id', updateLead);
 router.post('/leads/:id/comment', addLeadComment);
 router.get('/followups', listFollowUps);
+router.post('/followups', createFollowUp);
+router.put('/followups/:id', updateFollowUp);
 router.get('/executives', listExecutives);
 const {
   getQuotation,

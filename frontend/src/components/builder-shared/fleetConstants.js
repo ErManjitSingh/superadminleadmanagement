@@ -2,6 +2,7 @@
 export const FLEET_CATEGORIES = [
   { value: 'Sedan', label: 'Sedan' },
   { value: 'SUV', label: 'SUV' },
+  { value: '4x4', label: '4x4 Cab' },
   { value: 'Tempo Traveller', label: 'Tempo Traveller' },
   { value: 'Luxury', label: 'Luxury' },
   { value: 'Urbania', label: 'Urbania' },
@@ -19,6 +20,10 @@ export const FLEET_CATALOG = {
     'Scorpio',
     'Xylo',
     'Fortuner',
+  ],
+  '4x4': [
+    'Maruti Jimny',
+    'Hilux',
   ],
   'Tempo Traveller': [
     '12 Seater',
@@ -53,6 +58,11 @@ export const VEHICLE_META = {
   Scorpio: { seats: 7, bags: 3 },
   Xylo: { seats: 7, bags: 3 },
   Fortuner: { seats: 7, bags: 4 },
+  'Maruti Jimny': { seats: 4, bags: 2 },
+  Jimny: { seats: 4, bags: 2 },
+  Hilux: { seats: 5, bags: 3 },
+  Jemeni: { seats: 4, bags: 2 },
+  Hilex: { seats: 5, bags: 3 },
   '12 Seater': { seats: 12, bags: 8 },
   '17 Seater': { seats: 17, bags: 10 },
   '20 Seater': { seats: 20, bags: 12 },
@@ -86,6 +96,8 @@ export function getVehicleMeta(name, category = 'Sedan') {
   const defaults = {
     Sedan: { seats: 4, bags: 2 },
     SUV: { seats: 6, bags: 3 },
+    '4x4': { seats: 4, bags: 2 },
+    '4*4': { seats: 4, bags: 2 },
     'Tempo Traveller': { seats: 12, bags: 8 },
     Luxury: { seats: 4, bags: 3 },
     Urbania: { seats: 12, bags: 8 },
@@ -110,6 +122,15 @@ export function mergeFleetWithCabs(cabs = []) {
 export function normalizeCabType(type = '') {
   const t = String(type).toLowerCase();
   if (t.includes('sedan')) return 'Sedan';
+  if (
+    t.includes('4x4')
+    || t.includes('4*4')
+    || t.includes('4 x 4')
+    || t.includes('jemeni')
+    || t.includes('jimny')
+    || t.includes('hilex')
+    || t.includes('hilux')
+  ) return '4x4';
   if (t.includes('suv') || t.includes('innova') || t.includes('ertiga')) return 'SUV';
   if (t.includes('urbania')) return 'Urbania';
   if (t.includes('tempo') || t.includes('seater')) return 'Tempo Traveller';

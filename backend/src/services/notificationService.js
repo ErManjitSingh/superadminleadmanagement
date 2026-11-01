@@ -6,6 +6,7 @@ const { formatNotification } = require('../utils/queryHelpers');
 const { NOTIFICATION_TYPES: T } = require('../constants/notificationTypes');
 const { withCompany } = require('../utils/branchScope');
 const { getCompanyId } = require('../utils/tenantContextStore');
+const { pushToUser } = require('./pushNotificationService');
 
 async function emitUnreadCount(userId) {
   const io = getIO();
@@ -34,6 +35,14 @@ async function notifyUser(userId, payload) {
     io.to(`user:${id}`).emit('notification:new', formatted);
     await emitUnreadCount(id);
   }
+  // Device push so alerts still arrive when the app process is not running.
+  pushToUser(id, {
+    id: formatted.id || doc._id,
+    title: payload.title,
+    message: payload.message,
+    type: payload.type,
+    meta: payload.meta || {},
+  }).catch(() => {});
   return formatted;
 }
 
@@ -64,6 +73,30 @@ async function getAdminUserIds() {
   return getActiveUserIdsByRoles(['admin']);
 }
 
+/** Contact fields for mobile tray + in-app Call / WhatsApp actions. */
+function leadContactMeta(lead, extra = {}) {
+  if (!lead) return { ...extra };
+  const phone = String(lead.phone || lead.whatsapp || lead.mobile || '').trim();
+  const whatsapp = String(lead.whatsapp || lead.phone || lead.mobile || '').trim();
+  const leadName = String(lead.name || lead.leadId || '').trim();
+  const id = lead._id || lead.id;
+  return {
+    leadId: id,
+    leadName,
+    name: leadName,
+    phone,
+    whatsapp,
+    href: id ? `/leads/${id}` : undefined,
+    ...extra,
+  };
+}
+
+function leadMessageLine(lead, fallback = 'New lead') {
+  const name = lead?.name || lead?.leadId || fallback;
+  const phone = String(lead?.phone || lead?.whatsapp || lead?.mobile || '').trim();
+  return phone ? `${name} · ${phone}` : String(name);
+}
+
 async function notifyLeadCreated(lead, createdBy) {
   const assigneeId = lead.assignedTo?._id || lead.assignedTo;
   const creatorId = createdBy?._id?.toString() || createdBy?.toString();
@@ -89,19 +122,41 @@ async function notifyLeadCreated(lead, createdBy) {
   await notifyUsers(recipients, {
     branchId: lead.branchId,
     type: T.LEAD_CREATED,
-    title: 'New lead created',
-    message: `${name} has been added to the CRM`,
-    meta: { leadId: lead._id, href: `/leads/${lead._id}` },
+    title: 'New lead',
+    message: leadMessageLine(lead, name),
+    meta: leadContactMeta(lead),
   });
 }
 
-async function notifyLeadAssigned({ assigneeId, assigneeName, leadIds, leadNames, assignedBy }) {
+async function notifyLeadAssigned({
+  assigneeId,
+  assigneeName,
+  leadIds,
+  leadNames,
+  assignedBy,
+  phone,
+  whatsapp,
+  lead,
+}) {
   if (!assigneeId) return;
   const by = assignedBy?.name || 'Someone';
   const count = leadIds?.length || 1;
-  const label = leadNames?.[0] || `${count} lead(s)`;
+  const label = leadNames?.[0] || lead?.name || `${count} lead(s)`;
   const assigneeStr = (assigneeId._id || assigneeId).toString();
   const assignerStr = assignedBy?._id?.toString() || assignedBy?.toString();
+
+  const contact = lead
+    ? leadContactMeta(lead, { leadIds })
+    : {
+        leadId: leadIds?.[0],
+        leadIds,
+        leadName: leadNames?.[0] || '',
+        name: leadNames?.[0] || '',
+        phone: String(phone || whatsapp || '').trim(),
+        whatsapp: String(whatsapp || phone || '').trim(),
+        href: leadIds?.[0] ? `/leads/${leadIds[0]}` : undefined,
+      };
+  const assignMeta = contact;
 
   await notifyUser(assigneeId, {
     branchId: assignedBy?.branchId || null,
@@ -111,11 +166,7 @@ async function notifyLeadAssigned({ assigneeId, assigneeName, leadIds, leadNames
       count === 1
         ? `${by} assigned ${label} to you`
         : `${by} assigned ${count} leads to you`,
-    meta: {
-      leadId: leadIds?.[0],
-      leadIds,
-      href: leadIds?.[0] ? `/leads/${leadIds[0]}` : undefined,
-    },
+    meta: assignMeta,
   });
 
   const admins = await getAdminUserIds();
@@ -131,11 +182,7 @@ async function notifyLeadAssigned({ assigneeId, assigneeName, leadIds, leadNames
       type: T.LEAD_ASSIGNED,
       title: 'Lead assigned',
       message: oversightMessage,
-      meta: {
-        leadId: leadIds?.[0],
-        leadIds,
-        href: leadIds?.[0] ? `/leads/${leadIds[0]}` : undefined,
-      },
+      meta: assignMeta,
     }
   );
 }
@@ -153,8 +200,8 @@ async function notifyLeadReactivated({ lead, actor, assigneeId }) {
     branchId,
     type: T.LEAD_REACTIVATED,
     title: 'Lead reactivated',
-    message: `${lead?.name || 'Lead'} was reactivated by ${actorName}`,
-    meta: { leadId: lead?._id, href: lead?._id ? `/leads/${lead._id}` : undefined },
+    message: `${leadMessageLine(lead, 'Lead')} was reactivated by ${actorName}`,
+    meta: leadContactMeta(lead),
   });
 }
 
@@ -171,8 +218,8 @@ async function notifyLeadReassigned({ lead, actor, assigneeId, assigneeName }) {
     branchId,
     type: T.LEAD_REASSIGNED,
     title: 'Reactivated lead reassigned',
-    message: `${lead.name} is reassigned to ${assigneeName || 'an executive'}`,
-    meta: { leadId: lead._id, href: `/leads/${lead._id}` },
+    message: `${leadMessageLine(lead)} is reassigned to ${assigneeName || 'an executive'}`,
+    meta: leadContactMeta(lead),
   });
 }
 
@@ -188,8 +235,8 @@ async function notifyReactivationProgress({ lead, actor, stage }) {
     branchId,
     type: T.LEAD_REACTIVATION_PROGRESS,
     title: 'Reactivation progress updated',
-    message: `${lead.name} moved to ${stage.replace(/_/g, ' ')}`,
-    meta: { leadId: lead._id, stage, href: `/leads/${lead._id}` },
+    message: `${leadMessageLine(lead)} moved to ${stage.replace(/_/g, ' ')}`,
+    meta: leadContactMeta(lead, { stage }),
   });
 }
 
@@ -205,15 +252,12 @@ async function notifyFollowUpReminder(followUp, lead) {
     branchId: lead?.branchId || null,
     type: T.FOLLOWUP_REMINDER,
     title: 'Follow-up reminder',
-    message: `Follow-up with ${lead?.name || 'customer'} scheduled at ${when}`,
-    meta: {
+    message: `Follow-up with ${leadMessageLine(lead, 'customer')} at ${when}`,
+    meta: leadContactMeta(lead, {
       followUpId: followUp._id,
-      leadId: lead?._id,
-      leadName: lead?.name,
       category: followUp.category || 'warm',
       leadStatus: lead?.status,
-      href: lead?._id ? `/leads/${lead._id}` : undefined,
-    },
+    }),
   };
 
   if (userId) {
@@ -242,12 +286,8 @@ async function notifySlaBreach(lead) {
     branchId,
     type: T.LEAD_SLA_BREACH,
     title: 'Lead SLA breached',
-    message: `${lead.name} was not contacted within 15 minutes`,
-    meta: {
-      leadId: lead._id,
-      href: `/leads/${lead._id}`,
-      persistent: true,
-    },
+    message: `${leadMessageLine(lead)} was not contacted within 15 minutes`,
+    meta: leadContactMeta(lead, { persistent: true }),
   });
 }
 
@@ -264,12 +304,8 @@ async function notifyLeadMerged({ target, source, actor }) {
     branchId,
     type: T.LEAD_MERGED,
     title: 'Duplicate lead merged',
-    message: `${source?.name || 'Lead'} merged into ${target.name} by ${actor?.name || 'user'}`,
-    meta: {
-      leadId: target._id,
-      sourceLeadId: source?._id,
-      href: `/leads/${target._id}`,
-    },
+    message: `${source?.name || 'Lead'} merged into ${leadMessageLine(target)} by ${actor?.name || 'user'}`,
+    meta: leadContactMeta(target, { sourceLeadId: source?._id }),
   });
 }
 
