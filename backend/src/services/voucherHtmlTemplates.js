@@ -413,15 +413,33 @@ function truncateText(text = '', max = 220) {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+function itineraryDayScore(days = []) {
+  return (days || []).reduce((sum, d) => {
+    const places = String(
+      d?.activities || d?.sightseeing || d?.activityNotes || d?.places || d?.description || '',
+    ).trim();
+    const title = String(d?.title || d?.name || '').trim();
+    return sum + 1 + (places ? 3 : 0) + (title ? 1 : 0);
+  }, 0);
+}
+
 function resolveCabItinerary(booking = {}, payload = {}) {
   const fromPayload = Array.isArray(payload.itinerary) ? payload.itinerary : [];
   const fromBooking = Array.isArray(booking.itinerary) ? booking.itinerary : [];
   const fromPreview = Array.isArray(booking.quotationPreview?.itinerary)
     ? booking.quotationPreview.itinerary
     : [];
-  // Prefer the richest day list (payload/booking/quotation preview)
-  const days = [fromPayload, fromBooking, fromPreview]
-    .sort((a, b) => (b?.length || 0) - (a?.length || 0))[0] || [];
+  let fromQuote = [];
+  try {
+    const snap = booking.quotation?.packageSnapshot || {};
+    fromQuote = Array.isArray(snap.itinerary) ? snap.itinerary
+      : (Array.isArray(booking.quotation?.itinerary) ? booking.quotation.itinerary : []);
+  } catch (_) { /* ignore */ }
+
+  // Prefer the richest day list (places/sightseeing > bare day stubs)
+  const days = [fromPayload, fromBooking, fromPreview, fromQuote]
+    .filter((arr) => Array.isArray(arr) && arr.length)
+    .sort((a, b) => itineraryDayScore(b) - itineraryDayScore(a) || b.length - a.length)[0] || [];
   return days.map((d, i) => {
     const dayNum = d.day || i + 1;
     const activityRaw = d.activities || d.sightseeing || d.activityNotes || d.places || '';
@@ -865,11 +883,11 @@ function embRow(icoClass, icon, label, value, valueHtml = null) {
 
 function formatGuestsLine(booking = {}) {
   try {
-    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const { resolveGuestCounts, isPopulatedDoc } = require('../utils/guestCounts');
     const g = resolveGuestCounts({
       booking,
-      lead: booking.lead && typeof booking.lead === 'object' ? booking.lead : null,
-      quotation: booking.quotation && typeof booking.quotation === 'object' ? booking.quotation : null,
+      lead: isPopulatedDoc(booking.lead) ? booking.lead : null,
+      quotation: isPopulatedDoc(booking.quotation) ? booking.quotation : null,
     });
     const adults = g.adults;
     const children = g.children;

@@ -169,7 +169,18 @@ function extractPayload(booking, type, index = 0) {
   if (type === 'transport') {
     const t = booking.transport?.[index] || {};
     const vehicleType = t.vehicleType || 'suv';
-    const itinerary = (booking.itinerary || []).map((d, i) => ({
+    let sourceDays = Array.isArray(booking.itinerary) ? booking.itinerary : [];
+    // Fall back to quotation itinerary when booking days are missing
+    if (!sourceDays.length && booking.quotation && typeof booking.quotation === 'object') {
+      try {
+        const { mapQuoteItinerary } = require('./operationsQuotationSyncService');
+        sourceDays = mapQuoteItinerary(booking.quotation, booking.travelDate) || [];
+      } catch (_) { /* ignore */ }
+    }
+    if (!sourceDays.length && Array.isArray(booking.quotationPreview?.itinerary)) {
+      sourceDays = booking.quotationPreview.itinerary;
+    }
+    const itinerary = sourceDays.map((d, i) => ({
       day: d.day || i + 1,
       date: d.date || null,
       title: d.title || `Day ${d.day || i + 1}`,
@@ -283,14 +294,19 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   const normalizedType = type === 'cab' ? 'transport' : type;
   const key = assignmentKey(normalizedType, assignmentIndex);
 
-  // Heal missing day-wise itinerary / adults=1 from quotation before building voucher
+  // Heal missing day-wise itinerary / adults from quotation before building voucher
   let quotationDoc = null;
   let leadDoc = null;
+  let quotationPreview = null;
   try {
     const { syncBookingFromQuotation, resolveQuotationForBooking } = require('./operationsQuotationSyncService');
-    const synced = await syncBookingFromQuotation(bookingId, { force: false });
+    const needsForceSync = normalizedType === 'transport'
+      && (!Array.isArray(booking.itinerary) || !booking.itinerary.length
+        || !booking.itinerary.some((d) => String(d?.activities || d?.sightseeing || d?.description || d?.places || '').trim()));
+    const synced = await syncBookingFromQuotation(bookingId, { force: needsForceSync || force === true });
     if (synced?.booking) booking = synced.booking;
     quotationDoc = synced?.quotation || await resolveQuotationForBooking(booking);
+    quotationPreview = synced?.quotationPreview || null;
   } catch (_) {
     /* non-fatal — voucher can still generate */
   }
@@ -300,11 +316,12 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
       leadDoc = await Lead.findById(booking.lead).select('adults children travelers pax pickup drop phone').lean();
     }
   } catch (_) { /* non-fatal */ }
-  // Attach populated quote/lead so guest counts resolve correctly in PDF templates
-  if (quotationDoc && typeof booking.quotation !== 'object') {
+  // Attach populated quote/lead so guest counts + cab itinerary resolve in PDF templates
+  if (quotationDoc) {
     booking = { ...booking, quotation: quotationDoc };
-  } else if (quotationDoc) {
-    booking = { ...booking, quotation: quotationDoc };
+  }
+  if (quotationPreview) {
+    booking = { ...booking, quotationPreview };
   }
   if (leadDoc) {
     booking = { ...booking, lead: leadDoc };
@@ -405,10 +422,15 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
       merged.dropLocation = String(payloadOverrides.dropLocation || '').trim()
         || String(payload?.dropLocation || '').trim()
         || '';
-      // Day-wise itinerary: keep explicit override, else prefer fresh booking days
-      const overrideItin = Array.isArray(payloadOverrides.itinerary) ? payloadOverrides.itinerary : null;
+      // Prefer richest day-wise itinerary (fresh booking/quote over stale override stubs)
+      const overrideItin = Array.isArray(payloadOverrides.itinerary) ? payloadOverrides.itinerary : [];
       const freshItin = Array.isArray(payload?.itinerary) ? payload.itinerary : [];
-      if (overrideItin?.length) merged.itinerary = overrideItin;
+      const score = (days) => (days || []).reduce((s, d) => {
+        const places = String(d?.activities || d?.sightseeing || d?.places || d?.description || '').trim();
+        return s + 1 + (places ? 3 : 0);
+      }, 0);
+      if (score(freshItin) >= score(overrideItin) && freshItin.length) merged.itinerary = freshItin;
+      else if (overrideItin.length) merged.itinerary = overrideItin;
       else if (freshItin.length) merged.itinerary = freshItin;
     }
     payload = merged;
@@ -431,10 +453,14 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
       merged.dropLocation = String(existing.payload.dropLocation || '').trim()
         || String(payload?.dropLocation || '').trim()
         || '';
-      // Never let stale/empty saved itinerary wipe day-wise days from booking
+      // Never let stale/empty saved itinerary wipe day-wise days from booking/quote
       const freshItin = Array.isArray(payload?.itinerary) ? payload.itinerary : [];
       const savedItin = Array.isArray(existing.payload?.itinerary) ? existing.payload.itinerary : [];
-      if (freshItin.length && (!savedItin.length || freshItin.length >= savedItin.length)) {
+      const score = (days) => (days || []).reduce((s, d) => {
+        const places = String(d?.activities || d?.sightseeing || d?.places || d?.description || '').trim();
+        return s + 1 + (places ? 3 : 0);
+      }, 0);
+      if (score(freshItin) >= score(savedItin) && freshItin.length) {
         merged.itinerary = freshItin;
       } else if (!savedItin.length && freshItin.length) {
         merged.itinerary = freshItin;
@@ -583,22 +609,81 @@ async function regenerateVoucher(voucherId, actor) {
 
   const source = active || voucher;
 
+  // Keep manual driver/pickup edits, but never reuse a stale/empty itinerary
+  const overrides = { ...(source.payload || {}) };
+  if (type === 'transport' || type === 'client') {
+    delete overrides.itinerary;
+  }
+
   return generateVoucherForAssignment(source.booking, {
     type: source.type === 'cab' ? 'transport' : source.type,
     assignmentIndex: Number(source.assignmentIndex ?? 0),
     actor,
     force: true,
-    payloadOverrides: source.payload || {},
+    payloadOverrides: overrides,
   });
 }
 
+async function attachQuoteLeadForRender(bookingDoc) {
+  let booking = bookingDoc;
+  if (!booking) return booking;
+  try {
+    const {
+      syncBookingFromQuotation,
+      resolveQuotationForBooking,
+    } = require('./operationsQuotationSyncService');
+    const synced = await syncBookingFromQuotation(booking._id, {
+      force: !Array.isArray(booking.itinerary) || !booking.itinerary.length,
+    });
+    if (synced?.booking) booking = synced.booking;
+    const quotationDoc = synced?.quotation || await resolveQuotationForBooking(booking);
+    if (quotationDoc) booking = { ...booking, quotation: quotationDoc };
+    if (synced?.quotationPreview) booking = { ...booking, quotationPreview: synced.quotationPreview };
+  } catch (_) { /* non-fatal */ }
+  try {
+    if (booking.lead && (typeof booking.lead !== 'object' || !booking.lead.adults)) {
+      const Lead = require('../models/Lead');
+      const leadDoc = await Lead.findById(booking.lead).select('adults children travelers pax pickup drop phone').lean();
+      if (leadDoc) booking = { ...booking, lead: leadDoc };
+    }
+  } catch (_) { /* non-fatal */ }
+  try {
+    const { resolveGuestCounts } = require('../utils/guestCounts');
+    const guests = resolveGuestCounts({
+      booking,
+      lead: booking.lead,
+      quotation: booking.quotation,
+    });
+    if (guests.adults && Number(booking.adults || 0) !== guests.adults) {
+      booking = { ...booking, adults: guests.adults, children: guests.children };
+    }
+  } catch (_) { /* non-fatal */ }
+  return booking;
+}
+
 async function repairVoucherPdfFile(voucher) {
-  const booking = await Booking.findById(voucher.booking).lean();
+  let booking = await Booking.findById(voucher.booking).lean();
   if (!booking) return { voucher, buffer: null };
+  booking = await attachQuoteLeadForRender(booking);
 
   let payload = voucher.payload;
   if (!payload || !Object.keys(payload).length) {
     payload = extractPayload(booking, voucher.type, voucher.assignmentIndex || 0) || {};
+  }
+  // Cab PDFs: refresh itinerary from booking/quote when saved payload is empty/stub
+  if ((voucher.type === 'transport' || voucher.type === 'cab')) {
+    const fresh = extractPayload(booking, 'transport', voucher.assignmentIndex || 0) || {};
+    const savedItin = Array.isArray(payload?.itinerary) ? payload.itinerary : [];
+    const freshItin = Array.isArray(fresh?.itinerary) ? fresh.itinerary : [];
+    const score = (days) => (days || []).reduce((s, d) => {
+      const places = String(d?.activities || d?.sightseeing || d?.places || d?.description || '').trim();
+      return s + 1 + (places ? 3 : 0);
+    }, 0);
+    if (score(freshItin) > score(savedItin)) {
+      payload = { ...payload, itinerary: freshItin };
+    } else if (!savedItin.length && freshItin.length) {
+      payload = { ...payload, itinerary: freshItin };
+    }
   }
   if (voucher.type === 'client' || voucher.type === 'master') {
     payload = {
@@ -621,7 +706,7 @@ async function repairVoucherPdfFile(voucher) {
   });
 
   return {
-    voucher: { ...voucher, ...fileMeta },
+    voucher: { ...voucher, ...fileMeta, payload },
     buffer,
   };
 }
@@ -697,12 +782,21 @@ async function getVoucherHtml(voucherId) {
     if (active) voucher = active;
   }
 
-  const booking = await Booking.findById(voucher.booking).lean();
+  let booking = await Booking.findById(voucher.booking).lean();
   if (!booking) throw new Error('Booking not found');
+  booking = await attachQuoteLeadForRender(booking);
 
   let payload = voucher.payload;
   if (!payload || !Object.keys(payload).length) {
     payload = extractPayload(booking, voucher.type === 'cab' ? 'transport' : voucher.type, voucher.assignmentIndex || 0) || {};
+  }
+  if (voucher.type === 'transport' || voucher.type === 'cab') {
+    const fresh = extractPayload(booking, 'transport', voucher.assignmentIndex || 0) || {};
+    const savedItin = Array.isArray(payload?.itinerary) ? payload.itinerary : [];
+    const freshItin = Array.isArray(fresh?.itinerary) ? fresh.itinerary : [];
+    if ((!savedItin.length || freshItin.length > savedItin.length) && freshItin.length) {
+      payload = { ...payload, itinerary: freshItin };
+    }
   }
 
   const { buildVoucherHtml } = require('./voucherHtmlTemplates');
@@ -1096,7 +1190,7 @@ async function getBookingExecution(bookingId) {
 async function autoRegenerateOnBookingUpdate(prev, next, actor) {
   if (!prev || !next) return;
 
-  const fields = ['hotels', 'transport', 'activities', 'travelDate', 'returnDate', 'adults', 'children'];
+  const fields = ['hotels', 'transport', 'activities', 'itinerary', 'travelDate', 'returnDate', 'adults', 'children'];
   const changed = fields.some((f) => JSON.stringify(prev[f]) !== JSON.stringify(next[f]));
   if (!changed) return;
 

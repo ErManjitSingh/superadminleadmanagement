@@ -129,10 +129,38 @@ function resolveHotelForDay(selectedHotels, dayNum, travelDate, duration) {
   return null;
 }
 
+function pickRichestItineraryDays(quotation = {}) {
+  const snap = quotation?.packageSnapshot || {};
+  const candidates = [
+    snap.itinerary,
+    quotation.itinerary,
+    quotation.customItinerary,
+    quotation.packageInfo?.itinerary,
+    // Latest saved version snapshot (fallback for older quotes)
+    ...(Array.isArray(quotation.versions)
+      ? quotation.versions
+        .slice()
+        .reverse()
+        .map((v) => v?.snapshot?.packageSnapshot?.itinerary || v?.snapshot?.itinerary)
+      : []),
+  ].filter((arr) => Array.isArray(arr) && arr.length);
+
+  if (!candidates.length) return [];
+
+  const score = (days) => days.reduce((sum, d) => {
+    const places = String(
+      d?.activities || d?.sightseeing || d?.activityNotes || d?.places || d?.description || '',
+    ).trim();
+    return sum + 1 + (places ? 3 : 0) + (String(d?.title || '').trim() ? 1 : 0);
+  }, 0);
+
+  return candidates.sort((a, b) => score(b) - score(a) || b.length - a.length)[0] || [];
+}
+
 function mapQuoteItinerary(quotation, travelDate) {
   const omitHotels = quotationOmitsHotels(quotation);
   const snap = quotation?.packageSnapshot || {};
-  const days = snap.itinerary || [];
+  const days = pickRichestItineraryDays(quotation);
   const selectedHotels = omitHotels ? [] : (quotation?.selectedHotels || []).filter((h) =>
     String(h?.name || h?.hotelName || '').trim(),
   );
@@ -366,7 +394,7 @@ async function syncBookingFromQuotation(bookingId, { force = false } = {}) {
     if (richQuoteItin.length) patch.itinerary = richQuoteItin;
   }
 
-  // Fix stuck adults=1 (Lead/Booking schema default) from quotation packageInfo
+  // Heal guest counts from quotation / lead travelers (schema default 1 is untrusted)
   try {
     const { resolveGuestCounts } = require('../utils/guestCounts');
     const Lead = require('../models/Lead');
@@ -374,16 +402,11 @@ async function syncBookingFromQuotation(bookingId, { force = false } = {}) {
       ? await Lead.findById(booking.lead).select('adults children travelers pax').lean()
       : null;
     const guests = resolveGuestCounts({ booking, lead: leadDoc, quotation });
-    const quoteAdults = Number(quotation?.packageInfo?.adults || quotation?.packageSnapshot?.adults || 0);
-    if (quoteAdults > 0 && Number(booking.adults || 0) !== guests.adults) {
+    if (guests.adults && Number(booking.adults || 0) !== guests.adults) {
       patch.adults = guests.adults;
     }
-    if (Number(booking.children || 0) !== guests.children && (quoteAdults > 0 || guests.children > 0)) {
+    if (Number(booking.children || 0) !== guests.children) {
       patch.children = guests.children;
-    }
-    // Also heal when booking is stuck at default 1 and lead/quote has more
-    if ((!booking.adults || booking.adults === 1) && guests.adults > 1) {
-      patch.adults = guests.adults;
     }
   } catch (_) {
     /* non-fatal */
