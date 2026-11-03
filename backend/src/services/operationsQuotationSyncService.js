@@ -157,16 +157,34 @@ function pickRichestItineraryDays(quotation = {}) {
   return candidates.sort((a, b) => score(b) - score(a) || b.length - a.length)[0] || [];
 }
 
-function mapQuoteItinerary(quotation, travelDate) {
+function mapQuoteItinerary(quotation, travelDate, booking = {}) {
   const omitHotels = quotationOmitsHotels(quotation);
   const snap = quotation?.packageSnapshot || {};
-  const days = pickRichestItineraryDays(quotation);
+  let days = pickRichestItineraryDays(quotation);
   const selectedHotels = omitHotels ? [] : (quotation?.selectedHotels || []).filter((h) =>
     String(h?.name || h?.hotelName || '').trim(),
   );
   const duration = Number(
     quotation?.packageInfo?.duration || snap.duration || days.length || 0,
   );
+
+  // Cab-only / incomplete quotes often have empty packageSnapshot — build day list from dates + destination
+  if (!days.length) {
+    try {
+      const { buildFallbackCabItinerary } = require('../utils/cabItineraryFallback');
+      days = buildFallbackCabItinerary({
+        travelDate: travelDate || booking.travelDate || quotation?.packageInfo?.travelDate,
+        returnDate: booking.returnDate || null,
+        duration: duration || quotation?.packageInfo?.duration,
+        destination: quotation?.packageInfo?.destination || snap.destination || booking.destination,
+        packageName: quotation?.packageInfo?.packageName || snap.name,
+        pickup: booking.pickup || booking.transport?.[0]?.pickupLocation || '',
+        drop: booking.drop || booking.transport?.[0]?.dropLocation || '',
+      });
+    } catch (_) {
+      days = [];
+    }
+  }
 
   if (!days.length) return [];
 
@@ -344,7 +362,7 @@ async function extractFulfillmentFromQuotation(quotation, booking = {}) {
   }
 
   return {
-    itinerary: mapQuoteItinerary(quote, travelDate),
+    itinerary: mapQuoteItinerary(quote, travelDate, booking),
     hotels: mapQuoteHotels(quote, travelDate),
     transport: mapQuoteTransport(quote),
     activities: mapQuoteActivities(quote),

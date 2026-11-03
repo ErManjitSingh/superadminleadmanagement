@@ -206,11 +206,26 @@ function extractPayload(booking, type, index = 0) {
     if (!sourceDays.length && booking.quotation && typeof booking.quotation === 'object') {
       try {
         const { mapQuoteItinerary } = require('./operationsQuotationSyncService');
-        sourceDays = mapQuoteItinerary(booking.quotation, booking.travelDate) || [];
+        sourceDays = mapQuoteItinerary(booking.quotation, booking.travelDate, booking) || [];
       } catch (_) { /* ignore */ }
     }
     if (!sourceDays.length && Array.isArray(booking.quotationPreview?.itinerary)) {
       sourceDays = booking.quotationPreview.itinerary;
+    }
+    if (!sourceDays.length) {
+      try {
+        const { buildFallbackCabItinerary } = require('../utils/cabItineraryFallback');
+        const quote = booking.quotation && typeof booking.quotation === 'object' ? booking.quotation : null;
+        sourceDays = buildFallbackCabItinerary({
+          travelDate: booking.travelDate || quote?.packageInfo?.travelDate,
+          returnDate: booking.returnDate,
+          duration: quote?.packageInfo?.duration || quote?.packageSnapshot?.duration,
+          destination: booking.destination || quote?.packageInfo?.destination,
+          packageName: quote?.packageInfo?.packageName,
+          pickup: t.pickupLocation || booking.pickup || '',
+          drop: t.dropLocation || booking.drop || '',
+        });
+      } catch (_) { /* ignore */ }
     }
     const itinerary = sourceDays.map((d, i) => ({
       day: d.day || i + 1,
@@ -397,6 +412,17 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   }
 
   let payload = extractPayload(booking, normalizedType, assignmentIndex);
+
+  // Persist day-wise cab itinerary onto booking when quote had none (fallback built)
+  if (
+    normalizedType === 'transport'
+    && Array.isArray(payload?.itinerary)
+    && payload.itinerary.length
+    && (!Array.isArray(booking.itinerary) || !booking.itinerary.length)
+  ) {
+    booking = { ...booking, itinerary: payload.itinerary };
+    await Booking.findByIdAndUpdate(bookingId, { itinerary: payload.itinerary }).catch(() => {});
+  }
 
   if (normalizedType === 'hotel' && payload?.hotelId) {
     const mongoose = require('mongoose');

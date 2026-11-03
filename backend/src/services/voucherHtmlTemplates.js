@@ -436,8 +436,23 @@ function resolveCabItinerary(booking = {}, payload = {}) {
       : (Array.isArray(booking.quotation?.itinerary) ? booking.quotation.itinerary : []);
   } catch (_) { /* ignore */ }
 
+  let fromFallback = [];
+  try {
+    const { buildFallbackCabItinerary } = require('../utils/cabItineraryFallback');
+    const quote = booking.quotation && typeof booking.quotation === 'object' ? booking.quotation : null;
+    fromFallback = buildFallbackCabItinerary({
+      travelDate: booking.travelDate || quote?.packageInfo?.travelDate,
+      returnDate: booking.returnDate,
+      duration: quote?.packageInfo?.duration || snapDuration(quote) || fromPayload.length || fromBooking.length,
+      destination: booking.destination || quote?.packageInfo?.destination || quote?.packageSnapshot?.destination,
+      packageName: quote?.packageInfo?.packageName,
+      pickup: payload.pickupLocation || booking.pickup || '',
+      drop: payload.dropLocation || booking.drop || '',
+    });
+  } catch (_) { /* ignore */ }
+
   // Prefer the richest day list (places/sightseeing > bare day stubs)
-  const days = [fromPayload, fromBooking, fromPreview, fromQuote]
+  const days = [fromPayload, fromBooking, fromPreview, fromQuote, fromFallback]
     .filter((arr) => Array.isArray(arr) && arr.length)
     .sort((a, b) => itineraryDayScore(b) - itineraryDayScore(a) || b.length - a.length)[0] || [];
   return days.map((d, i) => {
@@ -458,6 +473,10 @@ function resolveCabItinerary(booking = {}, payload = {}) {
       transport,
     };
   }).filter((d) => d.title || d.places || d.transport);
+}
+
+function snapDuration(quote) {
+  return Number(quote?.packageSnapshot?.duration || 0) || 0;
 }
 
 function cabItineraryHtml(rows = []) {
