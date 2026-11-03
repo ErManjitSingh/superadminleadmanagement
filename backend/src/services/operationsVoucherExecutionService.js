@@ -47,19 +47,51 @@ async function logEvent({ bookingId, voucherId, type, title, description, actor,
 async function nextVoucherNumber(type = 'hotel') {
   const prefix = { hotel: 'H', transport: 'C', activity: 'A', flight: 'F', travel_kit: 'K', master: 'M', client: 'CL' }[type] || 'V';
   const year = new Date().getFullYear();
-  const re = new RegExp(`^VCH-${prefix}-${year}-(\\d+)$`);
-  const latest = await Voucher.find({ voucherNumber: { $regex: `^VCH-${prefix}-${year}-` } })
+  // Capture digits even when archived suffix `__arch_...` is present.
+  // Sorting+limit(20) used to return only `__arch_` rows, so maxSeq stayed 0 and
+  // every create tried VCH-*-00001 → E11000 duplicate key.
+  const re = new RegExp(`^VCH-${prefix}-${year}-(\\d+)`);
+  const rows = await Voucher.find({ voucherNumber: { $regex: `^VCH-${prefix}-${year}-` } })
     .select('voucherNumber')
-    .sort({ voucherNumber: -1 })
-    .limit(20)
     .lean();
   let maxSeq = 0;
-  for (const row of latest) {
+  for (const row of rows) {
     const m = String(row.voucherNumber || '').match(re);
     if (m) maxSeq = Math.max(maxSeq, Number(m[1]) || 0);
   }
-  // Also scan archived-renamed originals that may have freed lower numbers — still take max+1
   return `VCH-${prefix}-${year}-${String(maxSeq + 1).padStart(5, '0')}`;
+}
+
+async function allocateUniqueVoucherNumber(type, preferred = '') {
+  const wanted = String(preferred || '').trim();
+  if (wanted && !wanted.includes('__arch_')) {
+    const clash = await Voucher.findOne({ voucherNumber: wanted }).select('_id').lean();
+    if (!clash) return wanted;
+  }
+
+  const prefixMap = { hotel: 'H', transport: 'C', activity: 'A', flight: 'F', travel_kit: 'K', master: 'M', client: 'CL' };
+  const prefix = prefixMap[type] || 'V';
+  const year = new Date().getFullYear();
+  const head = `VCH-${prefix}-${year}-`;
+  const re = new RegExp(`^VCH-${prefix}-${year}-(\\d+)`);
+
+  const rows = await Voucher.find({ voucherNumber: { $regex: `^${head}` } })
+    .select('voucherNumber')
+    .lean();
+  let maxSeq = 0;
+  const taken = new Set();
+  for (const row of rows) {
+    const raw = String(row.voucherNumber || '');
+    taken.add(raw);
+    const m = raw.match(re);
+    if (m) maxSeq = Math.max(maxSeq, Number(m[1]) || 0);
+  }
+
+  for (let i = 1; i <= 20; i += 1) {
+    const candidate = `${head}${String(maxSeq + i).padStart(5, '0')}`;
+    if (!taken.has(candidate)) return candidate;
+  }
+  return `${head}${String(Date.now()).slice(-5)}`;
 }
 
 /**
@@ -485,11 +517,11 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   }
 
   const version = (existing?.version || 0) + 1;
-  let voucherNumber = existing?.voucherNumber || (await nextVoucherNumber(normalizedType));
-  // Never reuse an already-archived renamed number
-  if (String(voucherNumber).includes('__arch_')) {
-    voucherNumber = String(voucherNumber).split('__arch_')[0] || (await nextVoucherNumber(normalizedType));
-  }
+  // Prefer prior public number after archive rename frees it; otherwise allocate next free.
+  const preferredNumber = existing?.voucherNumber && !String(existing.voucherNumber).includes('__arch_')
+    ? String(existing.voucherNumber).split('__arch_')[0]
+    : '';
+  let voucherNumber = await allocateUniqueVoucherNumber(normalizedType, preferredNumber);
   const token = crypto.randomBytes(24).toString('hex');
   const vendorUrl = ['hotel', 'transport', 'activity'].includes(normalizedType)
     ? buildVendorConfirmationUrl(token)
@@ -542,12 +574,26 @@ async function generateVoucherForAssignment(bookingId, { type, assignmentIndex =
   try {
     voucher = await Voucher.create(createPayload);
   } catch (err) {
-    // Live DB may still have a full unique index on voucherNumber — retry with a fresh number
+    // Live DB unique index on voucherNumber — retry with freshly allocated numbers
     if (err?.code === 11000 || /duplicate key/i.test(err?.message || '')) {
-      createPayload.voucherNumber = await nextVoucherNumber(normalizedType);
-      voucherDoc.voucherNumber = createPayload.voucherNumber;
-      voucherNumber = createPayload.voucherNumber;
-      voucher = await Voucher.create(createPayload);
+      let lastErr = err;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        try {
+          const fresh = await allocateUniqueVoucherNumber(normalizedType);
+          createPayload.voucherNumber = fresh;
+          voucherDoc.voucherNumber = fresh;
+          voucherNumber = fresh;
+          voucher = await Voucher.create(createPayload);
+          lastErr = null;
+          break;
+        } catch (retryErr) {
+          lastErr = retryErr;
+          if (!(retryErr?.code === 11000 || /duplicate key/i.test(retryErr?.message || ''))) {
+            throw retryErr;
+          }
+        }
+      }
+      if (lastErr) throw lastErr;
     } else {
       throw err;
     }
