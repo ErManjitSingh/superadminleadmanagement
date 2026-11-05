@@ -515,8 +515,8 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 .emb-page {
-  width: 210mm; min-height: 297mm; background: #fff; overflow: hidden;
-  position: relative;
+  width: 210mm; min-height: 297mm; height: auto; background: #fff;
+  overflow: visible; position: relative;
 }
 .emb-top {
   display: grid; grid-template-columns: 1.15fr 1.2fr 1fr; gap: 6px;
@@ -657,8 +657,9 @@ html, body {
 .emb-terms { font-size: 8px; color: #475569; line-height: 1.35; padding-left: 10px; }
 .emb-terms li { margin: 2px 0; }
 .emb-itinerary {
-  margin: 0 12px 6px; border: 1px solid #e2e8f0; border-radius: 8px;
-  overflow: hidden; position: relative; z-index: 1;
+  margin: 0 12px 8px; border: 1px solid #e2e8f0; border-radius: 8px;
+  overflow: visible; position: relative; z-index: 1;
+  page-break-inside: auto; break-inside: auto;
 }
 .emb-itinerary-h {
   background: #0b1c36; color: #fff; font-size: 9px; font-weight: 800;
@@ -668,6 +669,7 @@ html, body {
 .emb-day {
   display: grid; grid-template-columns: 48px 1fr; gap: 6px;
   border: 1px solid #f1f5f9; border-radius: 6px; padding: 5px 7px; background: #fafafa;
+  page-break-inside: avoid; break-inside: avoid;
 }
 .emb-day-num {
   background: #fff7ed; color: #c2410c; border-radius: 4px;
@@ -853,6 +855,11 @@ html, body {
 }
 
 @media print {
+  html, body, .emb-page {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
   .emb-brand-name { font-size: 16px; }
   .emb-brand-tag { font-size: 11px; }
   .emb-title { font-size: 18px; }
@@ -872,7 +879,9 @@ html, body {
   .emb-fare-adv p, .emb-fare-bal p { font-size: 13px; }
   .emb-check { font-size: 11px; }
   .emb-terms { font-size: 11px; line-height: 1.45; }
+  .emb-itinerary { page-break-before: auto; break-before: auto; }
   .emb-itinerary-h { font-size: 12px; }
+  .emb-day { page-break-inside: avoid; break-inside: avoid; }
   .emb-day-num { font-size: 11px; }
   .emb-day-title { font-size: 12px; }
   .emb-day-date { font-size: 10px; }
@@ -1092,6 +1101,11 @@ async function buildCabVoucherHtml(voucher, booking) {
     </div>
   </div>
 
+  <div class="emb-itinerary">
+    <div class="emb-itinerary-h">Day-wise Itinerary</div>
+    <div class="emb-itinerary-b">${itineraryHtml}</div>
+  </div>
+
   <div class="emb-grid-3">
     <div class="emb-card">
       <div class="emb-card-h">Fare Details</div>
@@ -1125,11 +1139,6 @@ async function buildCabVoucherHtml(voucher, booking) {
         <ul class="emb-terms">${terms.map((t) => `<li>${escHtml(t)}</li>`).join('')}</ul>
       </div>
     </div>
-  </div>
-
-  <div class="emb-itinerary">
-    <div class="emb-itinerary-h">Day-wise Itinerary</div>
-    <div class="emb-itinerary-b">${itineraryHtml}</div>
   </div>
 
   ${vendorBlock}

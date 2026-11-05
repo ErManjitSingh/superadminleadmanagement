@@ -829,8 +829,15 @@ async function getVoucherPdfBuffer(voucherId) {
     if (active) voucher = active;
   }
 
-  let buffer = getCachedPdfBuffer(voucher) || readPdfBuffer(voucher.filePath);
+  // Cab vouchers with day-wise itinerary must re-render PDF — older files clipped
+  // itinerary due to overflow:hidden on a single A4 page.
+  const isCab = voucher.type === 'transport' || voucher.type === 'cab';
+  const hasItinerary = Array.isArray(voucher.payload?.itinerary) && voucher.payload.itinerary.length > 0;
+  const forceRepairCab = isCab && hasItinerary;
+
+  let buffer = forceRepairCab ? null : (getCachedPdfBuffer(voucher) || readPdfBuffer(voucher.filePath));
   if (!buffer) {
+    pdfBufferCache.delete(String(voucher._id));
     const repaired = await repairVoucherPdfFileLocked(voucher);
     voucher = repaired.voucher;
     buffer = repaired.buffer;
